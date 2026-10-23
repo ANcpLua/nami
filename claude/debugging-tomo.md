@@ -1,7 +1,7 @@
 # What Claude needs from nami to debug tomo
 
 tomo is a Rust service. Claude debugs it through nami, and nami is nothing but an OTLP target plus MCP tools.
-No SDK, no product REST API, no qyl API: the tools are the API.
+No SDK, no product REST API, no nami API: the tools are the API.
 
 ## 1. The two surfaces, and nothing else
 

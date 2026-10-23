@@ -1,0 +1,13 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"/>
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- Internal console tools do not localize diagnostics. -->
+    <NoWarn>$(NoWarn);CA1303</NoWarn>
+    <IsAotCompatible>false</IsAotCompatible>
+  </PropertyGroup>
+</Project>

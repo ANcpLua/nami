@@ -1,0 +1,39 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Nami.Instrumentation</RootNamespace>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Nami.Instrumentation.Generators</InterceptorsNamespaces>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Nami.Collector.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery"/>
+
+    <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
+
+    <!-- Nami.Telemetry.Hosting owns the producer pipeline: OTel wiring, the instrumentation
+         inventory, OTLP export, and collector discovery. This project composes service defaults
+         around it and does not re-declare those dependencies. -->
+    <PackageReference Include="Nami.Telemetry.Hosting"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../nami.contracts/Nami.Api.Contracts.csproj"/>
+    <PackageReference Include="Nami.Telemetry.SemanticConventions"/>
+    <PackageReference Include="Nami.Telemetry.SemanticConventions.Incubating"/>
+
+    <ProjectReference Include="../../internal/nami.instrumentation.generators/nami.instrumentation.generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

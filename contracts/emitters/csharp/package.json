@@ -1,0 +1,14 @@
+{
+  "name": "@ancplua/typespec-emit-csharp",
+  "private": true,
+  "description": "ANcpLua TypeSpec emitter for C# DTOs, enums, and explicit polymorphic unions",
+  "type": "module",
+  "main": "dist/index.js",
+  "tspMain": "lib/main.tsp",
+  "exports": {
+    ".": {
+      "typespec": "./lib/main.tsp",
+      "default": "./dist/index.js"
+    }
+  }
+}

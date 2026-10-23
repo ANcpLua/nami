@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Nami.Instrumentation.Generators</InterceptorsNamespaces>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ProjectReference builds resolve analyzer outputs relative to this targets file. -->
+    <Analyzer Include="$(MSBuildThisFileDirectory)../../nami.instrumentation.generators/bin/$(Configuration)/netstandard2.0/nami.instrumentation.generators.dll"
+              Condition="Exists('$(MSBuildThisFileDirectory)../../nami.instrumentation.generators/bin/$(Configuration)/netstandard2.0/nami.instrumentation.generators.dll')"/>
+    <Analyzer Include="$(MSBuildThisFileDirectory)../../nami.instrumentation.generators/bin/$(Configuration)/netstandard2.0/ANcpLua.Roslyn.Utilities.dll"
+              Condition="Exists('$(MSBuildThisFileDirectory)../../nami.instrumentation.generators/bin/$(Configuration)/netstandard2.0/ANcpLua.Roslyn.Utilities.dll')"/>
+  </ItemGroup>
+</Project>

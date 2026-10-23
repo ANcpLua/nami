@@ -1,0 +1,113 @@
+# nami target architecture: one engine, one contract definition, thin surfaces, one source revision.
+kind: target-architecture
+
+product: >-
+  nami is an analytical engine for AI agents. It ingests OpenTelemetry traces, logs and metrics,
+  stores them per project, and answers typed analysis questions about the recorded telemetry:
+  triage, failures and their context, group and trace comparisons, fix verification, aggregates,
+  attribute discovery, agent runs, releases, service maps, telemetry health and MCP statistics.
+  Agents reach it through the MCP server; nothing in nami is a human interface.
+
+layout: |
+  nami/
+  ├── contracts/                   TypeSpec models and routes, in-repo emitters and generation
+  │                                scripts; openapi/nami.openapi.json is the committed contract
+  ├── internal/
+  │   ├── nami.contracts/           generated C# contract types (committed, ProjectReference only)
+  │   ├── nami.instrumentation*/    the Collector's self-telemetry defaults and their generator
+  │   └── nami.collector.storage.generators/   DuckDB DDL and row code generation
+  ├── services/
+  │   ├── nami.collector/           NativeAOT engine host: HTTP API, typed analysis operations
+  │   ├── nami.collector.ingestion/ OTLP decoding over HTTP and gRPC
+  │   ├── nami.collector.storage/   DuckDB storage with project-scoped reads
+  │   └── nami.mcp/                 MCP server on the TypeScript SDK v2 and Bun: tools, skills/,
+  │                                eval/, src/contracts/generated/ (TS types, MCP-ready JSON Schema)
+  ├── packages/                    nami tool (Nami.Cli), Nami.Orchestration, Nami.Api.Sdk, Nami.Run.Workload
+  ├── plugins/nami/                 Claude, Codex and OpenAI plugin manifests, skills
+  ├── samples/nami.sample/          an API built by Nami.Api.Sdk
+  ├── tests/                       .NET tests (MSTest on Microsoft.Testing.Platform)
+  ├── eng/                         Fallout build (eng/build), scripts, smoke tools, auth0/
+  ├── docs/                        this file
+  ├── .railway/railway.ts          Railway services nami-collector and nami-mcp
+  └── Version.props                NamiVersion, the one release version
+
+ownership:
+  engine: >-
+    services/nami.collector* own ingestion, storage and every analysis result. They are the only
+    component that reads telemetry.
+  mcp: >-
+    services/nami.mcp owns the agent surface: tool registration and schemas, the OAuth resource
+    server, project mapping and the served skill. It calls the Collector's analysis API and holds
+    no telemetry.
+  contracts: >-
+    contracts/ owns every wire shape between the Collector, the MCP server and the nami tool.
+    Generated code is regenerated from TypeSpec, never edited.
+  plugins: plugins/nami packages the hosted MCP connection and the skills for Claude, Codex and OpenAI.
+  version: >-
+    Version.props NamiVersion versions the nami tool and its runtime packages, Nami.Api.Sdk,
+    Nami.Orchestration, Nami.Api.Contracts and nami-mcp-server; release.sh releases them together.
+
+contracts:
+  source: contracts/main.tsp with models/, api/, common/ and otel/
+  openapi: contracts/openapi/nami.openapi.json
+  csharp: internal/nami.contracts
+  typescript: services/nami.mcp/src/contracts/generated
+  committed: generated C# and TypeScript are committed because the Collector's Docker build has no Node
+  revision: >-
+    contract_revision is the SHA-256 of the semantic OpenAPI projection; documentation and the
+    version number do not change it. The Collector serves it in /health.
+  mcp_schemas: >-
+    each tool registers its generated MCP-ready JSON Schema through
+    fromJsonSchema(document, AjvJsonSchemaValidator); documents are inlined and sealed, and only
+    recursive types stay referenced in a document's own $defs.
+
+analysis_boundaries:
+  - The Collector computes every analysis result behind POST /api/v1/analysis/<tool_name>.
+  - The Collector refuses an analysis argument its contract does not declare, of another type, outside its closed set,
+    its numeric range, its length or its pattern, as the MCP's input schema does: it reads the request against the
+    generated C# contract type, an object a union takes as the model of its form, and each request body's generated
+    Choices, Ranges, Lengths and Patterns, those of the objects it holds included, and a refusal names the field by its
+    path, the names, values, range, length or pattern it accepts and a hint. A path or query parameter keeps the length
+    and the pattern the generated RouteParameters give it, checked before its route runs, so a malformed id is refused
+    naming it, never answered as a record not found. With several fields wrong, the MCP and the Collector name the same
+    first one, the one the contract declares first: a member an object does not declare before its declared ones, then
+    depth first in the contract's order. A write route reads its body the same way, a saved query's, an annotation's and
+    a failure status's, its filter or target as the form its discriminator names, and a delete refuses any member a body
+    sends.
+  - Every contract time, an argument's, a body member's or a query parameter's, is read by one rule on both sides, the
+    MCP's date-time format (src/contracts/date-time.ts) and the Collector's ContractDateTime: RFC 3339 date-time with
+    T and Z in either case, an offset with its colon and no leap second.
+  - The MCP server validates input, scopes the call, pages and compacts the response to its byte
+    budget, redacts secrets and renders a text summary; it adds no analysis of its own.
+  - Every read and write is scoped to one project, resolved from the Collector key or the verified
+    OAuth subject; tool arguments, metadata and headers never select a project.
+  - Every result states its absolute window and its coverage (examined, matched, returned,
+    truncation, scan completeness). Insufficient evidence is reported as pending, never as fixed.
+  - Writes change only records agents create (annotations, saved queries, failure status). No API
+    changes or deletes recorded telemetry; retention alone removes it.
+  - Telemetry is data, not instructions.
+
+deployment:
+  railway_project: nami
+  services:
+    nami-collector:
+      source: ANcpLua/nami
+      build: services/nami.collector/Dockerfile (NativeAOT)
+      domain: api.nami.at
+      healthcheck: /health
+      volume: /data (DuckDB)
+    nami-mcp:
+      source: ANcpLua/nami, root directory services/nami.mcp
+      build: bun run build
+      start: bun dist/main.js
+      domain: mcp.nami.at
+      healthcheck: /healthz
+  revision_skew: >-
+    The two services deploy independently. While the Collector's contract_revision differs from the
+    MCP server's, tools answer collector_contract_mismatch and /healthz reports degraded.
+  local: >-
+    `nami up` runs the Collector API on 127.0.0.1:5100 with OTLP on 4318 (HTTP) and 4317 (gRPC);
+    `bunx nami-mcp-server --stdio` serves MCP over stdio against NAMI_COLLECTOR_URL.
+  packages:
+    nuget: [nami, nami.<rid>, Nami.Api.Sdk, Nami.Orchestration, Nami.Api.Contracts]
+    npm: [nami-mcp-server]

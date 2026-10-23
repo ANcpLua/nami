@@ -1,0 +1,48 @@
+# Check on pull requests and pushes; CheckFull (adds the NativeAOT, packed-tool and Nami.Api.Sdk
+# container stages) on main and on a manual dispatch, which verifies the exact commit of a branch
+# before main moves: gh workflow run check.yml --ref <branch>. mise.toml installs dotnet, bun and node.
+name: check
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      TARGET: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'push' && github.ref == 'refs/heads/main') && 'CheckFull' || 'Check' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+
+      - name: NativeAOT prerequisites
+        if: env.TARGET == 'CheckFull'
+        run: |
+          dpkg -s zlib1g-dev >/dev/null 2>&1 || { sudo apt-get update && sudo apt-get install -y --no-install-recommends zlib1g-dev; }
+          docker info >/dev/null
+
+      - name: ${{ env.TARGET }}
+        run: ./eng/build.sh "$TARGET" --Configuration Release
+
+      - name: Keep the build log
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: build-log
+          path: artifacts/logs/
+          if-no-files-found: ignore
+          retention-days: 7

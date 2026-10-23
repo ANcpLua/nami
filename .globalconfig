@@ -1,0 +1,65 @@
+# Level 100 gives this file precedence over lower-level SDK global analyzer configs.
+
+is_global = true
+global_level = 100
+
+dotnet_diagnostic.VSTHRD001.severity = error
+dotnet_diagnostic.VSTHRD002.severity = error
+dotnet_diagnostic.VSTHRD003.severity = error
+dotnet_diagnostic.VSTHRD010.severity = error
+dotnet_diagnostic.VSTHRD011.severity = error
+dotnet_diagnostic.VSTHRD100.severity = error
+dotnet_diagnostic.VSTHRD101.severity = error
+dotnet_diagnostic.VSTHRD102.severity = error
+dotnet_diagnostic.VSTHRD103.severity = error
+dotnet_diagnostic.VSTHRD104.severity = error
+dotnet_diagnostic.VSTHRD105.severity = error
+dotnet_diagnostic.VSTHRD106.severity = error
+dotnet_diagnostic.VSTHRD107.severity = error
+dotnet_diagnostic.VSTHRD110.severity = error
+dotnet_diagnostic.VSTHRD111.severity = warning
+dotnet_diagnostic.VSTHRD200.severity = error
+
+# ASP.NET Core has no SynchronizationContext; packable libraries re-enable CA2007 in .editorconfig.
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.CA2008.severity = error
+dotnet_diagnostic.CA2012.severity = error
+dotnet_diagnostic.CA2016.severity = error
+
+dotnet_diagnostic.CA1816.severity = error
+dotnet_diagnostic.CA1822.severity = warning
+dotnet_diagnostic.CA1848.severity = warning
+dotnet_diagnostic.CA1860.severity = error
+dotnet_diagnostic.CA1861.severity = error
+dotnet_diagnostic.CA2254.severity = warning
+
+# Allow 'nami' brand namespace (lowercase is intentional brand decision)
+# Per dotnet/roslyn#29944: Brand names are legitimate exceptions
+dotnet_diagnostic.IDE1006.severity = suggestion
+
+dotnet_diagnostic.IDE0200.severity = warning
+
+dotnet_diagnostic.CS1591.severity = none
+
+# ANcpLua.NET.Sdk ships Config/Analyzer.ANcpLua.Analyzers.editorconfig covering all 90 AL
+# rules, so only nami's deviations from it belong here. The 18 entries previously listed
+# (AL1000-AL1012, AL1100-AL1104) restated the SDK's values verbatim and were dropped.
+
+# AL1600: hardcoded-version rule targets SDK development, not consumer projects using CPM.
+dotnet_diagnostic.AL1600.severity = none
+# AL1700: re-tighten to the analyzer's declared default; the SDK demotes it to suggestion.
+dotnet_diagnostic.AL1700.severity = warning
+
+# RS0030 severity is controlled by SDK (warning) + EditorConfig patterns
+# Do NOT set to error here - globalconfig at level 100 overrides EditorConfig
+# patterns for generated files, causing false positives from MS source generators
+
+# Keep DTO, protobuf, and builder-shape diagnostics reviewable rather than build-blocking.
+
+dotnet_diagnostic.CA1002.severity = suggestion
+dotnet_diagnostic.CA1819.severity = suggestion
+dotnet_diagnostic.CA1034.severity = suggestion
+dotnet_diagnostic.CA1054.severity = suggestion
+dotnet_diagnostic.CA1056.severity = suggestion
+# Dynamic SQL is closed or generated; request data is bound and operator SET literals are escaped.
+dotnet_diagnostic.CA2100.severity = suggestion

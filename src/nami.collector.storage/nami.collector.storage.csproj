@@ -1,0 +1,30 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+  <!-- DuckDB persistence. Its compile assets stay private to this assembly, so the host and the
+       tests reach DuckDB only through INamiStore and the other storage intent methods. -->
+  <PropertyGroup>
+    <RootNamespace>Nami.Collector.Storage</RootNamespace>
+    <LangVersion>14</LangVersion>
+    <IsAotCompatible>true</IsAotCompatible>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DuckDB.NET.Data.Full" PrivateAssets="compile"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../nami.collector.ingestion/nami.collector.ingestion.csproj"/>
+    <ProjectReference Include="../../internal/nami.collector.storage.generators/nami.collector.storage.generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="nami.collector"/>
+    <InternalsVisibleTo Include="Nami.Collector.Tests"/>
+    <InternalsVisibleTo Include="Nami.Telemetry.IntegrationTests"/>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,26 @@
+<Project>
+  <!-- Private Collector modules ship together on one conventions pin; incubating coupling
+       is intentional here. A module made packable keeps the public-library diagnostic. -->
+  <PropertyGroup Condition="$(MSBuildProjectName.StartsWith('nami.collector')) And '$(IsPackable)' != 'true'">
+    <OtelSemConvInstrumentationLibrary>true</OtelSemConvInstrumentationLibrary>
+  </PropertyGroup>
+
+  <Target Name="GenerateVersionConstant" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <_NamiInformationalVersion>$(InformationalVersion)</_NamiInformationalVersion>
+      <_NamiInformationalVersion Condition="'$(_NamiInformationalVersion)' == ''">$(Version)</_NamiInformationalVersion>
+      <_NamiInformationalVersion Condition="'$(_NamiInformationalVersion)' == ''">0.0.0</_NamiInformationalVersion>
+      <_NamiProductVersion>$(Version)</_NamiProductVersion>
+      <_NamiProductVersion Condition="'$(_NamiProductVersion)' == ''">0.0.0</_NamiProductVersion>
+    </PropertyGroup>
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)BuildVersion.g.cs"/>
+    </ItemGroup>
+    <WriteLinesToFile
+      File="$(IntermediateOutputPath)BuildVersion.g.cs"
+      Lines="namespace $(RootNamespace)%3B&#10;&#10;internal static class BuildVersion&#10;{&#10;    internal const string InformationalVersion = &quot;$(_NamiInformationalVersion)&quot;%3B&#10;    internal const string ProductVersion = &quot;$(_NamiProductVersion)&quot;%3B&#10;}"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true"/>
+  </Target>
+
+</Project>

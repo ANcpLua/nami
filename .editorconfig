@@ -1,0 +1,163 @@
+# Analyzer defaults live in .globalconfig; this file adds formatting, naming, and file-pattern overrides.
+
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.cs]
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# Style values guide explicit cleanup; the IDE diagnostic severities below control passive enforcement.
+csharp_using_directive_placement = outside_namespace
+dotnet_diagnostic.IDE0065.severity = warning
+csharp_style_namespace_declarations = file_scoped
+dotnet_diagnostic.IDE0161.severity = none
+csharp_prefer_braces = when_multiline
+dotnet_diagnostic.IDE0011.severity = none
+
+# Mirror ANcpLua.NET.Sdk naming rules for build and test projects that use Microsoft.NET.Sdk directly.
+
+dotnet_naming_rule.constant_fields_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.constant_fields_should_be_pascal_case.symbols  = constant_fields
+dotnet_naming_rule.constant_fields_should_be_pascal_case.style    = pascal_case_style
+dotnet_naming_symbols.constant_fields.applicable_kinds   = field
+dotnet_naming_symbols.constant_fields.required_modifiers = const
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+# Static-field rules deliberately split: private/internal fields use s_camelCase,
+# while const and public/protected static fields resolve to PascalCase.
+dotnet_naming_rule.static_fields_should_have_prefix.severity = suggestion
+dotnet_naming_rule.static_fields_should_have_prefix.symbols  = static_fields
+dotnet_naming_rule.static_fields_should_have_prefix.style    = static_prefix_style
+dotnet_naming_symbols.static_fields.applicable_kinds   = field
+dotnet_naming_symbols.static_fields.required_modifiers = static
+dotnet_naming_symbols.static_fields.applicable_accessibilities = private, internal, private_protected
+dotnet_naming_style.static_prefix_style.required_prefix = s_
+dotnet_naming_style.static_prefix_style.capitalization = camel_case
+
+dotnet_naming_rule.camel_case_for_private_internal_fields.severity = suggestion
+dotnet_naming_rule.camel_case_for_private_internal_fields.symbols  = private_internal_fields
+dotnet_naming_rule.camel_case_for_private_internal_fields.style    = camel_case_underscore_style
+dotnet_naming_symbols.private_internal_fields.applicable_kinds = field
+dotnet_naming_symbols.private_internal_fields.applicable_accessibilities = private, internal
+dotnet_naming_style.camel_case_underscore_style.required_prefix = _
+dotnet_naming_style.camel_case_underscore_style.capitalization = camel_case
+
+dotnet_naming_rule.constant_variables_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.constant_variables_should_be_pascal_case.symbols  = constant_variables
+dotnet_naming_rule.constant_variables_should_be_pascal_case.style    = pascal_case_style
+dotnet_naming_symbols.constant_variables.applicable_kinds   = local
+dotnet_naming_symbols.constant_variables.required_modifiers = const
+
+dotnet_naming_rule.locals_should_be_camel_case.severity = suggestion
+dotnet_naming_rule.locals_should_be_camel_case.symbols = locals_and_parameters
+dotnet_naming_rule.locals_should_be_camel_case.style = camel_case_style
+dotnet_naming_symbols.locals_and_parameters.applicable_kinds = parameter, local
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+
+dotnet_naming_rule.local_functions_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.local_functions_should_be_pascal_case.symbols = local_functions
+dotnet_naming_rule.local_functions_should_be_pascal_case.style = non_private_static_field_style
+dotnet_naming_symbols.local_functions.applicable_kinds = local_function
+dotnet_naming_style.non_private_static_field_style.capitalization = pascal_case
+
+dotnet_naming_style.type_parameter_style.capitalization = pascal_case
+dotnet_naming_style.type_parameter_style.required_prefix = T
+dotnet_naming_rule.type_parameter_naming.symbols = type_parameter_symbol
+dotnet_naming_rule.type_parameter_naming.style = type_parameter_style
+dotnet_naming_rule.type_parameter_naming.severity = warning
+dotnet_naming_symbols.type_parameter_symbol.applicable_kinds = type_parameter
+dotnet_naming_symbols.type_parameter_symbol.applicable_accessibilities = *
+
+dotnet_naming_style.interface_style.capitalization = pascal_case
+dotnet_naming_style.interface_style.required_prefix = I
+dotnet_naming_rule.interface_should_be_begins_with_i.severity = warning
+dotnet_naming_rule.interface_should_be_begins_with_i.style = interface_style
+dotnet_naming_rule.interface_should_be_begins_with_i.symbols = interface_symbols
+dotnet_naming_symbols.interface_symbols.applicable_kinds = interface
+dotnet_naming_symbols.interface_symbols.applicable_accessibilities = *
+
+dotnet_naming_rule.members_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.members_should_be_pascal_case.symbols = all_members
+dotnet_naming_rule.members_should_be_pascal_case.style = non_private_static_field_style
+dotnet_naming_symbols.all_members.applicable_kinds = *
+
+# The published analyzer recognizes telemetry-key arguments without confusing protocol or SQL literals.
+[services/nami.collector*/**.cs]
+dotnet_diagnostic.NAMI0004.severity = error
+
+[*.g.cs]
+dotnet_analyzer_diagnostic.severity = none
+dotnet_diagnostic.RS0030.severity = none
+dotnet_diagnostic.RS0031.severity = none
+generated_code = true
+
+[*.generated.cs]
+dotnet_analyzer_diagnostic.severity = none
+dotnet_diagnostic.RS0030.severity = none
+dotnet_diagnostic.RS0031.severity = none
+generated_code = true
+
+[**/obj/**/*.cs]
+dotnet_analyzer_diagnostic.severity = none
+dotnet_diagnostic.RS0030.severity = none
+dotnet_diagnostic.RS0031.severity = none
+generated_code = true
+
+[**/Protos/**/*.cs]
+dotnet_analyzer_diagnostic.severity = none
+generated_code = true
+
+[**/generated/**/*.cs]
+dotnet_analyzer_diagnostic.severity = none
+generated_code = true
+
+# Non-C# generated outputs — skip Rider/ReSharper cleanup & reformat.
+[*.g.{sql,tsp,ts}]
+generated_code = true
+
+[**/openapi/openapi.yaml]
+generated_code = true
+
+[eng/build/**/*.cs]
+# Fallout injects fields and uses a top-level build type, so its generated conventions require these suppressions.
+dotnet_diagnostic.CA1822.severity = none
+dotnet_diagnostic.CS0649.severity = none
+dotnet_diagnostic.CS0169.severity = none
+dotnet_diagnostic.CA1050.severity = none
+dotnet_diagnostic.CA2211.severity = none
+dotnet_diagnostic.IDE1006.severity = none
+
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+dotnet_style_require_accessibility_modifiers = never:warning
+csharp_style_expression_bodied_methods = true:silent
+csharp_style_expression_bodied_properties = true:warning
+csharp_style_expression_bodied_indexers = true:warning
+csharp_style_expression_bodied_accessors = true:warning
+
+# ANcpLua.NET.Sdk disables CA2007 in favor of MA0004, which nami does not install;
+# the packages re-enable it as a warning.
+[packages/**/*.cs]
+dotnet_diagnostic.CA2007.severity = warning
+
+[*.json]
+indent_size = 2
+
+[*.{yaml,yml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{xml,props,targets,csproj,fsproj,vbproj}]
+indent_size = 2

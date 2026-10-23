@@ -1,0 +1,81 @@
+<Project>
+  <Import Project="Version.props"/>
+  <ItemGroup>
+    <PackageVersion Include="Nami.Orchestration" Version="$(NamiVersion)" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!-- The Nami.Api.Sdk MSBuild SDK owns the versions of the packages it puts into every API it
+       builds. Importing its file here is the documented central-management path (Sdk/Sdk.props
+       imports it only when a repository has not), so those versions are declared exactly once
+       whether a project reaches the SDK through this repository or through the package. -->
+  <Import Project="$(MSBuildThisFileDirectory)packages/Nami.Api.Sdk/Build/Nami.Api.Sdk.Packages.props"/>
+
+  <!-- Every entry resolves through a property from Version.props. A literal version here is a bug:
+       it hides the bump from the one file that owns versions, and two packages on one release line
+       drift the moment their versions are typed separately. -->
+
+  <ItemGroup Label="OpenTelemetry">
+    <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryVersion)"/>
+    <!-- Transitive-only pin: nothing references it directly, but it must not float. -->
+    <PackageVersion Include="OpenTelemetry.Api" Version="$(OpenTelemetryVersion)"/>
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="$(OpenTelemetryVersion)"/>
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryVersion)"/>
+  </ItemGroup>
+
+  <ItemGroup Label="Platform">
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
+    <!-- Transitive-only pins: NuGet.Packaging and MSBuild in the build host and the ASP.NET Core
+         packages bring both; the runtime line's servicing build carries the advisory fixes. -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="$(DotNetRuntimeVersion)"/>
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="$(DotNetRuntimeVersion)"/>
+    <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.Compliance.Abstractions" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.Compliance.Redaction" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="$(MicrosoftExtensionsVersion)"/>
+  </ItemGroup>
+
+  <ItemGroup Label="Roslyn">
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(RoslynVersion)"/>
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersion)"/>
+    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Sources" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
+  </ItemGroup>
+
+  <ItemGroup Label="Storage and wire">
+    <PackageVersion Include="DuckDB.NET.Data.Full" Version="$(DuckDBVersion)"/>
+    <PackageVersion Include="Google.Protobuf" Version="$(GoogleProtobufVersion)"/>
+    <PackageVersion Include="Grpc.AspNetCore" Version="$(GrpcAspNetCoreVersion)"/>
+    <PackageVersion Include="Grpc.Net.Client" Version="$(GrpcAspNetCoreVersion)"/>
+    <PackageVersion Include="Grpc.Tools" Version="$(GrpcToolsVersion)"/>
+  </ItemGroup>
+
+  <ItemGroup Label="nami-owned">
+    <PackageVersion Include="Nami.Telemetry.Hosting" Version="$(NamiTelemetryVersion)"/>
+    <PackageVersion Include="Nami.Telemetry.AutoInstrumentation" Version="$(NamiTelemetryVersion)"/>
+    <PackageVersion Include="Nami.Telemetry.SemanticConventions" Version="$(NamiSemanticConventionsVersion)"/>
+    <PackageVersion Include="Nami.Telemetry.SemanticConventions.Incubating" Version="$(NamiSemanticConventionsVersion)"/>
+    <PackageVersion Include="Nami.Telemetry.SemanticConventions.Analyzers" Version="$(NamiSemanticConventionsVersion)"/>
+  </ItemGroup>
+
+  <ItemGroup Label="Build and test tooling">
+    <PackageVersion Include="Fallout.Common" Version="$(FalloutVersion)"/>
+    <PackageVersion Include="Fallout.Components" Version="$(FalloutVersion)"/>
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)"/>
+    <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="$(NetFrameworkReferenceAssembliesVersion)"/>
+    <PackageVersion Include="Microsoft.Build" Version="[$(MicrosoftBuildVersion)]"/>
+    <!-- Transitive-only pin: Fallout brings NuGet.Packaging; keep it on the .NET SDK's NuGet line. -->
+    <PackageVersion Include="NuGet.Packaging" Version="$(NuGetPackagingVersion)"/>
+  </ItemGroup>
+</Project>

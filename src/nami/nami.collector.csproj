@@ -1,0 +1,72 @@
+<Project Sdk="ANcpLua.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>Nami.Collector</RootNamespace>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <LangVersion>14</LangVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Nami.Instrumentation.Generators</InterceptorsNamespaces>
+    <!-- Options bind through the configuration binder source generator, the NativeAOT-safe binder. -->
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NamiAot Condition="'$(NamiAot)' == ''">true</NamiAot>
+    <PublishAot Condition="'$(NamiAot)' == 'true'">true</PublishAot>
+    <PublishTrimmed Condition="'$(NamiAot)' == 'true'">true</PublishTrimmed>
+    <!-- Analyzers are meaningful only with the Request Delegate Generator active (NamiAot=true,
+         the shipping config); without it the reflective MapGet/MapPost overloads flag IL2026/IL3050
+         that the published artifact never contains. -->
+    <EnableTrimAnalyzer Condition="'$(NamiAot)' == 'true'">true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer Condition="'$(NamiAot)' == 'true'">true</EnableAotAnalyzer>
+    <EnableSingleFileAnalyzer Condition="'$(NamiAot)' == 'true'">true</EnableSingleFileAnalyzer>
+    <WarningsNotAsErrors Condition="'$(NamiAot)' == 'true'">$(WarningsNotAsErrors);IL2104;IL3053</WarningsNotAsErrors>
+    <PublishAot Condition="'$(PublishAot)' == ''">false</PublishAot>
+    <PublishTrimmed Condition="'$(PublishTrimmed)' == ''">false</PublishTrimmed>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Analysis/Generated/semconv-metadata.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware"/>
+    <PackageReference Include="Microsoft.Extensions.Telemetry"/>
+    <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Compliance.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Compliance.Redaction"/>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common"/>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization"/>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.AsyncState"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../internal/nami.contracts/Nami.Api.Contracts.csproj"/>
+    <!-- Ingest normalization: the generated attribute mapping table and the metric definition
+         for the dropped-attribute counter. Vocabulary, not the producer stack. -->
+    <PackageReference Include="Nami.Telemetry.SemanticConventions"/>
+    <PackageReference Include="Nami.Telemetry.SemanticConventions.Incubating"/>
+    <ProjectReference Include="..\..\internal\nami.instrumentation\nami.instrumentation.csproj"/>
+    <ProjectReference Include="..\nami.collector.ingestion\nami.collector.ingestion.csproj"/>
+    <ProjectReference Include="..\nami.collector.storage\nami.collector.storage.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Nami.Collector.Tests"/>
+    <InternalsVisibleTo Include="Nami.Telemetry.IntegrationTests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\internal\nami.instrumentation.generators\nami.instrumentation.generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+
+</Project>

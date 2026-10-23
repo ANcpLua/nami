@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The C# face of the API contract. Everything under Nami/ is generated from contracts/ by
+       `./eng/build.sh Contracts` and committed, because the Collector's container build has no
+       Node; VerifyContractsCurrent fails when it differs from the TypeSpec. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Nami.Api.Contracts</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Generated contracts do not promise XML documentation for every member. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <PackageId>Nami.Api.Contracts</PackageId>
+    <Description>Generated C# request, response, enum and model types of the nami API, released with the Collector at the same version.</Description>
+    <PackageTags>nami;observability;contracts;typespec</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Nami/Api/Contracts/contract-schemas.json" LogicalName="nami.contract-schemas.json" />
+    <None Include="../../contracts/THIRD-PARTY-NOTICES.txt" Pack="true" PackagePath="/" Visible="false" />
+    <None Include="../../README.md" Pack="true" PackagePath="/" Visible="false" />
+  </ItemGroup>
+
+</Project>

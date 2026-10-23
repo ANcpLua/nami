@@ -1,0 +1,47 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+  <!-- OTLP decoding. The project graph is the boundary: this assembly references neither
+       Storage nor the host, so the compiler, not a text scan, keeps decoding storage-blind. -->
+  <PropertyGroup>
+    <RootNamespace>Nami.Collector.Ingestion</RootNamespace>
+    <LangVersion>14</LangVersion>
+    <IsAotCompatible>true</IsAotCompatible>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf"/>
+    <PackageReference Include="Grpc.AspNetCore"/>
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../internal/nami.contracts/Nami.Api.Contracts.csproj"/>
+    <!-- Ingest normalization: the generated attribute mapping table and the metric definition
+         for the dropped-attribute counter. Vocabulary, not the producer stack. -->
+    <PackageReference Include="Nami.Telemetry.SemanticConventions"/>
+    <PackageReference Include="Nami.Telemetry.SemanticConventions.Incubating"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="nami.collector"/>
+    <InternalsVisibleTo Include="nami.collector.storage"/>
+    <InternalsVisibleTo Include="Nami.Collector.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Protos/google/rpc/status.proto" ProtoRoot="Protos" GrpcServices="None"/>
+    <Protobuf Include="Protos/opentelemetry/proto/common/v1/common.proto" ProtoRoot="Protos" GrpcServices="None"/>
+    <Protobuf Include="Protos/opentelemetry/proto/resource/v1/resource.proto" ProtoRoot="Protos" GrpcServices="None"/>
+    <Protobuf Include="Protos/opentelemetry/proto/trace/v1/trace.proto" ProtoRoot="Protos" GrpcServices="None"/>
+    <Protobuf Include="Protos/opentelemetry/proto/logs/v1/logs.proto" ProtoRoot="Protos" GrpcServices="None"/>
+    <Protobuf Include="Protos/opentelemetry/proto/metrics/v1/metrics.proto" ProtoRoot="Protos" GrpcServices="None"/>
+    <Protobuf Include="Protos/opentelemetry/proto/collector/trace/v1/trace_service.proto" ProtoRoot="Protos" GrpcServices="None"/>
+    <Protobuf Include="Protos/opentelemetry/proto/collector/logs/v1/logs_service.proto" ProtoRoot="Protos" GrpcServices="None"/>
+    <Protobuf Include="Protos/opentelemetry/proto/collector/metrics/v1/metrics_service.proto" ProtoRoot="Protos" GrpcServices="None"/>
+  </ItemGroup>
+
+</Project>

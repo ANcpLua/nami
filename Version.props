@@ -1,0 +1,103 @@
+<Project>
+  <PropertyGroup Label="nami Product Version">
+    <!-- The one version of everything nami releases: the nami tool and its runtime packages,
+         Nami.Api.Sdk, Nami.Orchestration, Nami.Api.Contracts and nami-mcp-server
+         (services/nami.mcp/package.json carries the same number). release.sh releases exactly
+         this version. -->
+    <NamiVersion>17.0.14</NamiVersion>
+    <Version>$(NamiVersion)</Version>
+  </PropertyGroup>
+
+  <!-- Every PackageVersion in Directory.Packages.props resolves through a property declared here.
+       No version literal lives in that file, so a bump is a one-line edit in one place and the
+       shared lines (a runtime, a release train) cannot drift apart by being typed twice. -->
+
+  <PropertyGroup Label="Platform">
+    <!-- One .NET servicing line for every runtime package, including the transitive
+         System.Security.Cryptography pins (10.0.13 carries the fixes for the advisories of 2026-10-13). -->
+    <!-- renovate: datasource=nuget depName=Microsoft.AspNetCore.OpenApi -->
+    <DotNetRuntimeVersion>10.0.13</DotNetRuntimeVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.Extensions.Http.Resilience -->
+    <MicrosoftExtensionsVersion>10.11.0</MicrosoftExtensionsVersion>
+    <!-- Transitive-only pin. Microsoft.AspNetCore.OpenApi 10.0.13 declares Microsoft.OpenApi
+         [2.12.2, 3.0.0), and its source generator fails to compile against 3.x with CS0012
+         (the type it emits lives in an assembly the generated code does not reference).
+         3.x arrives with the .NET release that widens the declared range. -->
+    <!-- renovate: datasource=nuget depName=Microsoft.OpenApi -->
+    <MicrosoftOpenApiVersion>2.12.2</MicrosoftOpenApiVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.CodeAnalysis.CSharp -->
+    <RoslynVersion>5.9.0</RoslynVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Label="nami-owned packages">
+    <!-- The producer family ships from the Nami.Telemetry.AutoInstrumentation repo on one
+         release line (Nami.Telemetry.* package IDs since 9.0.0), so its packages share one property.
+         Nami.Api.Sdk pins Nami.Telemetry.Hosting for every API it builds, so this property is also
+         written into the packed Build/Nami.Api.Sdk.Packages.props for consumers outside this repository. -->
+    <!-- renovate: datasource=nuget depName=Nami.Telemetry.Hosting -->
+    <NamiTelemetryVersion>28.2.4</NamiTelemetryVersion>
+    <!-- renovate: datasource=nuget depName=Nami.Telemetry.SemanticConventions -->
+    <NamiSemanticConventionsVersion>15.0.5</NamiSemanticConventionsVersion>
+    <!-- Also read directly by nami.instrumentation.generators to locate the Sources contentFiles. -->
+    <!-- renovate: datasource=nuget depName=ANcpLua.Roslyn.Utilities.Sources -->
+    <ANcpLuaRoslynUtilitiesVersion>3.0.1</ANcpLuaRoslynUtilitiesVersion>
+  </PropertyGroup>
+
+  <!-- The versions the Nami.Api.Sdk MSBuild SDK pins for every API it builds. They carry the
+       SDK's own property names because Nami.Api.Sdk.csproj writes them into the packed
+       Build/Nami.Api.Sdk.Packages.props, where a consumer outside this repository reads them. -->
+  <PropertyGroup Label="Nami.Api.Sdk-owned">
+    <!-- Runtime OpenAPI document, plus the XML-comment source generator that ships inside it. -->
+    <NamiAspNetCoreOpenApiVersion>$(DotNetRuntimeVersion)</NamiAspNetCoreOpenApiVersion>
+    <!-- Build-time OpenAPI document emission: dotnet build writes the committed contract. -->
+    <NamiApiDescriptionServerVersion>$(DotNetRuntimeVersion)</NamiApiDescriptionServerVersion>
+    <!-- The document model itself, pinned so it cannot drift underneath Microsoft.AspNetCore.OpenApi
+         and load a different assembly version into a consumer than Nami.Api was compiled against. -->
+    <NamiOpenApiModelVersion>$(MicrosoftOpenApiVersion)</NamiOpenApiModelVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Telemetry and wire">
+    <!-- renovate: datasource=nuget depName=OpenTelemetry -->
+    <OpenTelemetryVersion>1.20.0</OpenTelemetryVersion>
+    <!-- The earlier "1.5.4+ grows without limit" finding was wrong; a CLI repro disproved
+         it (2026-07-26). Retention's space reuse rides the experimental
+         vacuum_rebuild_indexes option in DuckDbStore's connection string, and 1.5.4/1.5.5
+         changed when that path runs: 1.5.3 fully rebuilt indexes on database open (doubling
+         the file up front, which the old single-cycle test mistook for a reuse cap), while
+         1.5.5 compacts lazily and converges to a *smaller* steady state (68 vs 81 MiB in
+         the gate's workload). Multi-cycle boundedness is asserted by
+         RetentionTests.Repeated_retention_cycles_bound_the_database_file_at_a_steady_state;
+         run it after any DuckDB bump because the option is experimental and its trigger
+         timing has shifted between patch releases before. -->
+    <!-- renovate: datasource=nuget depName=DuckDB.NET.Data.Full -->
+    <DuckDBVersion>1.5.6</DuckDBVersion>
+    <!-- renovate: datasource=nuget depName=Google.Protobuf -->
+    <GoogleProtobufVersion>3.36.2</GoogleProtobufVersion>
+    <!-- renovate: datasource=nuget depName=Grpc.AspNetCore -->
+    <GrpcAspNetCoreVersion>2.84.0</GrpcAspNetCoreVersion>
+    <!-- renovate: datasource=nuget depName=Grpc.Tools -->
+    <GrpcToolsVersion>2.84.0</GrpcToolsVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Build and test tooling">
+    <!-- Stay on 10.x. Fallout's 11.0.x packages on nuget.org are unlisted builds from May 2026, older than 10.4.0. -->
+    <!-- renovate: datasource=nuget depName=Fallout.Common -->
+    <FalloutVersion>10.4.0</FalloutVersion>
+    <!-- renovate: datasource=nuget depName=Spectre.Console -->
+    <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
+    <!-- The code coverage extension MSTest.Sdk's AllMicrosoft profile adds to every test project. -->
+    <!-- renovate: datasource=nuget depName=Microsoft.Testing.Extensions.CodeCoverage -->
+    <MicrosoftTestingExtensionsCodeCoverageVersion>18.12.0</MicrosoftTestingExtensionsCodeCoverageVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.NETFramework.ReferenceAssemblies -->
+    <NetFrameworkReferenceAssembliesVersion>1.0.3</NetFrameworkReferenceAssembliesVersion>
+    <!-- Frozen for the net10.0 build host. Microsoft.Build 18.10.1 and 18.11.0 ship
+         net11.0/net472 assets, with no compatible modern asset for this host.
+         https://www.nuget.org/packages/Microsoft.Build/18.11.0#supportedframeworks-body-tab
+         Move this pin only with a verified build-host framework migration. -->
+    <!-- renovate: datasource=nuget depName=Microsoft.Build -->
+    <MicrosoftBuildVersion>18.9.6</MicrosoftBuildVersion>
+    <!-- Match the NuGet libraries used by the pinned .NET SDK. -->
+    <!-- renovate: datasource=nuget depName=NuGet.Packaging -->
+    <NuGetPackagingVersion>7.9.0</NuGetPackagingVersion>
+  </PropertyGroup>
+</Project>

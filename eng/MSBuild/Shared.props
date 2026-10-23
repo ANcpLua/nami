@@ -1,0 +1,6 @@
+<Project>
+  <ItemGroup Condition="'$(TargetFramework)' != 'netstandard2.0' AND ('$(ImplicitUsings)' == 'true' OR '$(ImplicitUsings)' == 'enable')">
+    <Using Include="System.Diagnostics"/>
+  </ItemGroup>
+
+</Project>

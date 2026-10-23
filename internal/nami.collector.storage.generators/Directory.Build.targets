@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <_ParentTargetsPath>$([MSBuild]::GetPathOfFileAbove(Directory.Build.targets, $(MSBuildThisFileDirectory)..))</_ParentTargetsPath>
+  </PropertyGroup>
+  <Import Project="$(_ParentTargetsPath)" Condition="'$(_ParentTargetsPath)' != ''"/>
+
+  <PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
+    <_SkipIncompatibleBuild>true</_SkipIncompatibleBuild>
+    <ProjectAssetsFile/>
+    <SkipResolvePackageAssets>true</SkipResolvePackageAssets>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <GenerateRuntimeConfigurationFiles>false</GenerateRuntimeConfigurationFiles>
+    <ResolveAssemblyReferencesSilentlySkip>true</ResolveAssemblyReferencesSilentlySkip>
+  </PropertyGroup>
+
+  <Import Project="SkipIncompatibleBuild.targets" Condition="'$(_SkipIncompatibleBuild)' == 'true'"/>
+</Project>

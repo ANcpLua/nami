@@ -1,0 +1,3 @@
+contracts/openapi/nami.openapi.json linguist-generated=true
+# Pinned upstream protobuf inputs retain their exact bytes, including upstream EOF whitespace.
+services/nami.collector.ingestion/Protos/**/*.proto whitespace=-blank-at-eof

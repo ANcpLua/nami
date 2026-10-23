@@ -1,0 +1,65 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <!-- Centralize build output to artifacts/ for most projects.
+       Exception: eng/ projects need local bin/obj for NuGet pack paths. -->
+  <PropertyGroup Condition="!$(MSBuildProjectDirectory.Contains('eng'))">
+    <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts/</ArtifactsPath>
+    <BaseOutputPath>$(ArtifactsPath)bin/$(MSBuildProjectName)/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(ArtifactsPath)obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(UsingMSTestSdk)' == 'true'">
+    <TestingExtensionsProfile>AllMicrosoft</TestingExtensionsProfile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>10.0</AnalysisLevel>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <WarningsAsErrors>$(WarningsAsErrors);CA1816;CA2000;CA2012;CA2016</WarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(NamiAot)' == 'false'">
+    <AnalysisMode>All</AnalysisMode>
+    <WarningsAsErrors>$(WarningsAsErrors);CA1812;CA1823;IDE0051;IDE0052</WarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup Condition="$(MSBuildProjectName.StartsWith('nami.collector'))">
+    <PackageReference Include="Nami.Telemetry.SemanticConventions.Analyzers" PrivateAssets="all" IncludeAssets="analyzers;build;buildTransitive"/>
+  </ItemGroup>
+
+  <!-- Audit direct and transitive dependencies; Directory.Packages.props owns security overrides. -->
+  <PropertyGroup>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>ancplua</Authors>
+    <Company>nami</Company>
+    <PackageProjectUrl>https://github.com/ANcpLua/nami</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ANcpLua/nami</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>opentelemetry;genai;observability;llm;ai;telemetry</PackageTags>
+    <Copyright>Copyright (c) 2025-2026 ancplua</Copyright>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/Shared.props"/>
+
+</Project>

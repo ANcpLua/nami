@@ -1,0 +1,77 @@
+{
+  "projectIdResourceKeys": [
+    "nami.project.id",
+    "nami.workspace.id"
+  ],
+  "sessionCorrelation": [
+    "session.id",
+    "mcp.session.id",
+    "gen_ai.conversation.id",
+    "conversation.id"
+  ],
+  "codexSessionCorrelation": {
+    "producerPrefix": "codex",
+    "keys": [
+      "thread.id"
+    ]
+  },
+  "spanHotAttributeKeys": [
+    "gen_ai.provider.name",
+    "gen_ai.operation.name",
+    "gen_ai.output.type",
+    "gen_ai.request.model",
+    "gen_ai.response.model",
+    "gen_ai.usage.input_tokens",
+    "gen_ai.usage.output_tokens",
+    "gen_ai.usage.cache_read.input_tokens",
+    "gen_ai.usage.cache_write.input_tokens",
+    "gen_ai.usage.reasoning.output_tokens",
+    "gen_ai.request.temperature",
+    "gen_ai.response.finish_reasons",
+    "gen_ai.tool.name"
+  ],
+  "projectionConstants": {
+    "DbSystemName": "db.system.name",
+    "GenAiToolCallId": "gen_ai.tool.call.id",
+    "GenAiProviderName": "gen_ai.provider.name",
+    "GenAiOperationName": "gen_ai.operation.name",
+    "GenAiOutputType": "gen_ai.output.type",
+    "GenAiRequestModel": "gen_ai.request.model",
+    "GenAiResponseModel": "gen_ai.response.model",
+    "GenAiInputTokens": "gen_ai.usage.input_tokens",
+    "GenAiOutputTokens": "gen_ai.usage.output_tokens",
+    "GenAiCacheReadInputTokens": "gen_ai.usage.cache_read.input_tokens",
+    "GenAiCacheWriteInputTokens": "gen_ai.usage.cache_write.input_tokens",
+    "GenAiReasoningTokens": "gen_ai.usage.reasoning.output_tokens",
+    "HttpRequestMethod": "http.request.method",
+    "HttpRoute": "http.route",
+    "ServiceName": "service.name",
+    "NamiAttributeNamespace": "nami.attribute.namespace",
+    "NamiAttributeKey": "nami.attribute.key",
+    "McpMethodName": "mcp.method.name",
+    "GenAiToolName": "gen_ai.tool.name",
+    "GenAiAgentName": "gen_ai.agent.name",
+    "State": "state",
+    "NetworkTransport": "network.transport",
+    "ServiceVersion": "service.version",
+    "DeploymentEnvironmentName": "deployment.environment.name",
+    "VcsRefHeadRevision": "vcs.ref.head.revision",
+    "ServerAddress": "server.address",
+    "ServicePeerName": "service.peer.name",
+    "ErrorType": "error.type",
+    "VcsRefHeadName": "vcs.ref.head.name",
+    "CicdPipelineRunId": "cicd.pipeline.run.id",
+    "CicdPipelineRunUrlFull": "cicd.pipeline.run.url.full",
+    "DeploymentEnvironment": "deployment.environment",
+    "RecordedFailureKind": "exception.type",
+    "MessagingSystem": "messaging.system",
+    "CicdPipelineTaskName": "cicd.pipeline.task.name",
+    "CicdPipelineTaskType": "cicd.pipeline.task.type",
+    "CicdPipelineTaskRunId": "cicd.pipeline.task.run.id",
+    "GenAiToolCallArgumentsHash": "nami.gen_ai.tool.call.arguments_hash"
+  },
+  "wellKnownValueClasses": {
+    "GenAiOperationNameValues": "GenAi.GenAiAttributes+OperationNameValues",
+    "GenAiOutputTypeValues": "GenAi.GenAiAttributes+OutputTypeValues"
+  }
+}
