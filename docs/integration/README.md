@@ -2,6 +2,22 @@
 
 The product requirements are `docs/prd/nami.md`; `docs/checklist.md` owns implementation scope.
 
+## 2026-10-24: local compiler sources and persistent model knowledge
+
+Preview/beta/RC/dev/nightly and experimental features are explicitly authorized when they serve
+the architecture. The owning [model skill](../../.agents/skills/nami-contract-models/SKILL.md)
+records absolute local source paths, package/commit versions, executable naming/version-view
+recipes and recurring mistakes. It is available through the repository skill directory and a
+local Codex skill link. AGENTS.md routes model/compiler work to it.
+
+Local execution confirmed version-mutator snapshots, preservation of the original namespace,
+the installed three-argument `resolveEncodedName` signature, and the actual generic JSON metadata
+methods in .NET 11 RC2. These observations do not claim production multi-version support. Nami
+remains on TypeSpec 1.17.0 and native TypeScript 7.0.2 until a concrete integration changes the pins.
+The user-mentioned TypeSpec/TypeScript-Go clone paths were not found in the inspected local
+locations and were requested; no replacement clone, online lookup or speculative upgrade was made.
+The previously downloaded TypeSpec preview packages were retained at a permanent local source path.
+
 ## 2026-10-24: reproducible agent inspection
 
 `eng/inspect.sh` owns inspection setup, build context, scope and result interpretation. JetBrains

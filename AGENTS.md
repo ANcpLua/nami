@@ -44,3 +44,15 @@ Diagnostics must go to stderr in stdio mode. No synthetic production telemetry.
 
 Commit and push to main. Record implementation decisions and resolved specification mismatches in
  docs/integration/README.md. Tests follow the PRD test catalog; retain real OTLP and real DuckDB proofs.
+
+## Local compiler and model knowledge
+
+Preview, beta, RC, dev, nightly and experimental capabilities are explicitly authorized when
+they serve the task. This includes .NET 11/C# 15, TypeScript native compiler releases and
+TypeSpec language, emitter and mutator features. Choose by concrete benefit, not stability label.
+
+For TypeSpec models, language/JSON names, serialization and version views, first read
+[the local model skill](.agents/skills/nami-contract-models/SKILL.md) and its pinned local sources.
+Derive API signatures and feature flags from the actual checkout/package version. Work locally;
+do not substitute web recollection for missing source evidence. Record source paths and revisions
+in the owning skill. On a repeated failure, improve the same case with the applied fix and evidence.
