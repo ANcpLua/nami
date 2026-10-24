@@ -85,4 +85,4 @@ Successful compilation also does not prove JSON roundtrips or NativeAOT compatib
 
 ## Evidence
 
-The diagnostic IDs and messages are verified against the pinned compiler, not a documentation page. `validation/last-run.json` contains the emitted diagnostics and compiler version. The remediation text is explained by the local source examples; changing those examples requires rerunning the verifier. Runtime claims require the recorded runtime result, not just the absence of a compiler error.
+The diagnostic IDs and messages are verified against the pinned compiler, not a documentation page. Run `scripts/verify.py` for current emitted diagnostics and compiler version; reports are stored outside the instruction tree. The remediation text is explained by the local source examples; changing those examples requires rerunning the verifier. Runtime claims require the recorded runtime result, not just the absence of a compiler error.

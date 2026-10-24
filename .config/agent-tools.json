@@ -1,9 +1,0 @@
-{
-  "bun": "1.4.3",
-  "node": "24.21.0",
-  "mcpdo": {
-    "package": "@modelcontextprotocol/inspector",
-    "version": "2.11.0",
-    "entry": "clients/mcpdo/build/mcp-bin.js"
-  }
-}

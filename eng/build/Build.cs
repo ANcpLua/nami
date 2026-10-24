@@ -14,7 +14,9 @@ sealed class Build : FalloutBuild, IHasConfiguration
         ProcessTasks.StartProcess(tool, arguments, directory ?? RootDirectory.ToString(), logOutput: true).AssertZeroExitCode();
     static string BinaryLog(string name)
     {
-        var directory = (RootDirectory / "artifacts" / "binlogs").ToString();
+        var state = Environment.GetEnvironmentVariable("NAMI_DIAGNOSTICS_ROOT")
+                    ?? throw new InvalidOperationException("Run builds through eng/build.sh.");
+        var directory = Path.Combine(state, "build", "current");
         Directory.CreateDirectory(directory);
         return $"-bl:\"{Path.Combine(directory, name + "-{}.binlog")}\"";
     }

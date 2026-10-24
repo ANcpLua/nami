@@ -3,14 +3,14 @@
 # table), then PASS or FAIL with the total time and the log path. Compiler/build diagnostics
 # remain visible on success as well; a failing step adds its last 60
 # lines (for a Fallout run, the failing target's). The whole output goes to
-# artifacts/logs/<name>.log. The exit code is the failing step's, else 0. NAMI_VERBOSE=1 streams
+# external current diagnostic state. The exit code is the failing step's, else 0. NAMI_VERBOSE=1 streams
 # everything to the terminal instead.
 #
 #   eng/scripts/quiet.sh <name> '<command>' ['<command>' ...]  each command through bash, in order,
 #                                                         stopping at the first failure
 #   eng/scripts/quiet.sh <name> -- <program> [<argument> ...]  one step with exactly this argv
 #
-# The first line names the live log; a previous artifacts log belongs to the previous run.
+# mise diagnostics is the stable status entry; old current-slot data is replaced.
 # Everything runs inside main, which bash parses whole before running, so editing this file
 # while a build runs cannot change the running build.
 set -uo pipefail
@@ -107,13 +107,17 @@ main() {
     return 0
   fi
 
-  log=$root/artifacts/logs/$name.log
+  local diagnostic_root=${NAMI_DIAGNOSTICS_ROOT:-}
+  if [[ -z $diagnostic_root ]]; then
+    diagnostic_root=$(python3 "$root/eng/scripts/diagnostics.py" path "$root")
+  fi
+  log=$diagnostic_root/build/current/$name.log
   work=$(mktemp -d "${TMPDIR:-/tmp}/quiet.XXXXXX")
   # The log is written outside the repository and moved into place on exit, so a target that
   # cleans artifacts/ cannot delete it mid-run.
   trap 'mkdir -p "${log%/*}" && mv -f "$work/log" "$log"; rm -rf "$work"' EXIT
   : >"$work/log"
-  printf 'RUNNING %s (pid %s), live log %s\n' "$name" "$$" "$work/log"
+  printf 'RUNNING %s (pid %s); status: mise diagnostics\n' "$name" "$$"
 
   local started=$SECONDS status=0 failed=
   run_step() {
@@ -146,13 +150,22 @@ main() {
     local diagnostics
     diagnostics=$(diagnostic_lines "$work/log" | wc -l | tr -d ' ')
     if ((diagnostics)); then
-      printf 'PASS WITH DIAGNOSTICS %s in %s (%d diagnostic lines), log %s\n' "$name" "$(duration $((SECONDS - started)))" "$diagnostics" "$log"
+      printf 'PASS WITH DIAGNOSTICS %s in %s (%d diagnostic lines); status: mise diagnostics\n' "$name" "$(duration $((SECONDS - started)))" "$diagnostics"
     else
-      printf 'PASS %s in %s, log %s\n' "$name" "$(duration $((SECONDS - started)))" "$log"
+      printf 'PASS %s in %s; status: mise diagnostics\n' "$name" "$(duration $((SECONDS - started)))"
     fi
   else
-    printf 'FAIL %s in %s (exit %d%s), log %s\n' "$name" "$(duration $((SECONDS - started)))" "$status" "$failed" "$log"
+    printf 'FAIL %s in %s (exit %d%s); status: mise diagnostics\n' "$name" "$(duration $((SECONDS - started)))" "$status" "$failed"
   fi
+  mkdir -p "$diagnostic_root/build/current"
+  python3 - "$diagnostic_root/build/current/summary.json" "$name" "$status" <<'PY'
+import json, os, sys
+from pathlib import Path
+summary = {"status": "passed" if sys.argv[3] == "0" else "failed", "command": sys.argv[2], "exitCode": int(sys.argv[3])}
+if os.environ.get("NAMI_DIAGNOSTIC_SOURCE"):
+    summary["context"] = {"source": os.environ["NAMI_DIAGNOSTIC_SOURCE"]}
+Path(sys.argv[1]).write_text(json.dumps(summary, indent=2) + "\n")
+PY
   return "$status"
 }
 

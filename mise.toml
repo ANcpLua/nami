@@ -4,9 +4,24 @@ bun = "1.4.3"
 node = "24.21.0"
 rust = "1.99.0"
 "github:open-telemetry/weaver" = "0.28.0"
+# pino 9.14.0 is a reviewed manual release: registry signature verified and all
+# 207 archive files match upstream 339f1d6c899fa584324e15c587fbd811664dd07c.
+# See the local model skill for the retained review; no general trust bypass.
+"npm:@modelcontextprotocol/inspector" = { version = "2.11.0", trust_policy_excludes = ["pino@9.14.0"] }
+
+[tasks."lint:tsp"]
+run = "bun run --cwd contracts lint"
 
 [tasks.check]
 run = "./eng/build.sh Check --Configuration Release"
 
+[tasks.diagnostics]
+description = "Show the single current diagnostic record for this checkout"
+run = "bash ./eng/diagnostics.sh"
+
 [tasks.publish]
 run = "./eng/build.sh Publish --Configuration Release"
+
+[settings]
+exec_auto_install = false
+task.run_auto_install = false

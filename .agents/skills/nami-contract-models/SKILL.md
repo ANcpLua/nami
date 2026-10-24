@@ -220,6 +220,55 @@ metadata for NativeAOT, not a new reflection resolver. The local XML reference d
 these generic members; inspect actual assembly metadata or compile a narrow example before
 declaring them unavailable. Their absence from that XML is observed; its cause is not established.
 
+## TypeSpec lint and runtime validators
+
+Nami already has TypeSpec lint: `/Users/alexandernachtmann/RiderProjects/nami/contracts/tspconfig.yaml`
+extends `@typespec/http/all` and `./emitters/nami-lint/all`. The local library at
+`/Users/alexandernachtmann/RiderProjects/nami/contracts/emitters/nami-lint/src/index.ts` enables
+`wire-name-snake-case`, `http-param-snake-case`, `identity-binding`, `identity-edge-typed` and
+`confusable-identity-documented`. The 1.17.0 compiler runs lint even with `noEmit`, as implemented
+in `/Users/alexandernachtmann/RiderProjects/nami/contracts/node_modules/@typespec/compiler/dist/src/core/program.js`
+(`linter.lint`, following validation).
+
+Use `mise run lint:tsp`: `contracts/package.json` builds the local emitter/linter code, then
+runs `tsp compile main.tsp --no-emit --warn-as-error`. The executed positive run passed; a temporary
+`Nami.Api.Contracts.LintProbe.Probe.badName` property was rejected by the naming rule, and generated
+artifact hashes remained unchanged. This is a no-emit lint command, not a second schema generator.
+
+For runtime schemas, the installed MCP SDK already depends on Zod 4.6.7 for protocol types.
+Nami's tool schemas remain generated JSON Schema, wrapped in Standard Schema via `fromJsonSchema`.
+The SDK 2.3.1 implementation is at
+`/Users/alexandernachtmann/RiderProjects/nami/src/nami.mcp/node_modules/@modelcontextprotocol/server/dist/index.cjs`
+(`fromJsonSchema`); its Node default is Ajv, exported by
+`/Users/alexandernachtmann/RiderProjects/nami/src/nami.mcp/node_modules/@modelcontextprotocol/server/dist/shimsNode.mjs`.
+An actual generated input accepted `max_bytes: 1024` and rejected `max_bytes: 1`.
+Do not add hand-authored Zod models parallel to TypeSpec. A future Zod output needs a concrete
+consumer and must derive from the same model while preserving current validation semantics.
+When searching installed sources, use `rg --no-ignore` with bounded file globs: ignored `dist`
+directories otherwise hid these implementations. Exclude `*.map` to avoid giant sourcemap output.
+
+## Reviewed tool-install exception
+
+Mise 2026.10.17 refused inspector 2.11.0 because pino 9.14.0 lacks the trusted-publisher provenance
+present on the earlier-published pino 10.0.0. Do not disable this policy globally or use
+`npm.shell_out` to bypass it. The applied exception is only `pino@9.14.0` on the inspector tool.
+
+Review evidence is retained outside the repository:
+
+- `/Users/alexandernachtmann/.local/share/nami/sources/pino-9.14.0/registry-metadata.json`: exact 9.14.0 registry metadata.
+- `/Users/alexandernachtmann/.local/share/nami/sources/pino-9.14.0/signature-verification.json`: registry signature verified.
+- `/Users/alexandernachtmann/.local/share/nami/sources/pino-9.14.0/source-comparison.json`: all 207 archive files matched the upstream tag.
+- `/Users/alexandernachtmann/.local/share/nami/sources/pino-9.14.0/upstream/package.json`: tag v9.14.0, commit `339f1d6c899fa584324e15c587fbd811664dd07c`.
+
+The package manifest and all 206 other tarball files matched byte-for-byte. There are no
+package install hooks. The registry's signature verified over the published integrity value:
+`sha512-8OEwKp5juEvb/MjpIc4hjqfgCNysrS94RIOMXYvpYCdm/jglrKEiAYmiumbmGhCvs+IcInsphYDFwqrjr7398w==`.
+The registry records a manual release by listed maintainer Matteo Collina on 2025-10-18,
+after the OIDC-published 10.0.0 release on 2025-10-03. This supports the narrow exception;
+it does not create the missing provenance attestation. With that exception the mise install
+completed and its managed `mcpdo --version` returned `2.11.0`. New package/version trust failures
+require their own evidence review rather than widening this exception.
+
 ## Validation and learning loop
 
 The reproducible entry point also owns the TypeScript and MCP lanes:
@@ -229,12 +278,20 @@ The reproducible entry point also owns the TypeScript and MCP lanes:
 /Users/alexandernachtmann/RiderProjects/nami/eng/inspect.sh --target mcp
 ```
 
-Read `/Users/alexandernachtmann/RiderProjects/nami/.config/agent-tools.json` for the exact
-Bun/Node/mcpdo pins. The mcpdo source is
-`/opt/homebrew/lib/node_modules/@modelcontextprotocol/inspector/clients/mcpdo/build/mcp-bin.js`
-and its shared implementation is
-`/opt/homebrew/lib/node_modules/@modelcontextprotocol/inspector/clients/mcpdo/build/chunk-O6RN6WMD.js`,
-package release `2.11.0`. Local CLI help and the executed stdio/HTTP probes establish the flags.
+Read `/Users/alexandernachtmann/RiderProjects/nami/mise.toml` for executable pins and resolve
+installed commands with `mise which`; validation must not auto-install. The project sets
+`exec_auto_install = false` and `task.run_auto_install = false`. An ordinary `mise exec`
+earlier installed the missing Rust tool even when only Bun was requested. Installation is now
+an explicit `mise install` operation. The SDK selected by mise must still match `global.json`;
+TypeScript stays pinned in the two package manifests/lockfiles.
+
+The managed mcpdo source is
+`/Users/alexandernachtmann/.local/share/mise/installs/npm-modelcontextprotocol-inspector/2.11.0/node_modules/@modelcontextprotocol/inspector/clients/mcpdo/build/mcp-bin.js`,
+package release `2.11.0`. `mise which mcpdo` returns an aube shell shim, not that JavaScript file.
+Do not pass the shell shim to Node. Execute the resolved command with the mise environment or
+resolve the package's declared JS entry. Local CLI help and executed stdio/HTTP probes establish
+these flags. `mise diagnostics` is the canonical current-results entry; use `--results current`
+for detailed inspection queries, not historical artifact directories.
 
 The applied integration uses `mcpdo private` and propagates only its
 `MCP_INSPECTOR_DAEMON_DIR`/`MCP_INSPECTOR_DAEMON_TOKEN` exports in memory. It uses a generated,

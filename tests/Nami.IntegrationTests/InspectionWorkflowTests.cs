@@ -14,6 +14,42 @@ namespace Nami.IntegrationTests;
 public sealed class InspectionWorkflowTests(TestContext context)
 {
     [TestMethod]
+    public async Task Diagnostics_Cleanup_RemovesReportsAndPreservesSourceAndBuilds()
+    {
+        var fixture = await InspectionFixture.CreateAsync(context);
+        string[] discarded = ["artifacts/inspection/old/report.sarif", "artifacts/test-results/old/result.trx",
+            "artifacts/binlogs/old.binlog", "artifacts/logs/old.log", ".fallout/temp/build.log"];
+        string[] preserved = ["src/Example.cs", "artifacts/bin/Example.dll", "artifacts/obj/project.assets.json",
+            "artifacts/publish/nami", ".fallout/parameters.json", ".agents/guide.md"];
+        foreach (var path in discarded.Concat(preserved))
+        {
+            var full = Path.Combine(fixture.Root, path);
+            Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+            await File.WriteAllTextAsync(full, "preserved content", context.CancellationToken);
+        }
+        var result = await ProcessRunner.RunAsync("python3",
+            [Path.Combine(fixture.Root, "eng/scripts/diagnostics.py"), "clean", fixture.Root],
+            fixture.Root, context.CancellationToken);
+        Assert.AreEqual(0, result.ExitCode, result.Error);
+        foreach (var path in discarded) Assert.IsFalse(File.Exists(Path.Combine(fixture.Root, path)), path);
+        foreach (var path in preserved)
+            Assert.AreEqual("preserved content", await File.ReadAllTextAsync(Path.Combine(fixture.Root, path), context.CancellationToken), path);
+    }
+
+    [TestMethod]
+    [DataRow(".")]
+    [DataRow("diagnostic-data")]
+    public async Task Diagnostics_InternalStorage_IsRejected(string path)
+    {
+        var fixture = await InspectionFixture.CreateAsync(context);
+        fixture.Environment["NAMI_DIAGNOSTICS_HOME"] = Path.Combine(fixture.Root, path);
+        var result = await fixture.RunAsync([]);
+        Assert.AreEqual(2, result.ExitCode, result.Output + result.Error);
+        Assert.Contains("outside the repository", result.Error);
+        Assert.IsFalse(File.Exists(Path.Combine(fixture.Root, "artifacts/commands.jsonl")));
+    }
+
+    [TestMethod]
     public async Task Inspection_PinsToolAndLoadsSolutionForProject()
     {
         var fixture = await InspectionFixture.CreateAsync(context);
@@ -88,7 +124,7 @@ public sealed class InspectionWorkflowTests(TestContext context)
         {
             var query = await fixture.RunAsync(["--results", run]);
             Assert.AreEqual(2, query.ExitCode);
-            Assert.Contains("INSPECT STALE", query.Output);
+            Assert.Contains("INSPECT SETUP_FAILED", query.Output);
         }
     }
 
@@ -104,7 +140,7 @@ public sealed class InspectionWorkflowTests(TestContext context)
         Assert.AreEqual(2, result.ExitCode, result.Output + result.Error);
         Assert.Contains("INSPECT ANALYSIS_FAILED", result.Output);
         Assert.Contains("changed during analysis", result.Output);
-        Assert.IsFalse(File.Exists(Path.Combine(fixture.Root, "artifacts/inspection/prepared-Release.json")));
+        Assert.IsFalse(File.Exists(Path.Combine(fixture.Diagnostics, "inspection/dotnet/prepared-Release.json")));
     }
 
     [TestMethod]
@@ -207,8 +243,8 @@ internal sealed class InspectionFixture(string root, TestContext context)
     internal Dictionary<string, string?> Environment { get; } = new();
     internal Task<ProcessResult> RunAsync(string[] arguments) => ProcessRunner.RunAsync("bash",
         [Path.Combine(root, "eng/inspect.sh"), .. arguments], Path.GetTempPath(), context.CancellationToken, Environment);
-    internal string LatestRun() => Directory.GetDirectories(Path.Combine(root, "artifacts/inspection"), "run.*")
-        .OrderByDescending(Directory.GetCreationTimeUtc).First();
+    internal string Diagnostics => Directory.GetDirectories(Environment["NAMI_DIAGNOSTICS_HOME"]!).Single();
+    internal string LatestRun() => Path.Combine(Diagnostics, "inspection/dotnet/current");
     internal string[][] Commands() => File.ReadAllLines(Path.Combine(root, "artifacts/commands.jsonl"))
         .Select(ReadCommand).ToArray();
 
@@ -226,10 +262,11 @@ internal sealed class InspectionFixture(string root, TestContext context)
         Directory.CreateDirectory(Path.Combine(root, "src"));
         Directory.CreateDirectory(Path.Combine(root, ".config"));
         foreach (var file in new[] { "eng/inspect.sh", "eng/scripts/inspect_code.py", "eng/scripts/inspect_report.py",
-                     "eng/scripts/workspace_lock.py", "eng/scripts/limits.sh", ".config/dotnet-tools.json" })
+                     "eng/scripts/workspace_lock.py", "eng/scripts/diagnostics.py", "eng/scripts/toolchain.py", "eng/scripts/limits.sh", ".config/dotnet-tools.json" })
             File.Copy(Path.Combine(ProcessRunner.RepositoryRoot, file), Path.Combine(root, file));
         await File.WriteAllTextAsync(Path.Combine(root, ".gitignore"), "artifacts/\n__pycache__/\nignored.cs\n", context.CancellationToken);
         await File.WriteAllTextAsync(Path.Combine(root, "global.json"), """{"sdk":{"version":"11.0.100-test"}}""", context.CancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(root, "mise.toml"), "[tools]\ndotnet = \"11.0.100-test\"\n", context.CancellationToken);
         await File.WriteAllTextAsync(Path.Combine(root, "nami.slnx"), """<Solution><Project Path="src/Example.csproj"/></Solution>""", context.CancellationToken);
         await File.WriteAllTextAsync(Path.Combine(root, "src/Example.csproj"), "<Project />", context.CancellationToken);
         await File.WriteAllTextAsync(Path.Combine(root, "src/Example.cs"), "class Example {}", context.CancellationToken);
@@ -282,6 +319,7 @@ internal sealed class InspectionFixture(string root, TestContext context)
         }
         var fixture = new InspectionFixture(root, context);
         fixture.Environment["DOTNET_EXE"] = dotnet;
+        fixture.Environment["NAMI_DIAGNOSTICS_HOME"] = Path.Combine(context.TestTempDirectory!, "diagnostics");
         fixture.Environment["PATH"] = root + Path.PathSeparator + System.Environment.GetEnvironmentVariable("PATH");
         return fixture;
     }

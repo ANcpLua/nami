@@ -18,11 +18,11 @@ jobs:
         with:
           global-json-file: global.json
       - name: Compile and execute probes
-        run: python3 scripts/verify.py --report artifacts/verification.json
+        run: python3 scripts/verify.py --report "$RUNNER_TEMP/union-verification.json"
       - name: Upload verification report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: verification-report
-          path: artifacts/verification.json
+          path: ${{ runner.temp }}/union-verification.json
           if-no-files-found: warn

@@ -2,6 +2,18 @@
 
 The product requirements are `docs/prd/nami.md`; `docs/checklist.md` owns implementation scope.
 
+## 2026-10-24: current diagnostic state outside the instruction workspace
+
+The prior per-run workspace archives are superseded. `mise diagnostics` is the single discovery
+entry point, and `eng/inspect.sh --results current` queries one current result per lane. Generated
+SARIF/TRX/log/binlog data stays in external checkout-keyed state; new runs replace older data.
+The wrappers physically remove the old workspace diagnostic directories. Build binaries and
+source examples remain. Captured compiler runs were removed from `.agents/skills`.
+
+Executable pins resolve through mise, without implicit installation. `global.json` still binds
+MSBuild SDK selection, package lockfiles bind library dependencies, and the local JetBrains manifest
+binds its .NET tool. TypeScript lint and MCP protocol checks remain separate from C# analysis.
+
 ## 2026-10-24: reproducible TypeScript and MCP validation
 
 `eng/inspect.sh --target typescript` owns frozen dependency restore, exact native-compiler

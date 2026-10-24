@@ -97,8 +97,11 @@ public sealed class BuildDiagnosticsTests(TestContext context)
         var name = "diagnostics-regression-" + Guid.NewGuid().ToString("N");
         var result = await ProcessRunner.RunAsync("bash",
             [Path.Combine(ProcessRunner.RepositoryRoot, "eng/scripts/quiet.sh"), name, "--", "bash", "-c", command],
-            Temporary, context.CancellationToken, new Dictionary<string, string?> { ["NAMI_VERBOSE"] = "0" });
-        File.Delete(Path.Combine(ProcessRunner.RepositoryRoot, "artifacts/logs", name + ".log"));
+            Temporary, context.CancellationToken, new Dictionary<string, string?>
+            {
+                ["NAMI_VERBOSE"] = "0", ["NAMI_DIAGNOSTICS_ROOT"] = Path.Combine(Temporary, "diagnostics")
+            });
+        File.Delete(Path.Combine(Temporary, "diagnostics/build/current", name + ".log"));
         return result;
     }
 
@@ -140,7 +143,8 @@ public sealed class BuildDiagnosticsTests(TestContext context)
         var second = await fixture.RunAsync(["--no-build"]);
         Assert.AreEqual(2, second.ExitCode, second.Output + second.Error);
         Assert.Contains("INSPECT ANALYSIS_FAILED", second.Output);
-        Assert.AreNotEqual(firstRun, fixture.LatestRun());
+        Assert.AreEqual(firstRun, fixture.LatestRun());
+        Assert.IsFalse(File.Exists(Path.Combine(firstRun, "inspectcode.sarif")));
     }
 
     [TestMethod]
@@ -204,8 +208,11 @@ public sealed class BuildDiagnosticsTests(TestContext context)
         if (!OperatingSystem.IsWindows())
             File.SetUnixFileMode(dotnet, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         return await ProcessRunner.RunAsync("python3",
-            [Path.Combine(ProcessRunner.RepositoryRoot, "eng/scripts/run_tests.py"), "--root", root, "--dotnet", dotnet,
-                "--suite", "Unit", "--no-build"], Temporary, context.CancellationToken);
+        [
+            Path.Combine(ProcessRunner.RepositoryRoot, "eng/scripts/run_tests.py"), "--root", root, "--dotnet", dotnet,
+            "--suite", "Unit", "--no-build"
+        ], Temporary, context.CancellationToken,
+            new Dictionary<string, string?> { ["NAMI_DIAGNOSTICS_HOME"] = Path.Combine(Temporary, "diagnostics") });
     }
 
     [TestMethod]

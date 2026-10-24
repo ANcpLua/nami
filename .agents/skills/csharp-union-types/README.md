@@ -13,7 +13,7 @@ The baseline is **.NET SDK 11.0.100-rc.2.26504.105**. Findings are version-speci
 - [Functional composition](examples/functional.cs): pure `Map`/`Bind`/`Match` operators and a parsing/validation pipeline with errors as values.
 - [Polyfills](polyfills/README.md): source-only `UnionAttribute` and `IUnion` for targets before .NET 11.
 - Bundled probes in `probes/`, with the required license notices. No external repository is required.
-- [Recorded run](validation/last-run.json): results from the checked-in verifier.
+- Runtime reports are transient external diagnostic state; no captured run is bundled with the instructions.
 
 ## Run
 
@@ -22,12 +22,12 @@ Install Python 3.10+ and the exact SDK in `global.json`, then:
 ```sh
 git clone https://github.com/ANcpLua/csharp-union-types.git
 cd csharp-union-types
-python3 scripts/verify.py --report artifacts/verification.json
+python3 scripts/verify.py
 ```
 
 An ordinary directory copy or ZIP also works. The verifier copies the supplied local inputs into a temporary directory, builds sequentially with at most two workers, checks expected diagnostic IDs, runs executable probes, and exits nonzero on missing or failed evidence. Normal skill use needs only the local Markdown references; no browsing or verifier run is required to read the guidance.
 
-Verification covers union and closed-hierarchy diagnostics, runtime matching/JSON behavior, and legacy/modern polyfill boundaries. The recorded report is authoritative for the exact checks and outcomes.
+Verification covers union and closed-hierarchy diagnostics, runtime matching/JSON behavior, and legacy/modern polyfill boundaries. The current verifier result is authoritative only for its recorded inputs; historical runs are not instruction sources.
 
 ## Important boundaries
 

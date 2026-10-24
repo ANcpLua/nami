@@ -16,6 +16,8 @@ from pathlib import Path
 from urllib.parse import urlparse, unquote
 
 from inspect_report import collect
+from diagnostics import begin, current, state_root
+from toolchain import pin as tool_pin, resolve
 
 ROOT = Path(__file__).resolve().parents[2]
 RANK = {"error": 0, "warning": 1, "note": 2, "none": 3}
@@ -25,33 +27,33 @@ def write_json(path, value):
     path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
 
 
-def digest(paths):
+def digest(paths, root=ROOT):
     result = hashlib.sha256()
     for path in sorted(set(paths)):
-        result.update(str(path.relative_to(ROOT)).encode() + b"\0")
+        result.update(str(path.relative_to(root)).encode() + b"\0")
         result.update(hashlib.sha256(path.read_bytes()).digest() if path.is_file() else b"<missing>")
     return result.hexdigest()
 
 
-def sources():
-    listing = subprocess.check_output(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"], cwd=ROOT)
-    paths = [ROOT / os.fsdecode(name) for name in listing.split(b"\0") if name]
+def sources(root=ROOT):
+    listing = subprocess.check_output(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"], cwd=root)
+    paths = [root / os.fsdecode(name) for name in listing.split(b"\0") if name]
     # Git ignore rules do not control Compile's implicit globs. An ignored .cs file
     # still affects a build, so include build inputs inside every solution project.
-    for project in ET.parse(ROOT / "nami.slnx").iter("Project"):
-        for directory, children, files in os.walk((ROOT / project.attrib["Path"]).parent):
+    for project in ET.parse(root / "nami.slnx").iter("Project"):
+        for directory, children, files in os.walk((root / project.attrib["Path"]).parent):
             children[:] = [name for name in children if name not in {"bin", "obj", "artifacts", "node_modules", ".git"}]
             paths.extend(Path(directory, name) for name in files
                          if Path(name).suffix in {".cs", ".csproj", ".props", ".targets", ".proto", ".resx", ".json"}
                          or name == ".editorconfig")
-    return digest(paths)
+    return digest(paths, root)
 
 
-def outputs(configuration):
-    files = list((ROOT / "artifacts/bin").glob(f"**/{configuration.lower()}/**/*"))
-    files += [p for p in (ROOT / "artifacts/obj").rglob("*")
+def outputs(configuration, root=ROOT):
+    files = list((root / "artifacts/bin").glob(f"**/{configuration.lower()}/**/*"))
+    files += [p for p in (root / "artifacts/obj").rglob("*")
               if p.name == "project.assets.json" or p.name.endswith((".nuget.g.props", ".nuget.g.targets"))]
-    return digest(p for p in files if p.is_file())
+    return digest((p for p in files if p.is_file()), root)
 
 
 def execute(command, log, environment):
@@ -94,12 +96,12 @@ def render(summary, findings, args, directory):
     for finding in selected[args.offset:args.offset + args.limit]:
         print(f"{finding['level'].upper()} {finding['rule']} {finding['path']}:{finding['line']}:{finding['column']}: {finding['message'][:500]}")
     if len(selected) > args.offset + args.limit:
-        print(f"More: ./eng/inspect.sh --results {shlex.quote(str(directory.relative_to(ROOT)))} --offset {args.offset + args.limit} --limit {args.limit}"
+        print(f"More: ./eng/inspect.sh --results current --offset {args.offset + args.limit} --limit {args.limit}"
               + (f" --rule {shlex.quote(args.rule)}" if args.rule else "") + (f" --level {args.level}" if args.level else ""))
     for problem in summary.get("problems", [])[:args.limit]:
         print(f"PROBLEM: {' '.join(problem.split())[:1000]}")
-    print(f"Evidence: {directory.relative_to(ROOT)}/summary.json")
-    print(f"Query: ./eng/inspect.sh --results {directory.relative_to(ROOT)} [--rule ID] [--level warning] [--offset N]")
+    print("Evidence: current dotnet result; discover with mise diagnostics")
+    print("Query: ./eng/inspect.sh --results current [--rule ID] [--level warning] [--offset N]")
 
 
 def scoped(path, selections):
@@ -123,8 +125,7 @@ def main():
     if args.results:
         if args.project or args.file or args.no_build:
             parser.error("Stored run scope is immutable; query it with --rule, --level, --offset and --limit")
-        directory = (ROOT / args.results).resolve()
-        directory.relative_to(ROOT / "artifacts/inspection")
+        directory = current(ROOT, "inspection/dotnet", args.results)
         summary = json.loads((directory / "summary.json").read_text())
         findings = [json.loads(line) for line in (directory / "findings.jsonl").read_text().splitlines()]
         stale = sources() != summary["context"].get("source")
@@ -159,9 +160,9 @@ def main():
     if project and selections:
         parser.error("Use --project or --file; each retains the full solution reference graph")
 
-    base = ROOT / "artifacts/inspection"
+    base = state_root(ROOT) / "inspection/dotnet"
     base.mkdir(parents=True, exist_ok=True)
-    directory = Path(tempfile.mkdtemp(prefix="run.", dir=base))
+    directory = begin(ROOT, "inspection/dotnet")
     pin = json.loads((ROOT / "global.json").read_text())["sdk"]["version"]
     manifest = ROOT / ".config/dotnet-tools.json"
     tool = json.loads(manifest.read_text())["tools"]["jetbrains.resharper.globaltools"]["version"]
@@ -173,12 +174,13 @@ def main():
     environment = dict(os.environ)
     for key in ("MSBuildSDKsPath", "MSBUILD_EXE_PATH", "DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR", "DOTNET_MSBUILD_SDK_RESOLVER_SDKS_VER"):
         environment.pop(key, None)
-    dotnet = os.environ.get("DOTNET_EXE") or ("/usr/local/share/dotnet/dotnet" if Path("/usr/local/share/dotnet/dotnet").is_file() else shutil.which("dotnet"))
+    dotnet = None
     state_path = base / f"prepared-{args.configuration}.json"
-    print(f"INSPECT START: {context['scope']} ({args.configuration}); evidence={directory.relative_to(ROOT)}", flush=True)
+    print(f"INSPECT START: {context['scope']} ({args.configuration}); results=current", flush=True)
     try:
-        if not dotnet:
-            raise ValueError("dotnet is missing; install the SDK pinned in global.json")
+        if tool_pin(ROOT, "dotnet") != pin:
+            raise ValueError("mise.toml and global.json must pin the same .NET SDK")
+        dotnet = resolve(ROOT, "dotnet", override=os.environ.get("DOTNET_EXE"))
         environment.update(DOTNET_ROOT=str(Path(dotnet).resolve().parent), DOTNET_CLI_UI_LANGUAGE="en-US",
                            PATH=str(Path(dotnet).resolve().parent) + os.pathsep + environment.get("PATH", ""))
         actual = subprocess.check_output([dotnet, "--version"], cwd=ROOT, env=environment, text=True).strip()
@@ -216,6 +218,7 @@ def main():
                          outputs=outputs(args.configuration), diagnostics=diagnostics)
             write_json(state_path, state)
         print("INSPECT ANALYZE: pinned local tool, full solution reference graph", flush=True)
+        context["outputs"] = state["outputs"]
         command = [dotnet, "tool", "run", "jb", "--", "inspectcode", str(ROOT / "nami.slnx"), "--no-build", "--no-updates", "--swea",
                    "--jobs=" + environment.get("NAMI_BUILD_WORKERS", "2"),
                    "--severity=INFO", "--format=Sarif", f"--dotnetcoresdk={pin}", f"--properties=Configuration={args.configuration}",

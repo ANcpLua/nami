@@ -15,6 +15,9 @@ import threading
 import xml.etree.ElementTree as ET
 from collections import Counter
 from pathlib import Path
+from diagnostics import begin, state_root
+from toolchain import resolve
+from inspect_code import sources
 
 
 class HarnessError(Exception):
@@ -152,7 +155,7 @@ def main():
     root = args.root.resolve()
     workers = os.environ.get("NAMI_BUILD_WORKERS", "2")
     if args.status is not None:
-        directory = args.status if args.status.is_absolute() else root / args.status
+        directory = state_root(root) / "tests/current" if str(args.status) == "current" else args.status if args.status.is_absolute() else root / args.status
         if not directory.is_dir():
             print(f"TEST STATUS FAILED: run directory does not exist: {directory}", file=sys.stderr)
             return 10
@@ -166,11 +169,23 @@ def main():
     if set(manifest) != set(order):
         raise SystemExit("The suite manifest must define Unit, Integration and EndToEnd exactly once.")
     selected = list(order) if args.suite == "All" else [args.suite]
-    base = root / "artifacts/test-results"
+    if "EndToEnd" in selected:
+        runtime_paths = [str(Path(resolve(root, name)).parent) for name in ("bun", "node")]
+        os.environ["PATH"] = os.pathsep.join([*runtime_paths, os.environ.get("PATH", "")])
+    base = state_root(root) / "tests"
     base.mkdir(parents=True, exist_ok=True)
-    run = Path(tempfile.mkdtemp(prefix="run.", dir=base))
+    parent = Path(os.environ.get("NAMI_TEST_RUN_DIR", "/__no_test_run__"))
+    nested = parent.is_relative_to(base) and parent.is_dir()
+    if nested:
+        (parent / "nested").mkdir(exist_ok=True)
+        run = Path(tempfile.mkdtemp(prefix="run.", dir=parent / "nested"))
+    else:
+        run = begin(root, "tests")
+    os.environ["NAMI_TEST_RUN_DIR"] = str(run)
     summary = {"configuration": args.configuration, "requested": selected, "filtered": bool(args.filter), "suites": []}
-    print(f"TEST RUN: suites={','.join(selected)} configuration={args.configuration}\nResults: {run}", flush=True)
+    if (root / ".git").exists():
+        summary["context"] = {"source": sources(root)}
+    print(f"TEST RUN: suites={','.join(selected)} configuration={args.configuration}\nResults: current tests (mise diagnostics)", flush=True)
     try:
         if not args.no_build and not args.test_modules:
             target = root / ("nami.slnx" if args.suite == "All" else manifest[args.suite]["project"])
@@ -239,9 +254,9 @@ def main():
                         "--diagnostic-output-directory", str(directory / "diagnostics")]
             if args.filter:
                 command += ["--filter", args.filter]
-            print(f"TEST SUITE: {name} minimum={minimum}\nLog: {directory / 'test.log'}", flush=True)
+            print(f"TEST SUITE: {name} minimum={minimum}; status: ./eng/test.sh --status current", flush=True)
             code = execute(command, directory / "test.log", root,
-                           progress=lambda: f"TEST WAIT {name}: {test_status(directory)}; diagnostics: {directory / 'diagnostics'}")
+                           progress=lambda: f"TEST WAIT {name}: {test_status(directory)}; status: ./eng/test.sh --status current")
             try:
                 counts, names = read_results(directory)
             except (HarnessError, ET.ParseError, ValueError) as error:
@@ -263,7 +278,9 @@ def main():
         return finish(summary, 10)
     finally:
         (run / "summary.json").write_text(json.dumps(summary, indent=2))
-        print(f"Summary: {run / 'summary.json'}", flush=True)
+        print("Summary: current tests; discover with mise diagnostics", flush=True)
+        if nested:
+            shutil.rmtree(run)
 
 
 if __name__ == "__main__":

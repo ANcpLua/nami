@@ -150,9 +150,23 @@ def check(case, workspace, env, binlogs):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--report", required=True, type=Path)
+    parser.add_argument("--report", type=Path)
+    parser.add_argument("--diagnostics-home", type=Path, help="External diagnostic state root")
     args = parser.parse_args()
-    binlogs = args.report.resolve().parent / "binlogs"
+    skill_root = Path(__file__).resolve().parents[1]
+    repository = next((p for p in skill_root.parents if (p / "eng/scripts/diagnostics.py").is_file()), None)
+    if args.report is None:
+        if repository:
+            sys.path.insert(0, str(repository / "eng/scripts"))
+            from diagnostics import begin
+            args.report = begin(repository, "union") / "summary.json"
+        else:
+            state = args.diagnostics_home or Path.home() / ".local/state/csharp-union-types"
+            args.report = state / "current/summary.json"
+    args.report = args.report.expanduser().resolve()
+    if args.report.is_relative_to(repository or skill_root):
+        parser.error("Reports must be outside the source and instruction tree")
+    binlogs = args.report.parent / "binlogs"
     binlogs.mkdir(parents=True, exist_ok=True)
     report = {"sdk": SDK,
               "started_at_utc": datetime.now(timezone.utc).isoformat(), "checks": []}

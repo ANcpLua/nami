@@ -9,7 +9,7 @@ Normal skill use means reading SKILL.md and only the relevant local reference se
 Run the verifier when changing the examples/polyfills, validating an implementation change, or rechecking the recorded compiler behavior. It requires Python 3.10+, SDK 11.0.100-rc.2.26504.105 and the required target framework reference packs. Like normal dotnet builds, restore may obtain framework/reference packages if they are not already installed. It never fetches probe source or documentation.
 
 ```sh
-python3 scripts/verify.py --report artifacts/verification.json
+python3 scripts/verify.py
 ```
 
 The runner copies the supplied local source to a temporary directory and builds sequentially with at most two workers. It checks exact expected error-code sets and runtime results. An unexpected diagnostic, missing result, failed process, or timeout fails the run. No console-green or empty run is counted as proof.

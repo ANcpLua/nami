@@ -18,8 +18,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from inspect_code import ROOT, digest, sources, write_json
+from diagnostics import begin, current, state_root
+from toolchain import installation, pin as tool_pin, resolve
 
-BASE = ROOT / "artifacts/inspection/agent"
+BASE = state_root(ROOT) / "inspection"
 RANK = {"error": 0, "warning": 1, "note": 2}
 GENERATED = ["internal/nami.contracts/Nami", "contracts/json-schema", "contracts/openapi",
              "src/nami.mcp/src/contracts/generated"]
@@ -31,20 +33,20 @@ class Failure(Exception):
         self.status = status
 
 
-def fingerprint():
+def fingerprint(root=ROOT):
     # Include ignored compiler inputs as well as Git's visible files. Dependency trees and
     # generated build directories have separate tool/output fingerprints.
     paths = []
-    for root in [ROOT / "contracts", ROOT / "src/nami.mcp", ROOT / "eng/scripts"]:
-        for directory, children, files in os.walk(root):
+    for folder in [root / "contracts", root / "src/nami.mcp", root / "eng/scripts"]:
+        for directory, children, files in os.walk(folder):
             children[:] = [name for name in children if name not in {"node_modules", "dist", "bin", "obj", "__pycache__"}]
             paths.extend(Path(directory, name) for name in files
                          if Path(name).suffix in {".ts", ".mts", ".cts", ".js", ".mjs", ".cjs", ".json", ".yaml"})
-    return hashlib.sha256((sources() + digest(paths)).encode()).hexdigest()
+    return hashlib.sha256((sources(root) + digest(paths, root)).encode()).hexdigest()
 
 
-def tree_hash(roots):
-    return digest(path for root in roots for path in (ROOT / root).rglob("*") if path.is_file() and path.name != ".DS_Store")
+def tree_hash(roots, root=ROOT):
+    return digest((path for folder in roots for path in (root / folder).rglob("*") if path.is_file() and path.name != ".DS_Store"), root)
 
 
 def generated_manifest():
@@ -53,12 +55,12 @@ def generated_manifest():
             if path.is_file() and path.name != ".DS_Store"}
 
 
-def output_hash(target):
+def output_hash(target, root=ROOT):
     roots = [*GENERATED, "contracts/emitters/csharp/dist", "contracts/emitters/ts-types/dist",
              "contracts/emitters/nami-lint/dist", "src/nami.mcp/dist"]
     if target == "mcp":
         roots.append("artifacts/publish")
-    return tree_hash(roots)
+    return tree_hash(roots, root)
 
 
 def tool(command, arguments):
@@ -68,9 +70,7 @@ def tool(command, arguments):
 def runtimes(pin):
     result = {}
     for name in ["bun", "node"]:
-        executable = shutil.which(name)
-        if not executable:
-            raise Failure("SETUP_FAILED", f"Install pinned {name} {pin[name]}.")
+        executable = resolve(ROOT, name)
         actual = tool(executable, ["--version"]).removeprefix("v")
         if actual != pin[name]:
             raise Failure("SETUP_FAILED", f"{name}: expected {pin[name]}, found {actual}.")
@@ -80,7 +80,9 @@ def runtimes(pin):
 
 
 def mcp_tool(pin, node):
-    path = Path(os.environ.get("MCPDO_PATH") or shutil.which("mcpdo") or "")
+    path = Path(resolve(ROOT, "npm:@modelcontextprotocol/inspector", "mcpdo", os.environ.get("MCPDO_PATH")))
+    if not os.environ.get("MCPDO_PATH"):
+        path = installation(ROOT, "npm:@modelcontextprotocol/inspector") / "node_modules" / pin["package"] / pin["entry"]
     if path.suffix == ".cmd":
         path = path.parent / "node_modules" / pin["package"] / pin["entry"]
     path = path.resolve()
@@ -120,9 +122,8 @@ def render(summary, findings, args, directory):
         print(f"{item['level'].upper()} [{item['lane']}] {item['rule']} {item['path']}:{item['line']}:{item['column']}: {item['message'][:500]}")
     for problem in summary.get("problems", [])[:args.limit]:
         print(f"PROBLEM: {' '.join(problem.split())[:700]}")
-    relative = directory.relative_to(ROOT)
-    print(f"Evidence: {relative}/summary.json")
-    print(f"Query: ./eng/inspect.sh --target {context['target']} --results {relative} --offset {args.offset + args.limit} --limit {args.limit}")
+    print(f"Evidence: current {context['target']} result; discover with mise diagnostics")
+    print(f"Query: ./eng/inspect.sh --target {context['target']} --results current --offset {args.offset + args.limit} --limit {args.limit}")
 
 
 class Run:
@@ -367,7 +368,7 @@ def main():
     if args.results and (args.no_build or args.transport or args.era): parser.error("Stored run scope is immutable")
     args.transport, args.era = args.transport or "both", args.era or "both"
     if args.results:
-        directory = (ROOT / args.results).resolve(); directory.relative_to(BASE)
+        directory = current(ROOT, "inspection/" + args.target, args.results)
         summary = json.loads((directory / "summary.json").read_text())
         findings = [json.loads(line) for line in (directory / "findings.jsonl").read_text().splitlines()]
         if summary["context"]["target"] != args.target: parser.error("Stored target differs")
@@ -378,18 +379,19 @@ def main():
         render(summary, findings, args, directory)
         return summary["exitCode"]
     BASE.mkdir(parents=True, exist_ok=True)
-    directory = Path(tempfile.mkdtemp(prefix="run.", dir=BASE))
+    directory = begin(ROOT, "inspection/" + args.target)
     context = dict(target=args.target, configuration=args.configuration, source=fingerprint(),
                    head=tool("git", ["rev-parse", "HEAD"]), tools={}, startedAt=datetime.now(timezone.utc).isoformat())
-    print(f"INSPECT START: {args.target}; evidence={directory.relative_to(ROOT)}", flush=True)
+    print(f"INSPECT START: {args.target}; results=current", flush=True)
     run = Run(args, directory, context)
     prepared = BASE / f"prepared-{args.target}-{args.configuration}.json"
     try:
-        pin = json.loads((ROOT / ".config/agent-tools.json").read_text())
+        pin = {name: tool_pin(ROOT, name) for name in ("bun", "node")}
+        pin["mcpdo"] = dict(package="@modelcontextprotocol/inspector", version=tool_pin(ROOT, "npm:@modelcontextprotocol/inspector"), entry="clients/mcpdo/build/mcp-bin.js")
         context["tools"] = runtimes(pin)
         if args.target == "mcp":
             context["tools"]["mcpdo"] = mcp_tool(pin["mcpdo"], context["tools"]["node"]["path"])
-            dotnet = os.environ.get("DOTNET_EXE") or ("/usr/local/share/dotnet/dotnet" if Path("/usr/local/share/dotnet/dotnet").is_file() else shutil.which("dotnet"))
+            dotnet = resolve(ROOT, "dotnet", override=os.environ.get("DOTNET_EXE"))
             sdk = json.loads((ROOT / "global.json").read_text())["sdk"]["version"]
             if not dotnet or tool(dotnet, ["--version"]) != sdk:
                 raise Failure("SETUP_FAILED", f"MCP publish requires the exact SDK {sdk} from global.json.")
