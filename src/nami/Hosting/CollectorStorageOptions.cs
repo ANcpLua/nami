@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Nami.Collector.Ingestion.Configuration;
 using Nami.Collector.Storage;

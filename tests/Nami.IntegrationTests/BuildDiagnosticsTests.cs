@@ -1,4 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Text.Json.Nodes;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nami.Tests.Infrastructure;
 
 namespace Nami.IntegrationTests;
@@ -7,7 +14,9 @@ namespace Nami.IntegrationTests;
 [TestCategory("Integration")]
 public sealed class BuildDiagnosticsTests(TestContext context)
 {
-    private const string ValidReport = """{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"InspectCode"}},"invocations":[{"executionSuccessful":true}],"results":[]}]}""";
+    private const string ValidReport =
+        """{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"InspectCode"}},"invocations":[{"executionSuccessful":true}],"results":[]}]}""";
+
     private string Temporary => InspectionFixture.Temporary(context);
 
     [TestCleanup]
@@ -20,7 +29,10 @@ public sealed class BuildDiagnosticsTests(TestContext context)
         if (report is not null) await File.WriteAllTextAsync(reportPath, report, context.CancellationToken);
         await File.WriteAllTextAsync(logPath, log, context.CancellationToken);
         return await ProcessRunner.RunAsync("python3",
-            [Path.Combine(ProcessRunner.RepositoryRoot, "eng/scripts/inspect_report.py"), reportPath, logPath, exitCode.ToString(System.Globalization.CultureInfo.InvariantCulture)],
+            [
+                Path.Combine(ProcessRunner.RepositoryRoot, "eng/scripts/inspect_report.py"), reportPath, logPath,
+                exitCode.ToString(CultureInfo.InvariantCulture)
+            ],
             Temporary, context.CancellationToken);
     }
 
@@ -36,10 +48,12 @@ public sealed class BuildDiagnosticsTests(TestContext context)
     public async Task InspectReport_Warning_ShowsRuleLocationAndFails()
     {
         var document = JsonNode.Parse(ValidReport)!;
-        document["runs"]![0]!["results"] = JsonNode.Parse("""[{"ruleId":"MSTEST0052","level":"warning","message":{"text":"Remove DynamicDataSourceType"},"locations":[{"physicalLocation":{"artifactLocation":{"uri":"tests/HostTransportTests.cs"},"region":{"startLine":97,"startColumn":6}}}]}]""");
+        document["runs"]![0]!["results"] = JsonNode.Parse(
+            """[{"ruleId":"MSTEST0052","level":"warning","message":{"text":"Remove DynamicDataSourceType"},"locations":[{"physicalLocation":{"artifactLocation":{"uri":"tests/HostTransportTests.cs"},"region":{"startLine":97,"startColumn":6}}}]}]""");
         var result = await ReportAsync(document.ToJsonString());
         Assert.AreEqual(1, result.ExitCode);
-        Assert.Contains("WARNING MSTEST0052 x1 tests/HostTransportTests.cs:97:6: Remove DynamicDataSourceType", result.Output);
+        Assert.Contains("WARNING MSTEST0052 x1 tests/HostTransportTests.cs:97:6: Remove DynamicDataSourceType",
+            result.Output);
         Assert.Contains("total=1 errors=0 warnings=1 notes=0", result.Output);
     }
 
@@ -47,7 +61,8 @@ public sealed class BuildDiagnosticsTests(TestContext context)
     public async Task InspectReport_Note_IsAVisibleFinding()
     {
         var document = JsonNode.Parse(ValidReport)!;
-        document["runs"]![0]!["results"] = JsonNode.Parse("""[{"ruleId":"UnusedMember.Global","level":"note","message":{"text":"Unused member"}}]""");
+        document["runs"]![0]!["results"] =
+            JsonNode.Parse("""[{"ruleId":"UnusedMember.Global","level":"note","message":{"text":"Unused member"}}]""");
         var result = await ReportAsync(document.ToJsonString());
         Assert.AreEqual(1, result.ExitCode);
         Assert.Contains("INSPECTCODE FINDINGS", result.Output);
@@ -57,7 +72,9 @@ public sealed class BuildDiagnosticsTests(TestContext context)
     [TestMethod]
     public async Task InspectReport_RoslynLoadFailure_RejectsSuccessfulReport()
     {
-        var result = await ReportAsync(log: "Roslyn error AssemblyLoading: missing Microsoft.CodeAnalysis.Features.ExternalAccess\n");
+        var result =
+            await ReportAsync(
+                log: "Roslyn error AssemblyLoading: missing Microsoft.CodeAnalysis.Features.ExternalAccess\n");
         Assert.AreEqual(2, result.ExitCode);
         Assert.Contains("TOOL ERROR: Roslyn error AssemblyLoading", result.Output);
         Assert.Contains("INSPECTCODE FAILED", result.Output);
@@ -82,7 +99,7 @@ public sealed class BuildDiagnosticsTests(TestContext context)
     [TestMethod]
     public async Task InspectReport_MissingReport_IsNotSuccessful()
     {
-        var result = await ReportAsync(report: null);
+        var result = await ReportAsync(null);
         Assert.AreEqual(2, result.ExitCode);
         Assert.Contains("Invalid or missing report", result.Output);
     }
@@ -111,7 +128,9 @@ public sealed class BuildDiagnosticsTests(TestContext context)
     [TestMethod]
     public async Task QuietOutput_SuccessfulBuildWarning_RemainsVisible()
     {
-        var result = await QuietAsync("printf 'tests/HostTransportTests.cs(97,6): warning MSTEST0052: Remove DynamicDataSourceType\\n'");
+        var result =
+            await QuietAsync(
+                "printf 'tests/HostTransportTests.cs(97,6): warning MSTEST0052: Remove DynamicDataSourceType\\n'");
         Assert.AreEqual(0, result.ExitCode);
         Assert.Contains("warning MSTEST0052", result.Output);
         Assert.Contains("PASS WITH DIAGNOSTICS", result.Output);
@@ -155,7 +174,8 @@ public sealed class BuildDiagnosticsTests(TestContext context)
     {
         var result = await ProcessRunner.RunAsync("bash",
             [Path.Combine(ProcessRunner.RepositoryRoot, "eng/test.sh"), "--suite", "Unit", "--no-build"],
-            Temporary, context.CancellationToken, new Dictionary<string, string?> { ["TESTINGPLATFORM_EXITCODE_IGNORE"] = "2;8" });
+            Temporary, context.CancellationToken,
+            new Dictionary<string, string?> { ["TESTINGPLATFORM_EXITCODE_IGNORE"] = "2;8" });
         Assert.AreEqual(10, result.ExitCode, result.Output + result.Error);
         Assert.Contains("TESTINGPLATFORM_EXITCODE_IGNORE", result.Error);
     }
@@ -170,13 +190,17 @@ public sealed class BuildDiagnosticsTests(TestContext context)
         Directory.CreateDirectory(Path.Combine(root, "eng"));
         Directory.CreateDirectory(extensions);
         Directory.CreateDirectory(package);
-        File.Copy(Path.Combine(ProcessRunner.RepositoryRoot, "eng/test-suites.json"), Path.Combine(root, "eng/test-suites.json"));
+        File.Copy(Path.Combine(ProcessRunner.RepositoryRoot, "eng/test-suites.json"),
+            Path.Combine(root, "eng/test-suites.json"));
         await File.WriteAllTextAsync(assembly, "fixture", context.CancellationToken);
         if (includeImports)
         {
-            await File.WriteAllTextAsync(Path.Combine(extensions, "Nami.UnitTests.csproj.nuget.g.props"), "<Project />", context.CancellationToken);
-            await File.WriteAllTextAsync(Path.Combine(extensions, "Nami.UnitTests.csproj.nuget.g.targets"), "<Project />", context.CancellationToken);
+            await File.WriteAllTextAsync(Path.Combine(extensions, "Nami.UnitTests.csproj.nuget.g.props"), "<Project />",
+                context.CancellationToken);
+            await File.WriteAllTextAsync(Path.Combine(extensions, "Nami.UnitTests.csproj.nuget.g.targets"),
+                "<Project />", context.CancellationToken);
         }
+
         if (completePackage)
             await File.WriteAllTextAsync(Path.Combine(package, "example.nuspec"), "fixture", context.CancellationToken);
         var assets = new JsonObject
@@ -202,12 +226,12 @@ public sealed class BuildDiagnosticsTests(TestContext context)
         };
         var dotnet = Path.Combine(root, "dotnet");
         await File.WriteAllTextAsync(dotnet, $$"""
-        #!/bin/sh
-        [ "$1" = "msbuild" ] || { echo 'Unexpected test discovery' >&2; exit 99; }
-        cat <<'NAMI_PROPERTIES'
-        {{evaluation.ToJsonString()}}
-        NAMI_PROPERTIES
-        """, context.CancellationToken);
+                                               #!/bin/sh
+                                               [ "$1" = "msbuild" ] || { echo 'Unexpected test discovery' >&2; exit 99; }
+                                               cat <<'NAMI_PROPERTIES'
+                                               {{evaluation.ToJsonString()}}
+                                               NAMI_PROPERTIES
+                                               """, context.CancellationToken);
         if (!OperatingSystem.IsWindows())
             File.SetUnixFileMode(dotnet, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         return await ProcessRunner.RunAsync("python3",
@@ -221,7 +245,7 @@ public sealed class BuildDiagnosticsTests(TestContext context)
     [TestMethod]
     public async Task TestEntry_MissingNuGetImports_IsExplicitSetupFailure()
     {
-        var result = await RunWithRestoreStateAsync(includeImports: false, completePackage: true);
+        var result = await RunWithRestoreStateAsync(false, true);
         Assert.AreEqual(10, result.ExitCode, result.Output + result.Error);
         Assert.Contains("Missing restore/build state", result.Error);
         Assert.Contains("Nami.UnitTests.csproj.nuget.g.props", result.Error);
@@ -231,7 +255,7 @@ public sealed class BuildDiagnosticsTests(TestContext context)
     [TestMethod]
     public async Task TestEntry_IncompleteGlobalPackages_IsExplicitSetupFailure()
     {
-        var result = await RunWithRestoreStateAsync(includeImports: true, completePackage: false);
+        var result = await RunWithRestoreStateAsync(true, false);
         Assert.AreEqual(10, result.ExitCode, result.Output + result.Error);
         Assert.Contains("Global package Example/1.0 is incomplete", result.Error);
         Assert.Contains("example.nuspec", result.Error);
@@ -242,7 +266,10 @@ public sealed class BuildDiagnosticsTests(TestContext context)
     public async Task TestEntry_EmptySelection_PreservesMinimumFailure()
     {
         var result = await ProcessRunner.RunAsync("bash",
-            [Path.Combine(ProcessRunner.RepositoryRoot, "eng/test.sh"), "--suite", "Integration", "--no-build", "--filter", "FullyQualifiedName~Nami.NoSuchCase"],
+            [
+                Path.Combine(ProcessRunner.RepositoryRoot, "eng/test.sh"), "--suite", "Integration", "--no-build",
+                "--filter", "FullyQualifiedName~Nami.NoSuchCase"
+            ],
             Temporary, context.CancellationToken);
         Assert.AreEqual(9, result.ExitCode, result.Output + result.Error);
         Assert.Contains("minimum", result.Output.ToLowerInvariant());
@@ -252,7 +279,8 @@ public sealed class BuildDiagnosticsTests(TestContext context)
     public async Task TestStatus_DiagnosticEvents_NamesUnfinishedCase()
     {
         await File.WriteAllTextAsync(Path.Combine(Temporary, "progress.diag"),
-            "mstest-trace INFORMATION Executing test FinishedCase\nmstest-trace INFORMATION Executed test FinishedCase\nmstest-trace INFORMATION Executing test PendingCase\n", context.CancellationToken);
+            "mstest-trace INFORMATION Executing test FinishedCase\nmstest-trace INFORMATION Executed test FinishedCase\nmstest-trace INFORMATION Executing test PendingCase\n",
+            context.CancellationToken);
         var result = await ProcessRunner.RunAsync("bash",
             [Path.Combine(ProcessRunner.RepositoryRoot, "eng/test.sh"), "--status", Temporary],
             Temporary, context.CancellationToken);

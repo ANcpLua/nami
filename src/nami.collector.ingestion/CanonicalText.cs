@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Nami.Collector.Ingestion;
 
 /// <summary>

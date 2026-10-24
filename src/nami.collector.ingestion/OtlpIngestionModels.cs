@@ -1,4 +1,7 @@
+using System.Collections.Generic;
+using Nami.Api.Contracts.OTel.Metrics;
 using Nami.Collector.Ingestion.Primitives;
+using Attribute = Nami.Api.Contracts.Common.Attribute;
 
 namespace Nami.Collector.Ingestion;
 
@@ -15,9 +18,9 @@ internal sealed record LogIngestionBatch(IReadOnlyList<LogIngestionRecord> Logs)
 }
 
 /// <summary>
-/// The converted points plus the OTLP partial-success accounting for what was dropped.
-/// A rejected point must not fail the whole export: valid points in the same request
-/// remain available and the sender receives an explicit rejection count and reason.
+///     The converted points plus the OTLP partial-success accounting for what was dropped.
+///     A rejected point must not fail the whole export: valid points in the same request
+///     remain available and the sender receives an explicit rejection count and reason.
 /// </summary>
 internal sealed record MetricIngestionBatch(
     IReadOnlyList<MetricPointIngestionRecord> Points,
@@ -45,12 +48,17 @@ internal sealed record SpanIngestionRecord
     public required IReadOnlyDictionary<string, OtlpAttributeValue> Attributes { get; init; }
     public required IReadOnlyDictionary<string, OtlpAttributeValue> ResourceAttributes { get; init; }
     public IReadOnlyList<ResourceEntityRefIngestionRecord> ResourceEntityRefs { get; init; } = [];
+
     /// <summary>The scope's schema URL, or the resource's when the scope carries none; null when neither does.</summary>
     public string? SchemaUrl { get; init; }
+
     public string? ScopeName { get; init; }
     public string? ScopeVersion { get; init; }
     public string? ScopeSchemaUrl { get; init; }
-    public IReadOnlyDictionary<string, OtlpAttributeValue> ScopeAttributes { get; init; } = FrozenDictionary<string, OtlpAttributeValue>.Empty;
+
+    public IReadOnlyDictionary<string, OtlpAttributeValue> ScopeAttributes { get; init; } =
+        FrozenDictionary<string, OtlpAttributeValue>.Empty;
+
     public uint ScopeDroppedAttributesCount { get; init; }
     public string? ResourceSchemaUrl { get; init; }
     public uint ResourceDroppedAttributesCount { get; init; }
@@ -83,7 +91,10 @@ internal sealed record LogIngestionRecord
     public string? ScopeName { get; init; }
     public string? ScopeVersion { get; init; }
     public string? ScopeSchemaUrl { get; init; }
-    public IReadOnlyDictionary<string, OtlpAttributeValue> ScopeAttributes { get; init; } = FrozenDictionary<string, OtlpAttributeValue>.Empty;
+
+    public IReadOnlyDictionary<string, OtlpAttributeValue> ScopeAttributes { get; init; } =
+        FrozenDictionary<string, OtlpAttributeValue>.Empty;
+
     public uint ScopeDroppedAttributesCount { get; init; }
     public string? ResourceSchemaUrl { get; init; }
     public uint ResourceDroppedAttributesCount { get; init; }
@@ -97,8 +108,10 @@ internal sealed record LogIngestionRecord
     public ulong? ObservedTimeUnixNano { get; init; }
     public int? UntimedRequestOrdinal { get; init; }
     public bool ObservedTimeProvided { get; init; } = true;
+
     /// <summary>When the Collector received the record.</summary>
     public ulong? ReceivedTimeUnixNano { get; init; }
+
     public required int SeverityNumber { get; init; }
     public string? SeverityText { get; init; }
     public required OtlpAttributeValue Body { get; init; }
@@ -109,9 +122,9 @@ internal sealed record LogIngestionRecord
 }
 
 /// <summary>
-/// One OTLP data point carrying the stream metadata it was nested under. Flattening here
-/// keeps the converter a pure projection of the wire shape; the storage mapper folds the
-/// repeated metadata back into one series row per distinct stream.
+///     One OTLP data point carrying the stream metadata it was nested under. Flattening here
+///     keeps the converter a pure projection of the wire shape; the storage mapper folds the
+///     repeated metadata back into one series row per distinct stream.
 /// </summary>
 internal sealed record MetricPointIngestionRecord
 {
@@ -121,7 +134,10 @@ internal sealed record MetricPointIngestionRecord
     public string? ScopeName { get; init; }
     public string? ScopeVersion { get; init; }
     public string? ScopeSchemaUrl { get; init; }
-    public IReadOnlyDictionary<string, OtlpAttributeValue> ScopeAttributes { get; init; } = FrozenDictionary<string, OtlpAttributeValue>.Empty;
+
+    public IReadOnlyDictionary<string, OtlpAttributeValue> ScopeAttributes { get; init; } =
+        FrozenDictionary<string, OtlpAttributeValue>.Empty;
+
     public uint ScopeDroppedAttributesCount { get; init; }
     public string? ResourceSchemaUrl { get; init; }
     public uint ResourceDroppedAttributesCount { get; init; }
@@ -141,8 +157,8 @@ internal sealed record MetricPointIngestionRecord
     public required ulong TimeUnixNano { get; init; }
     public ulong? StartTimeUnixNano { get; init; }
 
-    public required Api.Contracts.OTel.Metrics.MetricPointData Data { get; init; }
+    public required MetricPointData Data { get; init; }
     public uint Flags { get; init; }
-    public IReadOnlyList<Api.Contracts.OTel.Metrics.MetricExemplar> Exemplars { get; init; } = [];
-    public IReadOnlyList<Nami.Api.Contracts.Common.Attribute> InstrumentMetadata { get; init; } = [];
+    public IReadOnlyList<MetricExemplar> Exemplars { get; init; } = [];
+    public IReadOnlyList<Attribute> InstrumentMetadata { get; init; } = [];
 }

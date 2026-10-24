@@ -1,3 +1,8 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using DuckDB.NET.Data;
 
 namespace Nami.Collector.Storage;
@@ -36,13 +41,13 @@ internal sealed partial class DuckDbStore
             command.Transaction = transaction;
             // Keep one pre-window resource per service: changes in the retained window need their predecessor.
             command.CommandText = """
-                DELETE FROM resource_observations
-                WHERE observed_unix_nano < $1 AND sequence_number < (
-                  SELECT max(previous.sequence_number) FROM resource_observations AS previous
-                  WHERE previous.project_id = resource_observations.project_id
-                    AND previous.service_name = resource_observations.service_name
-                    AND previous.observed_unix_nano < $1)
-                """;
+                                  DELETE FROM resource_observations
+                                  WHERE observed_unix_nano < $1 AND sequence_number < (
+                                    SELECT max(previous.sequence_number) FROM resource_observations AS previous
+                                    WHERE previous.project_id = resource_observations.project_id
+                                      AND previous.service_name = resource_observations.service_name
+                                      AND previous.observed_unix_nano < $1)
+                                  """;
             AddParameters(command, (decimal)cutoffUnixNano);
             long deleted = await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             command.Parameters.Clear();

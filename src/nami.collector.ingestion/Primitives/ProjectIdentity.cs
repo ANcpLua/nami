@@ -1,8 +1,10 @@
+using System;
+
 namespace Nami.Collector.Ingestion.Primitives;
 
 /// <summary>
-/// Project identity shared by the auth boundaries, the read API and storage stamping. It sits
-/// outside Ingestion and Storage so both transports and the storage mappers apply one rule.
+///     Project identity shared by the auth boundaries, the read API and storage stamping. It sits
+///     outside Ingestion and Storage so both transports and the storage mappers apply one rule.
 /// </summary>
 internal static class ProjectIdentity
 {

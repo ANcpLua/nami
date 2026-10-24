@@ -1,3 +1,5 @@
+using System;
+
 namespace Nami.Collector.Storage;
 
 internal static partial class DuckDbStoreLog

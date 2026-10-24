@@ -1,3 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Nami.Api.Contracts.OTel.Metrics;
+using Attribute = Nami.Api.Contracts.Common.Attribute;
+
 namespace Nami.Collector.Ingestion;
 
 /// <summary>Normalization provenance, separate from producer attributes and their values.</summary>
@@ -17,19 +23,20 @@ internal sealed class NormalizedAttributes() : Dictionary<string, OtlpAttributeV
             target._renames.Add(new AttributeRename(original, null));
     }
 
-    internal static IReadOnlyList<AttributeRename> Collect(IEnumerable<IReadOnlyDictionary<string, OtlpAttributeValue>> attributes) =>
+    internal static IReadOnlyList<AttributeRename> Collect(
+        IEnumerable<IReadOnlyDictionary<string, OtlpAttributeValue>> attributes) =>
         attributes.OfType<NormalizedAttributes>().SelectMany(static values => values._renames)
             .Distinct().OrderBy(static rename => rename.OriginalKey, StringComparer.Ordinal)
             .ThenBy(static rename => rename.CanonicalKey, StringComparer.Ordinal).ToArray();
 }
 
 internal sealed class NormalizedContractAttributes(IReadOnlyList<AttributeRename> renames)
-    : List<Nami.Api.Contracts.Common.Attribute>
+    : List<Attribute>
 {
     internal IReadOnlyList<AttributeRename> Renames { get; } = renames;
 }
 
-internal sealed class NormalizedMetricExemplars : List<Nami.Api.Contracts.OTel.Metrics.MetricExemplar>
+internal sealed class NormalizedMetricExemplars : List<MetricExemplar>
 {
     internal List<AttributeRename> Renames { get; } = [];
 }

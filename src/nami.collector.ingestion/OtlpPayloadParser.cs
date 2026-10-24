@@ -1,5 +1,9 @@
+using System;
+using System.IO;
 using System.IO.Compression;
 using System.Net.Http.Headers;
+using System.Threading;
+using System.Threading.Tasks;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using OpenTelemetry.Proto.Collector.Logs.V1;
@@ -11,16 +15,17 @@ namespace Nami.Collector.Ingestion;
 internal static class OtlpPayloadParser
 {
     private const int MaxPayloadBytes = 16 * 1024 * 1024;
-    private static readonly JsonParser s_otlpJsonParser =
-        new(JsonParser.Settings.Default.WithIgnoreUnknownFields(true));
     internal const string ProtobufContentType = "application/x-protobuf";
     internal const string JsonContentType = "application/json";
 
     /// <summary>
-    /// The OTLP status message for a body over <see cref="MaxPayloadBytes"/>; OTLP 1.11 (request
-    /// size limits) makes that a 413 Content Too Large, which the endpoint handlers answer.
+    ///     The OTLP status message for a body over <see cref="MaxPayloadBytes" />; OTLP 1.11 (request
+    ///     size limits) makes that a 413 Content Too Large, which the endpoint handlers answer.
     /// </summary>
     internal const string PayloadTooLargeMessage = "OTLP payload exceeds the 16 MiB wire or decompressed limit.";
+
+    private static readonly JsonParser s_otlpJsonParser =
+        new(JsonParser.Settings.Default.WithIgnoreUnknownFields(true));
 
     public static OtlpPayloadEncoding GetEncoding(string? contentType)
     {
@@ -57,13 +62,14 @@ internal static class OtlpPayloadParser
         OtlpPayloadEncoding encoding,
         CancellationToken ct = default) =>
         encoding is OtlpPayloadEncoding.Protobuf
-            ? ParseProtobufAsync(request, ExportMetricsServiceRequest.Parser, ExportMetricsServiceRequest.Descriptor, ct)
+            ? ParseProtobufAsync(request, ExportMetricsServiceRequest.Parser, ExportMetricsServiceRequest.Descriptor,
+                ct)
             : ParseJsonAsync<ExportMetricsServiceRequest>(request, ct);
 
     /// <summary>
-    /// The strict parse first; when it fails and the payload holds an invalid UTF-8 sequence in a
-    /// <c>string</c> field, the sequence is replaced by U+FFFD (OTLP 1.11.1) and the payload is
-    /// parsed again. A failure that no replacement explains stands.
+    ///     The strict parse first; when it fails and the payload holds an invalid UTF-8 sequence in a
+    ///     <c>string</c> field, the sequence is replaced by U+FFFD (OTLP 1.11.1) and the payload is
+    ///     parsed again. A failure that no replacement explains stands.
     /// </summary>
     private static T ParseProtobuf<T>(MessageParser<T> parser, MessageDescriptor descriptor, ReadOnlySpan<byte> payload)
         where T : IMessage<T>
@@ -72,21 +78,24 @@ internal static class OtlpPayloadParser
         {
             return parser.ParseFrom(payload);
         }
-        catch (InvalidProtocolBufferException) when (OtlpUtf8Replacement.TryReplaceInvalidUtf8(payload, descriptor, out var replaced))
+        catch (InvalidProtocolBufferException) when (OtlpUtf8Replacement.TryReplaceInvalidUtf8(payload, descriptor,
+                                                         out var replaced))
         {
             return parser.ParseFrom(replaced);
         }
     }
 
-    /// <inheritdoc cref="ParseProtobuf{T}(MessageParser{T}, MessageDescriptor, ReadOnlySpan{byte})"/>
-    internal static T ParseProtobuf<T>(MessageParser<T> parser, MessageDescriptor descriptor, in ReadOnlySequence<byte> payload)
+    /// <inheritdoc cref="ParseProtobuf{T}(MessageParser{T}, MessageDescriptor, ReadOnlySpan{byte})" />
+    internal static T ParseProtobuf<T>(MessageParser<T> parser, MessageDescriptor descriptor,
+        in ReadOnlySequence<byte> payload)
         where T : IMessage<T>
     {
         try
         {
             return parser.ParseFrom(payload);
         }
-        catch (InvalidProtocolBufferException) when (OtlpUtf8Replacement.TryReplaceInvalidUtf8(payload.ToArray(), descriptor, out var replaced))
+        catch (InvalidProtocolBufferException) when (OtlpUtf8Replacement.TryReplaceInvalidUtf8(payload.ToArray(),
+                                                         descriptor, out var replaced))
         {
             return parser.ParseFrom(replaced);
         }
@@ -137,7 +146,7 @@ internal static class OtlpPayloadParser
             }
 
             await using var wire = new OtlpWireLimitStream(request.Body, MaxPayloadBytes);
-            await using var gzip = new GZipStream(wire, CompressionMode.Decompress, leaveOpen: true);
+            await using var gzip = new GZipStream(wire, CompressionMode.Decompress, true);
             return await ReadBoundedStreamAsync(gzip, 0, ct).ConfigureAwait(false);
         }
         finally

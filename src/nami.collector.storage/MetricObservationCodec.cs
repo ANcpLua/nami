@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using MetricKind = Nami.Collector.Ingestion.Primitives.MetricKind;
 
 namespace Nami.Collector.Storage;
@@ -13,7 +16,8 @@ internal sealed record HistoricalMetricProjection(
 
 internal static class MetricObservationCodec
 {
-    internal static MetricObservationRow FromIngestion(MetricPointIngestionRecord point, string projectId, string seriesId)
+    internal static MetricObservationRow FromIngestion(MetricPointIngestionRecord point, string projectId,
+        string seriesId)
     {
         var stored = StoredRecordMapper.ToStored(point.Data);
         var data = JsonSerializer.Serialize(stored, StorageJsonSerializerContext.Default.StoredMetricPointData);
@@ -23,20 +27,28 @@ internal static class MetricObservationCodec
             StorageJsonSerializerContext.Default.StoredAttributes);
         var time = point.TimeUnixNano.ToString(CultureInfo.InvariantCulture);
         var start = point.StartTimeUnixNano?.ToString(CultureInfo.InvariantCulture);
-        var measuredData = (point.Flags & 1) != 0 ? "no-recorded-value" : stored switch
-        {
-            StoredNumberPointData number => "number:" + NumericIdentity(number.Value),
-            StoredHistogramPointData or StoredExponentialHistogramPointData or StoredSummaryPointData => data,
-            _ => throw new InvalidDataException("Unknown canonical metric data shape.")
-        };
+        var measuredData = (point.Flags & 1) != 0
+            ? "no-recorded-value"
+            : stored switch
+            {
+                StoredNumberPointData number => "number:" + NumericIdentity(number.Value),
+                StoredHistogramPointData or StoredExponentialHistogramPointData or StoredSummaryPointData => data,
+                _ => throw new InvalidDataException("Unknown canonical metric data shape.")
+            };
         return new MetricObservationRow
         {
-            ProjectId = projectId, SeriesId = seriesId,
-            TimeUnixNano = point.TimeUnixNano, StartTimeUnixNano = point.StartTimeUnixNano,
-            Flags = point.Flags, DataJson = data, ExemplarsJson = exemplars, InstrumentMetadataJson = metadata,
+            ProjectId = projectId,
+            SeriesId = seriesId,
+            TimeUnixNano = point.TimeUnixNano,
+            StartTimeUnixNano = point.StartTimeUnixNano,
+            Flags = point.Flags,
+            DataJson = data,
+            ExemplarsJson = exemplars,
+            InstrumentMetadataJson = metadata,
             ResourceDroppedAttributesCount = point.ResourceDroppedAttributesCount,
             ScopeDroppedAttributesCount = point.ScopeDroppedAttributesCount,
-            ObservationId = Fingerprint("mo_", time, start, point.Flags.ToString(CultureInfo.InvariantCulture), data, exemplars, metadata,
+            ObservationId = Fingerprint("mo_", time, start, point.Flags.ToString(CultureInfo.InvariantCulture), data,
+                exemplars, metadata,
                 point.ResourceDroppedAttributesCount.ToString(CultureInfo.InvariantCulture),
                 point.ScopeDroppedAttributesCount.ToString(CultureInfo.InvariantCulture)),
             MeasurementId = Fingerprint("mm_", time, point.Kind == MetricKind.Gauge ? null : start,
@@ -60,15 +72,19 @@ internal static class MetricObservationCodec
         var projection = new HistoricalMetricProjection(point.Value, point.HistogramCount,
             point.HistogramSum, point.HistogramMin, point.HistogramMax,
             point.BucketBoundsJson, point.BucketCountsJson);
-        var json = JsonSerializer.Serialize(projection, StorageJsonSerializerContext.Default.HistoricalMetricProjection);
+        var json = JsonSerializer.Serialize(projection,
+            StorageJsonSerializerContext.Default.HistoricalMetricProjection);
         var traceJson = JsonSerializer.Serialize(traceIds, StorageJsonSerializerContext.Default.IReadOnlyListString);
         var time = point.TimeUnixNano.ToString(CultureInfo.InvariantCulture);
         var start = point.StartTimeUnixNano?.ToString(CultureInfo.InvariantCulture);
         return new MetricObservationRow
         {
-            ProjectId = point.ProjectId, SeriesId = point.SeriesId,
-            TimeUnixNano = point.TimeUnixNano, StartTimeUnixNano = point.StartTimeUnixNano,
-            HistoricalProjectionJson = json, HistoricalExemplarTraceIdsJson = traceJson,
+            ProjectId = point.ProjectId,
+            SeriesId = point.SeriesId,
+            TimeUnixNano = point.TimeUnixNano,
+            StartTimeUnixNano = point.StartTimeUnixNano,
+            HistoricalProjectionJson = json,
+            HistoricalExemplarTraceIdsJson = traceJson,
             MeasurementId = Fingerprint("mm_", "historical", time, start, json),
             ObservationId = Fingerprint("mo_", "historical", time, start, json, traceJson)
         };
@@ -83,6 +99,7 @@ internal static class MetricObservationCodec
             foreach (var part in parts) writer.WriteStringValue(part);
             writer.WriteEndArray();
         }
+
         return prefix + Convert.ToHexStringLower(SHA256.HashData(buffer.WrittenSpan));
     }
 }

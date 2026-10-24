@@ -1,3 +1,4 @@
+using System.IO;
 using Nami.Collector.Ingestion.Primitives;
 
 namespace Nami.Collector.Storage;

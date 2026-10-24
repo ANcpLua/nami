@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Security.Cryptography;
 using Google.Protobuf;
 using OpenTelemetry.Proto.Common.V1;
@@ -24,6 +27,7 @@ internal static partial class OtlpConverter
             if (!values.TryAdd(attribute.Key, value) && !values[attribute.Key].Equals(value))
                 throw new InvalidDataException("OTLP attributes require unique keys; duplicate values conflict.");
         }
+
         var result = new KeyValueList();
         foreach (var (key, value) in values)
             result.Values.Add(new KeyValue { Key = key, Value = value });

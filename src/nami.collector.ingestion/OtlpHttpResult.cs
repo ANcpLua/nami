@@ -1,3 +1,7 @@
+using System;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
 using Google.Protobuf;
 using RpcStatus = Google.Rpc.Status;
 
@@ -10,13 +14,13 @@ internal enum OtlpPayloadEncoding
 }
 
 /// <summary>
-/// Writes the official OTLP protobuf response envelope in the request's encoding.
+///     Writes the official OTLP protobuf response envelope in the request's encoding.
 /// </summary>
 internal sealed class OtlpHttpResult : IResult
 {
-    private readonly int _statusCode;
     private readonly OtlpPayloadEncoding _encoding;
     private readonly IMessage _message;
+    private readonly int _statusCode;
 
     private OtlpHttpResult(int statusCode, OtlpPayloadEncoding encoding, IMessage message)
     {
@@ -24,12 +28,6 @@ internal sealed class OtlpHttpResult : IResult
         _encoding = encoding;
         _message = message;
     }
-
-    public static IResult Success(OtlpPayloadEncoding encoding, IMessage response) =>
-        new OtlpHttpResult(StatusCodes.Status200OK, encoding, response);
-
-    public static IResult Failure(int statusCode, OtlpPayloadEncoding encoding, string message) =>
-        new OtlpHttpResult(statusCode, encoding, new RpcStatus { Message = message });
 
     public async Task ExecuteAsync(HttpContext httpContext)
     {
@@ -50,6 +48,12 @@ internal sealed class OtlpHttpResult : IResult
         httpContext.Response.ContentLength = jsonPayload.Length;
         await httpContext.Response.Body.WriteAsync(jsonPayload, httpContext.RequestAborted).ConfigureAwait(false);
     }
+
+    public static IResult Success(OtlpPayloadEncoding encoding, IMessage response) =>
+        new OtlpHttpResult(StatusCodes.Status200OK, encoding, response);
+
+    public static IResult Failure(int statusCode, OtlpPayloadEncoding encoding, string message) =>
+        new OtlpHttpResult(statusCode, encoding, new RpcStatus { Message = message });
 }
 
 internal sealed class OtlpUnsupportedMediaTypeException(string? contentType)
@@ -59,8 +63,8 @@ internal sealed class OtlpUnsupportedContentEncodingException(string? contentEnc
     : NotSupportedException($"Unsupported OTLP Content-Encoding '{contentEncoding ?? "<missing>"}'.");
 
 /// <summary>
-/// The OTLP/HTTP body exceeded the decompressed size bound. OTLP 1.11 (request size limits)
-/// requires 413 Content Too Large, which the endpoint handlers answer for this exception.
+///     The OTLP/HTTP body exceeded the decompressed size bound. OTLP 1.11 (request size limits)
+///     requires 413 Content Too Large, which the endpoint handlers answer for this exception.
 /// </summary>
 internal sealed class OtlpPayloadTooLargeException()
     : IOException(OtlpPayloadParser.PayloadTooLargeMessage);

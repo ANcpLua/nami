@@ -4,7 +4,7 @@
     <AdditionalFiles Update="@(AdditionalFiles)">
       <Link Condition="'%(Filename)%(Extension)' == 'Version.props'">Build/SDK/Version.props</Link>
     </AdditionalFiles>
-    <AdditionalFiles Update="$(MSBuildThisFileDirectory)Version.props" Link="Build/Repository/Version.props" />
+    <AdditionalFiles Update="$(MSBuildThisFileDirectory)Version.props" Link="Build/Repository/Version.props"/>
   </ItemGroup>
 
   <!-- Private Collector modules ship together on one conventions pin; incubating coupling

@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Nami.Collector.Ingestion.Configuration;
 

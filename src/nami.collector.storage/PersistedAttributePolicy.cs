@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
 namespace Nami.Collector.Storage;
 
 internal static class PersistedAttributePolicy
@@ -85,5 +90,6 @@ internal static class PersistedAttributePolicy
 
     // Storage's own record and context write every persisted value; no contract converter does.
     private static void WriteValue(Utf8JsonWriter writer, OtlpAttributeValue value) =>
-        JsonSerializer.Serialize(writer, StoredRecordMapper.ToStored(value), StorageJsonSerializerContext.Default.StoredAttributeValue);
+        JsonSerializer.Serialize(writer, StoredRecordMapper.ToStored(value),
+            StorageJsonSerializerContext.Default.StoredAttributeValue);
 }

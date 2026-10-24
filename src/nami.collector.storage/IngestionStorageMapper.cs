@@ -1,3 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+
 namespace Nami.Collector.Storage;
 
 internal static class IngestionStorageMapper

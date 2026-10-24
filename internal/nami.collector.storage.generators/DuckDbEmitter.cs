@@ -1,3 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
+using ANcpLua.Roslyn.Utilities;
+
 namespace Nami.Collector.Storage.Generators;
 
 internal static class DuckDbEmitter

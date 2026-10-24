@@ -1,21 +1,26 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+
 namespace Nami.Collector.Ingestion;
 
 /// <summary>
-/// Rewrites the hex-encoded id fields of an OTLP/JSON payload to base64 so the protojson parser
-/// yields the bytes the sender meant.
+///     Rewrites the hex-encoded id fields of an OTLP/JSON payload to base64 so the protojson parser
+///     yields the bytes the sender meant.
 /// </summary>
 /// <remarks>
-/// The OTLP spec special-cases trace and span ids in JSON to hex, while proto3's JSON mapping
-/// (which <c>Google.Protobuf.JsonParser</c> implements) decodes every <c>bytes</c> field as base64.
-/// Without this rewrite a spec-compliant hex id happens to also be valid base64 and silently
-/// decodes to the wrong bytes — mangled, unjoinable ids. The contract is strict spec-hex: a
-/// non-hex or wrong-length id throws <see cref="InvalidDataException"/>, which the ingest
-/// endpoints surface as a 400, never a mangled row.
-/// <para>
-/// Strings are read the way OTLP 1.11.1 asks a decoder to: an invalid UTF-8 sequence and an
-/// escape of an unpaired surrogate become U+FFFD, where <see cref="Utf8JsonReader.GetString"/>
-/// would refuse the whole payload.
-/// </para>
+///     The OTLP spec special-cases trace and span ids in JSON to hex, while proto3's JSON mapping
+///     (which <c>Google.Protobuf.JsonParser</c> implements) decodes every <c>bytes</c> field as base64.
+///     Without this rewrite a spec-compliant hex id happens to also be valid base64 and silently
+///     decodes to the wrong bytes — mangled, unjoinable ids. The contract is strict spec-hex: a
+///     non-hex or wrong-length id throws <see cref="InvalidDataException" />, which the ingest
+///     endpoints surface as a 400, never a mangled row.
+///     <para>
+///         Strings are read the way OTLP 1.11.1 asks a decoder to: an invalid UTF-8 sequence and an
+///         escape of an unpaired surrogate become U+FFFD, where <see cref="Utf8JsonReader.GetString" />
+///         would refuse the whole payload.
+///     </para>
 /// </remarks>
 internal static class OtlpJsonIdNormalizer
 {
@@ -66,7 +71,7 @@ internal static class OtlpJsonIdNormalizer
                     break;
 
                 case JsonTokenType.Number:
-                    writer.WriteRawValue(reader.ValueSpan, skipInputValidation: true);
+                    writer.WriteRawValue(reader.ValueSpan, true);
                     break;
 
                 case JsonTokenType.True:
@@ -119,7 +124,7 @@ internal static class OtlpJsonIdNormalizer
     private static string Unescape(ReadOnlySpan<byte> escaped)
     {
         // Unescaping never grows the text: \uXXXX (6 bytes) encodes to at most 3, a pair (12) to 4.
-        Span<byte> unescaped = escaped.Length <= 512 ? stackalloc byte[512] : new byte[escaped.Length];
+        var unescaped = escaped.Length <= 512 ? stackalloc byte[512] : new byte[escaped.Length];
         var written = 0;
         for (var i = 0; i < escaped.Length; i++)
         {

@@ -1,8 +1,13 @@
+using System;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace Nami.Collector.Ingestion;
 
 /// <summary>
-/// Bounds encoded HTTP bytes before gzip consumes them. Headers and empty gzip members
-/// consume the wire budget even when they produce no decoded bytes.
+///     Bounds encoded HTTP bytes before gzip consumes them. Headers and empty gzip members
+///     consume the wire budget even when they produce no decoded bytes.
 /// </summary>
 internal sealed class OtlpWireLimitStream(Stream inner, int limit) : Stream
 {
@@ -17,7 +22,8 @@ internal sealed class OtlpWireLimitStream(Stream inner, int limit) : Stream
 
     public override int Read(Span<byte> buffer) => Count(inner.Read(buffer[..Bound(buffer.Length)]));
 
-    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+    public override async ValueTask<int>
+        ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
         Count(await inner.ReadAsync(buffer[..Bound(buffer.Length)], cancellationToken).ConfigureAwait(false));
 
     public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>

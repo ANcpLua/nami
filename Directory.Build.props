@@ -41,7 +41,6 @@
   </PropertyGroup>
 
 
-
   <!-- Audit direct and transitive dependencies; Directory.Packages.props owns security overrides. -->
   <PropertyGroup>
     <NuGetAudit>true</NuGetAudit>

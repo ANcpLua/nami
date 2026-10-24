@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -129,8 +134,8 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             derived,
             arrowEligible,
             columns.ToArray().ToEquatableArray(),
-            ParseIndexSpecs(tableName, indexes, columns, isUnique: false)
-                .Concat(ParseIndexSpecs(tableName, uniqueIndexes, columns, isUnique: true))
+            ParseIndexSpecs(tableName, indexes, columns, false)
+                .Concat(ParseIndexSpecs(tableName, uniqueIndexes, columns, true))
                 .ToArray()
                 .ToEquatableArray(),
             ParseParameterSets(tableName, parameterSets, columns)
@@ -163,6 +168,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                 throw new InvalidOperationException(
                     $"DuckDB parameter set name '{name}' on '{tableName}' is not a valid C# identifier.");
             }
+
             if (!names.Add(name))
             {
                 throw new InvalidOperationException(

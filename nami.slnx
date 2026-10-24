@@ -1,18 +1,18 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/nami/nami.csproj" />
-    <Project Path="src/nami.collector.ingestion/nami.collector.ingestion.csproj" />
-    <Project Path="src/nami.collector.storage/nami.collector.storage.csproj" />
-  </Folder>
-  <Folder Name="/internal/">
-    <Project Path="internal/nami.contracts/Nami.Api.Contracts.csproj" />
-    <Project Path="internal/nami.semconv/Nami.SemanticConventions.csproj" />
-    <Project Path="internal/nami.collector.storage.generators/nami.collector.storage.generators.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/Nami.Tests/Nami.Tests.csproj" />
-    <Project Path="tests/Nami.UnitTests/Nami.UnitTests.csproj" />
-    <Project Path="tests/Nami.IntegrationTests/Nami.IntegrationTests.csproj" />
-    <Project Path="tests/Nami.EndToEndTests/Nami.EndToEndTests.csproj" />
-  </Folder>
+    <Folder Name="/src/">
+        <Project Path="src/nami/nami.csproj"/>
+        <Project Path="src/nami.collector.ingestion/nami.collector.ingestion.csproj"/>
+        <Project Path="src/nami.collector.storage/nami.collector.storage.csproj"/>
+    </Folder>
+    <Folder Name="/internal/">
+        <Project Path="internal/nami.contracts/Nami.Api.Contracts.csproj"/>
+        <Project Path="internal/nami.semconv/Nami.SemanticConventions.csproj"/>
+        <Project Path="internal/nami.collector.storage.generators/nami.collector.storage.generators.csproj"/>
+    </Folder>
+    <Folder Name="/tests/">
+        <Project Path="tests/Nami.Tests/Nami.Tests.csproj"/>
+        <Project Path="tests/Nami.UnitTests/Nami.UnitTests.csproj"/>
+        <Project Path="tests/Nami.IntegrationTests/Nami.IntegrationTests.csproj"/>
+        <Project Path="tests/Nami.EndToEndTests/Nami.EndToEndTests.csproj"/>
+    </Folder>
 </Solution>

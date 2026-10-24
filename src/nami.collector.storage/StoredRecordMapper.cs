@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using Nami.Api.Contracts.Common;
 using Nami.Api.Contracts.OTel.Metrics;
 using ContractAttribute = Nami.Api.Contracts.Common.Attribute;
@@ -5,9 +9,9 @@ using ContractAttribute = Nami.Api.Contracts.Common.Attribute;
 namespace Nami.Collector.Storage;
 
 /// <summary>
-/// The ingestion boundary. Decoding hands storage OTLP attribute values and generated contract metric
-/// data; both become storage's own records here, before anything is encoded or hashed, so neither a
-/// contract serializer nor a contract change can reach persisted bytes or identifiers.
+///     The ingestion boundary. Decoding hands storage OTLP attribute values and generated contract metric
+///     data; both become storage's own records here, before anything is encoded or hashed, so neither a
+///     contract serializer nor a contract change can reach persisted bytes or identifiers.
 /// </summary>
 internal static class StoredRecordMapper
 {
@@ -18,10 +22,17 @@ internal static class StoredRecordMapper
         OtlpAttributeValueKind.Empty => null,
         OtlpAttributeValueKind.String => new StoredAttributeValue.StringValue(value.AsString()!),
         OtlpAttributeValueKind.Bool => new StoredAttributeValue.BoolValue(value.AsBool()!.Value),
-        OtlpAttributeValueKind.Int => new StoredAttributeValue.ObjectValue(new StoredIntValue { Value = value.AsInt64()!.Value }),
-        OtlpAttributeValueKind.Double => new StoredAttributeValue.ObjectValue(new StoredDoubleValue { Value = value.AsDouble()!.Value }),
-        OtlpAttributeValueKind.Bytes => new StoredAttributeValue.ObjectValue(new StoredBytesValue { Base64 = value.AsBytes()! }),
-        OtlpAttributeValueKind.Array => new StoredAttributeValue.ArrayValue([.. value.AsArray()!.Select(static item => ToStored(item))]),
+        OtlpAttributeValueKind.Int => new StoredAttributeValue.ObjectValue(new StoredIntValue
+        {
+            Value = value.AsInt64()!.Value
+        }),
+        OtlpAttributeValueKind.Double => new StoredAttributeValue.ObjectValue(
+            new StoredDoubleValue { Value = value.AsDouble()!.Value }),
+        OtlpAttributeValueKind.Bytes => new StoredAttributeValue.ObjectValue(
+            new StoredBytesValue { Base64 = value.AsBytes()! }),
+        OtlpAttributeValueKind.Array => new StoredAttributeValue.ArrayValue([
+            .. value.AsArray()!.Select(static item => ToStored(item))
+        ]),
         OtlpAttributeValueKind.KeyValueList => new StoredAttributeValue.ObjectValue(new StoredKeyValueListValue
         {
             Values = value.AsKeyValueList()!.OrderBy(static item => item.Key, StringComparer.Ordinal)
@@ -35,7 +46,9 @@ internal static class StoredRecordMapper
         null => null,
         AttributeValue.StringValue text => new StoredAttributeValue.StringValue(text.Value),
         AttributeValue.BoolValue flag => new StoredAttributeValue.BoolValue(flag.Value),
-        AttributeValue.ArrayValue array => new StoredAttributeValue.ArrayValue([.. array.Value.Select(static item => ToStored(item))]),
+        AttributeValue.ArrayValue array => new StoredAttributeValue.ArrayValue([
+            .. array.Value.Select(static item => ToStored(item))
+        ]),
         AttributeValue.ObjectValue tagged => new StoredAttributeValue.ObjectValue(ToStoredObject(tagged.Value))
     };
 
@@ -47,22 +60,34 @@ internal static class StoredRecordMapper
         },
         MetricHistogramPointData histogram => new StoredHistogramPointData
         {
-            Count = histogram.Count, Sum = histogram.Sum, Min = histogram.Min, Max = histogram.Max,
-            ExplicitBounds = histogram.ExplicitBounds, BucketCounts = histogram.BucketCounts
+            Count = histogram.Count,
+            Sum = histogram.Sum,
+            Min = histogram.Min,
+            Max = histogram.Max,
+            ExplicitBounds = histogram.ExplicitBounds,
+            BucketCounts = histogram.BucketCounts
         },
         MetricExponentialHistogramPointData exponential => new StoredExponentialHistogramPointData
         {
-            Count = exponential.Count, Sum = exponential.Sum, Min = exponential.Min, Max = exponential.Max,
-            Scale = exponential.Scale, ZeroCount = exponential.ZeroCount, ZeroThreshold = exponential.ZeroThreshold,
-            Positive = ToStored(exponential.Positive), Negative = ToStored(exponential.Negative)
+            Count = exponential.Count,
+            Sum = exponential.Sum,
+            Min = exponential.Min,
+            Max = exponential.Max,
+            Scale = exponential.Scale,
+            ZeroCount = exponential.ZeroCount,
+            ZeroThreshold = exponential.ZeroThreshold,
+            Positive = ToStored(exponential.Positive),
+            Negative = ToStored(exponential.Negative)
         },
         MetricSummaryPointData summary => new StoredSummaryPointData
         {
-            Count = summary.Count, Sum = summary.Sum,
-            QuantileValues = [.. summary.QuantileValues.Select(static quantile => new StoredQuantileValue
-            {
-                Quantile = quantile.Quantile, Value = quantile.Value
-            })]
+            Count = summary.Count,
+            Sum = summary.Sum,
+            QuantileValues =
+            [
+                .. summary.QuantileValues.Select(static quantile =>
+                    new StoredQuantileValue { Quantile = quantile.Quantile, Value = quantile.Value })
+            ]
         },
         _ => throw new InvalidDataException("Unknown OTLP metric data shape.")
     };
@@ -72,9 +97,11 @@ internal static class StoredRecordMapper
     [
         .. exemplars.Select(static exemplar => new StoredExemplar
         {
-            TimeUnixNano = exemplar.TimeUnixNano, Value = ToStoredNumber(exemplar.Value),
+            TimeUnixNano = exemplar.TimeUnixNano,
+            Value = ToStoredNumber(exemplar.Value),
             FilteredAttributes = ToStored(exemplar.FilteredAttributes),
-            TraceId = exemplar.TraceId, SpanId = exemplar.SpanId
+            TraceId = exemplar.TraceId,
+            SpanId = exemplar.SpanId
         })
     ];
 

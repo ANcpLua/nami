@@ -8,8 +8,16 @@
     "ansi": "off"
   },
   "mstest": {
-    "timeout": { "test": 30000, "useCooperativeCancellation": true },
-    "output": { "captureTrace": "Result" },
-    "execution": { "captureAssertionFailureDiagnostics": true, "treatDiscoveryWarningsAsErrors": true }
+    "timeout": {
+      "test": 30000,
+      "useCooperativeCancellation": true
+    },
+    "output": {
+      "captureTrace": "Result"
+    },
+    "execution": {
+      "captureAssertionFailureDiagnostics": true,
+      "treatDiscoveryWarningsAsErrors": true
+    }
   }
 }

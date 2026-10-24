@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace Nami.Collector.Storage;
 
 internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);

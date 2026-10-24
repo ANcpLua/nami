@@ -1,3 +1,5 @@
+using System;
+using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using Grpc.AspNetCore.Server.Model;
@@ -5,11 +7,11 @@ using Grpc.AspNetCore.Server.Model;
 namespace Nami.Collector.Ingestion;
 
 /// <summary>
-/// Binds an OTLP export service's unary <c>Export</c> method from the generated service
-/// descriptor, decoding the request the way <see cref="OtlpPayloadParser"/> decodes OTLP/HTTP
-/// protobuf: strictly, and with U+FFFD for an invalid UTF-8 sequence (OTLP 1.11.1). The
-/// Grpc.Tools service base binds the generated marshallers instead, and those reject such a
-/// request before the service runs.
+///     Binds an OTLP export service's unary <c>Export</c> method from the generated service
+///     descriptor, decoding the request the way <see cref="OtlpPayloadParser" /> decodes OTLP/HTTP
+///     protobuf: strictly, and with U+FFFD for an invalid UTF-8 sequence (OTLP 1.11.1). The
+///     Grpc.Tools service base binds the generated marshallers instead, and those reject such a
+///     request before the service runs.
 /// </summary>
 internal sealed class OtlpExportMethodProvider<
     [DynamicallyAccessedMembers(
@@ -32,7 +34,8 @@ internal sealed class OtlpExportMethodProvider<
     public void OnServiceMethodDiscovery(ServiceMethodProviderContext<TService> context)
     {
         var method = service.FindMethodByName(ExportMethodName)
-                     ?? throw new InvalidOperationException($"{service.FullName} declares no {ExportMethodName} method.");
+                     ?? throw new InvalidOperationException(
+                         $"{service.FullName} declares no {ExportMethodName} method.");
         if (method.IsClientStreaming || method.IsServerStreaming)
             throw new InvalidOperationException($"{service.FullName}/{method.Name} is not unary.");
 
@@ -44,7 +47,9 @@ internal sealed class OtlpExportMethodProvider<
                 method.Name,
                 Marshallers.Create<TRequest>(
                     static (message, serialization) => Serialize(message, serialization),
-                    deserialization => OtlpPayloadParser.ParseProtobuf(parser, descriptor, deserialization.PayloadAsReadOnlySequence())),
+                    deserialization =>
+                        OtlpPayloadParser.ParseProtobuf(parser, descriptor,
+                            deserialization.PayloadAsReadOnlySequence())),
                 Marshallers.Create<TResponse>(
                     static (message, serialization) => Serialize(message, serialization),
                     static deserialization =>

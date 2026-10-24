@@ -1,5 +1,10 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nami.Api.Contracts;
 using Nami.Tests.Infrastructure;
 

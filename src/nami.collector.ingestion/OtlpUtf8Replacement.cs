@@ -1,19 +1,23 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.Unicode;
 using Google.Protobuf.Reflection;
 
 namespace Nami.Collector.Ingestion;
 
 /// <summary>
-/// OTLP 1.11.1 "UTF-8 String Handling": a decoder SHOULD replace an invalid UTF-8 sequence with
-/// U+FFFD rather than refuse the export. Google.Protobuf has no lenient mode and rejects the whole
-/// message, so after its strict parse fails the <c>string</c> fields are rewritten on the wire,
-/// guided by the generated <see cref="MessageDescriptor"/>, and the message is parsed again.
-/// Every other field is copied byte for byte. A valid payload never reaches this.
+///     OTLP 1.11.1 "UTF-8 String Handling": a decoder SHOULD replace an invalid UTF-8 sequence with
+///     U+FFFD rather than refuse the export. Google.Protobuf has no lenient mode and rejects the whole
+///     message, so after its strict parse fails the <c>string</c> fields are rewritten on the wire,
+///     guided by the generated <see cref="MessageDescriptor" />, and the message is parsed again.
+///     Every other field is copied byte for byte. A valid payload never reaches this.
 /// </summary>
 /// <remarks>
-/// Two passes over the bytes: the first measures the rewritten message and records each nested
-/// message's new length and each replaced string; the second writes into a buffer of exactly that
-/// size. That keeps a hostile payload linear in time and memory.
+///     Two passes over the bytes: the first measures the rewritten message and records each nested
+///     message's new length and each replaced string; the second writes into a buffer of exactly that
+///     size. That keeps a hostile payload linear in time and memory.
 /// </remarks>
 internal static class OtlpUtf8Replacement
 {
@@ -28,9 +32,9 @@ internal static class OtlpUtf8Replacement
     private const int WireTypeFixed32 = 5;
 
     /// <summary>
-    /// Rewrites <paramref name="message"/> with every invalid UTF-8 sequence in a <c>string</c>
-    /// field replaced by U+FFFD. False when there was nothing to replace or the bytes are not a
-    /// well-formed message, so the strict parser's own failure stands.
+    ///     Rewrites <paramref name="message" /> with every invalid UTF-8 sequence in a <c>string</c>
+    ///     field replaced by U+FFFD. False when there was nothing to replace or the bytes are not a
+    ///     well-formed message, so the strict parser's own failure stands.
     /// </summary>
     public static bool TryReplaceInvalidUtf8(
         ReadOnlySpan<byte> message,
@@ -38,7 +42,7 @@ internal static class OtlpUtf8Replacement
         [NotNullWhen(true)] out byte[]? replaced)
     {
         var plan = new Plan();
-        var measure = new Sink(default, write: false);
+        var measure = new Sink(default, false);
         if (!Rewrite(message, descriptor, 0, plan, ref measure) || !plan.ReplacedAnything)
         {
             replaced = null;
@@ -47,13 +51,14 @@ internal static class OtlpUtf8Replacement
 
         plan.BeginWrite();
         replaced = new byte[measure.Length];
-        var write = new Sink(replaced, write: true);
+        var write = new Sink(replaced, true);
         if (!Rewrite(message, descriptor, 0, plan, ref write) || write.Length != replaced.Length)
             throw new InvalidOperationException("The UTF-8 rewrite did not match its measured output.");
         return true;
     }
 
-    private static bool Rewrite(ReadOnlySpan<byte> message, MessageDescriptor descriptor, int depth, Plan plan, ref Sink sink)
+    private static bool Rewrite(ReadOnlySpan<byte> message, MessageDescriptor descriptor, int depth, Plan plan,
+        ref Sink sink)
     {
         if (depth > MaxDepth)
             return false;
@@ -98,7 +103,8 @@ internal static class OtlpUtf8Replacement
 
                 case WireTypeLengthDelimited:
                     var tagEnd = position;
-                    if (!TryReadVarint(message, ref position, out var length) || length > (ulong)(message.Length - position))
+                    if (!TryReadVarint(message, ref position, out var length) ||
+                        length > (ulong)(message.Length - position))
                         return false;
                     var body = message.Slice(position, (int)length);
                     position += (int)length;
@@ -143,7 +149,7 @@ internal static class OtlpUtf8Replacement
         if (plan.Measuring)
         {
             var slot = plan.ReserveNestedLength();
-            var measure = new Sink(default, write: false);
+            var measure = new Sink(default, false);
             if (!Rewrite(body, descriptor, depth + 1, plan, ref measure))
                 return false;
             length = measure.Length;
@@ -215,7 +221,8 @@ internal static class OtlpUtf8Replacement
                         return false;
                     break;
                 case WireTypeLengthDelimited:
-                    if (!TryReadVarint(message, ref position, out var length) || length > (ulong)(message.Length - position))
+                    if (!TryReadVarint(message, ref position, out var length) ||
+                        length > (ulong)(message.Length - position))
                         return false;
                     position += (int)length;
                     break;

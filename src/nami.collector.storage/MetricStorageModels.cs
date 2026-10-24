@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Nami.Collector.Storage;
 
 /// <summary>

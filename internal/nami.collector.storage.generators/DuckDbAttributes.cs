@@ -1,4 +1,3 @@
-
 namespace Nami.Collector.Storage.Generators;
 
 internal static class StorageDefaultsSource

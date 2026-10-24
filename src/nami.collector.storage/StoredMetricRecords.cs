@@ -1,10 +1,12 @@
+using System.Collections.Generic;
+
 namespace Nami.Collector.Storage;
 
 /// <summary>
-/// An original metric data point as metric_observations.data_json persists it and the observation and
-/// measurement identifiers hash it. Counts and int64 values are decimal text, floats keep NaN and the
-/// infinities as named literals, and the shapes are discriminated by <c>type</c>. Storage owns this
-/// format; the API contract maps from it on read.
+///     An original metric data point as metric_observations.data_json persists it and the observation and
+///     measurement identifiers hash it. Counts and int64 values are decimal text, floats keep NaN and the
+///     infinities as named literals, and the shapes are discriminated by <c>type</c>. Storage owns this
+///     format; the API contract maps from it on read.
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(StoredNumberPointData), "number")]
@@ -70,8 +72,7 @@ internal sealed class StoredExponentialHistogramPointData : StoredMetricPointDat
     [JsonPropertyName("max")]
     public double? Max { get; init; }
 
-    [JsonPropertyName("scale")]
-    public required int Scale { get; init; }
+    [JsonPropertyName("scale")] public required int Scale { get; init; }
 
     [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
     [JsonPropertyName("zero_count")]
@@ -81,17 +82,14 @@ internal sealed class StoredExponentialHistogramPointData : StoredMetricPointDat
     [JsonPropertyName("zero_threshold")]
     public required double ZeroThreshold { get; init; }
 
-    [JsonPropertyName("positive")]
-    public StoredExponentialBuckets? Positive { get; init; }
+    [JsonPropertyName("positive")] public StoredExponentialBuckets? Positive { get; init; }
 
-    [JsonPropertyName("negative")]
-    public StoredExponentialBuckets? Negative { get; init; }
+    [JsonPropertyName("negative")] public StoredExponentialBuckets? Negative { get; init; }
 }
 
 internal sealed class StoredExponentialBuckets
 {
-    [JsonPropertyName("offset")]
-    public required int Offset { get; init; }
+    [JsonPropertyName("offset")] public required int Offset { get; init; }
 
     [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
     [JsonPropertyName("bucket_counts")]
@@ -114,8 +112,7 @@ internal sealed class StoredSummaryPointData : StoredMetricPointData
 
 internal sealed class StoredQuantileValue
 {
-    [JsonPropertyName("quantile")]
-    public required double Quantile { get; init; }
+    [JsonPropertyName("quantile")] public required double Quantile { get; init; }
 
     [JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]
     [JsonPropertyName("value")]
@@ -129,24 +126,20 @@ internal sealed class StoredExemplar
     [JsonPropertyName("time_unix_nano")]
     public required ulong TimeUnixNano { get; init; }
 
-    [JsonPropertyName("value")]
-    public required StoredNumberValue Value { get; init; }
+    [JsonPropertyName("value")] public required StoredNumberValue Value { get; init; }
 
     [JsonPropertyName("filtered_attributes")]
     public required IReadOnlyList<StoredAttribute> FilteredAttributes { get; init; }
 
-    [JsonPropertyName("trace_id")]
-    public string? TraceId { get; init; }
+    [JsonPropertyName("trace_id")] public string? TraceId { get; init; }
 
-    [JsonPropertyName("span_id")]
-    public string? SpanId { get; init; }
+    [JsonPropertyName("span_id")] public string? SpanId { get; init; }
 }
 
 /// <summary>A keyed attribute in a persisted list: exemplar filtered attributes and instrument metadata.</summary>
 internal sealed class StoredAttribute
 {
-    [JsonPropertyName("key")]
-    public required string Key { get; init; }
+    [JsonPropertyName("key")] public required string Key { get; init; }
 
     /// <summary>The empty value is written as <c>null</c>, never omitted.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]

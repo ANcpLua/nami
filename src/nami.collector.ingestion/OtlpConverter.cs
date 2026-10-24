@@ -1,5 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
+using Nami.Collector.Ingestion.Primitives;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
@@ -21,7 +27,9 @@ internal static partial class OtlpConverter
     // https://github.com/open-telemetry/opentelemetry-proto/blob/v1.11.1/opentelemetry/proto/collector/logs/v1/logs_service.proto
     private const string SpanKindWarning = "OTLP span kind outside 0-5 is recorded as SPAN_KIND_UNSPECIFIED (0).";
     private const string StatusCodeWarning = "OTLP span status code outside 0-2 is recorded as STATUS_CODE_UNSET (0).";
-    private const string SeverityNumberWarning = "OTLP log severity_number outside 0-24 is recorded as SEVERITY_NUMBER_UNSPECIFIED (0).";
+
+    private const string SeverityNumberWarning =
+        "OTLP log severity_number outside 0-24 is recorded as SEVERITY_NUMBER_UNSPECIFIED (0).";
 
     private static int DefinedOrZero(int value, int maximum, string warning, ISet<string> warnings)
     {
@@ -32,6 +40,19 @@ internal static partial class OtlpConverter
         return 0;
     }
 
+    private static void SetNormalizedAttribute(
+        Dictionary<string, OtlpAttributeValue> attributes,
+        string key,
+        OtlpAttributeValue value,
+        bool renamed)
+    {
+        if (renamed) attributes.TryAdd(key, value);
+        else attributes[key] = value;
+    }
+
+    private static string? NullIfEmpty(string? value) =>
+        string.IsNullOrEmpty(value) ? null : value;
+
     #region OTLP Trace Conversion
 
     public static TraceIngestionBatch ConvertTraceRequest(ExportTraceServiceRequest request)
@@ -39,12 +60,23 @@ internal static partial class OtlpConverter
         var spans = new List<SpanIngestionRecord>();
         long rejected = 0;
         var reasons = new SortedSet<string>(StringComparer.Ordinal);
-        void Reject(int count, InvalidDataException error) { rejected += count; reasons.Add(error.Message); }
+
+        void Reject(int count, InvalidDataException error)
+        {
+            rejected += count;
+            reasons.Add(error.Message);
+        }
+
         foreach (var resourceSpan in request.ResourceSpans)
         {
             ResourceProjection resource;
             try { resource = ExtractResourceProjection(resourceSpan.Resource); }
-            catch (InvalidDataException error) { Reject(resourceSpan.ScopeSpans.Sum(static scope => scope.Spans.Count), error); continue; }
+            catch (InvalidDataException error)
+            {
+                Reject(resourceSpan.ScopeSpans.Sum(static scope => scope.Spans.Count), error);
+                continue;
+            }
+
             var serviceName = ExtractServiceNameFromProto(resourceSpan.Resource);
             var project = ExtractProjectIdHintFromProto(resourceSpan.Resource);
             var resourceSchema = NullIfEmpty(resourceSpan.SchemaUrl);
@@ -52,34 +84,52 @@ internal static partial class OtlpConverter
             {
                 Dictionary<string, OtlpAttributeValue> scopeAttributes;
                 try { scopeAttributes = ConvertMetadataAttributes(scope.Scope?.Attributes ?? []); }
-                catch (InvalidDataException error) { Reject(scope.Spans.Count, error); continue; }
+                catch (InvalidDataException error)
+                {
+                    Reject(scope.Spans.Count, error);
+                    continue;
+                }
+
                 foreach (var span in scope.Spans)
                 {
                     try
                     {
                         // OTLP spans have required bounds, unlike optional log event timestamps.
                         // https://github.com/open-telemetry/opentelemetry-proto/blob/v1.11.1/opentelemetry/proto/trace/v1/trace.proto
-                        if (span.EndTimeUnixNano < span.StartTimeUnixNano || span.StartTimeUnixNano == 0 && span.EndTimeUnixNano == 0)
+                        if (span.EndTimeUnixNano < span.StartTimeUnixNano ||
+                            span is { StartTimeUnixNano: 0, EndTimeUnixNano: 0 })
                             throw new InvalidDataException("OTLP span requires start and end times with end >= start.");
                         spans.Add(CreateSpanRecordFromProto(span, project, serviceName,
-                            ExtractAttributesFromProto(span.Attributes, serviceName), resource.Attributes, resource.EntityRefs,
-                            NullIfEmpty(scope.SchemaUrl) ?? resourceSchema, NullIfEmpty(scope.Scope?.Name), NullIfEmpty(scope.Scope?.Version), reasons) with
-                        {
-                            ScopeSchemaUrl = NullIfEmpty(scope.SchemaUrl), ScopeAttributes = scopeAttributes,
-                            ScopeDroppedAttributesCount = scope.Scope?.DroppedAttributesCount ?? 0,
-                            ResourceSchemaUrl = resourceSchema, ResourceDroppedAttributesCount = resourceSpan.Resource?.DroppedAttributesCount ?? 0
-                        });
+                                ExtractAttributesFromProto(span.Attributes, serviceName), resource.Attributes,
+                                resource.EntityRefs,
+                                NullIfEmpty(scope.SchemaUrl) ?? resourceSchema, NullIfEmpty(scope.Scope?.Name),
+                                NullIfEmpty(scope.Scope?.Version), reasons) with
+                            {
+                                ScopeSchemaUrl = NullIfEmpty(scope.SchemaUrl),
+                                ScopeAttributes = scopeAttributes,
+                                ScopeDroppedAttributesCount = scope.Scope?.DroppedAttributesCount ?? 0,
+                                ResourceSchemaUrl = resourceSchema,
+                                ResourceDroppedAttributesCount = resourceSpan.Resource?.DroppedAttributesCount ?? 0
+                            });
                     }
                     catch (InvalidDataException error) { Reject(1, error); }
                 }
             }
         }
-        return new TraceIngestionBatch(spans) { RejectedSpans = rejected, RejectionMessage = reasons.Count == 0 ? null : string.Join("; ", reasons) };
+
+        return new TraceIngestionBatch(spans)
+        {
+            RejectedSpans = rejected, RejectionMessage = reasons.Count == 0 ? null : string.Join("; ", reasons)
+        };
     }
 
     private static string ExtractServiceNameFromProto(ProtoResource? resource)
     {
-        if (resource is null) { NamiCollectorMetrics.MissingServiceName(); return "unknown"; }
+        if (resource is null)
+        {
+            NamiCollectorMetrics.MissingServiceName();
+            return "unknown";
+        }
 
         foreach (var attr in resource.Attributes)
         {
@@ -240,7 +290,7 @@ internal static partial class OtlpConverter
         RepeatedField<ProtoKeyValue> protoAttributes,
         string serviceName)
     {
-        var attributes = new NormalizedAttributes()
+        var attributes = new NormalizedAttributes
         {
             [CollectorSemanticAttributeCatalog.ServiceName] = OtlpAttributeValue.FromString(serviceName)
         };
@@ -318,8 +368,10 @@ internal static partial class OtlpConverter
                 NamiCollectorMetrics.AttributeDropped(key);
                 continue;
             }
+
             SetNormalizedAttribute(result, key, ConvertProtoAnyValue(attribute.Value, key), renamed);
         }
+
         return result;
     }
 
@@ -329,7 +381,8 @@ internal static partial class OtlpConverter
 
         var events = new List<SpanEventIngest>(span.Events.Count);
         foreach (var e in span.Events)
-            events.Add(new SpanEventIngest(e.Name ?? "", e.TimeUnixNano, ConvertSpanChildAttributes(e.Attributes), e.DroppedAttributesCount));
+            events.Add(new SpanEventIngest(e.Name ?? "", e.TimeUnixNano, ConvertSpanChildAttributes(e.Attributes),
+                e.DroppedAttributesCount));
 
         return events;
     }
@@ -344,7 +397,8 @@ internal static partial class OtlpConverter
             links.Add(new SpanLinkIngest(
                 RequireId(l.TraceId, 16, "link.trace_id"),
                 RequireId(l.SpanId, 8, "link.span_id"),
-                ConvertSpanChildAttributes(l.Attributes), NullIfEmpty(l.TraceState), l.Flags, l.DroppedAttributesCount));
+                ConvertSpanChildAttributes(l.Attributes), NullIfEmpty(l.TraceState), l.Flags,
+                l.DroppedAttributesCount));
         }
 
         return links;
@@ -400,6 +454,7 @@ internal static partial class OtlpConverter
                 NamiCollectorMetrics.AttributeDropped(item.Key);
                 continue;
             }
+
             items[item.Key] = ConvertProtoAnyValue(item.Value, item.Key);
         }
 
@@ -485,10 +540,16 @@ internal static partial class OtlpConverter
         long rejected = 0;
         var ordinal = 0;
         var reasons = new SortedSet<string>(StringComparer.Ordinal);
-        void Reject(int count, InvalidDataException error) { rejected += count; reasons.Add(error.Message); }
+
+        void Reject(int count, InvalidDataException error)
+        {
+            rejected += count;
+            reasons.Add(error.Message);
+        }
+
         // Observation time belongs to the injected receive clock only when the producer omitted it.
         // https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/logs/data-model.md#field-observedtimestamp
-        var observedTime = Primitives.TimeConversions.ToUnixNanoUnsigned(timeProvider.GetUtcNow());
+        var observedTime = TimeConversions.ToUnixNanoUnsigned(timeProvider.GetUtcNow());
         foreach (var resourceLogs in otlp.ResourceLogs)
         {
             ResourceProjection resource;
@@ -496,34 +557,53 @@ internal static partial class OtlpConverter
             catch (InvalidDataException error)
             {
                 var count = resourceLogs.ScopeLogs.Sum(static scope => scope.LogRecords.Count);
-                Reject(count, error); ordinal += count; continue;
+                Reject(count, error);
+                ordinal += count;
+                continue;
             }
+
             var serviceName = ExtractServiceNameFromProto(resourceLogs.Resource);
             var project = ExtractProjectIdHintFromProto(resourceLogs.Resource);
             foreach (var scope in resourceLogs.ScopeLogs)
             {
                 Dictionary<string, OtlpAttributeValue> scopeAttributes;
                 try { scopeAttributes = ConvertMetadataAttributes(scope.Scope?.Attributes ?? []); }
-                catch (InvalidDataException error) { Reject(scope.LogRecords.Count, error); ordinal += scope.LogRecords.Count; continue; }
+                catch (InvalidDataException error)
+                {
+                    Reject(scope.LogRecords.Count, error);
+                    ordinal += scope.LogRecords.Count;
+                    continue;
+                }
+
                 foreach (var log in scope.LogRecords)
                 {
                     var requestOrdinal = ordinal++;
                     try
                     {
-                        logs.Add(CreateLogRecord(log, project, serviceName, resource.Attributes, resource.EntityRefs, observedTime, reasons) with
-                        {
-                            UntimedRequestOrdinal = log.TimeUnixNano == 0 && log.ObservedTimeUnixNano == 0 ? requestOrdinal : null,
-                            ScopeName = NullIfEmpty(scope.Scope?.Name), ScopeVersion = NullIfEmpty(scope.Scope?.Version),
-                            ScopeSchemaUrl = NullIfEmpty(scope.SchemaUrl), ScopeAttributes = scopeAttributes,
-                            ScopeDroppedAttributesCount = scope.Scope?.DroppedAttributesCount ?? 0,
-                            ResourceSchemaUrl = NullIfEmpty(resourceLogs.SchemaUrl), ResourceDroppedAttributesCount = resourceLogs.Resource?.DroppedAttributesCount ?? 0
-                        });
+                        logs.Add(
+                            CreateLogRecord(log, project, serviceName, resource.Attributes, resource.EntityRefs,
+                                    observedTime, reasons) with
+                                {
+                                    UntimedRequestOrdinal =
+                                    log is { TimeUnixNano: 0, ObservedTimeUnixNano: 0 } ? requestOrdinal : null,
+                                    ScopeName = NullIfEmpty(scope.Scope?.Name),
+                                    ScopeVersion = NullIfEmpty(scope.Scope?.Version),
+                                    ScopeSchemaUrl = NullIfEmpty(scope.SchemaUrl),
+                                    ScopeAttributes = scopeAttributes,
+                                    ScopeDroppedAttributesCount = scope.Scope?.DroppedAttributesCount ?? 0,
+                                    ResourceSchemaUrl = NullIfEmpty(resourceLogs.SchemaUrl),
+                                    ResourceDroppedAttributesCount = resourceLogs.Resource?.DroppedAttributesCount ?? 0
+                                });
                     }
                     catch (InvalidDataException error) { Reject(1, error); }
                 }
             }
         }
-        return new LogIngestionBatch(logs) { RejectedLogRecords = rejected, RejectionMessage = reasons.Count == 0 ? null : string.Join("; ", reasons) };
+
+        return new LogIngestionBatch(logs)
+        {
+            RejectedLogRecords = rejected, RejectionMessage = reasons.Count == 0 ? null : string.Join("; ", reasons)
+        };
     }
 
     private static LogIngestionRecord CreateLogRecord(
@@ -537,7 +617,8 @@ internal static partial class OtlpConverter
     {
         var attributes = ExtractLogAttributes(log.Attributes);
 
-        var severityNumber = DefinedOrZero((int)log.SeverityNumber, (int)ProtoSeverityNumber.Fatal4, SeverityNumberWarning, warnings);
+        var severityNumber = DefinedOrZero((int)log.SeverityNumber, (int)ProtoSeverityNumber.Fatal4,
+            SeverityNumberWarning, warnings);
 
         return new LogIngestionRecord
         {
@@ -585,17 +666,4 @@ internal static partial class OtlpConverter
     }
 
     #endregion
-
-    private static void SetNormalizedAttribute(
-        Dictionary<string, OtlpAttributeValue> attributes,
-        string key,
-        OtlpAttributeValue value,
-        bool renamed)
-    {
-        if (renamed) attributes.TryAdd(key, value);
-        else attributes[key] = value;
-    }
-
-    private static string? NullIfEmpty(string? value) =>
-        string.IsNullOrEmpty(value) ? null : value;
 }

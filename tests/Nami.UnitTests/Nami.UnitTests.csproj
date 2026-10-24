@@ -3,10 +3,10 @@
     <EnableMSTestSourceGeneration>true</EnableMSTestSourceGeneration>
   </PropertyGroup>
   <ItemGroup>
-    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
-    <ProjectReference Include="../Nami.Tests/Nami.Tests.csproj" />
-    <ProjectReference Include="../../src/nami/nami.csproj" />
-    <ProjectReference Include="../../internal/nami.contracts/Nami.Api.Contracts.csproj" />
-    <None Update="testconfig.json" CopyToOutputDirectory="PreserveNewest" />
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting"/>
+    <ProjectReference Include="../Nami.Tests/Nami.Tests.csproj"/>
+    <ProjectReference Include="../../src/nami/nami.csproj"/>
+    <ProjectReference Include="../../internal/nami.contracts/Nami.Api.Contracts.csproj"/>
+    <None Update="testconfig.json" CopyToOutputDirectory="PreserveNewest"/>
   </ItemGroup>
 </Project>

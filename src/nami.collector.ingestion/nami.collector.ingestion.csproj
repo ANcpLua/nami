@@ -31,9 +31,9 @@
   <ItemGroup>
     <InternalsVisibleTo Include="nami"/>
     <InternalsVisibleTo Include="nami.collector.storage"/>
-    <InternalsVisibleTo Include="Nami.Tests" />
-    <InternalsVisibleTo Include="Nami.IntegrationTests" />
-    <InternalsVisibleTo Include="Nami.EndToEndTests" />
+    <InternalsVisibleTo Include="Nami.Tests"/>
+    <InternalsVisibleTo Include="Nami.IntegrationTests"/>
+    <InternalsVisibleTo Include="Nami.EndToEndTests"/>
   </ItemGroup>
 
   <ItemGroup>

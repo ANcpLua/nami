@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="../../src/nami.collector.ingestion/nami.collector.ingestion.csproj" />
-    <ProjectReference Include="../../src/nami.collector.storage/nami.collector.storage.csproj" />
-    <PackageReference Include="Google.Protobuf" />
-    <PackageReference Include="ModelContextProtocol" />
-    <InternalsVisibleTo Include="Nami.UnitTests" />
-    <InternalsVisibleTo Include="Nami.IntegrationTests" />
-    <InternalsVisibleTo Include="Nami.EndToEndTests" />
+    <ProjectReference Include="../../src/nami.collector.ingestion/nami.collector.ingestion.csproj"/>
+    <ProjectReference Include="../../src/nami.collector.storage/nami.collector.storage.csproj"/>
+    <PackageReference Include="Google.Protobuf"/>
+    <PackageReference Include="ModelContextProtocol"/>
+    <InternalsVisibleTo Include="Nami.UnitTests"/>
+    <InternalsVisibleTo Include="Nami.IntegrationTests"/>
+    <InternalsVisibleTo Include="Nami.EndToEndTests"/>
   </ItemGroup>
 </Project>

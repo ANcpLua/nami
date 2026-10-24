@@ -1,3 +1,5 @@
+using System;
+using System.Text;
 using System.Text.RegularExpressions;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
 

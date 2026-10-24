@@ -1,4 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
+using ANcpLua.Roslyn.Utilities;
 
 namespace Nami.Collector.Storage.Generators;
 
@@ -41,12 +47,12 @@ internal static class DuckDbSchemaEmitter
         sb.AppendLineNoIndent("        );");
         sb.AppendLineNoIndent("        \"\"\";");
         sb.AppendLine();
-        sb.AppendLine($"public const string AuthoritativeHash = \"{ComputeHash(authoritative, includeLogSequence: true)}\";");
-        sb.AppendLine($"public const string DerivedHash = \"{ComputeHash(derived, includeLogSequence: false)}\";");
+        sb.AppendLine($"public const string AuthoritativeHash = \"{ComputeHash(authoritative, true)}\";");
+        sb.AppendLine($"public const string DerivedHash = \"{ComputeHash(derived, false)}\";");
         sb.AppendLine();
 
-        EmitDdlArray(sb, "AuthoritativeDdl", authoritative, includeLogSequence: true);
-        EmitDdlArray(sb, "DerivedDdl", derived, includeLogSequence: false);
+        EmitDdlArray(sb, "AuthoritativeDdl", authoritative, true);
+        EmitDdlArray(sb, "DerivedDdl", derived, false);
         EmitNameArray(sb, "AuthoritativeTableNames", authoritative);
         EmitNameArray(sb, "DerivedTableNames", derived);
         sb.AppendLine("public static readonly string[] RetiredTableNames =");
@@ -91,6 +97,7 @@ internal static class DuckDbSchemaEmitter
             if (table.Indexes.Length > 0)
                 sb.AppendLine($"{qualifiedType}.IndexesDdl,");
         }
+
         sb.EndBlock("};");
         sb.AppendLine();
     }
@@ -126,18 +133,20 @@ internal static class DuckDbSchemaEmitter
                     $"new(\"{Escape(column.ColumnName)}\", \"{Escape(DuckDbEmitter.ResolveSqlType(column))}\", " +
                     $"{Bool(!column.IsNullable)}, {NullableString(column.DefaultSql)}, {column.PrimaryKeyOrdinal}),");
             }
+
             sb.EndBlock("},");
             sb.AppendLine("new DuckDbExpectedIndex[]");
             sb.BeginBlock();
             foreach (var index in table.Indexes)
             {
-                var columns = string.Join(", ", index.ColumnNames.Select(
-                    static column => $"\"{Escape(column)}\""));
+                var columns = string.Join(", ", index.ColumnNames.Select(static column => $"\"{Escape(column)}\""));
                 sb.AppendLine(
                     $"new(\"{Escape(index.Name)}\", {Bool(index.IsUnique)}, [{columns}]),");
             }
+
             sb.EndBlock("}),");
         }
+
         sb.EndBlock("};");
         sb.AppendLine();
     }

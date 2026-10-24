@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Net;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Nami.Collector.Ingestion.Configuration;
 
