@@ -79,7 +79,7 @@ internal static partial class OtlpConverter
 
     private static string ExtractServiceNameFromProto(ProtoResource? resource)
     {
-        if (resource is null) return "unknown";
+        if (resource is null) { NamiCollectorMetrics.MissingServiceName(); return "unknown"; }
 
         foreach (var attr in resource.Attributes)
         {
@@ -88,9 +88,13 @@ internal static partial class OtlpConverter
                     Key: CollectorSemanticAttributeCatalog.ServiceName,
                     Value.ValueCase: ProtoAnyValue.ValueOneofCase.StringValue
                 })
-                return attr.Value.StringValue;
+            {
+                if (!string.IsNullOrWhiteSpace(attr.Value.StringValue)) return attr.Value.StringValue;
+                break;
+            }
         }
 
+        NamiCollectorMetrics.MissingServiceName();
         return "unknown";
     }
 
@@ -99,9 +103,7 @@ internal static partial class OtlpConverter
         if (resource is null)
             return null;
 
-        // Declared precedence outer, wire order inner: a resource carrying both nami.project.id
-        // and nami.workspace.id must land in the same partition regardless of the order the SDK
-        // happened to serialize its resource attributes in.
+        // Only the generated project resource key determines the partition.
         foreach (var key in AttributeKeySets.ProjectIdResourceKeyPrecedence)
         {
             foreach (var attr in resource.Attributes)
@@ -122,7 +124,7 @@ internal static partial class OtlpConverter
 
     private static ResourceProjection ExtractResourceProjection(ProtoResource? resource)
     {
-        var attrs = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
+        var attrs = new NormalizedAttributes();
         if (resource is null) return new ResourceProjection(attrs, []);
 
         ValidateAttributeKeys(resource.Attributes);
@@ -132,6 +134,7 @@ internal static partial class OtlpConverter
         {
             if (IsUnresolvedProfilingKey(attr)) continue;
             var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
+            NormalizedAttributes.RecordRename(attrs, attr.Key, key);
             if (!AttributeKeySets.IsPersistable(key))
             {
                 NamiCollectorMetrics.AttributeDropped(key);
@@ -237,7 +240,7 @@ internal static partial class OtlpConverter
         RepeatedField<ProtoKeyValue> protoAttributes,
         string serviceName)
     {
-        var attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal)
+        var attributes = new NormalizedAttributes()
         {
             [CollectorSemanticAttributeCatalog.ServiceName] = OtlpAttributeValue.FromString(serviceName)
         };
@@ -255,6 +258,7 @@ internal static partial class OtlpConverter
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
             var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
+            NormalizedAttributes.RecordRename(attributes, attr.Key, key);
             if (!AttributeKeySets.ShouldCaptureSpanAttribute(key))
             {
                 NamiCollectorMetrics.AttributeDropped(key);
@@ -269,7 +273,7 @@ internal static partial class OtlpConverter
     private static IReadOnlyDictionary<string, OtlpAttributeValue> ConvertSpanChildAttributes(
         RepeatedField<ProtoKeyValue> protoAttributes)
     {
-        var attributes = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
+        var attributes = new NormalizedAttributes();
         CaptureSpanAttributes(attributes, protoAttributes);
         return attributes;
     }
@@ -303,16 +307,18 @@ internal static partial class OtlpConverter
         RepeatedField<ProtoKeyValue> attributes)
     {
         ValidateAttributeKeys(attributes);
-        var result = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
+        var result = new NormalizedAttributes();
         foreach (var attribute in attributes)
         {
             if (IsUnresolvedProfilingKey(attribute)) continue;
-            if (!AttributeKeySets.IsPersistable(attribute.Key))
+            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attribute.Key, out var key);
+            NormalizedAttributes.RecordRename(result, attribute.Key, key);
+            if (!AttributeKeySets.IsPersistable(key))
             {
-                NamiCollectorMetrics.AttributeDropped(attribute.Key);
+                NamiCollectorMetrics.AttributeDropped(key);
                 continue;
             }
-            result[attribute.Key] = ConvertProtoAnyValue(attribute.Value, attribute.Key);
+            SetNormalizedAttribute(result, key, ConvertProtoAnyValue(attribute.Value, key), renamed);
         }
         return result;
     }
@@ -385,7 +391,7 @@ internal static partial class OtlpConverter
     private static OtlpAttributeValue ConvertProtoKeyValueList(ProtoKeyValueList value)
     {
         ValidateAttributeKeys(value.Values);
-        var items = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
+        var items = new NormalizedAttributes();
         foreach (var item in value.Values)
         {
             if (IsUnresolvedProfilingKey(item)) continue;
@@ -558,11 +564,12 @@ internal static partial class OtlpConverter
     private static Dictionary<string, OtlpAttributeValue> ExtractLogAttributes(RepeatedField<ProtoKeyValue> attributes)
     {
         ValidateAttributeKeys(attributes);
-        var dict = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
+        var dict = new NormalizedAttributes();
         foreach (var attr in attributes)
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
             var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
+            NormalizedAttributes.RecordRename(dict, attr.Key, key);
             if (!AttributeKeySets.IsPersistable(key) &&
                 !key.IsAny(AttributeKeySets.SessionCorrelation))
             {

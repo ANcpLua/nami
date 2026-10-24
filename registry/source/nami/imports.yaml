@@ -1,0 +1,6 @@
+file_format: definition/2
+imports:
+  metrics: ["*"]
+  spans: ["*"]
+  events: ["*"]
+  entities: ["*"]

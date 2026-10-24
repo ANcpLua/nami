@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>Nami</RootNamespace>
+    <AssemblyName>nami</AssemblyName>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore"/>
+    <PackageReference Include="ModelContextProtocol.AspNetCore"/>
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting"/>
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../internal/nami.contracts/Nami.Api.Contracts.csproj"/>
+    <ProjectReference Include="../../internal/nami.semconv/Nami.SemanticConventions.csproj"/>
+    <ProjectReference Include="../nami.collector.ingestion/nami.collector.ingestion.csproj"/>
+    <ProjectReference Include="../nami.collector.storage/nami.collector.storage.csproj"/>
+    <EmbeddedResource Include="../../contracts/json-schema/*.json" LogicalName="Schemas.%(Filename)%(Extension)"/>
+    <Content Include="../../LICENSE" Link="LICENSE" CopyToPublishDirectory="PreserveNewest"/>
+    <Content Include="../../contracts/THIRD-PARTY-NOTICES.txt" Link="THIRD-PARTY-NOTICES.txt" CopyToPublishDirectory="PreserveNewest"/>
+    <InternalsVisibleTo Include="Nami.Collector.Tests"/>
+  </ItemGroup>
+</Project>

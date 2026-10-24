@@ -43,6 +43,10 @@ internal static class MetricStorageMapper
             var key = (projectId, seriesId);
             var row = new MetricSeriesRow
             {
+                AttributeRenames = NormalizedAttributes.Collect([record.Attributes, record.ResourceAttributes, record.ScopeAttributes])
+                    .Concat(record.InstrumentMetadata is NormalizedContractAttributes metadata ? metadata.Renames : [])
+                    .Concat(record.Exemplars is NormalizedMetricExemplars exemplars ? exemplars.Renames : [])
+                    .Distinct().ToArray(),
                 ProjectId = projectId,
                 SeriesId = seriesId,
                 InstrumentId = instrumentId,
@@ -73,6 +77,7 @@ internal static class MetricStorageMapper
             series[key] = series.TryGetValue(key, out var existing)
                 ? row with
                 {
+                    AttributeRenames = existing.AttributeRenames.Concat(row.AttributeRenames).Distinct().ToArray(),
                     Description = LongerDescription(existing.Description, row.Description),
                     FirstSeenUnixNano = Math.Min(existing.FirstSeenUnixNano, record.TimeUnixNano),
                     LastSeenUnixNano = Math.Max(existing.LastSeenUnixNano, record.TimeUnixNano)

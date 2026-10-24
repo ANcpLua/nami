@@ -190,20 +190,29 @@ internal static partial class OtlpConverter
             Flags = point.Flags, Exemplars = ConvertExemplars(point.Exemplars)
         };
 
-    private static IReadOnlyList<MetricContract.MetricExemplar> ConvertExemplars(IEnumerable<ProtoExemplar> exemplars) =>
-        exemplars.Select(static exemplar => new MetricContract.MetricExemplar
+    private static IReadOnlyList<MetricContract.MetricExemplar> ConvertExemplars(IEnumerable<ProtoExemplar> exemplars)
+    {
+        var converted = new NormalizedMetricExemplars();
+        foreach (var exemplar in exemplars)
         {
-            TimeUnixNano = exemplar.TimeUnixNano,
-            Value = exemplar.ValueCase switch
+            var attributes = ExtractMetricAttributes(exemplar.FilteredAttributes);
+            converted.Renames.AddRange(NormalizedAttributes.Collect([attributes]));
+            converted.Add(new MetricContract.MetricExemplar
             {
-                ProtoExemplar.ValueOneofCase.AsInt => new CommonContract.AttributeIntValue { Value = exemplar.AsInt },
-                ProtoExemplar.ValueOneofCase.AsDouble => new CommonContract.AttributeDoubleValue { Value = exemplar.AsDouble },
-                _ => throw new InvalidDataException("OTLP metric exemplars require a numeric value.")
-            },
-            FilteredAttributes = ToContractAttributes(ExtractMetricAttributes(exemplar.FilteredAttributes)),
-            TraceId = MetricExemplarId(exemplar.TraceId, 16, "trace_id"),
-            SpanId = MetricExemplarId(exemplar.SpanId, 8, "span_id")
-        }).ToArray();
+                TimeUnixNano = exemplar.TimeUnixNano,
+                Value = exemplar.ValueCase switch
+                {
+                    ProtoExemplar.ValueOneofCase.AsInt => new CommonContract.AttributeIntValue { Value = exemplar.AsInt },
+                    ProtoExemplar.ValueOneofCase.AsDouble => new CommonContract.AttributeDoubleValue { Value = exemplar.AsDouble },
+                    _ => throw new InvalidDataException("OTLP metric exemplars require a numeric value.")
+                },
+                FilteredAttributes = ToContractAttributes(attributes),
+                TraceId = MetricExemplarId(exemplar.TraceId, 16, "trace_id"),
+                SpanId = MetricExemplarId(exemplar.SpanId, 8, "span_id")
+            });
+        }
+        return converted;
+    }
 
     private static string? MetricExemplarId(ByteString bytes, int length, string field)
     {
@@ -213,9 +222,13 @@ internal static partial class OtlpConverter
         return Convert.ToHexStringLower(bytes.Span);
     }
 
-    private static IReadOnlyList<CommonContract.Attribute> ToContractAttributes(
-        IReadOnlyDictionary<string, OtlpAttributeValue> attributes) => attributes.OrderBy(static pair => pair.Key, StringComparer.Ordinal)
-        .Select(static pair => new CommonContract.Attribute { Key = pair.Key, Value = pair.Value.ToContract() }).ToArray();
+    private static IReadOnlyList<CommonContract.Attribute> ToContractAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes)
+    {
+        var converted = new NormalizedContractAttributes(NormalizedAttributes.Collect([attributes]));
+        foreach (var pair in attributes.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
+            converted.Add(new CommonContract.Attribute { Key = pair.Key, Value = pair.Value.ToContract() });
+        return converted;
+    }
 
     private static MetricPointIngestionRecord CreateRecord(MetricStreamMetadata stream,
         RepeatedField<OpenTelemetry.Proto.Common.V1.KeyValue> attributes, MetricKind kind,
@@ -237,11 +250,12 @@ internal static partial class OtlpConverter
         RepeatedField<OpenTelemetry.Proto.Common.V1.KeyValue> attributes)
     {
         ValidateAttributeKeys(attributes);
-        var result = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
+        var result = new NormalizedAttributes();
         foreach (var attribute in attributes)
         {
             if (string.IsNullOrEmpty(attribute.Key)) continue;
             var renamed = DeprecatedAttributeNormalizer.TryNormalize(attribute.Key, out var key);
+            NormalizedAttributes.RecordRename(result, attribute.Key, key);
             if (!AttributeKeySets.IsPersistable(key)) { NamiCollectorMetrics.AttributeDropped(key); continue; }
             SetNormalizedAttribute(result, key, ConvertProtoAnyValue(attribute.Value, key), renamed);
         }

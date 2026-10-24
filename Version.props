@@ -1,10 +1,7 @@
 <Project>
   <PropertyGroup Label="nami Product Version">
-    <!-- The one version of everything nami releases: the nami tool and its runtime packages,
-         Nami.Api.Sdk, Nami.Orchestration, Nami.Api.Contracts and nami-mcp-server
-         (services/nami.mcp/package.json carries the same number). release.sh releases exactly
-         this version. -->
-    <NamiVersion>17.0.14</NamiVersion>
+    <NamiVersion>0.1.0</NamiVersion>
+    <McpVersion>2.3.0</McpVersion>
     <Version>$(NamiVersion)</Version>
   </PropertyGroup>
 
@@ -29,31 +26,8 @@
     <RoslynVersion>5.9.0</RoslynVersion>
   </PropertyGroup>
 
-  <PropertyGroup Label="nami-owned packages">
-    <!-- The producer family ships from the Nami.Telemetry.AutoInstrumentation repo on one
-         release line (Nami.Telemetry.* package IDs since 9.0.0), so its packages share one property.
-         Nami.Api.Sdk pins Nami.Telemetry.Hosting for every API it builds, so this property is also
-         written into the packed Build/Nami.Api.Sdk.Packages.props for consumers outside this repository. -->
-    <!-- renovate: datasource=nuget depName=Nami.Telemetry.Hosting -->
-    <NamiTelemetryVersion>28.2.4</NamiTelemetryVersion>
-    <!-- renovate: datasource=nuget depName=Nami.Telemetry.SemanticConventions -->
-    <NamiSemanticConventionsVersion>15.0.5</NamiSemanticConventionsVersion>
-    <!-- Also read directly by nami.instrumentation.generators to locate the Sources contentFiles. -->
-    <!-- renovate: datasource=nuget depName=ANcpLua.Roslyn.Utilities.Sources -->
+  <PropertyGroup Label="Generator tooling">
     <ANcpLuaRoslynUtilitiesVersion>3.0.1</ANcpLuaRoslynUtilitiesVersion>
-  </PropertyGroup>
-
-  <!-- The versions the Nami.Api.Sdk MSBuild SDK pins for every API it builds. They carry the
-       SDK's own property names because Nami.Api.Sdk.csproj writes them into the packed
-       Build/Nami.Api.Sdk.Packages.props, where a consumer outside this repository reads them. -->
-  <PropertyGroup Label="Nami.Api.Sdk-owned">
-    <!-- Runtime OpenAPI document, plus the XML-comment source generator that ships inside it. -->
-    <NamiAspNetCoreOpenApiVersion>$(DotNetRuntimeVersion)</NamiAspNetCoreOpenApiVersion>
-    <!-- Build-time OpenAPI document emission: dotnet build writes the committed contract. -->
-    <NamiApiDescriptionServerVersion>$(DotNetRuntimeVersion)</NamiApiDescriptionServerVersion>
-    <!-- The document model itself, pinned so it cannot drift underneath Microsoft.AspNetCore.OpenApi
-         and load a different assembly version into a consumer than Nami.Api was compiled against. -->
-    <NamiOpenApiModelVersion>$(MicrosoftOpenApiVersion)</NamiOpenApiModelVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="Telemetry and wire">
@@ -90,7 +64,7 @@
     <MicrosoftTestingExtensionsCodeCoverageVersion>18.12.0</MicrosoftTestingExtensionsCodeCoverageVersion>
     <!-- renovate: datasource=nuget depName=Microsoft.NETFramework.ReferenceAssemblies -->
     <NetFrameworkReferenceAssembliesVersion>1.0.3</NetFrameworkReferenceAssembliesVersion>
-    <!-- Frozen for the net10.0 build host. Microsoft.Build 18.10.1 and 18.11.0 ship
+    <!-- Build host dependency used by Fallout. Microsoft.Build 18.10.1 and 18.11.0 ship
          net11.0/net472 assets, with no compatible modern asset for this host.
          https://www.nuget.org/packages/Microsoft.Build/18.11.0#supportedframeworks-body-tab
          Move this pin only with a verified build-host framework migration. -->

@@ -1,0 +1,30 @@
+# `{{ ctx.name }}` semantic conventions
+
+Generated from Nami's pinned Weaver registry. Do not edit.
+
+## Attributes
+
+{% for line in ctx.attribute_header %}
+{{ line }}
+{% endfor %}
+{% for line in ctx.attribute_rows %}
+{{ line }}
+{% endfor %}
+{% for enum in ctx.enums %}
+
+### `{{ enum.key }}` values
+
+| Value | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+{% for line in enum.rows %}
+{{ line }}
+{% endfor %}
+{% endfor %}
+
+## Metrics
+
+| Name | Instrument | Unit | Stability | Deprecated | Brief |
+| --- | --- | --- | --- | --- | --- |
+{% for line in ctx.metric_rows %}
+{{ line }}
+{% endfor %}

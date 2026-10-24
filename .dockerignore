@@ -129,10 +129,7 @@ TestResults
 **/TestResults
 .nyc_output
 **/.nyc_output
-LICENSE
-README.md
 # Not Collector build inputs.
 services/nami.mcp
-contracts
 plugins
 docs

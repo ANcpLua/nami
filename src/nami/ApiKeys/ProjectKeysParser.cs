@@ -28,7 +28,7 @@ internal static class ProjectKeysParser
         }
     }
 
-    private static IReadOnlyList<ProjectApiKey> Parse(string? json)
+    private static List<ProjectApiKey> Parse(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return [];
 

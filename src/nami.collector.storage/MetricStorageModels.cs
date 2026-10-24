@@ -37,6 +37,8 @@ namespace Nami.Collector.Storage;
     """)]
 internal sealed partial record MetricSeriesRow
 {
+    [JsonIgnore]
+    internal IReadOnlyList<AttributeRename> AttributeRenames { get; init; } = [];
     [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
     public required string ProjectId { get; init; }
 

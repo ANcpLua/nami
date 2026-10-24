@@ -1,9 +1,4 @@
-name: nami
-description: nami conventions for agent-facing observability; every key is prefixed nami.
+file_format: manifest/2.0
 schema_url: https://ancplua.github.io/nami/schemas/0.1.0
 stability: development
-dependencies:
-  - schema_url: https://opentelemetry.io/schemas/1.44.0
-    registry_path: https://github.com/open-telemetry/semantic-conventions.git@v1.44.0[model]
-  - schema_url: https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev
-    registry_path: https://github.com/open-telemetry/semantic-conventions-genai.git@9ffc7e00c639be7712e544e3e54331e885dccf84[model]
+resolved_registry_uri: resolved.json

@@ -16,6 +16,8 @@ internal sealed partial class DuckDbStore : INamiStore
 
     private readonly CancellationTokenSource _cts = new();
     private readonly Func<CancellationToken, ValueTask>? _beforeWrite;
+    private readonly TimeProvider _timeProvider;
+    private readonly TimeSpan _snapshotLifetime;
     private readonly string _databasePath;
     private readonly bool _isInMemory;
     private readonly ILogger<DuckDbStore> _logger;
@@ -35,8 +37,12 @@ internal sealed partial class DuckDbStore : INamiStore
         int? threads = null,
         string? tempDirectory = null,
         Func<CancellationToken, ValueTask>? beforeWrite = null,
-        ILoggerFactory? loggerFactory = null)
+        ILoggerFactory? loggerFactory = null,
+        TimeProvider? timeProvider = null,
+        TimeSpan? snapshotLifetime = null)
     {
+        _timeProvider = timeProvider ?? TimeProvider.System;
+        _snapshotLifetime = snapshotLifetime ?? TimeSpan.FromMinutes(30);
         var resolvedLoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
         _logger = resolvedLoggerFactory.CreateLogger<DuckDbStore>();
         _isInMemory = databasePath == ":memory:";
@@ -51,7 +57,6 @@ internal sealed partial class DuckDbStore : INamiStore
             ConfigureDatabase(connection, memoryLimit, threads, tempDirectory);
             var preservedHistory = PreserveHistoricalMetricPoints(connection);
             MigrateUnknownLogTimes(connection);
-            DropStoredIdempotencyResponses(connection);
             var resetDerived = InitializeSchema(connection);
             var migratedSeries = BackfillMetricInstrumentIds(connection);
             if (preservedHistory || resetDerived || migratedSeries || MetricProjectionsNeedRebuild(connection))
@@ -527,6 +532,7 @@ internal sealed partial class DuckDbStore : INamiStore
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
             await InsertRowsBatchedAsync(con, tx, knownTimes, LogStorageRow.AddParameters,
                 LogStorageRow.BuildMultiRowInsertSql, MaxLogsPerBatch, token);
+            RecordIngestion(con, tx, "logs", knownTimes.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName, row.ResourceJson, row.AttributesJson, row.ScopeAttributesJson, row.AttributeRenames)), token);
             await tx.CommitAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
@@ -780,7 +786,7 @@ internal sealed partial class DuckDbStore : INamiStore
         }
     }
 
-    private static async ValueTask WriteBatchInternalAsync(
+    private async ValueTask WriteBatchInternalAsync(
         DuckDBConnection con,
         SpanBatch batch,
         CancellationToken ct)
@@ -792,6 +798,7 @@ internal sealed partial class DuckDbStore : INamiStore
 
         await InsertRowsBatchedAsync(con, tx, batch.Spans, SpanStorageRow.AddParameters,
             SpanStorageRow.BuildMultiRowInsertSql, MaxSpansPerBatch, ct);
+        RecordIngestion(con, tx, "traces", batch.Spans.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName, row.ResourceJson, row.AttributesJson, row.ScopeAttributesJson, row.AttributeRenames)), ct);
         await tx.CommitAsync(ct).ConfigureAwait(false);
     }
 

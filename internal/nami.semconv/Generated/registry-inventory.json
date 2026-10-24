@@ -1,0 +1,6306 @@
+{
+  "attributes": [
+    {
+      "deprecated": null,
+      "key": "android.app.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "android.os.api_level",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `android.app.state`.",
+        "reason": "renamed",
+        "renamed_to": "android.app.state"
+      },
+      "key": "android.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "app.build_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "app.crash.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "app.installation.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "app.jank.frame_count",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "app.jank.period",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "app.jank.threshold",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "app.screen.coordinate.x",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "app.screen.coordinate.y",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "app.screen.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "app.screen.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "app.widget.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "app.widget.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "artifact.attestation.filename",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "artifact.attestation.hash",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "artifact.attestation.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "artifact.filename",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "artifact.hash",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "artifact.purl",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "artifact.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.authentication.result",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.authentication.scheme",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.authorization.policy",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.authorization.result",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.diagnostics.exception.result",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.diagnostics.handler.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.identity.error_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.identity.password_check_result",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.identity.result",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.identity.sign_in.result",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.identity.sign_in.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.identity.token_purpose",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.identity.token_verified",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.identity.user.update_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.identity.user_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.memory_pool.owner",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.rate_limiting.policy",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.rate_limiting.result",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.request.is_unhandled",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.routing.is_fallback",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.routing.match_status",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.sign_in.is_persistent",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aspnetcore.user.is_authenticated",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.bedrock.guardrail.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.bedrock.knowledge_base.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.attribute_definitions",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.attributes_to_get",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.consistent_read",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.consumed_capacity",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.count",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.exclusive_start_table",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.global_secondary_index_updates",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.global_secondary_indexes",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.index_name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.item_collection_metrics",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.limit",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.local_secondary_indexes",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.projection",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.provisioned_read_capacity",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.provisioned_write_capacity",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.scan_forward",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.scanned_count",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.segment",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.select",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.table_count",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.table_names",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.dynamodb.total_segments",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.ecs.cluster.arn",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.ecs.container.arn",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.ecs.launchtype",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.ecs.task.arn",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.ecs.task.family",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.ecs.task.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.ecs.task.revision",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.eks.cluster.arn",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.extended_request_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.kinesis.stream_name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.lambda.invoked_arn",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.lambda.resource_mapping.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.log.group.arns",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.log.group.names",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.log.stream.arns",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.log.stream.names",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.request_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.s3.bucket",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.s3.copy_source",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.s3.delete",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.s3.key",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.s3.part_number",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.s3.upload_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.secretsmanager.secret.arn",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.sns.topic.arn",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.sqs.queue.url",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.step_functions.activity.arn",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "aws.step_functions.state_machine.arn",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `azure.resource_provider.namespace`.",
+        "reason": "renamed",
+        "renamed_to": "azure.resource_provider.namespace"
+      },
+      "key": "az.namespace",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `azure.service.request.id`.",
+        "reason": "renamed",
+        "renamed_to": "azure.service.request.id"
+      },
+      "key": "az.service_request_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "azure.client.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "azure.cosmosdb.connection.mode",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "azure.cosmosdb.consistency.level",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "azure.cosmosdb.operation.contacted_regions",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "azure.cosmosdb.operation.request_charge",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "azure.cosmosdb.request.body.size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "azure.cosmosdb.response.sub_status_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "azure.resource_group.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "azure.resource_provider.namespace",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "azure.service.request.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "browser.brands",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "browser.document.url.full",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "browser.language",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "browser.mobile",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "browser.platform",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "browser.web_vital.delta",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "browser.web_vital.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "browser.web_vital.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "browser.web_vital.navigation_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "browser.web_vital.rating",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "browser.web_vital.value",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cassandra.consistency.level",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cassandra.coordinator.dc",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cassandra.coordinator.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cassandra.page.size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cassandra.query.idempotent",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cassandra.speculative_execution.count",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.pipeline.action.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.pipeline.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.pipeline.result",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.pipeline.run.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.pipeline.run.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.pipeline.run.url.full",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.pipeline.task.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.pipeline.task.run.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.pipeline.task.run.result",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.pipeline.task.run.url.full",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.pipeline.task.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.system.component",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.worker.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.worker.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.worker.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cicd.worker.url.full",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "client.address",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "client.port",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "cloud.account.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloud.availability_zone",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloud.platform",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloud.provider",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloud.region",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloud.resource_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudevents.event_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudevents.event_source",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudevents.event_spec_version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudevents.event_subject",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudevents.event_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudfoundry.app.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudfoundry.app.instance.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudfoundry.app.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudfoundry.org.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudfoundry.org.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudfoundry.process.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudfoundry.process.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudfoundry.space.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudfoundry.space.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudfoundry.system.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cloudfoundry.system.instance.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `code.column.number`.",
+        "reason": "renamed",
+        "renamed_to": "code.column.number"
+      },
+      "key": "code.column",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "code.column.number",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "code.file.path",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `code.file.path`.",
+        "reason": "renamed",
+        "renamed_to": "code.file.path"
+      },
+      "key": "code.filepath",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Value should be included in `code.function.name` which is expected to be a fully-qualified name.\n",
+        "reason": "uncategorized"
+      },
+      "key": "code.function",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "code.function.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "code.line.number",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `code.line.number`.",
+        "reason": "renamed",
+        "renamed_to": "code.line.number"
+      },
+      "key": "code.lineno",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Value should be included in `code.function.name` which is expected to be a fully-qualified name.\n",
+        "reason": "uncategorized"
+      },
+      "key": "code.namespace",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "code.stacktrace",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "container.command",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "container.command_args",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "container.command_line",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `cpu.mode`.",
+        "reason": "renamed",
+        "renamed_to": "cpu.mode"
+      },
+      "key": "container.cpu.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "container.csi.plugin.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "container.csi.volume.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "container.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "container.image.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "container.image.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "container.image.repo_digests",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "container.image.tags",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "container.label",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `container.label`.",
+        "reason": "renamed",
+        "renamed_to": "container.label"
+      },
+      "key": "container.labels",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "container.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `container.runtime.name`.",
+        "reason": "renamed",
+        "renamed_to": "container.runtime.name"
+      },
+      "key": "container.runtime",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "container.runtime.description",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "container.runtime.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "container.runtime.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cpu.logical_number",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cpu.mode",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "cpython.gc.generation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `cassandra.consistency.level`.",
+        "reason": "renamed",
+        "renamed_to": "cassandra.consistency.level"
+      },
+      "key": "db.cassandra.consistency_level",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `cassandra.coordinator.dc`.",
+        "reason": "renamed",
+        "renamed_to": "cassandra.coordinator.dc"
+      },
+      "key": "db.cassandra.coordinator.dc",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `cassandra.coordinator.id`.",
+        "reason": "renamed",
+        "renamed_to": "cassandra.coordinator.id"
+      },
+      "key": "db.cassandra.coordinator.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `cassandra.query.idempotent`.",
+        "reason": "renamed",
+        "renamed_to": "cassandra.query.idempotent"
+      },
+      "key": "db.cassandra.idempotence",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `cassandra.page.size`.",
+        "reason": "renamed",
+        "renamed_to": "cassandra.page.size"
+      },
+      "key": "db.cassandra.page_size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `cassandra.speculative_execution.count`.",
+        "reason": "renamed",
+        "renamed_to": "cassandra.speculative_execution.count"
+      },
+      "key": "db.cassandra.speculative_execution_count",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.collection.name`.",
+        "reason": "renamed",
+        "renamed_to": "db.collection.name"
+      },
+      "key": "db.cassandra.table",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "db.client.connection.pool.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "db.client.connection.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.client.connection.pool.name`.",
+        "reason": "renamed",
+        "renamed_to": "db.client.connection.pool.name"
+      },
+      "key": "db.client.connections.pool.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.client.connection.state`.",
+        "reason": "renamed",
+        "renamed_to": "db.client.connection.state"
+      },
+      "key": "db.client.connections.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "db.collection.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `server.address` and `server.port`.\n",
+        "reason": "uncategorized"
+      },
+      "key": "db.connection_string",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `azure.client.id`.",
+        "reason": "renamed",
+        "renamed_to": "azure.client.id"
+      },
+      "key": "db.cosmosdb.client_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `azure.cosmosdb.connection.mode`.",
+        "reason": "renamed",
+        "renamed_to": "azure.cosmosdb.connection.mode"
+      },
+      "key": "db.cosmosdb.connection_mode",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `azure.cosmosdb.consistency.level`.",
+        "reason": "renamed",
+        "renamed_to": "azure.cosmosdb.consistency.level"
+      },
+      "key": "db.cosmosdb.consistency_level",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.collection.name`.",
+        "reason": "renamed",
+        "renamed_to": "db.collection.name"
+      },
+      "key": "db.cosmosdb.container",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Removed, no replacement at this time.\n",
+        "reason": "obsoleted"
+      },
+      "key": "db.cosmosdb.operation_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `azure.cosmosdb.operation.contacted_regions`.",
+        "reason": "renamed",
+        "renamed_to": "azure.cosmosdb.operation.contacted_regions"
+      },
+      "key": "db.cosmosdb.regions_contacted",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `azure.cosmosdb.operation.request_charge`.",
+        "reason": "renamed",
+        "renamed_to": "azure.cosmosdb.operation.request_charge"
+      },
+      "key": "db.cosmosdb.request_charge",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `azure.cosmosdb.request.body.size`.",
+        "reason": "renamed",
+        "renamed_to": "azure.cosmosdb.request.body.size"
+      },
+      "key": "db.cosmosdb.request_content_length",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Use `db.response.status_code` instead.",
+        "reason": "uncategorized"
+      },
+      "key": "db.cosmosdb.status_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `azure.cosmosdb.response.sub_status_code`.",
+        "reason": "renamed",
+        "renamed_to": "azure.cosmosdb.response.sub_status_code"
+      },
+      "key": "db.cosmosdb.sub_status_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.namespace`.",
+        "reason": "renamed",
+        "renamed_to": "db.namespace"
+      },
+      "key": "db.elasticsearch.cluster.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `elasticsearch.node.name`.",
+        "reason": "renamed",
+        "renamed_to": "elasticsearch.node.name"
+      },
+      "key": "db.elasticsearch.node.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.operation.parameter`.",
+        "reason": "renamed",
+        "renamed_to": "db.operation.parameter"
+      },
+      "key": "db.elasticsearch.path_parts",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Removed, no general replacement at this time. For Elasticsearch, use `db.elasticsearch.node.name` instead.\n",
+        "reason": "obsoleted"
+      },
+      "key": "db.instance.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Removed, no replacement at this time.\n",
+        "reason": "obsoleted"
+      },
+      "key": "db.jdbc.driver_classname",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.collection.name`.",
+        "reason": "renamed",
+        "renamed_to": "db.collection.name"
+      },
+      "key": "db.mongodb.collection",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Removed, no replacement at this time.",
+        "reason": "obsoleted"
+      },
+      "key": "db.mssql.instance_name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.namespace`.",
+        "reason": "renamed",
+        "renamed_to": "db.namespace"
+      },
+      "key": "db.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "db.namespace",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.operation.name`.",
+        "reason": "renamed",
+        "renamed_to": "db.operation.name"
+      },
+      "key": "db.operation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "db.operation.batch.size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "db.operation.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "db.operation.parameter",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "db.query.parameter",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "db.query.summary",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "db.query.text",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.namespace` (string).",
+        "reason": "uncategorized"
+      },
+      "key": "db.redis.database_index",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "db.response.returned_rows",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "db.response.status_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.collection.name`, but only if not extracting the value from `db.query.text`.",
+        "reason": "uncategorized"
+      },
+      "key": "db.sql.table",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.query.text`.",
+        "reason": "renamed",
+        "renamed_to": "db.query.text"
+      },
+      "key": "db.statement",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "db.stored_procedure.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.system.name`.",
+        "reason": "renamed",
+        "renamed_to": "db.system.name"
+      },
+      "key": "db.system",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "db.system.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": {
+        "note": "Removed, no replacement at this time.",
+        "reason": "obsoleted"
+      },
+      "key": "db.user",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `deployment.environment.name`.",
+        "reason": "renamed",
+        "renamed_to": "deployment.environment.name"
+      },
+      "key": "deployment.environment",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "deployment.environment.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "deployment.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "deployment.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "deployment.status",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "destination.address",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "destination.port",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "device.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "device.manufacturer",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "device.model.identifier",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "device.model.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "disk.io.direction",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "dns.answers",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "dns.question.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "dotnet.gc.heap.generation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "elasticsearch.node.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "enduser.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "enduser.pseudo.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Use `user.roles` instead.",
+        "reason": "uncategorized"
+      },
+      "key": "enduser.role",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Removed, no replacement at this time.",
+        "reason": "obsoleted"
+      },
+      "key": "enduser.scope",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Use domain-specific error message attribute. For example, use `feature_flag.error.message` for feature flag errors.",
+        "reason": "obsoleted"
+      },
+      "key": "error.message",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "error.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": {
+        "note": "The value of this attribute MUST now be set as the value of the EventName field on the LogRecord to indicate that the LogRecord represents an Event.\n",
+        "reason": "uncategorized"
+      },
+      "key": "event.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "It's no longer recommended to record exceptions that are handled and do not escape the scope of a span.\n",
+        "reason": "obsoleted"
+      },
+      "key": "exception.escaped",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "exception.message",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "exception.stacktrace",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "exception.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.coldstart",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.cron",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.document.collection",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.document.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.document.operation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.document.time",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.instance",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.invocation_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.invoked_name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.invoked_provider",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.invoked_region",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.max_memory",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.time",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.trigger",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "faas.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "feature_flag.context.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "feature_flag.error.message",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `feature_flag.error.message`.",
+        "reason": "renamed",
+        "renamed_to": "feature_flag.error.message"
+      },
+      "key": "feature_flag.evaluation.error.message",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `feature_flag.result.reason`.",
+        "reason": "renamed",
+        "renamed_to": "feature_flag.result.reason"
+      },
+      "key": "feature_flag.evaluation.reason",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "feature_flag.key",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "feature_flag.provider.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `feature_flag.provider.name`.",
+        "reason": "renamed",
+        "renamed_to": "feature_flag.provider.name"
+      },
+      "key": "feature_flag.provider_name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "feature_flag.result.reason",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "feature_flag.result.value",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "feature_flag.result.variant",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "feature_flag.set.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `feature_flag.result.variant`.",
+        "reason": "renamed",
+        "renamed_to": "feature_flag.result.variant"
+      },
+      "key": "feature_flag.variant",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "feature_flag.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "file.accessed",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.attributes",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.changed",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.created",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.directory",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.extension",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.fork_name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.group.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.group.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.inode",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.lock.mechanism",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.lock.mode",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.lock.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.mode",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.modified",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.owner.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.owner.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.path",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file.symbolic_link.target_path",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub.application.container",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub.application.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub.application.location",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub.service.criticality_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub.service.environment_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub.service.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub.workload.criticality_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub.workload.environment_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub.workload.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub_destination.application.container",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub_destination.application.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub_destination.application.location",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub_destination.service.criticality_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub_destination.service.environment_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub_destination.service.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub_destination.workload.criticality_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub_destination.workload.environment_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.apphub_destination.workload.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.client.service",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.cloud_run.job.execution",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.cloud_run.job.task_index",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.gce.instance.hostname",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.gce.instance.labels",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.gce.instance.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.gce.instance_group_manager.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.gce.instance_group_manager.region",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gcp.gce.instance_group_manager.zone",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.agent.description",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.agent.id",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.agent.name",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.agent.version",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.conversation.compacted",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.conversation.id",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.data_source.id",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.embeddings.dimension.count",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.evaluation.explanation",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.evaluation.name",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.evaluation.score.label",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.evaluation.score.value",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.input.messages",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.main_agent.description",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.main_agent.id",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.main_agent.name",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.memory.query.text",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.memory.record.count",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.memory.record.id",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.memory.records",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.memory.store.id",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.operation.name",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.output.messages",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.output.type",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.prompt.name",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.prompt.variable",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.prompt.version",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.provider.name",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.choice.count",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.encoding_formats",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.frequency_penalty",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.max_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.model",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.presence_penalty",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.previous_response.id",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.reasoning.level",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.seed",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.stop_sequences",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.stream",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.stream_cursor",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.temperature",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.top_k",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.request.top_p",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.response.finish_reasons",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.response.id",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.response.model",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.response.status",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.response.time_to_first_chunk",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.retrieval.documents",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.retrieval.query.text",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.retrieval.top_k",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.skill.description",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.skill.name",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.skill.resource.name",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.skill.source.uri",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.system_instructions",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.token.modality",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.tool.call.arguments",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.tool.call.id",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.tool.call.result",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.tool.definitions",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.tool.description",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.tool.name",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.tool.type",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.usage.audio.cache_read.input_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.usage.audio.input_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.usage.audio.output_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.usage.cache_read.input_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.usage.cache_write.input_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.usage.image.cache_read.input_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.usage.image.input_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.usage.image.output_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.usage.input_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.usage.output_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.usage.reasoning.output_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.usage.text.cache_read.input_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.usage.text.input_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.usage.text.output_tokens",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.workflow.name",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "geo.continent.code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "geo.country.iso_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "geo.locality.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "geo.location.lat",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "geo.location.lon",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "geo.postal_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "geo.region.iso_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "go.cpu.detailed_state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "go.cpu.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "go.memory.detailed_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "go.memory.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "graphql.document",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "graphql.operation.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "graphql.operation.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "heroku.app.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "heroku.release.commit",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "heroku.release.creation_timestamp",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.arch",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.cpu.cache.l2.size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.cpu.family",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.cpu.model.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.cpu.model.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.cpu.stepping",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.cpu.vendor.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.image.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.image.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.image.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.ip",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.mac",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `client.address`.",
+        "reason": "renamed",
+        "renamed_to": "client.address"
+      },
+      "key": "http.client_ip",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "http.connection.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Split into `network.protocol.name` and `network.protocol.version`",
+        "reason": "uncategorized"
+      },
+      "key": "http.flavor",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by one of `server.address`, `client.address` or `http.request.header.host`, depending on the usage.\n",
+        "reason": "uncategorized"
+      },
+      "key": "http.host",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `http.request.method`.",
+        "reason": "renamed",
+        "renamed_to": "http.request.method"
+      },
+      "key": "http.method",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "http.request.body.size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "http.request.header",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "http.request.method",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "http.request.method_original",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "http.request.resend_count",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "http.request.size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `http.request.header.content-length`.",
+        "reason": "uncategorized"
+      },
+      "key": "http.request_content_length",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `http.request.body.size`.",
+        "reason": "renamed",
+        "renamed_to": "http.request.body.size"
+      },
+      "key": "http.request_content_length_uncompressed",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "http.response.body.size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "http.response.header",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "http.response.size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "http.response.status_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `http.response.header.content-length`.",
+        "reason": "uncategorized"
+      },
+      "key": "http.response_content_length",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `http.response.body.size`.",
+        "reason": "renamed",
+        "renamed_to": "http.response.body.size"
+      },
+      "key": "http.response_content_length_uncompressed",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "http.route",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `url.scheme`.",
+        "reason": "renamed",
+        "renamed_to": "url.scheme"
+      },
+      "key": "http.scheme",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `server.address`.",
+        "reason": "renamed",
+        "renamed_to": "server.address"
+      },
+      "key": "http.server_name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `http.response.status_code`.",
+        "reason": "renamed",
+        "renamed_to": "http.response.status_code"
+      },
+      "key": "http.status_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Split to `url.path` and `url.query`.",
+        "reason": "obsoleted"
+      },
+      "key": "http.target",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `url.full`.",
+        "reason": "renamed",
+        "renamed_to": "url.full"
+      },
+      "key": "http.url",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `user_agent.original`.",
+        "reason": "renamed",
+        "renamed_to": "user_agent.original"
+      },
+      "key": "http.user_agent",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.battery.capacity",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.battery.chemistry",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.battery.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.bios_version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.driver_version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.enclosure.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.firmware_version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.gpu.task",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.limit_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.logical_disk.raid_level",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.logical_disk.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.memory.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.model",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.network.logical_addresses",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.network.physical_address",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.parent",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.physical_disk.smart_attribute",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.physical_disk.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.physical_disk.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.sensor_location",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.serial_number",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.tape_drive.operation_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "hw.vendor",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "ios.app.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `ios.app.state`.",
+        "reason": "renamed",
+        "renamed_to": "ios.app.state"
+      },
+      "key": "ios.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "jsonrpc.protocol.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "jsonrpc.request.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "jvm.buffer.pool.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "jvm.gc.action",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "jvm.gc.cause",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "jvm.gc.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "jvm.memory.pool.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "jvm.memory.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "jvm.thread.daemon",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "jvm.thread.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.cluster.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.cluster.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.container.ephemeral_storage.fs_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.container.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.container.restart_count",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.container.status.last_terminated_reason",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.container.status.reason",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.container.status.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.cronjob.annotation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.cronjob.label",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.cronjob.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.cronjob.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.daemonset.annotation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.daemonset.label",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.daemonset.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.daemonset.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.deployment.annotation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.deployment.label",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.deployment.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.deployment.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.hpa.metric.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.hpa.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.hpa.scaletargetref.api_version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.hpa.scaletargetref.kind",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.hpa.scaletargetref.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.hpa.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.hugepage.size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.job.annotation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.job.label",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.job.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.job.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.namespace.annotation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.namespace.label",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.namespace.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.namespace.phase",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.node.annotation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.node.condition.status",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.node.condition.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.node.label",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.node.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.node.system_container.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.node.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.persistentvolume.annotation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.persistentvolume.label",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.persistentvolume.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.persistentvolume.reclaim_policy",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.persistentvolume.status.phase",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.persistentvolume.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.persistentvolumeclaim.annotation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.persistentvolumeclaim.label",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.persistentvolumeclaim.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.persistentvolumeclaim.status.phase",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.persistentvolumeclaim.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.pod.annotation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.pod.hostname",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.pod.ip",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.pod.label",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `k8s.pod.label`.",
+        "reason": "renamed",
+        "renamed_to": "k8s.pod.label"
+      },
+      "key": "k8s.pod.labels",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.pod.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.pod.start_time",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.pod.status.phase",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.pod.status.reason",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.pod.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.replicaset.annotation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.replicaset.label",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.replicaset.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.replicaset.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.replicationcontroller.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.replicationcontroller.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.resourcequota.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.resourcequota.resource_name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.resourcequota.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.service.annotation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.service.endpoint.address_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.service.endpoint.condition",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.service.endpoint.zone",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.service.label",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.service.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.service.publish_not_ready_addresses",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.service.selector",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.service.traffic_distribution",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.service.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.service.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.statefulset.annotation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.statefulset.label",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.statefulset.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.statefulset.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.storageclass.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.volume.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "k8s.volume.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `system.memory.linux.slab.state`.",
+        "reason": "renamed",
+        "renamed_to": "system.memory.linux.slab.state"
+      },
+      "key": "linux.memory.slab.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "log.file.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "log.file.name_resolved",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "log.file.path",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "log.file.path_resolved",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "log.iostream",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "log.record.original",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "log.record.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "mcp.method.name",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "mcp.protocol.version",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "mcp.resource.uri",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "mcp.session.id",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Deprecated, no replacement at this time.",
+        "reason": "obsoleted"
+      },
+      "key": "message.compressed_size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Deprecated, no replacement at this time.",
+        "reason": "obsoleted"
+      },
+      "key": "message.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Deprecated, no replacement at this time.",
+        "reason": "obsoleted"
+      },
+      "key": "message.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Deprecated, no replacement at this time.",
+        "reason": "obsoleted"
+      },
+      "key": "message.uncompressed_size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.batch.message_count",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.client.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `messaging.client.id`.",
+        "reason": "renamed",
+        "renamed_to": "messaging.client.id"
+      },
+      "key": "messaging.client_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.consumer.group.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.destination.anonymous",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.destination.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.destination.partition.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.destination.subscription.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.destination.template",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.destination.temporary",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Removed. No replacement at this time.",
+        "reason": "obsoleted"
+      },
+      "key": "messaging.destination_publish.anonymous",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Removed. No replacement at this time.",
+        "reason": "obsoleted"
+      },
+      "key": "messaging.destination_publish.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `messaging.consumer.group.name`.",
+        "reason": "renamed",
+        "renamed_to": "messaging.consumer.group.name"
+      },
+      "key": "messaging.eventhubs.consumer.group",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.eventhubs.message.enqueued_time",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.gcp_pubsub.message.ack_deadline",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.gcp_pubsub.message.ack_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.gcp_pubsub.message.delivery_attempt",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.gcp_pubsub.message.ordering_key",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.kafka.cluster.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `messaging.consumer.group.name`.",
+        "reason": "renamed",
+        "renamed_to": "messaging.consumer.group.name"
+      },
+      "key": "messaging.kafka.consumer.group",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Record string representation of the partition ID in `messaging.destination.partition.id` attribute.",
+        "reason": "uncategorized"
+      },
+      "key": "messaging.kafka.destination.partition",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.kafka.message.key",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `messaging.kafka.offset`.",
+        "reason": "renamed",
+        "renamed_to": "messaging.kafka.offset"
+      },
+      "key": "messaging.kafka.message.offset",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.kafka.message.tombstone",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.kafka.offset",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.message.body.size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.message.conversation_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.message.envelope.size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.message.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `messaging.operation.type`.",
+        "reason": "renamed",
+        "renamed_to": "messaging.operation.type"
+      },
+      "key": "messaging.operation",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.operation.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.operation.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.rabbitmq.destination.routing_key",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.rabbitmq.message.delivery_tag",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `messaging.consumer.group.name` on the consumer spans. No replacement for producer spans.\n",
+        "reason": "uncategorized"
+      },
+      "key": "messaging.rocketmq.client_group",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.rocketmq.consumption_model",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.rocketmq.message.delay_time_level",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.rocketmq.message.delivery_timestamp",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.rocketmq.message.group",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.rocketmq.message.keys",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.rocketmq.message.tag",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.rocketmq.message.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.rocketmq.namespace",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `messaging.destination.subscription.name`.",
+        "reason": "renamed",
+        "renamed_to": "messaging.destination.subscription.name"
+      },
+      "key": "messaging.servicebus.destination.subscription_name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.servicebus.disposition_status",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.servicebus.message.delivery_count",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.servicebus.message.enqueued_time",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "messaging.system",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "nami.attribute.key",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.1.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "nami.attribute.namespace",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.1.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "nami.gen_ai.tool.call.arguments_hash",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.1.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "nami.project.id",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.1.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `network.local.address`.",
+        "reason": "renamed",
+        "renamed_to": "network.local.address"
+      },
+      "key": "net.host.ip",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `server.address`.",
+        "reason": "renamed",
+        "renamed_to": "server.address"
+      },
+      "key": "net.host.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `server.port`.",
+        "reason": "renamed",
+        "renamed_to": "server.port"
+      },
+      "key": "net.host.port",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `network.peer.address`.",
+        "reason": "renamed",
+        "renamed_to": "network.peer.address"
+      },
+      "key": "net.peer.ip",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `server.address` on client spans and `client.address` on server spans.",
+        "reason": "uncategorized"
+      },
+      "key": "net.peer.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `server.port` on client spans and `client.port` on server spans.",
+        "reason": "uncategorized"
+      },
+      "key": "net.peer.port",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `network.protocol.name`.",
+        "reason": "renamed",
+        "renamed_to": "network.protocol.name"
+      },
+      "key": "net.protocol.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `network.protocol.version`.",
+        "reason": "renamed",
+        "renamed_to": "network.protocol.version"
+      },
+      "key": "net.protocol.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Split to `network.transport` and `network.type`.",
+        "reason": "uncategorized"
+      },
+      "key": "net.sock.family",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `network.local.address`.",
+        "reason": "renamed",
+        "renamed_to": "network.local.address"
+      },
+      "key": "net.sock.host.addr",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `network.local.port`.",
+        "reason": "renamed",
+        "renamed_to": "network.local.port"
+      },
+      "key": "net.sock.host.port",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `network.peer.address`.",
+        "reason": "renamed",
+        "renamed_to": "network.peer.address"
+      },
+      "key": "net.sock.peer.addr",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Removed. No replacement at this time.",
+        "reason": "obsoleted"
+      },
+      "key": "net.sock.peer.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `network.peer.port`.",
+        "reason": "renamed",
+        "renamed_to": "network.peer.port"
+      },
+      "key": "net.sock.peer.port",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `network.transport`.",
+        "reason": "renamed",
+        "renamed_to": "network.transport"
+      },
+      "key": "net.transport",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "network.carrier.icc",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "network.carrier.mcc",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "network.carrier.mnc",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "network.carrier.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "network.connection.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "network.connection.subtype",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "network.connection.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "network.interface.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "network.io.direction",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "network.local.address",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "network.local.port",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "network.peer.address",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "network.peer.port",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "network.protocol.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "network.protocol.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "network.transport",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "network.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "nfs.operation.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "nfs.server.repcache.status",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "nodejs.eventloop.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "oci.manifest.digest",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "onc_rpc.procedure.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "onc_rpc.procedure.number",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "onc_rpc.program.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "onc_rpc.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "openai.api.type",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "openai.request.service_tier",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "openai.response.service_tier",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "openai.response.system_fingerprint",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "openshift.clusterquota.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "openshift.clusterquota.uid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "opentracing.ref_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "oracle.db.domain",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "oracle.db.instance.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "oracle.db.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "oracle.db.pdb",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "oracle.db.service",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "oracle_cloud.realm",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "os.build_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "os.description",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "os.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "os.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "os.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "otel.component.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "otel.component.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "otel.event.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `otel.scope.name`.",
+        "reason": "renamed",
+        "renamed_to": "otel.scope.name"
+      },
+      "key": "otel.library.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `otel.scope.version`.",
+        "reason": "renamed",
+        "renamed_to": "otel.scope.version"
+      },
+      "key": "otel.library.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "otel.scope.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "otel.scope.schema_url",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "otel.scope.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "otel.span.parent.origin",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "otel.span.sampling_result",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "otel.status_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "otel.status_description",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `service.peer.name`.",
+        "reason": "renamed",
+        "renamed_to": "service.peer.name"
+      },
+      "key": "peer.service",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.client.connection.pool.name`.",
+        "reason": "renamed",
+        "renamed_to": "db.client.connection.pool.name"
+      },
+      "key": "pool.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "pprof.location.is_folded",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "pprof.mapping.has_filenames",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "pprof.mapping.has_functions",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "pprof.mapping.has_inline_frames",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "pprof.mapping.has_line_numbers",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "pprof.profile.comment",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "pprof.profile.doc_url",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "pprof.profile.drop_frames",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "pprof.profile.keep_frames",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "pprof.scope.default_sample_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "pprof.scope.sample_type_order",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "process.args_count",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.command",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.command_args",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.command_line",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.context_switch.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `process.context_switch.type`.",
+        "reason": "renamed",
+        "renamed_to": "process.context_switch.type"
+      },
+      "key": "process.context_switch_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `cpu.mode`.",
+        "reason": "renamed",
+        "renamed_to": "cpu.mode"
+      },
+      "key": "process.cpu.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "process.creation.time",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.environment_variable",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.executable.build_id.gnu",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.executable.build_id.go",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.executable.build_id.htlhash",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `process.executable.build_id.htlhash`.",
+        "reason": "renamed",
+        "renamed_to": "process.executable.build_id.htlhash"
+      },
+      "key": "process.executable.build_id.profiling",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "process.executable.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.executable.path",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.exit.code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.exit.time",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.group_leader.pid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.interactive",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.linux.cgroup",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.owner",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `system.paging.fault.type`.",
+        "reason": "renamed",
+        "renamed_to": "system.paging.fault.type"
+      },
+      "key": "process.paging.fault_type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "process.parent_pid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.pid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.real_user.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.real_user.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.runtime.description",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.runtime.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.runtime.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.saved_user.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.saved_user.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.session_leader.pid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.title",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.user.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.user.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.vpid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "process.working_directory",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "profile.frame.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `rpc.response.status_code`.",
+        "reason": "renamed",
+        "renamed_to": "rpc.response.status_code"
+      },
+      "key": "rpc.connect_rpc.error_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `rpc.request.metadata`.",
+        "reason": "renamed",
+        "renamed_to": "rpc.request.metadata"
+      },
+      "key": "rpc.connect_rpc.request.metadata",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `rpc.response.metadata`.",
+        "reason": "renamed",
+        "renamed_to": "rpc.response.metadata"
+      },
+      "key": "rpc.connect_rpc.response.metadata",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `rpc.request.metadata`.",
+        "reason": "renamed",
+        "renamed_to": "rpc.request.metadata"
+      },
+      "key": "rpc.grpc.request.metadata",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `rpc.response.metadata`.",
+        "reason": "renamed",
+        "renamed_to": "rpc.response.metadata"
+      },
+      "key": "rpc.grpc.response.metadata",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Use string representation of the gRPC status code on the `rpc.response.status_code` attribute.",
+        "reason": "uncategorized"
+      },
+      "key": "rpc.grpc.status_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Use string representation of the error code on the `rpc.response.status_code` attribute.",
+        "reason": "uncategorized"
+      },
+      "key": "rpc.jsonrpc.error_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Use the span status description when reporting JSON-RPC spans.",
+        "reason": "uncategorized"
+      },
+      "key": "rpc.jsonrpc.error_message",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `jsonrpc.request.id`.",
+        "reason": "renamed",
+        "renamed_to": "jsonrpc.request.id"
+      },
+      "key": "rpc.jsonrpc.request_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `jsonrpc.protocol.version`.",
+        "reason": "renamed",
+        "renamed_to": "jsonrpc.protocol.version"
+      },
+      "key": "rpc.jsonrpc.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Deprecated, no replacement at this time.",
+        "reason": "obsoleted"
+      },
+      "key": "rpc.message.compressed_size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Deprecated, no replacement at this time.",
+        "reason": "obsoleted"
+      },
+      "key": "rpc.message.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Deprecated, no replacement at this time.",
+        "reason": "obsoleted"
+      },
+      "key": "rpc.message.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Deprecated, no replacement at this time.",
+        "reason": "obsoleted"
+      },
+      "key": "rpc.message.uncompressed_size",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "rpc.method",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "rpc.method_original",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "rpc.request.metadata",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "rpc.response.metadata",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "rpc.response.status_code",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": {
+        "note": "Value should be included in `rpc.method` which is expected to be a fully-qualified name.",
+        "reason": "uncategorized"
+      },
+      "key": "rpc.service",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `rpc.system.name`.",
+        "reason": "renamed",
+        "renamed_to": "rpc.system.name"
+      },
+      "key": "rpc.system",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "rpc.system.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "security_rule.category",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "security_rule.description",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "security_rule.license",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "security_rule.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "security_rule.reference",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "security_rule.ruleset.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "security_rule.uuid",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "security_rule.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "server.address",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "server.port",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "service.criticality",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "alpha"
+    },
+    {
+      "deprecated": null,
+      "key": "service.instance.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "service.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "service.namespace",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "service.peer.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "service.peer.namespace",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "service.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "session.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "session.previous_id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "signalr.connection.status",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "signalr.transport",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "source.address",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "source.port",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `db.client.connection.state`.",
+        "reason": "renamed",
+        "renamed_to": "db.client.connection.state"
+      },
+      "key": "state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `cpu.logical_number`.",
+        "reason": "renamed",
+        "renamed_to": "cpu.logical_number"
+      },
+      "key": "system.cpu.logical_number",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `cpu.mode`.",
+        "reason": "renamed",
+        "renamed_to": "cpu.mode"
+      },
+      "key": "system.cpu.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "system.device",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "system.filesystem.mode",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "system.filesystem.mountpoint",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "system.filesystem.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "system.filesystem.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "system.memory.linux.hugepages.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "system.memory.linux.slab.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "system.memory.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `network.connection.state`.",
+        "reason": "renamed",
+        "renamed_to": "network.connection.state"
+      },
+      "key": "system.network.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "system.paging.direction",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "system.paging.fault.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "system.paging.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `system.paging.fault.type`.",
+        "reason": "renamed",
+        "renamed_to": "system.paging.fault.type"
+      },
+      "key": "system.paging.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `process.state`.",
+        "reason": "renamed",
+        "renamed_to": "process.state"
+      },
+      "key": "system.process.status",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `process.state`.",
+        "reason": "renamed",
+        "renamed_to": "process.state"
+      },
+      "key": "system.processes.status",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "telemetry.distro.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "telemetry.distro.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "telemetry.sdk.language",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "telemetry.sdk.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "telemetry.sdk.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "test.case.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "test.case.result.status",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "test.suite.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "test.suite.run.status",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "thread.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "thread.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.cipher",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.client.certificate",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.client.certificate_chain",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.client.hash.md5",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.client.hash.sha1",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.client.hash.sha256",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.client.issuer",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.client.ja3",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.client.not_after",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.client.not_before",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `server.address`.",
+        "reason": "renamed",
+        "renamed_to": "server.address"
+      },
+      "key": "tls.client.server_name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.client.subject",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.client.supported_ciphers",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.curve",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.established",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.next_protocol",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.protocol.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.protocol.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.resumed",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.server.certificate",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.server.certificate_chain",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.server.hash.md5",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.server.hash.sha1",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.server.hash.sha256",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.server.issuer",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.server.ja3s",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.server.not_after",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.server.not_before",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tls.server.subject",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "url.domain",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "url.extension",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "url.fragment",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "url.full",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "url.original",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "url.path",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "url.port",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "url.query",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "url.registered_domain",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "url.scheme",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "url.subdomain",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "url.template",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "url.top_level_domain",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "user.email",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "user.full_name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "user.hash",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "user.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "user.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "user.roles",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "user_agent.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "user_agent.original",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "user_agent.os.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "user_agent.os.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "user_agent.synthetic.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "user_agent.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "v8js.gc.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "v8js.heap.space.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "v8js.resource.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.change.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.change.state",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.change.title",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.line_change.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.owner.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.provider.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.ref.base.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.ref.base.revision",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.ref.base.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.ref.head.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.ref.head.revision",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.ref.head.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.ref.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `vcs.change.id`.",
+        "reason": "renamed",
+        "renamed_to": "vcs.change.id"
+      },
+      "key": "vcs.repository.change.id",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `vcs.change.title`.",
+        "reason": "renamed",
+        "renamed_to": "vcs.change.title"
+      },
+      "key": "vcs.repository.change.title",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.repository.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `vcs.ref.head.name`.",
+        "reason": "renamed",
+        "renamed_to": "vcs.ref.head.name"
+      },
+      "key": "vcs.repository.ref.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `vcs.ref.head.revision`.",
+        "reason": "renamed",
+        "renamed_to": "vcs.ref.head.revision"
+      },
+      "key": "vcs.repository.ref.revision",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": {
+        "note": "Replaced by `vcs.ref.head.type`.",
+        "reason": "renamed",
+        "renamed_to": "vcs.ref.head.type"
+      },
+      "key": "vcs.repository.ref.type",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.repository.url.full",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "vcs.revision_delta.direction",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "release_candidate"
+    },
+    {
+      "deprecated": null,
+      "key": "webengine.description",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "webengine.name",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "webengine.version",
+      "source_schema": "https://opentelemetry.io/schemas/1.44.0",
+      "stability": "development"
+    }
+  ],
+  "core_commit": "e10a930844c6951757a43b849d364f7d056ac32b",
+  "counts": {
+    "attributes": {
+      "stable": 121,
+      "stable_refinements": 0,
+      "total": 960
+    },
+    "entities": {
+      "stable": 5,
+      "stable_refinements": 5,
+      "total": 65
+    },
+    "events": {
+      "stable": 1,
+      "stable_refinements": 1,
+      "total": 27
+    },
+    "metrics": {
+      "stable": 51,
+      "stable_refinements": 51,
+      "total": 557
+    },
+    "spans": {
+      "stable": 4,
+      "stable_refinements": 8,
+      "total": 58
+    }
+  },
+  "genai_commit": "9ffc7e00c639be7712e544e3e54331e885dccf84",
+  "schema_url": "https://ancplua.github.io/nami/schemas/0.1.0",
+  "weaver": "0.28.0"
+}

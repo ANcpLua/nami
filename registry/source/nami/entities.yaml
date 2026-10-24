@@ -1,0 +1,11 @@
+file_format: definition/2
+entities:
+  - type: nami.project
+    requirement_level: recommended
+    stability: development
+    brief: >
+      A nami project: the unit of storage, scoping and retention.
+    note: >
+      Every resource carries exactly one project; reads never cross projects.
+    identity:
+      - ref: nami.project.id

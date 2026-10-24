@@ -1,0 +1,136 @@
+{
+  "type": "object",
+  "description": "Log records containing the literal query.",
+  "properties": {
+    "freshness": {
+      "type": "object",
+      "required": [
+        "watermark",
+        "complete",
+        "examined",
+        "matched",
+        "returned",
+        "truncated"
+      ],
+      "properties": {
+        "watermark": {
+          "type": "string",
+          "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
+          "description": "Ingest is complete through this instant for every signal read."
+        },
+        "complete": {
+          "type": "boolean",
+          "description": "True only when the requested window ends at or before the watermark."
+        },
+        "examined": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Generic non-negative counter"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Records examined, or null when unknown."
+        },
+        "matched": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Generic non-negative counter"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Matching records, or null when the read was cut short."
+        },
+        "returned": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Generic non-negative counter"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Items returned, or null when unknown."
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "True when a row limit, page limit or byte budget omitted matching items."
+        }
+      },
+      "description": "Evidence completeness for the requested window. Unknown counts remain null.",
+      "additionalProperties": false
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Opaque, project-scoped identity of an immutable telemetry snapshot."
+    },
+    "next_cursor": {
+      "type": "string",
+      "description": "Opaque pagination cursor. Pass the `next_cursor` of one page to receive the\nnext page of the same query. Its content is not part of the contract and\nmust not be parsed or built by a client."
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
+            "description": "RFC 3339 timestamp preserved exactly as text, including fractional precision and offset. Leap seconds are not supported. Execution windows additionally require an instant representable by the telemetry store."
+          },
+          "severity": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 32,
+            "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
+            "description": "Unique trace identifier (32 lowercase hex characters)",
+            "examples": [
+              "0af7651916cd43dd8448eb211c80319c"
+            ]
+          },
+          "span_id": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 16,
+            "pattern": "^[a-f0-9]{16}(?![\\s\\S])",
+            "description": "Unique span identifier (16 lowercase hex characters)",
+            "examples": [
+              "b7ad6b7169203331"
+            ]
+          },
+          "service": {
+            "type": "string"
+          }
+        },
+        "description": "A field projection of LogHit; omitted members were not requested.",
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "freshness",
+    "snapshot_id",
+    "records"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,1277 @@
+{
+  "type": "object",
+  "description": "The requested trace and evidence completeness.",
+  "properties": {
+    "freshness": {
+      "type": "object",
+      "required": [
+        "watermark",
+        "complete",
+        "examined",
+        "matched",
+        "returned",
+        "truncated"
+      ],
+      "properties": {
+        "watermark": {
+          "type": "string",
+          "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
+          "description": "Ingest is complete through this instant for every signal read."
+        },
+        "complete": {
+          "type": "boolean",
+          "description": "True only when the requested window ends at or before the watermark."
+        },
+        "examined": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Generic non-negative counter"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Records examined, or null when unknown."
+        },
+        "matched": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Generic non-negative counter"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Matching records, or null when the read was cut short."
+        },
+        "returned": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Generic non-negative counter"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Items returned, or null when unknown."
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "True when a row limit, page limit or byte budget omitted matching items."
+        }
+      },
+      "description": "Evidence completeness for the requested window. Unknown counts remain null.",
+      "additionalProperties": false
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Opaque, project-scoped identity of an immutable telemetry snapshot."
+    },
+    "next_cursor": {
+      "type": "string",
+      "description": "Opaque pagination cursor. Pass the `next_cursor` of one page to receive the\nnext page of the same query. Its content is not part of the contract and\nmust not be parsed or built by a client."
+    },
+    "trace": {
+      "type": "object",
+      "properties": {
+        "spans": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "span_id",
+              "trace_id",
+              "name",
+              "kind",
+              "start_time_unix_nano",
+              "end_time_unix_nano",
+              "status",
+              "resource"
+            ],
+            "properties": {
+              "span_id": {
+                "type": "string",
+                "minLength": 16,
+                "maxLength": 16,
+                "pattern": "^[a-f0-9]{16}(?![\\s\\S])",
+                "description": "Unique span identifier (16 hex chars)",
+                "examples": [
+                  "b7ad6b7169203331"
+                ]
+              },
+              "trace_id": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
+                "description": "Trace identifier (32 hex chars)",
+                "examples": [
+                  "0af7651916cd43dd8448eb211c80319c"
+                ]
+              },
+              "parent_span_id": {
+                "type": "string",
+                "minLength": 16,
+                "maxLength": 16,
+                "pattern": "^[a-f0-9]{16}(?![\\s\\S])",
+                "description": "Parent span identifier (null for root spans)",
+                "examples": [
+                  "b7ad6b7169203331"
+                ]
+              },
+              "trace_state": {
+                "type": "string",
+                "description": "W3C trace state",
+                "examples": [
+                  "rojo=00f067aa0ba902b7,congo=t61rcWkgMzE"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Human-readable span name"
+              },
+              "kind": {
+                "type": "number",
+                "enum": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "description": "Span kind"
+              },
+              "start_time_unix_nano": {
+                "type": "string",
+                "description": "Start timestamp in nanoseconds since epoch",
+                "pattern": "^(?:[0-9]{1}|(?:1[0-9]{1}|[2-8][0-9]{1}|9[0-9]{1})|(?:1[0-9]{2}|[2-8][0-9]{2}|9[0-9]{2})|(?:1[0-9]{3}|[2-8][0-9]{3}|9[0-9]{3})|(?:1[0-9]{4}|[2-8][0-9]{4}|9[0-9]{4})|(?:1[0-9]{5}|[2-8][0-9]{5}|9[0-9]{5})|(?:1[0-9]{6}|[2-8][0-9]{6}|9[0-9]{6})|(?:1[0-9]{7}|[2-8][0-9]{7}|9[0-9]{7})|(?:1[0-9]{8}|[2-8][0-9]{8}|9[0-9]{8})|(?:1[0-9]{9}|[2-8][0-9]{9}|9[0-9]{9})|(?:1[0-9]{10}|[2-8][0-9]{10}|9[0-9]{10})|(?:1[0-9]{11}|[2-8][0-9]{11}|9[0-9]{11})|(?:1[0-9]{12}|[2-8][0-9]{12}|9[0-9]{12})|(?:1[0-9]{13}|[2-8][0-9]{13}|9[0-9]{13})|(?:1[0-9]{14}|[2-8][0-9]{14}|9[0-9]{14})|(?:1[0-9]{15}|[2-8][0-9]{15}|9[0-9]{15})|(?:1[0-9]{16}|[2-8][0-9]{16}|9[0-9]{16})|(?:1[0-9]{17}|[2-8][0-9]{17}|9[0-9]{17})|(?:1[0-9]{18}|[2-8][0-9]{18}|9[0-9]{18})|1(?:0[0-9]{18}|[1-7][0-9]{18}|8(?:0[0-9]{17}|[1-3][0-9]{17}|4(?:0[0-9]{16}|[1-3][0-9]{16}|4(?:0[0-9]{15}|[1-5][0-9]{15}|6(?:0[0-9]{14}|[1-6][0-9]{14}|7(?:0[0-9]{13}|[1-3][0-9]{13}|4(?:0[0-9]{12}|[1-3][0-9]{12}|40(?:0[0-9]{10}|[1-6][0-9]{10}|7(?:0[0-9]{9}|[1-2][0-9]{9}|3(?:0[0-9]{8}|[1-6][0-9]{8}|70(?:0[0-9]{6}|[1-8][0-9]{6}|9(?:0[0-9]{5}|[1-4][0-9]{5}|5(?:0[0-9]{4}|[1-4][0-9]{4}|5(?:0[0-9]{3}|1(?:0[0-9]{2}|[1-5][0-9]{2}|6(?:0[0-9]{1}|1(?:0|[1-4]|5))))))))))))))))))(?![\\s\\S])",
+                "maxLength": 20
+              },
+              "end_time_unix_nano": {
+                "type": "string",
+                "description": "End timestamp in nanoseconds since epoch",
+                "pattern": "^(?:[0-9]{1}|(?:1[0-9]{1}|[2-8][0-9]{1}|9[0-9]{1})|(?:1[0-9]{2}|[2-8][0-9]{2}|9[0-9]{2})|(?:1[0-9]{3}|[2-8][0-9]{3}|9[0-9]{3})|(?:1[0-9]{4}|[2-8][0-9]{4}|9[0-9]{4})|(?:1[0-9]{5}|[2-8][0-9]{5}|9[0-9]{5})|(?:1[0-9]{6}|[2-8][0-9]{6}|9[0-9]{6})|(?:1[0-9]{7}|[2-8][0-9]{7}|9[0-9]{7})|(?:1[0-9]{8}|[2-8][0-9]{8}|9[0-9]{8})|(?:1[0-9]{9}|[2-8][0-9]{9}|9[0-9]{9})|(?:1[0-9]{10}|[2-8][0-9]{10}|9[0-9]{10})|(?:1[0-9]{11}|[2-8][0-9]{11}|9[0-9]{11})|(?:1[0-9]{12}|[2-8][0-9]{12}|9[0-9]{12})|(?:1[0-9]{13}|[2-8][0-9]{13}|9[0-9]{13})|(?:1[0-9]{14}|[2-8][0-9]{14}|9[0-9]{14})|(?:1[0-9]{15}|[2-8][0-9]{15}|9[0-9]{15})|(?:1[0-9]{16}|[2-8][0-9]{16}|9[0-9]{16})|(?:1[0-9]{17}|[2-8][0-9]{17}|9[0-9]{17})|(?:1[0-9]{18}|[2-8][0-9]{18}|9[0-9]{18})|1(?:0[0-9]{18}|[1-7][0-9]{18}|8(?:0[0-9]{17}|[1-3][0-9]{17}|4(?:0[0-9]{16}|[1-3][0-9]{16}|4(?:0[0-9]{15}|[1-5][0-9]{15}|6(?:0[0-9]{14}|[1-6][0-9]{14}|7(?:0[0-9]{13}|[1-3][0-9]{13}|4(?:0[0-9]{12}|[1-3][0-9]{12}|40(?:0[0-9]{10}|[1-6][0-9]{10}|7(?:0[0-9]{9}|[1-2][0-9]{9}|3(?:0[0-9]{8}|[1-6][0-9]{8}|70(?:0[0-9]{6}|[1-8][0-9]{6}|9(?:0[0-9]{5}|[1-4][0-9]{5}|5(?:0[0-9]{4}|[1-4][0-9]{4}|5(?:0[0-9]{3}|1(?:0[0-9]{2}|[1-5][0-9]{2}|6(?:0[0-9]{1}|1(?:0|[1-4]|5))))))))))))))))))(?![\\s\\S])",
+                "maxLength": 20
+              },
+              "attributes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "value"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Attribute key (dot-separated namespace)"
+                    },
+                    "value": {
+                      "$ref": "#/$defs/Common.AttributeValue",
+                      "description": "Attribute value"
+                    },
+                    "stability": {
+                      "type": "string",
+                      "enum": [
+                        "stable",
+                        "development",
+                        "alpha",
+                        "beta",
+                        "release_candidate",
+                        "deprecated",
+                        "unknown"
+                      ],
+                      "description": "Registry stability of this key, when recorded at ingestion."
+                    }
+                  },
+                  "description": "Key-value attribute pair following OTel conventions",
+                  "additionalProperties": false
+                },
+                "description": "Span attributes"
+              },
+              "dropped_attributes_count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Dropped attributes count"
+              },
+              "events": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "time_unix_nano"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Event name"
+                    },
+                    "time_unix_nano": {
+                      "type": "string",
+                      "description": "Event timestamp in nanoseconds since epoch",
+                      "pattern": "^(?:[0-9]{1}|(?:1[0-9]{1}|[2-8][0-9]{1}|9[0-9]{1})|(?:1[0-9]{2}|[2-8][0-9]{2}|9[0-9]{2})|(?:1[0-9]{3}|[2-8][0-9]{3}|9[0-9]{3})|(?:1[0-9]{4}|[2-8][0-9]{4}|9[0-9]{4})|(?:1[0-9]{5}|[2-8][0-9]{5}|9[0-9]{5})|(?:1[0-9]{6}|[2-8][0-9]{6}|9[0-9]{6})|(?:1[0-9]{7}|[2-8][0-9]{7}|9[0-9]{7})|(?:1[0-9]{8}|[2-8][0-9]{8}|9[0-9]{8})|(?:1[0-9]{9}|[2-8][0-9]{9}|9[0-9]{9})|(?:1[0-9]{10}|[2-8][0-9]{10}|9[0-9]{10})|(?:1[0-9]{11}|[2-8][0-9]{11}|9[0-9]{11})|(?:1[0-9]{12}|[2-8][0-9]{12}|9[0-9]{12})|(?:1[0-9]{13}|[2-8][0-9]{13}|9[0-9]{13})|(?:1[0-9]{14}|[2-8][0-9]{14}|9[0-9]{14})|(?:1[0-9]{15}|[2-8][0-9]{15}|9[0-9]{15})|(?:1[0-9]{16}|[2-8][0-9]{16}|9[0-9]{16})|(?:1[0-9]{17}|[2-8][0-9]{17}|9[0-9]{17})|(?:1[0-9]{18}|[2-8][0-9]{18}|9[0-9]{18})|1(?:0[0-9]{18}|[1-7][0-9]{18}|8(?:0[0-9]{17}|[1-3][0-9]{17}|4(?:0[0-9]{16}|[1-3][0-9]{16}|4(?:0[0-9]{15}|[1-5][0-9]{15}|6(?:0[0-9]{14}|[1-6][0-9]{14}|7(?:0[0-9]{13}|[1-3][0-9]{13}|4(?:0[0-9]{12}|[1-3][0-9]{12}|40(?:0[0-9]{10}|[1-6][0-9]{10}|7(?:0[0-9]{9}|[1-2][0-9]{9}|3(?:0[0-9]{8}|[1-6][0-9]{8}|70(?:0[0-9]{6}|[1-8][0-9]{6}|9(?:0[0-9]{5}|[1-4][0-9]{5}|5(?:0[0-9]{4}|[1-4][0-9]{4}|5(?:0[0-9]{3}|1(?:0[0-9]{2}|[1-5][0-9]{2}|6(?:0[0-9]{1}|1(?:0|[1-4]|5))))))))))))))))))(?![\\s\\S])",
+                      "maxLength": 20
+                    },
+                    "attributes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "value"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256,
+                            "description": "Attribute key (dot-separated namespace)"
+                          },
+                          "value": {
+                            "$ref": "#/$defs/Common.AttributeValue",
+                            "description": "Attribute value"
+                          },
+                          "stability": {
+                            "type": "string",
+                            "enum": [
+                              "stable",
+                              "development",
+                              "alpha",
+                              "beta",
+                              "release_candidate",
+                              "deprecated",
+                              "unknown"
+                            ],
+                            "description": "Registry stability of this key, when recorded at ingestion."
+                          }
+                        },
+                        "description": "Key-value attribute pair following OTel conventions",
+                        "additionalProperties": false
+                      },
+                      "description": "Event attributes"
+                    },
+                    "dropped_attributes_count": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991,
+                      "description": "Dropped attributes count"
+                    }
+                  },
+                  "description": "Event occurring during a span's lifetime",
+                  "additionalProperties": false
+                },
+                "description": "Span events (logs attached to span)"
+              },
+              "dropped_events_count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Dropped events count"
+              },
+              "links": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "trace_id",
+                    "span_id"
+                  ],
+                  "properties": {
+                    "trace_id": {
+                      "type": "string",
+                      "minLength": 32,
+                      "maxLength": 32,
+                      "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
+                      "description": "Linked trace ID",
+                      "examples": [
+                        "0af7651916cd43dd8448eb211c80319c"
+                      ]
+                    },
+                    "span_id": {
+                      "type": "string",
+                      "minLength": 16,
+                      "maxLength": 16,
+                      "pattern": "^[a-f0-9]{16}(?![\\s\\S])",
+                      "description": "Linked span ID",
+                      "examples": [
+                        "b7ad6b7169203331"
+                      ]
+                    },
+                    "trace_state": {
+                      "type": "string",
+                      "description": "Trace state of the linked span",
+                      "examples": [
+                        "rojo=00f067aa0ba902b7,congo=t61rcWkgMzE"
+                      ]
+                    },
+                    "attributes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "value"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256,
+                            "description": "Attribute key (dot-separated namespace)"
+                          },
+                          "value": {
+                            "$ref": "#/$defs/Common.AttributeValue",
+                            "description": "Attribute value"
+                          },
+                          "stability": {
+                            "type": "string",
+                            "enum": [
+                              "stable",
+                              "development",
+                              "alpha",
+                              "beta",
+                              "release_candidate",
+                              "deprecated",
+                              "unknown"
+                            ],
+                            "description": "Registry stability of this key, when recorded at ingestion."
+                          }
+                        },
+                        "description": "Key-value attribute pair following OTel conventions",
+                        "additionalProperties": false
+                      },
+                      "description": "Link attributes"
+                    },
+                    "dropped_attributes_count": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991,
+                      "description": "Dropped attributes count"
+                    },
+                    "flags": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4294967295,
+                      "description": "Link flags"
+                    }
+                  },
+                  "description": "Link to another span (e.g., batch processing)",
+                  "additionalProperties": false
+                },
+                "description": "Links to other spans"
+              },
+              "dropped_links_count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Dropped links count"
+              },
+              "status": {
+                "type": "object",
+                "required": [
+                  "code"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "number",
+                    "enum": [
+                      0,
+                      1,
+                      2
+                    ],
+                    "description": "Status code"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "Status message (only for ERROR status)"
+                  }
+                },
+                "description": "Span status",
+                "additionalProperties": false
+              },
+              "flags": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295,
+                "description": "Span flags"
+              },
+              "resource": {
+                "type": "object",
+                "required": [
+                  "service_name"
+                ],
+                "properties": {
+                  "service_name": {
+                    "type": "string",
+                    "description": "Service name used by the Collector's service queries."
+                  },
+                  "attributes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "key",
+                        "value"
+                      ],
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "Attribute key (dot-separated namespace)"
+                        },
+                        "value": {
+                          "$ref": "#/$defs/Common.AttributeValue",
+                          "description": "Attribute value"
+                        },
+                        "stability": {
+                          "type": "string",
+                          "enum": [
+                            "stable",
+                            "development",
+                            "alpha",
+                            "beta",
+                            "release_candidate",
+                            "deprecated",
+                            "unknown"
+                          ],
+                          "description": "Registry stability of this key, when recorded at ingestion."
+                        }
+                      },
+                      "description": "Key-value attribute pair following OTel conventions",
+                      "additionalProperties": false
+                    },
+                    "description": "Resource attributes, including service, deployment, host, cloud and process metadata."
+                  },
+                  "schema_url": {
+                    "type": "string",
+                    "description": "Resource schema URL supplied by the producer."
+                  },
+                  "dropped_attributes_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Number of resource attributes dropped by the producer."
+                  },
+                  "entity_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "id_keys"
+                      ],
+                      "properties": {
+                        "schema_url": {
+                          "type": "string",
+                          "description": "Schema URL applying to the entity and its referenced Resource attributes, when known."
+                        },
+                        "type": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Stable non-empty entity type, such as service or host."
+                        },
+                        "id_keys": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
+                          },
+                          "minItems": 1,
+                          "description": "Non-empty set of Resource attribute keys that identify the entity."
+                        },
+                        "description_keys": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
+                          },
+                          "description": "Resource attribute keys that describe but do not identify the entity."
+                        }
+                      },
+                      "description": "A reference to an OpenTelemetry entity described by attributes on the containing Resource.",
+                      "additionalProperties": false
+                    },
+                    "description": "Entities participating in this resource, keyed by its attributes."
+                  }
+                },
+                "description": "Resource describing the entity that produced this span",
+                "additionalProperties": false
+              },
+              "instrumentation_scope": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the instrumentation scope (library name)"
+                  },
+                  "version": {
+                    "type": "string",
+                    "description": "Version of the instrumentation scope"
+                  },
+                  "schema_url": {
+                    "type": "string",
+                    "description": "Scope schema URL supplied by the producer."
+                  },
+                  "attributes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "key",
+                        "value"
+                      ],
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "Attribute key (dot-separated namespace)"
+                        },
+                        "value": {
+                          "$ref": "#/$defs/Common.AttributeValue",
+                          "description": "Attribute value"
+                        },
+                        "stability": {
+                          "type": "string",
+                          "enum": [
+                            "stable",
+                            "development",
+                            "alpha",
+                            "beta",
+                            "release_candidate",
+                            "deprecated",
+                            "unknown"
+                          ],
+                          "description": "Registry stability of this key, when recorded at ingestion."
+                        }
+                      },
+                      "description": "Key-value attribute pair following OTel conventions",
+                      "additionalProperties": false
+                    },
+                    "description": "Additional attributes for the scope"
+                  },
+                  "dropped_attributes_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Dropped attributes count"
+                  }
+                },
+                "description": "Instrumentation scope",
+                "additionalProperties": false
+              }
+            },
+            "description": "OpenTelemetry Span representing a single operation in a distributed trace",
+            "additionalProperties": false
+          },
+          "description": "All spans in this trace"
+        },
+        "trace_id": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 32,
+          "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
+          "description": "Trace identifier",
+          "examples": [
+            "0af7651916cd43dd8448eb211c80319c"
+          ]
+        },
+        "root_span": {
+          "type": "object",
+          "required": [
+            "span_id",
+            "trace_id",
+            "name",
+            "kind",
+            "start_time_unix_nano",
+            "end_time_unix_nano",
+            "status",
+            "resource"
+          ],
+          "properties": {
+            "span_id": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 16,
+              "pattern": "^[a-f0-9]{16}(?![\\s\\S])",
+              "description": "Unique span identifier (16 hex chars)",
+              "examples": [
+                "b7ad6b7169203331"
+              ]
+            },
+            "trace_id": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 32,
+              "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
+              "description": "Trace identifier (32 hex chars)",
+              "examples": [
+                "0af7651916cd43dd8448eb211c80319c"
+              ]
+            },
+            "parent_span_id": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 16,
+              "pattern": "^[a-f0-9]{16}(?![\\s\\S])",
+              "description": "Parent span identifier (null for root spans)",
+              "examples": [
+                "b7ad6b7169203331"
+              ]
+            },
+            "trace_state": {
+              "type": "string",
+              "description": "W3C trace state",
+              "examples": [
+                "rojo=00f067aa0ba902b7,congo=t61rcWkgMzE"
+              ]
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Human-readable span name"
+            },
+            "kind": {
+              "type": "number",
+              "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "description": "Span kind"
+            },
+            "start_time_unix_nano": {
+              "type": "string",
+              "description": "Start timestamp in nanoseconds since epoch",
+              "pattern": "^(?:[0-9]{1}|(?:1[0-9]{1}|[2-8][0-9]{1}|9[0-9]{1})|(?:1[0-9]{2}|[2-8][0-9]{2}|9[0-9]{2})|(?:1[0-9]{3}|[2-8][0-9]{3}|9[0-9]{3})|(?:1[0-9]{4}|[2-8][0-9]{4}|9[0-9]{4})|(?:1[0-9]{5}|[2-8][0-9]{5}|9[0-9]{5})|(?:1[0-9]{6}|[2-8][0-9]{6}|9[0-9]{6})|(?:1[0-9]{7}|[2-8][0-9]{7}|9[0-9]{7})|(?:1[0-9]{8}|[2-8][0-9]{8}|9[0-9]{8})|(?:1[0-9]{9}|[2-8][0-9]{9}|9[0-9]{9})|(?:1[0-9]{10}|[2-8][0-9]{10}|9[0-9]{10})|(?:1[0-9]{11}|[2-8][0-9]{11}|9[0-9]{11})|(?:1[0-9]{12}|[2-8][0-9]{12}|9[0-9]{12})|(?:1[0-9]{13}|[2-8][0-9]{13}|9[0-9]{13})|(?:1[0-9]{14}|[2-8][0-9]{14}|9[0-9]{14})|(?:1[0-9]{15}|[2-8][0-9]{15}|9[0-9]{15})|(?:1[0-9]{16}|[2-8][0-9]{16}|9[0-9]{16})|(?:1[0-9]{17}|[2-8][0-9]{17}|9[0-9]{17})|(?:1[0-9]{18}|[2-8][0-9]{18}|9[0-9]{18})|1(?:0[0-9]{18}|[1-7][0-9]{18}|8(?:0[0-9]{17}|[1-3][0-9]{17}|4(?:0[0-9]{16}|[1-3][0-9]{16}|4(?:0[0-9]{15}|[1-5][0-9]{15}|6(?:0[0-9]{14}|[1-6][0-9]{14}|7(?:0[0-9]{13}|[1-3][0-9]{13}|4(?:0[0-9]{12}|[1-3][0-9]{12}|40(?:0[0-9]{10}|[1-6][0-9]{10}|7(?:0[0-9]{9}|[1-2][0-9]{9}|3(?:0[0-9]{8}|[1-6][0-9]{8}|70(?:0[0-9]{6}|[1-8][0-9]{6}|9(?:0[0-9]{5}|[1-4][0-9]{5}|5(?:0[0-9]{4}|[1-4][0-9]{4}|5(?:0[0-9]{3}|1(?:0[0-9]{2}|[1-5][0-9]{2}|6(?:0[0-9]{1}|1(?:0|[1-4]|5))))))))))))))))))(?![\\s\\S])",
+              "maxLength": 20
+            },
+            "end_time_unix_nano": {
+              "type": "string",
+              "description": "End timestamp in nanoseconds since epoch",
+              "pattern": "^(?:[0-9]{1}|(?:1[0-9]{1}|[2-8][0-9]{1}|9[0-9]{1})|(?:1[0-9]{2}|[2-8][0-9]{2}|9[0-9]{2})|(?:1[0-9]{3}|[2-8][0-9]{3}|9[0-9]{3})|(?:1[0-9]{4}|[2-8][0-9]{4}|9[0-9]{4})|(?:1[0-9]{5}|[2-8][0-9]{5}|9[0-9]{5})|(?:1[0-9]{6}|[2-8][0-9]{6}|9[0-9]{6})|(?:1[0-9]{7}|[2-8][0-9]{7}|9[0-9]{7})|(?:1[0-9]{8}|[2-8][0-9]{8}|9[0-9]{8})|(?:1[0-9]{9}|[2-8][0-9]{9}|9[0-9]{9})|(?:1[0-9]{10}|[2-8][0-9]{10}|9[0-9]{10})|(?:1[0-9]{11}|[2-8][0-9]{11}|9[0-9]{11})|(?:1[0-9]{12}|[2-8][0-9]{12}|9[0-9]{12})|(?:1[0-9]{13}|[2-8][0-9]{13}|9[0-9]{13})|(?:1[0-9]{14}|[2-8][0-9]{14}|9[0-9]{14})|(?:1[0-9]{15}|[2-8][0-9]{15}|9[0-9]{15})|(?:1[0-9]{16}|[2-8][0-9]{16}|9[0-9]{16})|(?:1[0-9]{17}|[2-8][0-9]{17}|9[0-9]{17})|(?:1[0-9]{18}|[2-8][0-9]{18}|9[0-9]{18})|1(?:0[0-9]{18}|[1-7][0-9]{18}|8(?:0[0-9]{17}|[1-3][0-9]{17}|4(?:0[0-9]{16}|[1-3][0-9]{16}|4(?:0[0-9]{15}|[1-5][0-9]{15}|6(?:0[0-9]{14}|[1-6][0-9]{14}|7(?:0[0-9]{13}|[1-3][0-9]{13}|4(?:0[0-9]{12}|[1-3][0-9]{12}|40(?:0[0-9]{10}|[1-6][0-9]{10}|7(?:0[0-9]{9}|[1-2][0-9]{9}|3(?:0[0-9]{8}|[1-6][0-9]{8}|70(?:0[0-9]{6}|[1-8][0-9]{6}|9(?:0[0-9]{5}|[1-4][0-9]{5}|5(?:0[0-9]{4}|[1-4][0-9]{4}|5(?:0[0-9]{3}|1(?:0[0-9]{2}|[1-5][0-9]{2}|6(?:0[0-9]{1}|1(?:0|[1-4]|5))))))))))))))))))(?![\\s\\S])",
+              "maxLength": 20
+            },
+            "attributes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Attribute key (dot-separated namespace)"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/Common.AttributeValue",
+                    "description": "Attribute value"
+                  },
+                  "stability": {
+                    "type": "string",
+                    "enum": [
+                      "stable",
+                      "development",
+                      "alpha",
+                      "beta",
+                      "release_candidate",
+                      "deprecated",
+                      "unknown"
+                    ],
+                    "description": "Registry stability of this key, when recorded at ingestion."
+                  }
+                },
+                "description": "Key-value attribute pair following OTel conventions",
+                "additionalProperties": false
+              },
+              "description": "Span attributes"
+            },
+            "dropped_attributes_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Dropped attributes count"
+            },
+            "events": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "time_unix_nano"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Event name"
+                  },
+                  "time_unix_nano": {
+                    "type": "string",
+                    "description": "Event timestamp in nanoseconds since epoch",
+                    "pattern": "^(?:[0-9]{1}|(?:1[0-9]{1}|[2-8][0-9]{1}|9[0-9]{1})|(?:1[0-9]{2}|[2-8][0-9]{2}|9[0-9]{2})|(?:1[0-9]{3}|[2-8][0-9]{3}|9[0-9]{3})|(?:1[0-9]{4}|[2-8][0-9]{4}|9[0-9]{4})|(?:1[0-9]{5}|[2-8][0-9]{5}|9[0-9]{5})|(?:1[0-9]{6}|[2-8][0-9]{6}|9[0-9]{6})|(?:1[0-9]{7}|[2-8][0-9]{7}|9[0-9]{7})|(?:1[0-9]{8}|[2-8][0-9]{8}|9[0-9]{8})|(?:1[0-9]{9}|[2-8][0-9]{9}|9[0-9]{9})|(?:1[0-9]{10}|[2-8][0-9]{10}|9[0-9]{10})|(?:1[0-9]{11}|[2-8][0-9]{11}|9[0-9]{11})|(?:1[0-9]{12}|[2-8][0-9]{12}|9[0-9]{12})|(?:1[0-9]{13}|[2-8][0-9]{13}|9[0-9]{13})|(?:1[0-9]{14}|[2-8][0-9]{14}|9[0-9]{14})|(?:1[0-9]{15}|[2-8][0-9]{15}|9[0-9]{15})|(?:1[0-9]{16}|[2-8][0-9]{16}|9[0-9]{16})|(?:1[0-9]{17}|[2-8][0-9]{17}|9[0-9]{17})|(?:1[0-9]{18}|[2-8][0-9]{18}|9[0-9]{18})|1(?:0[0-9]{18}|[1-7][0-9]{18}|8(?:0[0-9]{17}|[1-3][0-9]{17}|4(?:0[0-9]{16}|[1-3][0-9]{16}|4(?:0[0-9]{15}|[1-5][0-9]{15}|6(?:0[0-9]{14}|[1-6][0-9]{14}|7(?:0[0-9]{13}|[1-3][0-9]{13}|4(?:0[0-9]{12}|[1-3][0-9]{12}|40(?:0[0-9]{10}|[1-6][0-9]{10}|7(?:0[0-9]{9}|[1-2][0-9]{9}|3(?:0[0-9]{8}|[1-6][0-9]{8}|70(?:0[0-9]{6}|[1-8][0-9]{6}|9(?:0[0-9]{5}|[1-4][0-9]{5}|5(?:0[0-9]{4}|[1-4][0-9]{4}|5(?:0[0-9]{3}|1(?:0[0-9]{2}|[1-5][0-9]{2}|6(?:0[0-9]{1}|1(?:0|[1-4]|5))))))))))))))))))(?![\\s\\S])",
+                    "maxLength": 20
+                  },
+                  "attributes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "key",
+                        "value"
+                      ],
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "Attribute key (dot-separated namespace)"
+                        },
+                        "value": {
+                          "$ref": "#/$defs/Common.AttributeValue",
+                          "description": "Attribute value"
+                        },
+                        "stability": {
+                          "type": "string",
+                          "enum": [
+                            "stable",
+                            "development",
+                            "alpha",
+                            "beta",
+                            "release_candidate",
+                            "deprecated",
+                            "unknown"
+                          ],
+                          "description": "Registry stability of this key, when recorded at ingestion."
+                        }
+                      },
+                      "description": "Key-value attribute pair following OTel conventions",
+                      "additionalProperties": false
+                    },
+                    "description": "Event attributes"
+                  },
+                  "dropped_attributes_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Dropped attributes count"
+                  }
+                },
+                "description": "Event occurring during a span's lifetime",
+                "additionalProperties": false
+              },
+              "description": "Span events (logs attached to span)"
+            },
+            "dropped_events_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Dropped events count"
+            },
+            "links": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "trace_id",
+                  "span_id"
+                ],
+                "properties": {
+                  "trace_id": {
+                    "type": "string",
+                    "minLength": 32,
+                    "maxLength": 32,
+                    "pattern": "^[a-f0-9]{32}(?![\\s\\S])",
+                    "description": "Linked trace ID",
+                    "examples": [
+                      "0af7651916cd43dd8448eb211c80319c"
+                    ]
+                  },
+                  "span_id": {
+                    "type": "string",
+                    "minLength": 16,
+                    "maxLength": 16,
+                    "pattern": "^[a-f0-9]{16}(?![\\s\\S])",
+                    "description": "Linked span ID",
+                    "examples": [
+                      "b7ad6b7169203331"
+                    ]
+                  },
+                  "trace_state": {
+                    "type": "string",
+                    "description": "Trace state of the linked span",
+                    "examples": [
+                      "rojo=00f067aa0ba902b7,congo=t61rcWkgMzE"
+                    ]
+                  },
+                  "attributes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "key",
+                        "value"
+                      ],
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "Attribute key (dot-separated namespace)"
+                        },
+                        "value": {
+                          "$ref": "#/$defs/Common.AttributeValue",
+                          "description": "Attribute value"
+                        },
+                        "stability": {
+                          "type": "string",
+                          "enum": [
+                            "stable",
+                            "development",
+                            "alpha",
+                            "beta",
+                            "release_candidate",
+                            "deprecated",
+                            "unknown"
+                          ],
+                          "description": "Registry stability of this key, when recorded at ingestion."
+                        }
+                      },
+                      "description": "Key-value attribute pair following OTel conventions",
+                      "additionalProperties": false
+                    },
+                    "description": "Link attributes"
+                  },
+                  "dropped_attributes_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Dropped attributes count"
+                  },
+                  "flags": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295,
+                    "description": "Link flags"
+                  }
+                },
+                "description": "Link to another span (e.g., batch processing)",
+                "additionalProperties": false
+              },
+              "description": "Links to other spans"
+            },
+            "dropped_links_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Dropped links count"
+            },
+            "status": {
+              "type": "object",
+              "required": [
+                "code"
+              ],
+              "properties": {
+                "code": {
+                  "type": "number",
+                  "enum": [
+                    0,
+                    1,
+                    2
+                  ],
+                  "description": "Status code"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Status message (only for ERROR status)"
+                }
+              },
+              "description": "Span status",
+              "additionalProperties": false
+            },
+            "flags": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295,
+              "description": "Span flags"
+            },
+            "resource": {
+              "type": "object",
+              "required": [
+                "service_name"
+              ],
+              "properties": {
+                "service_name": {
+                  "type": "string",
+                  "description": "Service name used by the Collector's service queries."
+                },
+                "attributes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "key",
+                      "value"
+                    ],
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256,
+                        "description": "Attribute key (dot-separated namespace)"
+                      },
+                      "value": {
+                        "$ref": "#/$defs/Common.AttributeValue",
+                        "description": "Attribute value"
+                      },
+                      "stability": {
+                        "type": "string",
+                        "enum": [
+                          "stable",
+                          "development",
+                          "alpha",
+                          "beta",
+                          "release_candidate",
+                          "deprecated",
+                          "unknown"
+                        ],
+                        "description": "Registry stability of this key, when recorded at ingestion."
+                      }
+                    },
+                    "description": "Key-value attribute pair following OTel conventions",
+                    "additionalProperties": false
+                  },
+                  "description": "Resource attributes, including service, deployment, host, cloud and process metadata."
+                },
+                "schema_url": {
+                  "type": "string",
+                  "description": "Resource schema URL supplied by the producer."
+                },
+                "dropped_attributes_count": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "Number of resource attributes dropped by the producer."
+                },
+                "entity_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "type",
+                      "id_keys"
+                    ],
+                    "properties": {
+                      "schema_url": {
+                        "type": "string",
+                        "description": "Schema URL applying to the entity and its referenced Resource attributes, when known."
+                      },
+                      "type": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Stable non-empty entity type, such as service or host."
+                      },
+                      "id_keys": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
+                        },
+                        "minItems": 1,
+                        "description": "Non-empty set of Resource attribute keys that identify the entity."
+                      },
+                      "description_keys": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "A non-empty Resource attribute key referenced by an OpenTelemetry entity."
+                        },
+                        "description": "Resource attribute keys that describe but do not identify the entity."
+                      }
+                    },
+                    "description": "A reference to an OpenTelemetry entity described by attributes on the containing Resource.",
+                    "additionalProperties": false
+                  },
+                  "description": "Entities participating in this resource, keyed by its attributes."
+                }
+              },
+              "description": "Resource describing the entity that produced this span",
+              "additionalProperties": false
+            },
+            "instrumentation_scope": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name of the instrumentation scope (library name)"
+                },
+                "version": {
+                  "type": "string",
+                  "description": "Version of the instrumentation scope"
+                },
+                "schema_url": {
+                  "type": "string",
+                  "description": "Scope schema URL supplied by the producer."
+                },
+                "attributes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "key",
+                      "value"
+                    ],
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256,
+                        "description": "Attribute key (dot-separated namespace)"
+                      },
+                      "value": {
+                        "$ref": "#/$defs/Common.AttributeValue",
+                        "description": "Attribute value"
+                      },
+                      "stability": {
+                        "type": "string",
+                        "enum": [
+                          "stable",
+                          "development",
+                          "alpha",
+                          "beta",
+                          "release_candidate",
+                          "deprecated",
+                          "unknown"
+                        ],
+                        "description": "Registry stability of this key, when recorded at ingestion."
+                      }
+                    },
+                    "description": "Key-value attribute pair following OTel conventions",
+                    "additionalProperties": false
+                  },
+                  "description": "Additional attributes for the scope"
+                },
+                "dropped_attributes_count": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "Dropped attributes count"
+                }
+              },
+              "description": "Instrumentation scope",
+              "additionalProperties": false
+            }
+          },
+          "description": "Root span of the trace",
+          "additionalProperties": false
+        },
+        "span_count": {
+          "type": "integer",
+          "description": "Total span count",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "duration_ns": {
+          "type": "string",
+          "description": "Trace duration in nanoseconds",
+          "pattern": "^(?:[0-9]{1}|(?:1[0-9]{1}|[2-8][0-9]{1}|9[0-9]{1})|(?:1[0-9]{2}|[2-8][0-9]{2}|9[0-9]{2})|(?:1[0-9]{3}|[2-8][0-9]{3}|9[0-9]{3})|(?:1[0-9]{4}|[2-8][0-9]{4}|9[0-9]{4})|(?:1[0-9]{5}|[2-8][0-9]{5}|9[0-9]{5})|(?:1[0-9]{6}|[2-8][0-9]{6}|9[0-9]{6})|(?:1[0-9]{7}|[2-8][0-9]{7}|9[0-9]{7})|(?:1[0-9]{8}|[2-8][0-9]{8}|9[0-9]{8})|(?:1[0-9]{9}|[2-8][0-9]{9}|9[0-9]{9})|(?:1[0-9]{10}|[2-8][0-9]{10}|9[0-9]{10})|(?:1[0-9]{11}|[2-8][0-9]{11}|9[0-9]{11})|(?:1[0-9]{12}|[2-8][0-9]{12}|9[0-9]{12})|(?:1[0-9]{13}|[2-8][0-9]{13}|9[0-9]{13})|(?:1[0-9]{14}|[2-8][0-9]{14}|9[0-9]{14})|(?:1[0-9]{15}|[2-8][0-9]{15}|9[0-9]{15})|(?:1[0-9]{16}|[2-8][0-9]{16}|9[0-9]{16})|(?:1[0-9]{17}|[2-8][0-9]{17}|9[0-9]{17})|(?:1[0-9]{18}|[2-8][0-9]{18}|9[0-9]{18})|1(?:0[0-9]{18}|[1-7][0-9]{18}|8(?:0[0-9]{17}|[1-3][0-9]{17}|4(?:0[0-9]{16}|[1-3][0-9]{16}|4(?:0[0-9]{15}|[1-5][0-9]{15}|6(?:0[0-9]{14}|[1-6][0-9]{14}|7(?:0[0-9]{13}|[1-3][0-9]{13}|4(?:0[0-9]{12}|[1-3][0-9]{12}|40(?:0[0-9]{10}|[1-6][0-9]{10}|7(?:0[0-9]{9}|[1-2][0-9]{9}|3(?:0[0-9]{8}|[1-6][0-9]{8}|70(?:0[0-9]{6}|[1-8][0-9]{6}|9(?:0[0-9]{5}|[1-4][0-9]{5}|5(?:0[0-9]{4}|[1-4][0-9]{4}|5(?:0[0-9]{3}|1(?:0[0-9]{2}|[1-5][0-9]{2}|6(?:0[0-9]{1}|1(?:0|[1-4]|5))))))))))))))))))(?![\\s\\S])",
+          "maxLength": 20
+        },
+        "start_time": {
+          "type": "string",
+          "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
+          "description": "Trace start time"
+        },
+        "end_time": {
+          "type": "string",
+          "pattern": "^(?:[0-9]{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]|[13579][26])00)-02-29)[Tt](?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])(?![\\s\\S])",
+          "description": "Trace end time"
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Services involved in this trace"
+        },
+        "has_error": {
+          "type": "boolean",
+          "description": "Whether trace contains errors"
+        }
+      },
+      "description": "A projected trace. An omitted field was not requested; it is not a fabricated value.",
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "freshness",
+    "snapshot_id",
+    "trace"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "Common.AttributeKeyValueListValue": {
+      "type": "object",
+      "required": [
+        "kind",
+        "values"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "kvlist"
+          ]
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Common.AttributeValue"
+          }
+        }
+      },
+      "description": "Tagged recursive OTLP key-value-list, distinct from other object-shaped attribute variants.",
+      "additionalProperties": false
+    },
+    "Common.AttributeObjectValue": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "value"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "int"
+              ]
+            },
+            "value": {
+              "type": "string",
+              "description": "An OTLP signed 64-bit attribute integer encoded without JavaScript precision loss.",
+              "pattern": "^(?:[0-9]{1}|(?:1[0-9]{1}|[2-8][0-9]{1}|9[0-9]{1})|(?:1[0-9]{2}|[2-8][0-9]{2}|9[0-9]{2})|(?:1[0-9]{3}|[2-8][0-9]{3}|9[0-9]{3})|(?:1[0-9]{4}|[2-8][0-9]{4}|9[0-9]{4})|(?:1[0-9]{5}|[2-8][0-9]{5}|9[0-9]{5})|(?:1[0-9]{6}|[2-8][0-9]{6}|9[0-9]{6})|(?:1[0-9]{7}|[2-8][0-9]{7}|9[0-9]{7})|(?:1[0-9]{8}|[2-8][0-9]{8}|9[0-9]{8})|(?:1[0-9]{9}|[2-8][0-9]{9}|9[0-9]{9})|(?:1[0-9]{10}|[2-8][0-9]{10}|9[0-9]{10})|(?:1[0-9]{11}|[2-8][0-9]{11}|9[0-9]{11})|(?:1[0-9]{12}|[2-8][0-9]{12}|9[0-9]{12})|(?:1[0-9]{13}|[2-8][0-9]{13}|9[0-9]{13})|(?:1[0-9]{14}|[2-8][0-9]{14}|9[0-9]{14})|(?:1[0-9]{15}|[2-8][0-9]{15}|9[0-9]{15})|(?:1[0-9]{16}|[2-8][0-9]{16}|9[0-9]{16})|(?:1[0-9]{17}|[2-8][0-9]{17}|9[0-9]{17})|(?:1[0-9]{18}|[2-8][0-9]{18}|9(?:0[0-9]{17}|1[0-9]{17}|2(?:0[0-9]{16}|1[0-9]{16}|2(?:0[0-9]{15}|[1-2][0-9]{15}|3(?:0[0-9]{14}|[1-2][0-9]{14}|3(?:0[0-9]{13}|[1-6][0-9]{13}|7(?:0[0-9]{12}|1[0-9]{12}|20(?:0[0-9]{10}|[1-2][0-9]{10}|3(?:0[0-9]{9}|[1-5][0-9]{9}|6(?:0[0-9]{8}|[1-7][0-9]{8}|8(?:0[0-9]{7}|[1-4][0-9]{7}|5(?:0[0-9]{6}|[1-3][0-9]{6}|4(?:0[0-9]{5}|[1-6][0-9]{5}|7(?:0[0-9]{4}|[1-6][0-9]{4}|7(?:0[0-9]{3}|[1-4][0-9]{3}|5(?:0[0-9]{2}|[1-7][0-9]{2}|80(?:0|[1-6]|7)))))))))))))))))|-(?:1|[2-8]|9)|-(?:1[0-9]{1}|[2-8][0-9]{1}|9[0-9]{1})|-(?:1[0-9]{2}|[2-8][0-9]{2}|9[0-9]{2})|-(?:1[0-9]{3}|[2-8][0-9]{3}|9[0-9]{3})|-(?:1[0-9]{4}|[2-8][0-9]{4}|9[0-9]{4})|-(?:1[0-9]{5}|[2-8][0-9]{5}|9[0-9]{5})|-(?:1[0-9]{6}|[2-8][0-9]{6}|9[0-9]{6})|-(?:1[0-9]{7}|[2-8][0-9]{7}|9[0-9]{7})|-(?:1[0-9]{8}|[2-8][0-9]{8}|9[0-9]{8})|-(?:1[0-9]{9}|[2-8][0-9]{9}|9[0-9]{9})|-(?:1[0-9]{10}|[2-8][0-9]{10}|9[0-9]{10})|-(?:1[0-9]{11}|[2-8][0-9]{11}|9[0-9]{11})|-(?:1[0-9]{12}|[2-8][0-9]{12}|9[0-9]{12})|-(?:1[0-9]{13}|[2-8][0-9]{13}|9[0-9]{13})|-(?:1[0-9]{14}|[2-8][0-9]{14}|9[0-9]{14})|-(?:1[0-9]{15}|[2-8][0-9]{15}|9[0-9]{15})|-(?:1[0-9]{16}|[2-8][0-9]{16}|9[0-9]{16})|-(?:1[0-9]{17}|[2-8][0-9]{17}|9[0-9]{17})|-(?:1[0-9]{18}|[2-8][0-9]{18}|9(?:0[0-9]{17}|1[0-9]{17}|2(?:0[0-9]{16}|1[0-9]{16}|2(?:0[0-9]{15}|[1-2][0-9]{15}|3(?:0[0-9]{14}|[1-2][0-9]{14}|3(?:0[0-9]{13}|[1-6][0-9]{13}|7(?:0[0-9]{12}|1[0-9]{12}|20(?:0[0-9]{10}|[1-2][0-9]{10}|3(?:0[0-9]{9}|[1-5][0-9]{9}|6(?:0[0-9]{8}|[1-7][0-9]{8}|8(?:0[0-9]{7}|[1-4][0-9]{7}|5(?:0[0-9]{6}|[1-3][0-9]{6}|4(?:0[0-9]{5}|[1-6][0-9]{5}|7(?:0[0-9]{4}|[1-6][0-9]{4}|7(?:0[0-9]{3}|[1-4][0-9]{3}|5(?:0[0-9]{2}|[1-7][0-9]{2}|80(?:0|[1-7]|8))))))))))))))))))(?![\\s\\S])",
+              "maxLength": 20
+            }
+          },
+          "description": "Tagged OTLP signed 64-bit integer attribute.",
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "value"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "double"
+              ]
+            },
+            "value": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "NaN",
+                    "Infinity",
+                    "-Infinity"
+                  ]
+                }
+              ],
+              "description": "An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite."
+            }
+          },
+          "description": "Tagged OTLP double attribute.",
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "base64"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "bytes"
+              ]
+            },
+            "base64": {
+              "type": "string",
+              "contentEncoding": "base64",
+              "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/][AQgw]==|[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=)?(?![\\s\\S])"
+            }
+          },
+          "description": "Base64 bytes projected by nami without colliding with an ordinary string attribute.",
+          "additionalProperties": false
+        },
+        {
+          "$ref": "#/$defs/Common.AttributeKeyValueListValue"
+        }
+      ],
+      "description": "Object-shaped AttributeValue variants. The variant name is the wire `kind` tag."
+    },
+    "Common.AttributeValue": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Common.AttributeValue"
+          }
+        },
+        {
+          "$ref": "#/$defs/Common.AttributeObjectValue"
+        }
+      ],
+      "description": "Lossless JSON projection of an OpenTelemetry AnyValue attribute. Primitive variants are bare JSON values; object variants carry a `type` tag."
+    }
+  }
+}

@@ -8,17 +8,6 @@ using System.Text.Json.Serialization;
 
 namespace Nami.Api.Contracts.Health;
 
-public sealed class HealthCheckEntry
-{
-    [JsonPropertyName("status")]
-    public required Nami.Api.Contracts.Health.HealthStatus Status { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("description")]
-    public string? Description { get; init; }
-    [JsonPropertyName("duration_ms")]
-    public required double DurationMs { get; init; }
-}
-
 public sealed class HealthReport
 {
     [JsonPropertyName("status")]
@@ -29,6 +18,17 @@ public sealed class HealthReport
     public required IReadOnlyDictionary<string, Nami.Api.Contracts.Health.HealthCheckEntry> Entries { get; init; }
     [JsonPropertyName("contract_revision")]
     public required string ContractRevision { get; init; }
+}
+
+public sealed class HealthCheckEntry
+{
+    [JsonPropertyName("status")]
+    public required Nami.Api.Contracts.Health.HealthStatus Status { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("description")]
+    public string? Description { get; init; }
+    [JsonPropertyName("duration_ms")]
+    public required double DurationMs { get; init; }
 }
 
 [JsonConverter(typeof(global::Nami.Api.Contracts.StringEnumConverter<HealthStatus>))]

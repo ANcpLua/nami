@@ -33,23 +33,27 @@ public sealed class Span
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("attributes")]
     public IReadOnlyList<Nami.Api.Contracts.Common.Attribute>? Attributes { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("dropped_attributes_count")]
     public long? DroppedAttributesCount { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("events")]
     public IReadOnlyList<Nami.Api.Contracts.OTel.Traces.SpanEvent>? Events { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("dropped_events_count")]
     public long? DroppedEventsCount { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("links")]
     public IReadOnlyList<Nami.Api.Contracts.OTel.Traces.SpanLink>? Links { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("dropped_links_count")]
     public long? DroppedLinksCount { get; init; }
     [JsonPropertyName("status")]
     public required Nami.Api.Contracts.OTel.Traces.SpanStatus Status { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<uint>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("flags")]
     public uint? Flags { get; init; }
@@ -70,6 +74,7 @@ public sealed class SpanEvent
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("attributes")]
     public IReadOnlyList<Nami.Api.Contracts.Common.Attribute>? Attributes { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("dropped_attributes_count")]
     public long? DroppedAttributesCount { get; init; }
@@ -87,9 +92,11 @@ public sealed class SpanLink
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("attributes")]
     public IReadOnlyList<Nami.Api.Contracts.Common.Attribute>? Attributes { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("dropped_attributes_count")]
     public long? DroppedAttributesCount { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<uint>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("flags")]
     public uint? Flags { get; init; }
@@ -111,6 +118,7 @@ public sealed class TraceSummary
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("root_span")]
     public Nami.Api.Contracts.OTel.Traces.Span? RootSpan { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<int>))]
     [JsonPropertyName("span_count")]
     public required int SpanCount { get; init; }
     [JsonConverter(typeof(global::Nami.Api.Contracts.UInt64StringConverter))]
@@ -133,6 +141,7 @@ public sealed class Trace
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("root_span")]
     public Nami.Api.Contracts.OTel.Traces.Span? RootSpan { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<int>))]
     [JsonPropertyName("span_count")]
     public required int SpanCount { get; init; }
     [JsonConverter(typeof(global::Nami.Api.Contracts.UInt64StringConverter))]

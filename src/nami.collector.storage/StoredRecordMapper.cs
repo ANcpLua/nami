@@ -36,11 +36,10 @@ internal static class StoredRecordMapper
         AttributeValue.StringValue text => new StoredAttributeValue.StringValue(text.Value),
         AttributeValue.BoolValue flag => new StoredAttributeValue.BoolValue(flag.Value),
         AttributeValue.ArrayValue array => new StoredAttributeValue.ArrayValue([.. array.Value.Select(static item => ToStored(item))]),
-        AttributeValue.ObjectValue tagged => new StoredAttributeValue.ObjectValue(ToStoredObject(tagged.Value)),
-        _ => throw new InvalidDataException("Unknown OTLP attribute value shape.")
+        AttributeValue.ObjectValue tagged => new StoredAttributeValue.ObjectValue(ToStoredObject(tagged.Value))
     };
 
-    internal static StoredMetricPointData ToStored(MetricPointData data) => data switch
+    internal static StoredMetricPointData ToStored(MetricPointData data) => data.Value switch
     {
         MetricNumberPointData number => new StoredNumberPointData
         {
@@ -85,7 +84,7 @@ internal static class StoredRecordMapper
             .Select(static attribute => new StoredAttribute { Key = attribute.Key, Value = ToStored(attribute.Value) })
     ];
 
-    private static StoredObjectValue ToStoredObject(AttributeObjectValue value) => value switch
+    private static StoredObjectValue ToStoredObject(AttributeObjectValue value) => value.Value switch
     {
         AttributeIntValue integer => new StoredIntValue { Value = integer.Value },
         AttributeDoubleValue number => new StoredDoubleValue { Value = number.Value },
@@ -99,7 +98,7 @@ internal static class StoredRecordMapper
         _ => throw new InvalidDataException("Unknown OTLP attribute object shape.")
     };
 
-    private static StoredNumberValue ToStoredNumber(MetricNumberValue value) => value switch
+    private static StoredNumberValue ToStoredNumber(MetricNumberValue value) => value.Value switch
     {
         AttributeIntValue integer => new StoredIntValue { Value = integer.Value },
         AttributeDoubleValue number => new StoredDoubleValue { Value = number.Value },

@@ -58,9 +58,9 @@ internal readonly record struct StorageFileMetrics(
 
 internal interface INamiStore : IAsyncDisposable
 {
-    Task<AnalysisSnapshot> ReadAnalysisSnapshotAsync(string projectId, AnalysisReadQuery? query = null, CancellationToken ct = default);
-    Task<IReadOnlyList<AnalysisStateRow>> ReadAnalysisStateAsync(string projectId, IReadOnlyList<string> keys, CancellationToken ct = default);
-    Task<ResourceWriteOutcome<AnalysisStateRow>> WriteAnalysisStateAsync(AnalysisStateRow row, string? expectedEtag, CancellationToken ct = default);
+    Task<long> DeleteExpiredMetadataAsync(ulong cutoffUnixNano, CancellationToken ct = default);
+
+    Task<ISnapshot> ReadSnapshotAsync(string projectId, string? snapshotId = null, CancellationToken ct = default);
 
     ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default);
 
@@ -174,80 +174,6 @@ internal interface INamiStore : IAsyncDisposable
         string? serviceName = null,
         int limit = 500,
         LogPageCursor? cursor = null,
-        CancellationToken ct = default);
-
-    Task<bool> TraceExistsAsync(string projectId, string traceId, CancellationToken ct = default);
-
-    Task<bool> SpanExistsAsync(string projectId, string traceId, string spanId, CancellationToken ct = default);
-
-    /// <summary>The unexpired retry key of a creating POST, naming the record it created, if any.</summary>
-    Task<IdempotencyKeyRow?> GetIdempotencyKeyAsync(
-        string projectId,
-        string operation,
-        string idempotencyKey,
-        ulong notBeforeUnixNano,
-        CancellationToken ct = default);
-
-    Task<AnnotationRow?> GetAnnotationAsync(string projectId, string annotationId, CancellationToken ct = default);
-
-    Task<IReadOnlyList<AnnotationRow>> ListAnnotationsAsync(AnnotationListQuery query, CancellationToken ct = default);
-
-    Task<ResourceWriteOutcome<AnnotationRow>> CreateAnnotationAsync(
-        AnnotationRow row,
-        IdempotencyKeyRow? idempotency,
-        ulong idempotencyNotBeforeUnixNano,
-        AnalysisStateRow? metadata = null, CancellationToken ct = default);
-
-    Task<ResourceWriteOutcome<AnnotationRow>> UpdateAnnotationAsync(
-        string projectId,
-        string annotationId,
-        EntityTagCondition ifMatch,
-        Func<AnnotationRow, AnnotationRow> update,
-        AnalysisStateRow? metadata = null, CancellationToken ct = default);
-
-    Task<ResourceWriteOutcome<AnnotationRow>> DeleteAnnotationAsync(
-        string projectId,
-        string annotationId,
-        EntityTagCondition ifMatch,
-        CancellationToken ct = default);
-
-    Task<SavedQueryRow?> GetSavedQueryAsync(string projectId, string savedQueryId, CancellationToken ct = default);
-
-    /// <summary>Saved queries by name; ask for one extra row to learn whether more follow.</summary>
-    Task<IReadOnlyList<SavedQueryRow>> ListSavedQueriesAsync(
-        string projectId,
-        string? signal,
-        string? afterName,
-        int limit,
-        CancellationToken ct = default);
-
-    Task<ResourceWriteOutcome<SavedQueryRow>> CreateSavedQueryAsync(
-        SavedQueryRow row,
-        IdempotencyKeyRow? idempotency,
-        ulong idempotencyNotBeforeUnixNano,
-        CancellationToken ct = default);
-
-    Task<ResourceWriteOutcome<SavedQueryRow>> UpdateSavedQueryAsync(
-        string projectId,
-        string savedQueryId,
-        EntityTagCondition ifMatch,
-        Func<SavedQueryRow, SavedQueryRow> update,
-        CancellationToken ct = default);
-
-    Task<ResourceWriteOutcome<SavedQueryRow>> DeleteSavedQueryAsync(
-        string projectId,
-        string savedQueryId,
-        EntityTagCondition ifMatch,
-        CancellationToken ct = default);
-
-    /// <summary>Annotations last changed before the cutoff expire with the telemetry they point at.</summary>
-    Task<int> DeleteExpiredAnnotationsBatchAsync(
-        ulong cutoffUnixNano,
-        int batchSize,
-        CancellationToken ct = default);
-
-    Task<int> DeleteExpiredIdempotencyKeysAsync(
-        ulong cutoffUnixNano,
         CancellationToken ct = default);
 
     Task<IReadOnlyList<LogStorageRow>> GetLogStreamPageAsync(

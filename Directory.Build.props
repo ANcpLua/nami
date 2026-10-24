@@ -13,7 +13,10 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(UsingMSTestSdk)' == 'true'">
@@ -23,7 +26,7 @@
   <PropertyGroup>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <AnalysisLevel>10.0</AnalysisLevel>
+    <AnalysisLevel>latest</AnalysisLevel>
     <AnalysisMode>Recommended</AnalysisMode>
     <WarningsAsErrors>$(WarningsAsErrors);CA1816;CA2000;CA2012;CA2016</WarningsAsErrors>
   </PropertyGroup>
@@ -37,9 +40,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
-  <ItemGroup Condition="$(MSBuildProjectName.StartsWith('nami.collector'))">
-    <PackageReference Include="Nami.Telemetry.SemanticConventions.Analyzers" PrivateAssets="all" IncludeAssets="analyzers;build;buildTransitive"/>
-  </ItemGroup>
+
 
   <!-- Audit direct and transitive dependencies; Directory.Packages.props owns security overrides. -->
   <PropertyGroup>

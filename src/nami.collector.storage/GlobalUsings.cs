@@ -10,3 +10,5 @@ global using System.Threading.Channels;
 global using Microsoft.Extensions.Logging;
 global using Nami.Collector.Ingestion;
 global using NamiTimeConversions = Nami.Collector.Ingestion.Primitives.TimeConversions;
+
+global using Nami.SemanticConventions;

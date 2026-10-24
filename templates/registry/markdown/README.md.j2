@@ -1,0 +1,12 @@
+# Nami semantic conventions
+
+Generated from the pinned Weaver registry (`{{ ctx.schema_url }}`).
+
+| Namespace | Attributes | Stable attributes | Metrics | Stable metrics |
+| --- | --- | --- | --- | --- |
+{% for line in ctx.rows %}
+{{ line }}
+{% endfor %}
+
+Total attributes: {{ ctx.totals.attributes }}; stable and not deprecated: {{ ctx.totals.stable_attributes }}.
+Total metrics: {{ ctx.totals.metrics }}; stable and not deprecated: {{ ctx.totals.stable_metrics }}.

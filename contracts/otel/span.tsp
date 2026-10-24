@@ -25,7 +25,6 @@ namespace Nami.Api.Contracts.OTel.Traces;
 @doc("OpenTelemetry Span representing a single operation in a distributed trace")
 model Span {
   @doc("Unique span identifier (16 hex chars)")
-  @key
   @encodedName("application/json", "span_id")
   spanId: SpanId;
 
@@ -150,7 +149,6 @@ model SpanLink {
 @doc("Trace summary without the full span collection")
 model TraceSummary {
   @doc("Trace identifier")
-  @key
   @encodedName("application/json", "trace_id")
   traceId: TraceId;
 

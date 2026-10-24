@@ -19,6 +19,8 @@ The product spec is [`docs/prd/nami.md`](docs/prd/nami.md) (German).
 One process serves both. `nami --stdio` is for a client that starts nami itself, such as Claude
 Code; `nami` serves MCP over Streamable HTTP. Either way the OTLP ports are open.
 
+Stdio reads the `default` project. For another project, use Streamable HTTP with its project-bound read credential.
+
 ## Connect an agent
 
 Publish the binary into a directory of its own; it loads the DuckDB library that lands beside it.
@@ -124,12 +126,12 @@ ingest lag; it never means "no errors". A window that ends past the watermark is
 | `src/nami` | The binary: one Kestrel host with the OTLP endpoints and MCP over stdio and Streamable HTTP, the six tools (`Tools/`, `Analysis/`), self-telemetry (`Telemetry/`) and the `Dockerfile`. |
 | `src/nami.collector.ingestion` | OTLP decoding over HTTP and gRPC, attribute normalization against the registry, sanitizer limits, watermarks. |
 | `src/nami.collector.storage` | DuckDB storage per project and the read-only snapshots the tools run on. |
-| `registry/` | The Weaver registry `nami`: the `nami.*` keys, the imports from OpenTelemetry semantic conventions `v1.44.0` and GenAI `9ffc7e00`, the policies. |
+| `registry/` | The canonical Weaver registry and policies; editable definitions and pinned imports live in `registry/source/`. |
 | `templates/registry/` | Jinja templates that generate C# (`internal/nami.semconv`), Rust (`crates/nami-semconv`) and Markdown (`docs/semconv/`) from the registry. |
 | `contracts/` | TypeSpec for every tool input and result. It generates the C# types in `internal/nami.contracts` and the JSON Schema in `contracts/json-schema/`, which tomo turns into Rust types. |
 | `internal/` | Generated contracts and conventions, nami's self-telemetry defaults, and the source generators. |
 | `eng/` | The Fallout build. |
-| `tests/` | Tests (MSTest on Microsoft.Testing.Platform); so far only `tests/Shared`. |
+| `tests/` | MSTest registry and collector suites, plus the NativeAOT end-to-end conformance executable. |
 | `docs/` | The PRD, the architecture, the implementation checklist and the integration notes. |
 | `claude/debugging-tomo.md` | What Claude needs from nami to debug tomo: the requirements nami was built from. |
 | `.railway/railway.ts` | The Railway service `nami`. |
@@ -137,16 +139,16 @@ ingest lag; it never means "no errors". A window that ends past the watermark is
 ## Build
 
 `mise install` installs the pinned toolchain: the .NET SDK `11.0.100-rc.2.26504.105` (.NET 11 RC2,
-pinned in `global.json` too), Weaver `0.28.0`, Bun and Node. The build is Fallout, and
+pinned in `global.json` too), Weaver `0.28.0`, Rust `1.99.0`, Bun and Node. The build is Fallout, and
 `./eng/build.sh --help` lists every target.
 
 | Command | Does |
 | --- | --- |
-| `./eng/build.sh Check --Configuration Release` | The gate before every push, and in CI on every push and pull request: Registry, Contracts and Compile. Tests join it once they exist. |
+| `./eng/build.sh Check --Configuration Release` | The gate before every push, and in CI on every push and pull request: Registry, contract parity, compilation, MSTest suites and the published NativeAOT conformance proof. |
 | `./eng/build.sh Registry` | Runs `weaver registry check --future -r registry`, regenerates the C#, Rust and Markdown outputs, and fails if they differ from the commit. |
 | `./eng/build.sh Contracts` | Regenerates `internal/nami.contracts` and `contracts/json-schema/` from the TypeSpec; commit them with the TypeSpec change. |
 | `./eng/build.sh Compile` | Builds `nami.slnx`. |
-| `./eng/build.sh Publish` | Publishes the NativeAOT binary. |
+| `./eng/build.sh Publish` | Runs the full gate and produces the NativeAOT binary in `artifacts/publish`. |
 
 Generated files are committed and never edited by hand: change the registry, a template or the
 TypeSpec, and regenerate.

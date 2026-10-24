@@ -1,29 +1,22 @@
-# nami API contract compilation: the committed OpenAPI (openapi/), the C# contracts
-# (internal/nami.contracts) and the MCP's TypeScript types (services/nami.mcp/src/contracts/generated).
-# The emitters and the linter are in-repo and loaded by path.
-
 emit:
   - "./emitters/csharp"
-  - "./emitters/ts-types"
   - "@typespec/openapi3"
-
+  - "@typespec/json-schema"
 options:
   "@ancplua/typespec-emit-csharp":
     emitter-output-dir: "{project-root}/../internal/nami.contracts"
-
-  "@ancplua/typespec-emit-ts-types":
-    emitter-output-dir: "{project-root}/../services/nami.mcp/src/contracts/generated"
-
   "@typespec/openapi3":
     emitter-output-dir: "{project-root}/openapi"
     output-file: "nami.openapi.json"
     file-type: json
-    openapi-versions:
-      - "3.2.0"
+    openapi-versions: ["3.2.0"]
     seal-object-schemas: true
     omit-unreachable-types: false
-    operation-id-strategy: parent-container
-
+  "@typespec/json-schema":
+    emitter-output-dir: "{project-root}/json-schema/raw"
+    file-type: json
+    seal-object-schemas: true
+    bundleId: "nami-tools"
 linter:
   extends:
     - "@typespec/http/all"

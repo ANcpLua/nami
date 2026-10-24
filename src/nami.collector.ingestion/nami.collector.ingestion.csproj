@@ -3,10 +3,14 @@
        Storage nor the host, so the compiler, not a text scan, keeps decoding storage-blind. -->
   <PropertyGroup>
     <RootNamespace>Nami.Collector.Ingestion</RootNamespace>
-    <LangVersion>14</LangVersion>
+    <LangVersion>preview</LangVersion>
     <IsAotCompatible>true</IsAotCompatible>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../internal/nami.semconv/Nami.SemanticConventions.csproj"/>
+  </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
@@ -22,12 +26,10 @@
     <ProjectReference Include="../../internal/nami.contracts/Nami.Api.Contracts.csproj"/>
     <!-- Ingest normalization: the generated attribute mapping table and the metric definition
          for the dropped-attribute counter. Vocabulary, not the producer stack. -->
-    <PackageReference Include="Nami.Telemetry.SemanticConventions"/>
-    <PackageReference Include="Nami.Telemetry.SemanticConventions.Incubating"/>
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="nami.collector"/>
+    <InternalsVisibleTo Include="nami"/>
     <InternalsVisibleTo Include="nami.collector.storage"/>
     <InternalsVisibleTo Include="Nami.Collector.Tests"/>
   </ItemGroup>

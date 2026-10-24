@@ -1,0 +1,55 @@
+{
+  "type": "object",
+  "description": "The slowest traces in the selected window.",
+  "properties": {
+    "service": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Filter by the producer's service.name resource attribute."
+    },
+    "since": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Inclusive window start; defaults to one hour before the snapshot's observation time."
+    },
+    "fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 128,
+      "description": "Requested fields. Unknown fields are refused with the allowed field names."
+    },
+    "max_bytes": {
+      "type": "integer",
+      "minimum": 1024,
+      "maximum": 262144,
+      "description": "Maximum UTF-8 bytes in structuredContent, from 1024 to 262144.",
+      "default": 32768
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Reuse a snapshot returned by an earlier call for byte-identical reads."
+    },
+    "cursor": {
+      "type": "string",
+      "description": "Opaque next_cursor from the preceding page; keep all other arguments unchanged."
+    },
+    "operation": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 10
+    }
+  },
+  "additionalProperties": false
+}

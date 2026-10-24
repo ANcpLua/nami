@@ -26,6 +26,13 @@ public static class ContractJson
     public static string FormatTimestamp(DateTimeOffset value) =>
         JsonSerializer.SerializeToElement(value, ContractTimestampJsonContext.Default.DateTimeOffset).GetString()!;
 
+    /// <summary>Reads an exact JSON integer after schema validation, including integral decimal and exponent forms.</summary>
+    public static int ReadInteger(JsonElement value)
+    {
+        if (value.ValueKind != JsonValueKind.Number || !IsExactInteger(value)) throw new JsonException("Expected an exact JSON integer.");
+        return checked((int)value.GetDecimal());
+    }
+
     public static JsonElement Schema(string name) => s_schemas.RootElement.GetProperty(name);
 
     public static ContractIssue? Validate(string name, JsonElement value)
@@ -275,9 +282,44 @@ public static class ContractJson
         "string" => value.ValueKind == JsonValueKind.String,
         "boolean" => value.ValueKind is JsonValueKind.True or JsonValueKind.False,
         "number" => value.ValueKind == JsonValueKind.Number && double.IsFinite(value.GetDouble()),
-        "integer" => value.ValueKind == JsonValueKind.Number && double.IsFinite(value.GetDouble()) && Math.Truncate(value.GetDouble()) == value.GetDouble(),
+        "integer" => value.ValueKind == JsonValueKind.Number && IsExactInteger(value),
         _ => throw new InvalidOperationException($"Unsupported contract type {name}.")
     });
+
+    // JSON Schema tests the mathematical number, not its rounded binary64 projection.
+    // Keep exponent notation and trailing decimal zeros valid without letting tiny fractions
+    // underflow to zero or fractions near 2^53 round to an integer.
+    internal static bool IsExactInteger(JsonElement value)
+    {
+        var text = value.GetRawText().AsSpan();
+        var exponentIndex = text.IndexOfAny('e', 'E');
+        var mantissa = exponentIndex < 0 ? text : text[..exponentIndex];
+        var decimalIndex = mantissa.IndexOf('.');
+        var fractionalDigits = decimalIndex < 0 ? 0 : mantissa.Length - decimalIndex - 1;
+        var trailingZeros = 0;
+        var nonzero = false;
+        for (var i = mantissa.Length - 1; i >= 0; i--)
+        {
+            var digit = mantissa[i];
+            if (digit is '-' or '.') continue;
+            if (!nonzero && digit == '0') trailingZeros++;
+            else if (digit != '0') nonzero = true;
+        }
+        if (!nonzero) return true;
+        var exponent = 0L;
+        if (exponentIndex >= 0)
+        {
+            var digits = text[(exponentIndex + 1)..];
+            var negative = digits[0] == '-';
+            if (digits[0] is '+' or '-') digits = digits[1..];
+            // Only the comparison with a token-length-sized fraction matters.
+            // Saturation avoids overflow on an otherwise valid, very large exponent.
+            foreach (var digit in digits)
+                exponent = Math.Min(int.MaxValue, exponent * 10 + digit - '0');
+            if (negative) exponent = -exponent;
+        }
+        return exponent >= (long)fractionalDigits - trailingZeros;
+    }
 
     private static bool HasMatchingTag(JsonElement schema, JsonElement value) => schema.TryGetProperty("properties", out var properties) &&
         properties.EnumerateObject().Any(property => property.Value.TryGetProperty("enum", out var values) && values.GetArrayLength() == 1 &&

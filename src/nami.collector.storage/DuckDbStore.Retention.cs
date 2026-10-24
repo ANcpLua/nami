@@ -28,61 +28,29 @@ internal sealed partial class DuckDbStore
             ct);
     }
 
-    public Task<int> DeleteExpiredAnnotationsBatchAsync(
-        ulong cutoffUnixNano,
-        int batchSize,
-        CancellationToken ct = default)
-    {
-        if (batchSize < 1)
-            throw new ArgumentOutOfRangeException(nameof(batchSize), batchSize, "Batch size must be positive.");
-        return ExecuteMaintenanceWriteAsync(async (con, token) =>
+    public Task<long> DeleteExpiredMetadataAsync(ulong cutoffUnixNano, CancellationToken ct = default) =>
+        ExecuteMaintenanceWriteAsync(async (con, token) =>
         {
             await using var transaction = await con.BeginTransactionAsync(token).ConfigureAwait(false);
             await using var command = con.CreateCommand();
             command.Transaction = transaction;
+            // Keep one pre-window resource per service: changes in the retained window need their predecessor.
             command.CommandText = """
-                                  DELETE FROM annotations
-                                  WHERE (project_id, annotation_id) IN (
-                                      SELECT project_id, annotation_id
-                                      FROM annotations
-                                      WHERE updated_at_unix_nano < $1
-                                      ORDER BY updated_at_unix_nano, project_id, annotation_id
-                                      LIMIT $2
-                                  )
-                                  RETURNING annotation_id
-                                  """;
-            command.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffUnixNano });
-            command.Parameters.Add(new DuckDBParameter { Value = batchSize });
-
-            var deleted = 0;
-            await using (var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false))
-            {
-                while (await reader.ReadAsync(token).ConfigureAwait(false))
-                    deleted++;
-            }
-
-            await using var metadata = con.CreateCommand();
-            metadata.Transaction = transaction;
-            metadata.CommandText = """
-                DELETE FROM analysis_state s WHERE s.state_key LIKE 'annotation:%'
-                AND NOT EXISTS (SELECT 1 FROM annotations a
-                  WHERE a.project_id = s.project_id AND 'annotation:' || a.annotation_id = s.state_key)
+                DELETE FROM resource_observations
+                WHERE observed_unix_nano < $1 AND sequence_number < (
+                  SELECT max(previous.sequence_number) FROM resource_observations AS previous
+                  WHERE previous.project_id = resource_observations.project_id
+                    AND previous.service_name = resource_observations.service_name
+                    AND previous.observed_unix_nano < $1)
                 """;
-            await metadata.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            AddParameters(command, (decimal)cutoffUnixNano);
+            long deleted = await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            command.Parameters.Clear();
+            command.CommandText = "DELETE FROM read_snapshots WHERE expires_unix_nano <= $1";
+            AddParameters(command, (decimal)NamiTimeConversions.ToUnixNanoUnsigned(_timeProvider.GetUtcNow()));
+            deleted += await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             await transaction.CommitAsync(token).ConfigureAwait(false);
             return deleted;
-        }, ct);
-    }
-
-    public Task<int> DeleteExpiredIdempotencyKeysAsync(
-        ulong cutoffUnixNano,
-        CancellationToken ct = default) =>
-        ExecuteMaintenanceWriteAsync(async (con, token) =>
-        {
-            await using var command = con.CreateCommand();
-            command.CommandText = "DELETE FROM idempotency_keys WHERE created_at_unix_nano < $1";
-            command.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffUnixNano });
-            return await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct);
 
     public Task CheckpointAsync(CancellationToken ct = default) =>

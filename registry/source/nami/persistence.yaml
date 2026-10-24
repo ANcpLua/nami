@@ -1,0 +1,321 @@
+{
+  "file_format": "definition/2",
+  "attribute_groups": [
+    {
+      "id": "nami.persistence",
+      "visibility": "public",
+      "brief": "Collector persistence and token-exemption annotations for inherited attributes.",
+      "stability": "development",
+      "attributes": [
+        {
+          "ref": "aspnetcore.authentication.result",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "aspnetcore.authorization.result",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "aspnetcore.diagnostics.exception.result",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "aspnetcore.identity.password_check_result",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "aspnetcore.identity.result",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "aspnetcore.identity.sign_in.result",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "aspnetcore.identity.token_purpose",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "aspnetcore.identity.token_verified",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "aspnetcore.rate_limiting.result",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "cicd.pipeline.result",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "cicd.pipeline.task.run.result",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "db.query.summary",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "db.query.text",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "exception.message",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "faas.document.operation",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "feature_flag.result.reason",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "gen_ai.token.modality",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "gen_ai.usage.audio.cache_read.input_tokens",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "gen_ai.usage.audio.input_tokens",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "gen_ai.usage.audio.output_tokens",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "gen_ai.usage.cache_write.input_tokens",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "gen_ai.usage.image.cache_read.input_tokens",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "gen_ai.usage.image.input_tokens",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "gen_ai.usage.image.output_tokens",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "gen_ai.usage.text.cache_read.input_tokens",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "gen_ai.usage.text.input_tokens",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "gen_ai.usage.text.output_tokens",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "host.id",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "host.ip",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "host.mac",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "host.name",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "message.type",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "messaging.kafka.message.offset",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "messaging.message.body.size",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "messaging.message.id",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "messaging.rocketmq.message.type",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "otel.span.sampling_result",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "rpc.message.type",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "service.instance.id",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "session.id",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "session.previous_id",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "test.case.result.status",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "url.full",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "url.query",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,24 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <Nullable>enable</Nullable>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>disable</ImplicitUsings>
-    <RootNamespace>Nami.Build</RootNamespace>
-    <FalloutRootDirectory>..</FalloutRootDirectory>
-    <FalloutScriptDirectory>..</FalloutScriptDirectory>
-    <FalloutExcludeConfig>True</FalloutExcludeConfig>
-    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType><TargetFramework>net11.0</TargetFramework>
+    <UseAppHost>false</UseAppHost>
+    <RootNamespace>Nami.Build</RootNamespace><IsPackable>false</IsPackable>
+    <FalloutRootDirectory>..</FalloutRootDirectory><FalloutScriptDirectory>..</FalloutScriptDirectory>
+    <FalloutExcludeConfig>true</FalloutExcludeConfig>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
-    <PackageReference Include="Fallout.Common"/>
-    <PackageReference Include="Fallout.Components"/>
-    <!-- BuildCollectorSemanticCatalog reflects these assemblies. -->
-    <PackageReference Include="Nami.Telemetry.SemanticConventions" PrivateAssets="all"/>
-    <PackageReference Include="Nami.Telemetry.SemanticConventions.Incubating" PrivateAssets="all"/>
-  </ItemGroup>
-
+  <ItemGroup><PackageReference Include="Fallout.Common"/><PackageReference Include="Fallout.Components"/></ItemGroup>
 </Project>

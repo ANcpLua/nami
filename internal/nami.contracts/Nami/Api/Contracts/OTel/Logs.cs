@@ -29,9 +29,11 @@ public sealed class LogRecord
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("attributes")]
     public IReadOnlyList<Nami.Api.Contracts.Common.Attribute>? Attributes { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("dropped_attributes_count")]
     public long? DroppedAttributesCount { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<uint>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("flags")]
     public uint? Flags { get; init; }

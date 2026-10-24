@@ -1,11 +1,11 @@
 # Rust target: crates/nami-semconv/src/lib.rs for tomo.
 #
-#   weaver registry generate --v2 -r registry -t templates/registry rust crates/nami-semconv/src
+#   registry/generate.sh
 #
 # The whole view (merge, sort, identifiers, doc lines) is computed by nami.jq;
 # lib.rs.j2 only joins the lines, so the output is a pure function of the registry.
 jq_modules:
-  - nami.jq
+  - ../nami.jq
 whitespace_control:
   trim_blocks: true
   lstrip_blocks: true

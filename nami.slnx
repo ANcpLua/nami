@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/nami/nami.csproj" />
+    <Project Path="src/nami.collector.ingestion/nami.collector.ingestion.csproj" />
+    <Project Path="src/nami.collector.storage/nami.collector.storage.csproj" />
+  </Folder>
+  <Folder Name="/internal/">
+    <Project Path="internal/nami.contracts/Nami.Api.Contracts.csproj" />
+    <Project Path="internal/nami.semconv/Nami.SemanticConventions.csproj" />
+    <Project Path="internal/nami.collector.storage.generators/nami.collector.storage.generators.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Nami.Registry.Tests/Nami.Registry.Tests.csproj"/>
+    <Project Path="tests/Nami.Collector.Tests/Nami.Collector.Tests.csproj"/>
+    <Project Path="tests/Nami.Conformance/Nami.Conformance.csproj"/>
+  </Folder>
+</Solution>

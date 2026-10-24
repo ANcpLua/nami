@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 namespace Nami.Api.Contracts.Common;
 
 [JsonConverter(typeof(AttributeValueJsonConverter))]
-public abstract class AttributeValue
+public closed class AttributeValue
 {
     private protected AttributeValue()
     {
@@ -86,7 +86,7 @@ public abstract class AttributeValue
         {
             case Nami.Api.Contracts.Common.AttributeIntValue typed:
                 writer.WriteStartObject();
-                writer.WritePropertyName("type");
+                writer.WritePropertyName("kind");
                 writer.WriteStringValue("int");
                 writer.WritePropertyName("value");
                 writer.WriteStringValue(typed.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -94,7 +94,7 @@ public abstract class AttributeValue
                 return;
             case Nami.Api.Contracts.Common.AttributeDoubleValue typed:
                 writer.WriteStartObject();
-                writer.WritePropertyName("type");
+                writer.WritePropertyName("kind");
                 writer.WriteStringValue("double");
                 writer.WritePropertyName("value");
                 WriteJsNumber(writer, typed.Value);
@@ -104,13 +104,13 @@ public abstract class AttributeValue
                 writer.WriteStartObject();
                 writer.WritePropertyName("base64");
                 writer.WriteStringValue(Convert.ToBase64String(typed.Base64.Span));
-                writer.WritePropertyName("type");
+                writer.WritePropertyName("kind");
                 writer.WriteStringValue("bytes");
                 writer.WriteEndObject();
                 return;
             case Nami.Api.Contracts.Common.AttributeKeyValueListValue typed:
                 writer.WriteStartObject();
-                writer.WritePropertyName("type");
+                writer.WritePropertyName("kind");
                 writer.WriteStringValue("kvlist");
                 writer.WritePropertyName("values");
                 writer.WriteStartObject();
@@ -188,8 +188,8 @@ public sealed class AttributeValueJsonConverter : JsonConverter<AttributeValue>
             }
             case JsonTokenType.StartObject:
             {
-                var value = (Nami.Api.Contracts.Common.AttributeObjectValue?)JsonSerializer.Deserialize(ref reader, options.GetTypeInfo(typeof(Nami.Api.Contracts.Common.AttributeObjectValue)));
-                return value is null ? null : new AttributeValue.ObjectValue(value);
+                var value = JsonSerializer.Deserialize(ref reader, options.GetTypeInfo<Nami.Api.Contracts.Common.AttributeObjectValue>());
+                return new AttributeValue.ObjectValue(value);
             }
             default:
                 throw new JsonException($"AttributeValue cannot start with token '{reader.TokenType}'.");
@@ -216,7 +216,7 @@ public sealed class AttributeValueJsonConverter : JsonConverter<AttributeValue>
                 writer.WriteEndArray();
                 return;
             case AttributeValue.ObjectValue typed:
-                JsonSerializer.Serialize(writer, typed.Value, options.GetTypeInfo(typeof(Nami.Api.Contracts.Common.AttributeObjectValue)));
+                JsonSerializer.Serialize(writer, typed.Value, options.GetTypeInfo<Nami.Api.Contracts.Common.AttributeObjectValue>());
                 return;
             default:
                 throw new JsonException($"Unknown AttributeValue case '{value.GetType().FullName}'.");
@@ -224,37 +224,77 @@ public sealed class AttributeValueJsonConverter : JsonConverter<AttributeValue>
     }
 }
 
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
-[JsonDerivedType(typeof(AttributeIntValue), "int")]
-[JsonDerivedType(typeof(AttributeDoubleValue), "double")]
-[JsonDerivedType(typeof(AttributeBytesValue), "bytes")]
-[JsonDerivedType(typeof(AttributeKeyValueListValue), "kvlist")]
-public interface AttributeObjectValue
+[JsonConverter(typeof(AttributeObjectValueJsonConverter))]
+public union AttributeObjectValue(AttributeIntValue, AttributeDoubleValue, AttributeBytesValue, AttributeKeyValueListValue);
+
+public sealed class AttributeObjectValueJsonConverter : JsonConverter<AttributeObjectValue>
 {
+    public override AttributeObjectValue Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object) throw new JsonException("AttributeObjectValue must be a JSON object.");
+        if (!root.TryGetProperty("kind", out var tagProperty) || tagProperty.ValueKind != JsonValueKind.String) throw new JsonException("AttributeObjectValue requires kind.");
+        var tag = tagProperty.GetString();
+        if (tag == "int") return root.Deserialize(options.GetTypeInfo<AttributeIntValue>()) ?? throw new JsonException("Missing AttributeIntValue case.");
+        if (tag == "double") return root.Deserialize(options.GetTypeInfo<AttributeDoubleValue>()) ?? throw new JsonException("Missing AttributeDoubleValue case.");
+        if (tag == "bytes") return root.Deserialize(options.GetTypeInfo<AttributeBytesValue>()) ?? throw new JsonException("Missing AttributeBytesValue case.");
+        if (tag == "kvlist") return root.Deserialize(options.GetTypeInfo<AttributeKeyValueListValue>()) ?? throw new JsonException("Missing AttributeKeyValueListValue case.");
+        throw new JsonException("Unknown AttributeObjectValue case.");
+    }
+
+    public override void Write(Utf8JsonWriter writer, AttributeObjectValue value, JsonSerializerOptions options)
+    {
+        switch (value.Value)
+        {
+            case AttributeIntValue typed:
+                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<AttributeIntValue>());
+                return;
+            case AttributeDoubleValue typed:
+                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<AttributeDoubleValue>());
+                return;
+            case AttributeBytesValue typed:
+                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<AttributeBytesValue>());
+                return;
+            case AttributeKeyValueListValue typed:
+                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<AttributeKeyValueListValue>());
+                return;
+            default:
+                throw new InvalidOperationException("An empty AttributeObjectValue cannot be serialized.");
+        }
+    }
 }
 
-public sealed class AttributeBytesValue : AttributeObjectValue
+public sealed class AttributeBytesValue
 {
+    [JsonPropertyName("kind")]
+    public string Kind => "bytes";
     [JsonPropertyName("base64")]
     public required ReadOnlyMemory<byte> Base64 { get; init; }
 }
 
-public sealed class AttributeIntValue : AttributeObjectValue, Nami.Api.Contracts.OTel.Metrics.MetricNumberValue
+public sealed class AttributeIntValue
 {
+    [JsonPropertyName("kind")]
+    public string Kind => "int";
     [JsonConverter(typeof(global::Nami.Api.Contracts.Int64StringConverter))]
     [JsonPropertyName("value")]
     public required long Value { get; init; }
 }
 
-public sealed class AttributeDoubleValue : AttributeObjectValue, Nami.Api.Contracts.OTel.Metrics.MetricNumberValue
+public sealed class AttributeDoubleValue
 {
+    [JsonPropertyName("kind")]
+    public string Kind => "double";
     [JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]
     [JsonPropertyName("value")]
     public required double Value { get; init; }
 }
 
-public sealed class AttributeKeyValueListValue : AttributeObjectValue
+public sealed class AttributeKeyValueListValue
 {
+    [JsonPropertyName("kind")]
+    public string Kind => "kvlist";
     [JsonPropertyName("values")]
     public required IReadOnlyDictionary<string, Nami.Api.Contracts.Common.AttributeValue?> Values { get; init; }
 }
@@ -266,6 +306,9 @@ public sealed class Attribute
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     [JsonPropertyName("value")]
     public required Nami.Api.Contracts.Common.AttributeValue? Value { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("stability")]
+    public string? Stability { get; init; }
 }
 
 public sealed class Attributes
@@ -302,152 +345,92 @@ public sealed class InstrumentationScope
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("attributes")]
     public IReadOnlyList<Nami.Api.Contracts.Common.Attribute>? ScopeAttributes { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("dropped_attributes_count")]
     public long? DroppedAttributesCount { get; init; }
 }
 
-public sealed class TelemetryMatcher
+public sealed class ToolError
 {
-    [JsonPropertyName("key")]
-    public required string Key { get; init; }
-    [JsonPropertyName("op")]
-    public required Nami.Api.Contracts.Common.MatcherOp Op { get; init; }
+    [JsonPropertyName("code")]
+    public required string Code { get; init; }
+    [JsonPropertyName("message")]
+    public required string Message { get; init; }
+    [JsonPropertyName("retryable")]
+    public required bool Retryable { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("value")]
-    public object? Value { get; init; }
+    [JsonPropertyName("field")]
+    public string? Field { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("values")]
-    public IReadOnlyList<object>? Values { get; init; }
+    [JsonPropertyName("allowed")]
+    public IReadOnlyList<string>? Allowed { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("scope")]
-    public Nami.Api.Contracts.Common.MatcherScope? Scope { get; init; }
+    [JsonPropertyName("hint")]
+    public string? Hint { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("resource_type")]
+    public string? ResourceType { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("resource_id")]
+    public string? ResourceId { get; init; }
 }
 
-public sealed class ToolWindow
+public sealed class Freshness
 {
-    [JsonPropertyName("start_time")]
-    public required string StartTime { get; init; }
-    [JsonPropertyName("end_time")]
-    public required string EndTime { get; init; }
-}
-
-public sealed class ToolCoverage
-{
+    [JsonPropertyName("watermark")]
+    public required string Watermark { get; init; }
+    [JsonPropertyName("complete")]
+    public required bool Complete { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     [JsonPropertyName("examined")]
     public required long? Examined { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     [JsonPropertyName("matched")]
     public required long? Matched { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     [JsonPropertyName("returned")]
     public required long? Returned { get; init; }
     [JsonPropertyName("truncated")]
     public required bool Truncated { get; init; }
-    [JsonPropertyName("scan_complete")]
-    public required bool ScanComplete { get; init; }
-    [JsonPropertyName("as_of")]
-    public required string AsOf { get; init; }
 }
 
-public sealed class ToolReadContext
+public sealed class ToolReadInput
 {
-    [JsonPropertyName("window")]
-    public required Nami.Api.Contracts.Common.ToolWindow Window { get; init; }
-    [JsonPropertyName("coverage")]
-    public required Nami.Api.Contracts.Common.ToolCoverage Coverage { get; init; }
+    public const int MaxBytesDefault = 32768;
+    public const int MaxBytesMinimum = 1024;
+    public const int MaxBytesMaximum = 262144;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("page_totals")]
-    public IReadOnlyDictionary<string, long>? PageTotals { get; init; }
+    [JsonPropertyName("service")]
+    public string? Service { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("since")]
+    public string? Since { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("fields")]
+    public IReadOnlyList<string>? Fields { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<int>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("max_bytes")]
+    public int? MaxBytes { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("snapshot_id")]
+    public string? SnapshotId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("cursor")]
+    public string? Cursor { get; init; }
 }
 
-public sealed class ResourceBase
+public sealed class ToolResult
 {
-    [JsonPropertyName("id")]
-    public required string Id { get; init; }
-    [JsonPropertyName("created_at")]
-    public required string CreatedAt { get; init; }
-    [JsonPropertyName("updated_at")]
-    public required string UpdatedAt { get; init; }
-    [JsonPropertyName("etag")]
-    public required string Etag { get; init; }
-}
-
-[JsonConverter(typeof(global::Nami.Api.Contracts.StringEnumConverter<MatcherOp>))]
-public enum MatcherOp
-{
-    [JsonStringEnumMemberName("eq")]
-    Eq,
-    [JsonStringEnumMemberName("neq")]
-    Neq,
-    [JsonStringEnumMemberName("in")]
-    In,
-    [JsonStringEnumMemberName("prefix")]
-    Prefix,
-    [JsonStringEnumMemberName("contains")]
-    Contains,
-    [JsonStringEnumMemberName("exists")]
-    Exists,
-    [JsonStringEnumMemberName("gt")]
-    Gt,
-    [JsonStringEnumMemberName("gte")]
-    Gte,
-    [JsonStringEnumMemberName("lt")]
-    Lt,
-    [JsonStringEnumMemberName("lte")]
-    Lte
-}
-
-public static class MatcherOpValues
-{
-    public const string Eq = "eq";
-    public const string Neq = "neq";
-    public const string In = "in";
-    public const string Prefix = "prefix";
-    public const string Contains = "contains";
-    public const string Exists = "exists";
-    public const string Gt = "gt";
-    public const string Gte = "gte";
-    public const string Lt = "lt";
-    public const string Lte = "lte";
-}
-
-[JsonConverter(typeof(global::Nami.Api.Contracts.StringEnumConverter<MatcherScope>))]
-public enum MatcherScope
-{
-    [JsonStringEnumMemberName("span")]
-    Span,
-    [JsonStringEnumMemberName("resource")]
-    Resource,
-    [JsonStringEnumMemberName("log")]
-    Log
-}
-
-public static class MatcherScopeValues
-{
-    public const string Span = "span";
-    public const string Resource = "resource";
-    public const string Log = "log";
-}
-
-[JsonConverter(typeof(global::Nami.Api.Contracts.StringEnumConverter<CollectorKeyRole>))]
-public enum CollectorKeyRole
-{
-    [JsonStringEnumMemberName("ingest")]
-    Ingest,
-    [JsonStringEnumMemberName("read")]
-    Read,
-    [JsonStringEnumMemberName("write")]
-    Write,
-    [JsonStringEnumMemberName("delete")]
-    Delete
-}
-
-public static class CollectorKeyRoleValues
-{
-    public const string Ingest = "ingest";
-    public const string Read = "read";
-    public const string Write = "write";
-    public const string Delete = "delete";
+    [JsonPropertyName("freshness")]
+    public required Nami.Api.Contracts.Common.Freshness Freshness { get; init; }
+    [JsonPropertyName("snapshot_id")]
+    public required string SnapshotId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("next_cursor")]
+    public string? NextCursor { get; init; }
 }

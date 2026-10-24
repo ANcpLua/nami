@@ -68,10 +68,27 @@ public sealed class OptionalValueConverter<T> : JsonConverter<OptionalValue<T>>
 {
     public override bool HandleNull => true;
     public override OptionalValue<T> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        new(JsonSerializer.Deserialize(ref reader, (System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>)options.GetTypeInfo(typeof(T)))!);
+        new(JsonSerializer.Deserialize(ref reader, options.GetTypeInfo<T>())!);
     public override void Write(Utf8JsonWriter writer, OptionalValue<T> value, JsonSerializerOptions options)
     {
         if (!value.IsDefined) throw new JsonException("An undefined optional value must be omitted by its containing property.");
-        JsonSerializer.Serialize(writer, value.Value, (System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>)options.GetTypeInfo(typeof(T)));
+        JsonSerializer.Serialize(writer, value.Value, options.GetTypeInfo<T>());
     }
+}
+
+/// <summary>Reads JSON Schema integers by mathematical value, including integral decimal/exponent tokens.</summary>
+public sealed class ExactIntegerConverter<T> : JsonConverter<T> where T : struct, System.Numerics.IBinaryInteger<T>
+{
+    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        var number = document.RootElement;
+        if (number.ValueKind != JsonValueKind.Number || !ContractJson.IsExactInteger(number) || !number.TryGetDecimal(out var exact))
+            throw new JsonException("Expected an exact JSON integer.");
+        try { return T.CreateChecked(exact); }
+        catch (OverflowException error) { throw new JsonException("JSON integer is outside the target range.", error); }
+    }
+
+    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options) =>
+        writer.WriteRawValue(value.ToString(null, CultureInfo.InvariantCulture));
 }

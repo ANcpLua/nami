@@ -17,10 +17,9 @@ internal static class CollectorStorageExtensions
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<RetentionOptions>, RetentionOptionsValidator>();
         services.AddSingleton(CreateStore);
-        services.ActivateSingleton<INamiStore>();
         services.AddHostedService<RetentionService>();
         services.AddHealthChecks()
-            .AddCheck<DuckDbHealthCheck>("duckdb", tags: ["db", "storage", NamiEndpoints.ReadyTag]);
+            .AddCheck<DuckDbHealthCheck>("duckdb", tags: ["db", "storage", "ready"]);
 
         return services;
     }

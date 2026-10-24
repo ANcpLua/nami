@@ -5,7 +5,6 @@ using Microsoft.Extensions.Options;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
-using Nami.Collector.Analysis;
 using Nami.Collector.Grpc;
 
 namespace Nami.Collector.Hosting;
@@ -25,20 +24,7 @@ internal static class CollectorCoreExtensions
             .Bind(config)
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<CollectorStorageOptions>, CollectorStorageOptionsValidator>();
-        services.AddOptions<AnalysisOptions>()
-            .Bind(config)
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<AnalysisOptions>, AnalysisOptionsRules>();
-        services.AddSingleton<CollectorStreamCapacity>();
-
-        // Preserve a host-supplied clock for observation times and analysis windows.
         services.TryAddSingleton(TimeProvider.System);
-        services.AddSingleton<AnalysisSigningKey>();
-
-        services.ConfigureHttpJsonOptions(static options =>
-        {
-            options.SerializerOptions.TypeInfoResolverChain.Insert(0, global::Nami.Api.Contracts.ContractTypes.Resolver);
-        });
 
         services.AddGrpc(static options =>
         {

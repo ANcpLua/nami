@@ -18,6 +18,7 @@ public sealed class Resource
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("schema_url")]
     public string? SchemaUrl { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("dropped_attributes_count")]
     public long? DroppedAttributesCount { get; init; }

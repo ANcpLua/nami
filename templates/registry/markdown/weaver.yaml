@@ -1,0 +1,14 @@
+jq_modules: [../nami.jq]
+whitespace_control:
+  trim_blocks: true
+  lstrip_blocks: true
+  keep_trailing_newline: true
+templates:
+  - template: namespace.md.j2
+    filter: nami_markdown_pages
+    application_mode: each
+    file_name: "{{ ctx.name }}.md"
+  - template: README.md.j2
+    filter: nami_markdown_index
+    application_mode: single
+    file_name: README.md

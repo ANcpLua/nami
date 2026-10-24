@@ -1,0 +1,11 @@
+{
+  "mstest": {
+    "output": {
+      "captureTrace": "Live"
+    },
+    "execution": {
+      "captureAssertionFailureDiagnostics": true,
+      "treatDiscoveryWarningsAsErrors": true
+    }
+  }
+}

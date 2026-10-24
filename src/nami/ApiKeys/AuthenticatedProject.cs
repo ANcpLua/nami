@@ -13,7 +13,7 @@ internal static class AuthenticatedProject
     public static string? ForHttpIngest(HttpContext context) => FromHttp(context);
 
     public static string ForHttpRead(HttpContext context) =>
-        FromHttp(context) ?? ProjectIdentity.Normalize(context.Request.Headers[ProjectIdentity.HeaderName].FirstOrDefault());
+        FromHttp(context) ?? ProjectIdentity.DefaultProjectId;
 
     private static string? FromHttp(HttpContext context)
     {

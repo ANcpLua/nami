@@ -1,0 +1,10 @@
+jq_modules: [../nami.jq]
+whitespace_control:
+  trim_blocks: true
+  lstrip_blocks: true
+  keep_trailing_newline: true
+templates:
+  - template: registry.cs.j2
+    filter: nami_cs
+    application_mode: single
+    file_name: Registry.g.cs

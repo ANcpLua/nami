@@ -6,36 +6,36 @@ Oct 24, 2026 · @Alexander Nachtmann
 
 nami ist ein OTLP-Ziel plus MCP-Tools in **einem** NativeAOT-Binary auf .NET 11, gebaut nur für Agenten: tomo (Rust) sendet Telemetrie, Claude stellt Fragen über Tools und bekommt typisierte Antworten mit Frische-Angabe. Kein SDK, keine REST-API, kein Dashboard; die Tools sind die API.
 
-nami ist der Nachfolger von nami (v17.0.14, zehn Monate, fertig am 24.10.2026). Der klonbare Ausgangsstand ist nami-Commit `ecdfb564` „nami for tomo" (24.10.2026); das nami-Repo (`e025215`) enthält bisher nur `claude/debugging-tomo.md`, tomos Anforderungen an nami. Diese PRD führt beides zusammen.
+nami ist der Nachfolger von qyl (v17.0.14, zehn Monate, fertig am 24.10.2026). Der klonbare Ausgangsstand ist qyl-Commit `ecdfb564` „nami for tomo" (24.10.2026); das nami-Repo (`e025215`) enthält bisher nur `claude/debugging-tomo.md`, tomos Anforderungen an nami. Diese PRD führt beides zusammen.
 
 Erfolg ist an vier Zahlen messbar: `weaver registry check` grün und `weaver registry generate` byte-identisch zum Commit (G1, G2); `sources_status` meldet nach einem tomo-Request innerhalb von 1 s `last_seen` pro Signal (T1); jede Antwort bleibt unter `max_bytes`, auch bei 500.000 Spans im Fenster (T4); ein leeres Ergebnis ohne `complete: true` erscheint nie als Aussage über tomo (T5).
 
 ## 2. Problem
 
-nami löst die Agentenfrage bereits, aber mit drei Kosten, die nami nicht mehr tragen soll:
+qyl löst die Agentenfrage bereits, aber mit drei Kosten, die nami nicht mehr tragen soll:
 
-- **Zwei Laufzeiten, ein Vertrag.** Der Collector ist C# (NativeAOT), der MCP-Server TypeScript auf Bun. Beide validieren dieselben TypeSpec-Schemas; ein Versions-Skew zwischen `api.nami.at` und `mcp.nami.at` macht `/healthz` `degraded` und die Tools antworten `collector_contract_mismatch`. Ein Binary hat diesen Zustand nicht.
-- **Konventionen von außen.** Die Semantic Conventions kommen als NuGet-Pakete `Nami.Telemetry.SemanticConventions` 15.0.5 (Stable, Incubating, Analyzers) aus einem zweiten Repo; ein Pin-Wechsel ist ein eigenes Build-Target (`GenerateCollectorSemanticAttributeCatalog`, 2.806 generierte Zeilen). nami-eigene Keys (`nami.project.id`, `nami.attribute.namespace`, `nami.gen_ai.tool.call.arguments_hash`) leben dort, nicht im Produkt-Repo.
-- **24 Tools für eine Frage, die sechs braucht.** tomo stellt sechs Fragen (Sendet es? Welche Fehler? Dieser Trace? Die langsamen? Diese Logzeile? Was hat sich geändert?). nami beantwortet sie, aber über `triage`, `get_failure_context`, `verify_fix` und 17 weitere Lese-Tools, plus vier Schreib-Tools, die tomo nie aufruft.
+- **Zwei Laufzeiten, ein Vertrag.** Der Collector ist C# (NativeAOT), der MCP-Server TypeScript auf Bun. Beide validieren dieselben TypeSpec-Schemas; ein Versions-Skew zwischen `api.qyl.at` und `mcp.qyl.at` macht `/healthz` `degraded` und die Tools antworten `collector_contract_mismatch`. Ein Binary hat diesen Zustand nicht.
+- **Konventionen von außen.** Die Semantic Conventions kommen als NuGet-Pakete `Qyl.Telemetry.SemanticConventions` 15.0.5 (Stable, Incubating, Analyzers) aus einem zweiten Repo; ein Pin-Wechsel ist ein eigenes Build-Target (`GenerateCollectorSemanticAttributeCatalog`, 2.806 generierte Zeilen). nami-eigene Keys (`qyl.project.id`, `qyl.attribute.namespace`, `qyl.gen_ai.tool.call.arguments_hash`) leben dort, nicht im Produkt-Repo.
+- **24 Tools für eine Frage, die sechs braucht.** tomo stellt sechs Fragen (Sendet es? Welche Fehler? Dieser Trace? Die langsamen? Diese Logzeile? Was hat sich geändert?). qyl beantwortet sie, aber über `triage`, `get_failure_context`, `verify_fix` und 17 weitere Lese-Tools, plus vier Schreib-Tools, die tomo nie aufruft.
 
-Dazu die Konstante aus nami, die bleibt: Agentenkontext ist knapp. 500.000 Zeilen Roh-Output sind kein Ergebnis, und ein leeres Ergebnis ist nur dann ein Befund, wenn das Fenster vollständig gelesen wurde.
+Dazu die Konstante aus qyl, die bleibt: Agentenkontext ist knapp. 500.000 Zeilen Roh-Output sind kein Ergebnis, und ein leeres Ergebnis ist nur dann ein Befund, wenn das Fenster vollständig gelesen wurde.
 
-## 3. Was von nami bleibt, was fällt
+## 3. Was von qyl bleibt, was fällt
 
-nami `ecdfb564` ist der Ausgangsstand. Die Tabelle ist die Schnittliste; alles Übrige wird unverändert übernommen.
+qyl `ecdfb564` ist der Ausgangsstand. Die Tabelle ist die Schnittliste; alles Übrige wird unverändert übernommen.
 
-| Bestandteil in nami | nami | Grund |
+| Bestandteil in qyl | nami | Grund |
 | --- | --- | --- |
-| `services/nami.collector*`: OTLP-Ingest (HTTP + gRPC), DuckDB 1.5.6 pro Projekt, Analyse-Engine, Attribut-Sanitizer (128 Ki Eingabe, 32 KiB Ausgabe) | **bleibt**, wird das Binary | Das ist der Motor |
+| `services/qyl.collector*`: OTLP-Ingest (HTTP + gRPC), DuckDB 1.5.6 pro Projekt, Analyse-Engine, Attribut-Sanitizer (128 Ki Eingabe, 32 KiB Ausgabe) | **bleibt**, wird das Binary | Das ist der Motor |
 | `ToolCoverage` (`examined`, `matched`, `returned`, `truncated`, `scan_complete`, `as_of`) | **bleibt**, erweitert um `watermark` und `complete` | tomos Freshness-Block ist dieselbe Idee |
 | Projekt-Scoping über Schlüssel und Resource-Keys, Telemetrie ist Daten | **bleibt** | Trust-Boundary unverändert |
 | MSTest.Sdk 4.5.1 auf Microsoft.Testing.Platform (85 Klassen, 511 Testmethoden), Fallout 10.4.0, NativeAOT-Conformance-App | **bleibt** | Harness steht |
-| `services/nami.mcp` (TypeScript, Bun, MCP TS SDK v2) | **fällt**; MCP (stdio + Streamable HTTP) kommt ins .NET-Binary | Eine Laufzeit, kein Contract-Skew |
+| `services/qyl.mcp` (TypeScript, Bun, MCP TS SDK v2) | **fällt**; MCP (stdio + Streamable HTTP) kommt ins .NET-Binary | Eine Laufzeit, kein Contract-Skew |
 | `POST /api/v1/analysis/<tool>` als REST-Fläche | **fällt** | Nur Tools; nichts anderes ruft Analysen auf |
-| `packages/Nami.Api.Sdk`, `Nami.Orchestration`, `Nami.Cli` (`nami up`), `Nami.Run.Workload` | **fällt**; `nami` startet beide Flächen selbst | Kein SDK, keine Orchestrierung |
-| Schreib-Tools `annotate`, `save_query`, `update_failure_status`, `delete_record`; Scopes `nami:write`, `nami:delete` | **fällt** | nami ist rein lesend; `readOnlyHint: true` auf jedem Tool |
+| `packages/Qyl.Api.Sdk`, `Qyl.Orchestration`, `Qyl.Cli` (`qyl up`), `Qyl.Run.Workload` | **fällt**; `nami` startet beide Flächen selbst | Kein SDK, keine Orchestrierung |
+| Schreib-Tools `annotate`, `save_query`, `update_failure_status`, `delete_record`; Scopes `qyl:write`, `qyl:delete` | **fällt** | nami ist rein lesend; `readOnlyHint: true` auf jedem Tool |
 | 18 Skills, Plugin-Bundle, Auth0-Tenant, OpenAI-Apps-Challenge | **fällt** vorerst | Erste Konsumentin ist Claude Code über stdio |
-| NuGet `Nami.Telemetry.SemanticConventions*` | **fällt**; Weaver-Registry im Repo (Abschnitt 5) | Konventionen gehören zum Produkt |
+| NuGet `Qyl.Telemetry.SemanticConventions*` | **fällt**; Weaver-Registry im Repo (Abschnitt 5) | Konventionen gehören zum Produkt |
 | `contracts/` TypeSpec mit C#-, TS- und Lint-Emittern | **bleibt** (Entscheidung 1); der TS-Types-Emitter entfällt | TypeSpec existiert und funktioniert; tomos Dokument schlägt Zod vor; tomo sieht ohnehin nur JSON Schema |
 
 ## 4. Architektur
@@ -43,13 +43,13 @@ nami `ecdfb564` ist der Ausgangsstand. Die Tabelle ist die Schnittliste; alles �
 Ein Prozess, zwei Flächen, ein Vertrag. Der Datenfluss ist linear:
 
 1. **Registry → Code.** `weaver registry generate` (Weaver 0.28.0, `--v2`) erzeugt aus der nami-Registry die C#-Konstanten, die Persistenz-Policy und den Attribut-Katalog für den Collector, und aus denselben Quellen die Rust-Crate für tomo. Beides wird committet; das Gate regeneriert und vergleicht byte-genau.
-2. **tomo → OTLP.** tomo instrumentiert explizit (`tracing`, `#[instrument]`, `tracing-opentelemetry`) mit Konstanten aus der generierten Crate; eine umbenannte Konvention ist ein Compile-Fehler in tomo. Export über OTLP/HTTP (protobuf oder JSON) oder OTLP/gRPC an nami; lokal `127.0.0.1:4318` und `4317` wie bei `nami up`.
+2. **tomo → OTLP.** tomo instrumentiert explizit (`tracing`, `#[instrument]`, `tracing-opentelemetry`) mit Konstanten aus der generierten Crate; eine umbenannte Konvention ist ein Compile-Fehler in tomo. Export über OTLP/HTTP (protobuf oder JSON) oder OTLP/gRPC an nami; lokal `127.0.0.1:4318` und `4317` wie bei `qyl up`.
 3. **Ingest → Store.** Der Collector normalisiert Attribute gegen die Registry (deprecated Keys per Normalizer, Sanitizer-Grenzen bleiben), schreibt pro Projekt in DuckDB und führt pro Projekt und Signal eine monotone Wasserlinie `watermark`.
 4. **Store → Analyse.** Die reine Analyse (Gruppieren, Rangfolgen, Frische) läuft ohne Effekte über einem Snapshot; dieselbe Snapshot-Kennung liefert dieselbe Antwort (idempotente Tools).
 5. **Analyse → MCP.** Dasselbe Binary bedient MCP 2026-07-28 über stdio (Claude Code) und Streamable HTTP (gehostet), stateless, ohne Protokoll-Session. Jedes Ergebnis: eine Headline-Zeile in `content[0]`, das Ergebnis als JSON in `content[1]`, dasselbe Objekt als `structuredContent`, dazu der Freshness-Block.
 6. **Kontext.** `traceparent` aus `_meta` wird extrahiert; namis eigene Spans hängen unter dem Agenten-Trace. namis Selbsttelemetrie nutzt die `mcp.*`-Konventionen aus der genai-Registry (Development) und landet im selben Store wie tomos Daten.
 
-Start: ein Kommando. Lokal `nami` (OTLP-Ports plus MCP über stdio), gehostet dasselbe Binary mit Streamable HTTP. Projekt-Scoping, Schlüssel-Rollen und die Regel „Telemetrie ist Daten, nie Anweisung" kommen unverändert aus nami.
+Start: ein Kommando. `nami` startet die OTLP-Ports und MCP über Streamable HTTP; `nami --stdio` startet die OTLP-Ports und MCP über stdio. Gehostet läuft dasselbe Binary mit Streamable HTTP. Projekt-Scoping, Schlüssel-Rollen und die Regel „Telemetrie ist Daten, nie Anweisung" kommen unverändert aus qyl.
 
 ## 5. Semconv-Registry `nami`
 
@@ -71,18 +71,18 @@ dependencies:
 
 **Inventar, das nami erbt.** Stable aus Core: 21 Bereiche, 121 Attribut-Keys, 8 Span-Formen, 51 Instrumente, 1 Event (`exception`), 5 Resource-Definitionen; `exception.escaped` ist deprecated und nicht enthalten. Development aus Core und GenAI: `gen_ai.*`, `mcp.*`, `session.*`, `cicd.*`, `vcs.*`, `process.*`, `rpc.*` und die übrigen 67 Bereiche. Stabilität ist pro Definition ein Feld im aufgelösten Schema, nie eine Annahme über das Paket.
 
-**`nami.*`-Konventionen.** Die nami-eigenen Keys werden umbenannt und in der Registry definiert, nicht in einem Paket: `nami.project.id` (Projekt-Zuordnung einer Resource), `nami.attribute.namespace` und `nami.attribute.key` (Attribut-Discovery), `nami.gen_ai.tool.call.arguments_hash` (Hash der Tool-Argumente, nie die Argumente). `nami.workspace.id` entfällt, bis ein zweites Projekt existiert. Die Persistenz-Policy (`nami.persisted`, `nami.token_exempt`) bleibt Annotation an der Definition, wie namis `RegistryPolicy`.
+**`nami.*`-Konventionen.** Die qyl-eigenen Keys werden umbenannt und in der Registry definiert, nicht in einem Paket: `nami.project.id` (Projekt-Zuordnung einer Resource), `nami.attribute.namespace` und `nami.attribute.key` (Attribut-Discovery), `nami.gen_ai.tool.call.arguments_hash` (Hash der Tool-Argumente, nie die Argumente). `qyl.workspace.id` entfällt, bis ein zweites Projekt existiert. Die Persistenz-Policy (`nami.persisted`, `nami.token_exempt`) bleibt Annotation an der Definition, wie qyls `RegistryPolicy`.
 
 **Regeln.**
 
 - Stable-Keys werden typisierte Spalten; Development-Keys werden persistiert und tragen ihre Stabilität im Katalog, damit ein Tool-Ergebnis sagen kann, welcher Key sich noch umbenennen darf.
-- Deprecated Keys werden beim Ingest auf ihren Nachfolger normalisiert (namis `DeprecatedAttributeNormalizer`); die Tabelle dafür kommt aus der Registry, nie aus Code.
+- Deprecated Keys werden beim Ingest auf ihren Nachfolger normalisiert (qyls `DeprecatedAttributeNormalizer`); die Tabelle dafür kommt aus der Registry, nie aus Code.
 - `weaver registry diff --baseline-registry <alter Pin>` läuft bei jedem Pin-Wechsel und schreibt sein Markdown ins Änderungsprotokoll der Registry.
 - Templates: `templates/registry/csharp/*.j2` (Konstanten, Policy, Katalog), `templates/registry/rust/*.j2` (tomo-Crate), `templates/registry/markdown/*.j2` (Dokumentation). Weaver liefert keine C#-Templates mit; nami schreibt eigene, wie GenAI seine.
 
 ## G: Registry und Generierung
 
-Diese Invarianten laufen ohne nami-Prozess: Weaver gegen die Registry, Roslyn gegen die generierten Dateien. Sie sind das Gate vor jedem Push, wie namis `./eng/build.sh Check`.
+Diese Invarianten laufen ohne nami-Prozess: Weaver gegen die Registry, Roslyn gegen die generierten Dateien. Sie sind das Gate vor jedem Push, wie qyls `./eng/build.sh Check`.
 
 | ID | Invariante | Beweis |
 | --- | --- | --- |
@@ -93,7 +93,7 @@ Diese Invarianten laufen ohne nami-Prozess: Weaver gegen die Registry, Roslyn ge
 | G5 | Deprecated Keys (`exception.escaped`, `db.query.parameter`, `http.request.body.size` u. a.) haben einen Nachfolger-Eintrag in der Normalisierungstabelle oder sind als „drop" markiert; kein deprecated Key wird als Spalte angelegt. | Tabelle ⊇ `deprecated`-Einträge des Schemas |
 | G6 | Enum-Attribute kennen nur Werte des Schemas: `db.system.name` ∈ {mariadb, microsoft.sql\_server, mysql, postgresql} stable, alle anderen Werte development; `http.request.method` ohne `QUERY`. | Generierte Werteklassen gegen Schema |
 | G7 | Generierter C#-Code ist AOT-sauber: keine Reflection, kein `dynamic`; `IsAotCompatible=true` mit Warnungen als Fehler. | 0 × IL2xxx/IL3xxx im Build |
-| G8 | Die Persistenz-Policy (`nami.persisted`, `nami.token_exempt`) wird aus Annotationen der Registry generiert; eine Policy-Datei, die einen nicht persistierten Key nennt, bricht die Generierung (namis Regel). | Negativtest mit erfundenem Key |
+| G8 | Die Persistenz-Policy (`nami.persisted`, `nami.token_exempt`) wird aus Annotationen der Registry generiert; eine Policy-Datei, die einen nicht persistierten Key nennt, bricht die Generierung (qyls Regel). | Negativtest mit erfundenem Key |
 | G9 | Ein Pin-Wechsel von Core oder GenAI erzeugt einen `weaver registry diff`-Eintrag im Änderungsprotokoll der Registry, sonst schlägt das Gate fehl. | Protokoll-Datei enthält den neuen Commit |
 | G10 | Die Rust-Crate für tomo exportiert exakt die Keys des Katalogs; ein Key, den tomo nutzt und nami nicht kennt, ist ein Compile-Fehler in tomo, nie ein Laufzeitfund in nami. | Crate-Konstanten == Katalog-Keys |
 
@@ -108,7 +108,7 @@ Diese Invarianten brauchen den laufenden Collector mit In-Memory-DuckDB; Eingabe
 | R3 | `last_seen` pro Signal entspricht dem jüngsten **Empfangs**zeitpunkt, nicht dem Record-Zeitstempel; Stille ist damit vom Clock-Skew des Senders unabhängig. | Record mit Zukunfts-Zeitstempel → `last_seen` = jetzt |
 | R4 | Deprecated Keys werden beim Ingest auf den Nachfolger umgeschrieben; der Originalname bleibt nur in `nami.attribute.key` für Discovery. | `exception.escaped` → nicht gespeichert; `db.query.parameter.*` → Nachfolger |
 | R5 | Stable-Keys landen in typisierten Spalten, Development-Keys im Attribut-Store mit Stabilitätsmarke; beide sind abfragbar. | `gen_ai.usage.input_tokens` abfragbar und als development markiert |
-| R6 | Sanitizer-Grenzen aus nami bleiben: `exception.message` und `exception.stacktrace` über 128 Ki UTF-16 → `[SANITIZATION_FAILED]`, Ausgabe auf 32 KiB UTF-8 gekürzt. | Grenzwerte ±1 |
+| R6 | Sanitizer-Grenzen aus qyl bleiben: `exception.message` und `exception.stacktrace` über 128 Ki UTF-16 → `[SANITIZATION_FAILED]`, Ausgabe auf 32 KiB UTF-8 gekürzt. | Grenzwerte ±1 |
 | R7 | Exceptions werden aus **beiden** Quellen erkannt: Log-Record mit `event_name == exception` (stabil) und Span-Event `exception` (tomos `tracing`-Pfad); `errors_recent` gruppiert sie gleich. | Zwei Sendewege, eine Gruppe |
 | R8 | Resource-Pflicht: `service.name` und `telemetry.sdk.name/version/language`; eine Resource ohne `service.name` wird als eigenes Projekt-Problem gezählt, nicht verworfen. | Zähler `resource.missing_service_name` steigt |
 | R9 | Projekt-Scoping: `nami.project.id` aus der Resource entscheidet die Ablage; ein Tool-Argument, ein Header oder `_meta` wählen nie ein Projekt. | Cross-Project-Read liefert 0 Zeilen |
@@ -116,7 +116,7 @@ Diese Invarianten brauchen den laufenden Collector mit In-Memory-DuckDB; Eingabe
 
 ## S: Vertrag und Serialisierung
 
-Der Vertrag ist spec-first: Records (Produkttypen) und Unions (Summentypen, diskriminiert über `kind`), sprachunabhängig, mit einer reinen Funktion von Spezifikation zu Artefakten. Die Spezifikation steht in TypeSpec, übernommen aus nami (Entscheidung 1); tomo sieht davon nur das emittierte JSON Schema.
+Der Vertrag ist spec-first: Records (Produkttypen) und Unions (Summentypen, diskriminiert über `kind`), sprachunabhängig, mit einer reinen Funktion von Spezifikation zu Artefakten. Die Spezifikation steht in TypeSpec, übernommen aus qyl (Entscheidung 1); tomo sieht davon nur das emittierte JSON Schema.
 
 | ID | Invariante | Assertion |
 | --- | --- | --- |
@@ -124,7 +124,7 @@ Der Vertrag ist spec-first: Records (Produkttypen) und Unions (Summentypen, disk
 | S2 | Der Diskriminator heißt `kind`, trägt den Variantennamen aus der Spezifikation und steht auf oberster Ebene (kein Envelope). | JSON enthält `"kind":"<variant>"` top-level |
 | S3 | Round-Trip ist verlustfrei und idempotent bei kanonischer Property-Reihenfolge: `Serialize(Deserialize(json)) == json`. | Byte-Vergleich |
 | S4 | JSON läuft ausschließlich über den Source-Generator (`JsonSerializerContext`); kein Reflection-Fallback, auch nicht in Tests. | `TypeInfoResolver` liefert für jeden Vertragstyp |
-| S5 | Zeit ist Wire-Text: RFC 3339 mit `T` und `Z` in beliebiger Schreibung, Offset mit Doppelpunkt, keine Schaltsekunde; Schreibweise, Offset und Nachkommastellen bleiben erhalten (namis `ContractDateTime`). Relative Angaben (`-15m`) werden an der Tool-Grenze in dieselbe Form aufgelöst. | `[DataRow]` über Schreibweisen; `-15m` → absolutes Fenster |
+| S5 | Zeit ist Wire-Text: RFC 3339 mit `T` und `Z` in beliebiger Schreibung, Offset mit Doppelpunkt, keine Schaltsekunde; Schreibweise, Offset und Nachkommastellen bleiben erhalten (qyls `ContractDateTime`). Relative Angaben (`-15m`) werden an der Tool-Grenze in dieselbe Form aufgelöst. | `[DataRow]` über Schreibweisen; `-15m` → absolutes Fenster |
 | S6 | `OptionalValue<T>` unterscheidet Abwesenheit von explizitem `null`; `default` heißt abwesend. | Drei Zustände, drei Serialisierungen |
 | S7 | Ganzzahlen auf dem Draht sind exakt darstellbar; OTLP-64-Bit und Nanosekunden bleiben kanonische Dezimal-Strings; String-Enums nehmen keine Ordinale. | Grenzwerte 2⁵³±1, `"1"` ≠ `1` |
 | S8 | Fehler sind Werte: `ToolError { code, message, retryable, field, allowed, hint }`; `field` und `allowed` nennen das Argument und was es annimmt; `not_found` nennt `resource_type` und `resource_id`. Kein Tool wirft. | Jede Refusal-Klasse hat genau eine Fehlerform |
@@ -132,9 +132,9 @@ Der Vertrag ist spec-first: Records (Produkttypen) und Unions (Summentypen, disk
 
 ## T: Toolvertrag
 
-Sechs Lese-Tools, in der Reihenfolge, in der Claude sie beim Debuggen von tomo aufruft. Wire-Namen sind snake\_case wie in nami, weil das Anthropic-API in Tool-Namen nur `[a-zA-Z0-9_-]` annimmt; tomos Dokument schreibt sie mit Punkt.
+Sechs Lese-Tools, in der Reihenfolge, in der Claude sie beim Debuggen von tomo aufruft. Wire-Namen sind snake\_case wie in qyl, weil das Anthropic-API in Tool-Namen nur `[a-zA-Z0-9_-]` annimmt; tomos Dokument schreibt sie mit Punkt.
 
-| Tool (Wire-Name) | Frage | Argumente | nami-Analyse, aus der es entsteht |
+| Tool (Wire-Name) | Frage | Argumente | qyl-Analyse, aus der es entsteht |
 | --- | --- | --- | --- |
 | `sources_status` | Sendet tomo überhaupt? | `service` | `check_telemetry_health` |
 | `errors_recent` | Welche Fehler, gruppiert nach Typ und Operation, mit `first_seen`, `count`, einem Beispiel-`trace_id` | `service`, `since` | `triage` + `get_failure_context` |
@@ -143,7 +143,7 @@ Sechs Lese-Tools, in der Reihenfolge, in der Claude sie beim Debuggen von tomo a
 | `logs_search` | Diese Logzeile, literal | `query`, `service`, `since` | `search_logs` |
 | `changes_recent` | Was hat sich seit wann geändert | `service`, `since` | `list_releases` + `ci_log`, aus `vcs.*`, `cicd.*` und `deployment.*` der Resource |
 
-Jedes Tool nimmt zusätzlich `fields`, `max_bytes` und relative Zeiten (`-15m`). Jedes Ergebnis trägt den Freshness-Block, namis `ToolCoverage` um die Wasserlinie erweitert:
+Jedes Tool nimmt zusätzlich `fields`, `max_bytes` und relative Zeiten (`-15m`). Jedes Ergebnis trägt den Freshness-Block, qyls `ToolCoverage` um die Wasserlinie erweitert:
 
 ```yaml
 freshness:
@@ -173,22 +173,22 @@ freshness:
 
 ## E2E-Harness
 
-Der Harness ist namis: MSTest.Sdk 4.5.1 auf Microsoft.Testing.Platform, Fallout als Gate, eine NativeAOT-Conformance-App ohne Testframework. Drei Testprojekte, nach Beweisart getrennt:
+Der Harness ist qyls: MSTest.Sdk 4.5.1 auf Microsoft.Testing.Platform, Fallout als Gate, eine NativeAOT-Conformance-App ohne Testframework. Drei Testprojekte, nach Beweisart getrennt:
 
 | Projekt | Beweist | Läuft | Wurzel-Test |
 | --- | --- | --- | --- |
 | `Nami.Registry.Tests` | G1–G10, S1 | JIT; braucht `weaver` auf dem PATH (`[ExecutableCondition("weaver", "--version")]`) und Roslyn | `Catalog_MatchesResolvedRegistry` |
 | `Nami.Collector.Tests` | R1–R10, S2–S9, T1–T13 | JIT; In-Memory-DuckDB unter `TestContext.TestTempDirectory`, OTLP über Loopback, MCP-Client in-process über stdio | `Catalog_EmbeddedConstants_MatchRegistrySnapshot` |
-| `Nami.Conformance` | Das veröffentlichte AOT-Binary: ein OTLP-Batch rein, sechs Tools über stdio raus, Freshness-Block korrekt | `PublishAot`, kein MSTest (namis `Nami.Sdk.Conformance`-Muster) | der Prozess selbst |
+| `Nami.Conformance` | Das veröffentlichte AOT-Binary: ein OTLP-Batch rein, sechs Tools über stdio raus, Freshness-Block korrekt | `PublishAot`, kein MSTest (qyls `Qyl.Sdk.Conformance`-Muster) | der Prozess selbst |
 
 **Regeln.**
 
-- Testklassen `sealed`, `TestContext` über den Primär-Konstruktor, `context.CancellationToken` an jeden Call (`MSTEST0049`); `[Timeout]` auf jedem Test, der einen Socket oder einen Prozess öffnet (nami: 23 Stellen).
+- Testklassen `sealed`, `TestContext` über den Primär-Konstruktor, `context.CancellationToken` an jeden Call (`MSTEST0049`); `[Timeout]` auf jedem Test, der einen Socket oder einen Prozess öffnet (qyl: 23 Stellen).
 - `Assert.Scope()` (experimentell, `#pragma warning disable MSTESTEXP`) für Attribut- und Freshness-Prüfungen: alle Abweichungen eines Ergebnisses in einem Lauf.
 - `[CombinatorialData]` über die sechs Tools × drei OTLP-Transporte; Werte aus dem geladenen Katalog, nie Literale im Test.
 - `[DependsOn]` nur innerhalb einer Assembly, jeweils auf den Wurzel-Test; die Reihenfolge der Assemblies erzwingt Fallout.
-- `[ResourceLock(WellKnownResources.EnvironmentVariables)]` für `NAMI_*`/`OTEL_*`-Variablen; `[DoNotParallelize]` nur für Tests, die feste Ports binden (nami: 13 Stellen); alles andere parallel.
-- Eingabe ist immer echtes OTLP (protobuf-Bytes oder JSON), erzeugt aus dem aufgelösten Schema; synthetische Telemetrie existiert nur in Tests (namis Regel).
+- `[ResourceLock(WellKnownResources.EnvironmentVariables)]` für `NAMI_*`/`OTEL_*`-Variablen; `[DoNotParallelize]` nur für Tests, die feste Ports binden (qyl: 13 Stellen); alles andere parallel.
+- Eingabe ist immer echtes OTLP (protobuf-Bytes oder JSON), erzeugt aus dem aufgelösten Schema; synthetische Telemetrie existiert nur in Tests (qyls Regel).
 - Golden-Dateien für `tools/list` und für den Katalog; Vergleich über `Assert.AreEquivalent(expected, actual, strict: true)` auf dem deserialisierten Modell, IDs und Zeitstempel normalisiert.
 - `testconfig.json`: `captureTrace: Live`, `captureAssertionFailureDiagnostics: true` (nicht unter AOT wirksam).
 
@@ -272,9 +272,9 @@ nami wird von Agenten für Agenten gebaut. Entscheidungen trifft der Agent, der 
 
 | Nr. | Frage | Entscheidung | Begründung |
 | --- | --- | --- | --- |
-| 1 | Spezifikationssprache des Vertrags | **TypeSpec**, übernommen aus nami `contracts/`. Der TS-Types-Emitter entfällt; C#-Emitter (818 Zeilen), Lint-Regeln und JSON-Schema-Emitter bleiben. | Existiert, ist getestet und emittiert das JSON Schema, das `typify` in Rust-Typen für tomo übersetzt. Zod (tomos Vorschlag) brächte die dritte Laufzeit zurück, die nami gerade abschafft; reine C#-Records machten tomos Typen von C#-Tooling abhängig. tomo sieht nur JSON Schema, die Wahl ist für tomo unsichtbar. |
+| 1 | Spezifikationssprache des Vertrags | **TypeSpec**, übernommen aus qyl `contracts/`. Der TS-Types-Emitter entfällt; C#-Emitter (818 Zeilen), Lint-Regeln und JSON-Schema-Emitter bleiben. | Existiert, ist getestet und emittiert das JSON Schema, das `typify` in Rust-Typen für tomo übersetzt. Zod (tomos Vorschlag) brächte die dritte Laufzeit zurück, die nami gerade abschafft; reine C#-Records machten tomos Typen von C#-Tooling abhängig. tomo sieht nur JSON Schema, die Wahl ist für tomo unsichtbar. |
 | 2 | Zeitpunkt von .NET 11 | **RC2 jetzt**: `global.json` auf `11.0.100-rc.2`, `allowPrerelease: true`, `rollForward: latestFeature`; der GA-Pin am 9.11.2026 ist ein eigener Commit. | Unions, `AddTracing`, `ActivitySourceFactory` und `SerializeAsyncEnumerable` mit `JsonTypeInfo<T>` sind der Grund für .NET 11; zwei Wochen Warten auf GA haben keinen Gegenwert. Bricht `ANcpLua.NET.Sdk`, MSTest.Sdk oder DuckDB.NET unter net11, wird das Paket gepinnt oder ersetzt, nicht die Entscheidung. |
-| 3 | Metriken-Tool | **Keines.** `sources_status` meldet `last_seen` für alle drei Signale, Metrics eingeschlossen; mehr fragt tomo nicht. | Sechs Fragen, sechs Tools; `traces_slowest` deckt den Tail. Ein `metrics_query` kommt erst, wenn tomo eine Metrikfrage stellt, und wird dann aus namis `query_metric` abgeleitet; bis dahin ist es Oberfläche ohne Frage. |
+| 3 | Metriken-Tool | **Keines.** `sources_status` meldet `last_seen` für alle drei Signale, Metrics eingeschlossen; mehr fragt tomo nicht. | Sechs Fragen, sechs Tools; `traces_slowest` deckt den Tail. Ein `metrics_query` kommt erst, wenn tomo eine Metrikfrage stellt, und wird dann aus qyls `query_metric` abgeleitet; bis dahin ist es Oberfläche ohne Frage. |
 
 | Risiko | Wo es auffällt | Gegenmaßnahme |
 | --- | --- | --- |
@@ -282,12 +282,12 @@ nami wird von Agenten für Agenten gebaut. Entscheidungen trifft der Agent, der 
 | Weaver 0.28.0 liefert keine C#-Templates; verschachtelte Registry-Abhängigkeit (nami → genai → core) ist in der Dokumentation nicht als Beispiel belegt. | G1, G2 | `weaver registry check --future` am Sonntag als erster Befehl; eigene `.j2` wie GenAI; bei Doppelauflösung Core nur über GenAI importieren |
 | Development-Konventionen (`gen_ai.*`, `mcp.*`) benennen sich zwischen GenAI-Commits um; ohne Tag kein Semver. | G9, R4 | Commit-Pin plus `weaver registry diff` als Gate; Normalisierungstabelle aus dem Diff pflegen |
 | tomos `tracing-opentelemetry` schreibt `error!`-Events als Span-Events, nicht als Log-Records; die stabile Exception-Konvention ist der Log-Pfad. | R7 | nami erkennt beide Quellen; tomo entscheidet am Sonntag, ob `opentelemetry-appender-tracing` mitläuft |
-| `changes_recent` braucht eine Quelle für „seit wann". | T-Tabelle | Keine externe Abfrage: tomo setzt `vcs.ref.head.revision`, `deployment.environment.name` und `cicd.*` in der Resource; nami liest Änderungen aus Resource-Wechseln (namis `list_releases`-Prinzip) |
+| `changes_recent` braucht eine Quelle für „seit wann". | T-Tabelle | Keine externe Abfrage: tomo setzt `vcs.ref.head.revision`, `deployment.environment.name` und `cicd.*` in der Resource; nami liest Änderungen aus Resource-Wechseln (qyls `list_releases`-Prinzip) |
 | Tool-Namen mit Punkt (`sources.status`) werden vom Anthropic-API abgelehnt. | T10 | Wire-Namen snake\_case; tomos Dokument anpassen |
 | `.NET`-Logging-SDK: Spalte .NET in der Compliance-Matrix hat kein `Logger.Emit(LogRecord)` und kein belegtes `EventName`; für namis **eigene** Exception-Events ist der Log-Pfad in .NET nicht garantiert. Rust hat beides. | R7 (Selbsttelemetrie) | nami-eigene Fehler als Span-Event plus `ILogger`-Record mit `exception.*`; der Receiver gruppiert ohnehin beide |
-| Ein Binary heißt ein Deployment: ohne den TS-Server entfällt `mcp.nami.at`; Hosting läuft über dasselbe Railway-Service wie OTLP. | Deployment | Zwei Ports, ein Service, ein Healthcheck; OAuth erst, wenn ein zweiter Konsument existiert |
+| Ein Binary heißt ein Deployment: ohne den TS-Server entfällt `mcp.qyl.at`; Hosting läuft über dasselbe Railway-Service wie OTLP. | Deployment | Zwei Ports, ein Service, ein Healthcheck; OAuth erst, wenn ein zweiter Konsument existiert |
 
-**Fallback-Kriterium Rust.** Nur wenn G7 (AOT-Sauberkeit) oder die MCP-Konformanz unter NativeAOT nicht erreichbar sind. Registry, Vertrag und Tool-Invarianten sind sprachneutral und wandern unverändert mit; namis Collector-Code ist das Argument für C#.
+**Fallback-Kriterium Rust.** Nur wenn G7 (AOT-Sauberkeit) oder die MCP-Konformanz unter NativeAOT nicht erreichbar sind. Registry, Vertrag und Tool-Invarianten sind sprachneutral und wandern unverändert mit; qyls Collector-Code ist das Argument für C#.
 
 **Termine.** Sonntag, 25.10.2026: tomos Rust-Marathon, dazu `weaver registry check` und der erste Conformance-Lauf. 9.11.2026: .NET 11 GA, Pin-Wechsel. 12.12.2026: was 2808-vibing braucht.
 
@@ -298,13 +298,13 @@ nami wird von Agenten für Agenten gebaut. Entscheidungen trifft der Agent, der 
 | Datum | Änderung |
 | --- | --- |
 | 2026-10-24 | Die drei offenen Entscheidungen getroffen: TypeSpec bleibt, .NET 11 RC2 jetzt, kein Metriken-Tool. Regel aufgenommen: Entscheidungen trifft der bauende Agent, Einspruch per Kommentar. Abschnitte 3 und S angepasst. |
-| 2026-10-24 | Umbau von observe_runtime (C#-Interceptor-Architektur) auf nami: Zweck, Problem, Schnittliste gegen nami `ecdfb564`, Architektur mit einem Binary, Weaver-Registry `nami` (Core v1.44.0, GenAI 9ffc7e00, Weaver 0.28.0, stable und development), sechs Tools mit Freshness-Block, Invarianten G/R/S/T neu, Harness auf drei Projekte, Risiken. Grundlage: nami-Repo, nami-Repo, `claude/debugging-tomo.md`, Weaver-Dokumentation, C#-MCP-SDK-v2-Dokumentation. |
-| 2026-10-23 | Review der observe_runtime-Fassung: sieben Korrekturen, drei Ergänzungen; Intro von Gesprächsform auf PRD umgestellt. |
-| 2026-10-23 | Erste Fassung als observe_runtime-Invarianten und Testspezifikation. |
+| 2026-10-24 | Umbau von observe\_runtime (C#-Interceptor-Architektur) auf nami: Zweck, Problem, Schnittliste gegen qyl `ecdfb564`, Architektur mit einem Binary, Weaver-Registry `nami` (Core v1.44.0, GenAI 9ffc7e00, Weaver 0.28.0, stable und development), sechs Tools mit Freshness-Block, Invarianten G/R/S/T neu, Harness auf drei Projekte, Risiken. Grundlage: qyl-Repo, nami-Repo, `claude/debugging-tomo.md`, Weaver-Dokumentation, C#-MCP-SDK-v2-Dokumentation. |
+| 2026-10-23 | Review der observe\_runtime-Fassung: sieben Korrekturen, drei Ergänzungen; Intro von Gesprächsform auf PRD umgestellt. |
+| 2026-10-23 | Erste Fassung als observe\_runtime-Invarianten und Testspezifikation. |
 
 ### Quellen
 
-- [nami @ ecdfb564 „nami for tomo"](https://github.com/ANcpLua/nami/commit/ecdfb5645081bb532e1b00eaccc09606d9f5b04b) (README, AGENTS.md, `docs/architecture.yaml`, `services/nami.mcp/README.md`, `eng/build/BuildCollectorSemanticCatalog.cs`, `contracts/common/telemetry-query.tsp`, `Version.props`, `global.json`)
+- [qyl @ ecdfb564 „nami for tomo"](https://github.com/ANcpLua/qyl/commit/ecdfb5645081bb532e1b00eaccc09606d9f5b04b) (README, AGENTS.md, `docs/architecture.yaml`, `services/qyl.mcp/README.md`, `eng/build/BuildCollectorSemanticCatalog.cs`, `contracts/common/telemetry-query.tsp`, `Version.props`, `global.json`)
 - [nami @ e025215](https://github.com/ANcpLua/nami) (`claude/debugging-tomo.md`)
 - [semantic-conventions v1.44.0](https://github.com/open-telemetry/semantic-conventions/releases/tag/v1.44.0) und [main 3e258047](https://github.com/open-telemetry/semantic-conventions/commit/3e2580475b1fa266fe85a1d1ea7fe9c41a4783b5); Stable-Inventar aus dem Handoff vom 23.10.2026
 - [semantic-conventions-genai 9ffc7e00, model/manifest.yaml](https://github.com/open-telemetry/semantic-conventions-genai/blob/9ffc7e00c639be7712e544e3e54331e885dccf84/model/manifest.yaml)

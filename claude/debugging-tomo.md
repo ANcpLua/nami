@@ -1,5 +1,11 @@
 # What Claude needs from nami to debug tomo
 
+Current implementation decision: the contract language is **TypeSpec** and the Nami runtime is
+**C# / .NET 11 NativeAOT**, as specified in [the PRD](../docs/prd/nami.md).
+The TypeScript/Zod/fast-check discussion below records the original proposal, not the implementation
+stack. Its functional-core and explicit-error requirements still apply. The current freshness
+contract uses `examined`, `matched`, `returned` and `truncated` alongside `watermark` and `complete`.
+
 tomo is a Rust service. Claude debugs it through nami, and nami is nothing but an OTLP target plus MCP tools.
 No SDK, no product REST API, no nami API: the tools are the API.
 
@@ -24,12 +30,12 @@ is a tool call.
 
 ## 3. The tools Claude wants, in the order it uses them
 
-1. `sources.status(service)`: is tomo sending at all? `last_seen` per signal. Silence is a finding, not "no errors".
-2. `errors.recent(service, since)`: errors grouped by type and operation, with first seen, count and one example trace id.
-3. `traces.get(trace_id, fields?)`: one trace, projected to the fields asked for.
-4. `traces.slowest(service, operation?, since)`: the slow tail, not the average.
-5. `logs.search(query, service, since)`: literal text search; quotes, backslashes and non-ASCII match as typed.
-6. `changes.recent(service, since)`: deploys and commits in the window, so "since when" has an answer.
+1. `sources_status(service)`: is tomo sending at all? `last_seen` per signal. Silence is a finding, not "no errors".
+2. `errors_recent(service, since)`: errors grouped by type and operation, with first seen, count and one example trace id.
+3. `traces_get(trace_id, fields?)`: one trace, projected to the fields asked for.
+4. `traces_slowest(service, operation?, since)`: the slow tail, not the average.
+5. `logs_search(query, service, since)`: literal text search; quotes, backslashes and non-ASCII match as typed.
+6. `changes_recent(service, since)`: deploys and commits in the window, so "since when" has an answer.
 
 Every read tool takes `fields`, `max_bytes` and relative times (`-15m`), and every result carries the freshness block:
 
@@ -56,7 +62,7 @@ Empty and complete means trust it; empty and incomplete means retry after the la
   regenerates and compares.
 - A human writes the spec; the agent derives everything else from it and cannot add a shape the spec does not have.
 
-### The spec language: TypeScript, not TypeSpec
+### Original proposal: TypeScript (superseded by the TypeSpec decision)
 
 The spec is a TypeScript module that holds data only: schemas, no behavior.
 

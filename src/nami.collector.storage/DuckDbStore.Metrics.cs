@@ -81,6 +81,7 @@ internal sealed partial class DuckDbStore
                 token.ThrowIfCancellationRequested();
                 RefreshMetricProjection(con, tx, arriving.Key, arriving.First());
             }
+            RecordIngestion(con, tx, "metrics", indexedSeries.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName, row.ResourceJson, row.AttributesJson, row.ScopeAttributesJson, row.AttributeRenames)), token);
             await tx.CommitAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }

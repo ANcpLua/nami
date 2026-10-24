@@ -10,5 +10,3 @@ global using Grpc.Core;
 global using Nami.Collector.Ingestion;
 global using NamiSessionActivity = Nami.Collector.Ingestion.Primitives.SessionActivity;
 global using NamiTimeConversions = Nami.Collector.Ingestion.Primitives.TimeConversions;
-global using Nami.Collector.Mapping;
-global using Nami.Instrumentation;

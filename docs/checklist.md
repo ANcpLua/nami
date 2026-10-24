@@ -10,6 +10,21 @@ Source of truth for the product: `docs/prd/nami.md` (German). Source of the code
 already copied into this tree with `qyl → nami` renamed mechanically (`Qyl.* → Nami.*`, `QYL_ → NAMI_`).
 A read-only checkout of qyl is at `/home/claude/ancplua/qyl` for anything the copy lost.
 
+## Current local continuation
+
+The continuation uses the root of the `nami` checkout on `main`, not the qyl reference checkout.
+The Linux `/home/claude/...` paths below describe the original cloud session only.
+
+Registry authoring is now `registry/source/`; `registry/manifest.yaml`, `registry/resolved.json`
+and `registry/source-pins.json` are generated canonical publication files. This makes the direct
+strict Weaver check work while preserving the exact Core/GenAI sources. Run
+`bash registry/generate.sh` to regenerate, or `--check` to compare without editing outputs.
+
+The implementation and sequential test phase are complete. The full Release gate passed with
+154 tests, zero failures and zero skipped cases, compiled Rust and byte-identical generators.
+Both native binaries passed the six-tool/three-signal conformance proof, including snapshot
+replay after a native server restart. See `docs/verification.md` for the requirement evidence.
+
 ## Toolchain (installed, use these paths)
 
 | Tool | Path | Version |
@@ -141,139 +156,139 @@ snapshot id gives the same answer. `Result<T, E>` lives in `src/nami/Tools/Resul
 
 ### 1. Registry — owns `registry/`, `weaver.yaml` (root)
 
-- [ ] `registry/manifest.yaml`: name `nami`, `stability: development`, `schema_url`
+- [x] `registry/source/manifest.yaml`: name `nami`, `stability: development`, `schema_url`
       `https://ancplua.github.io/nami/schemas/0.1.0`, dependencies core `v1.44.0`
       (`https://opentelemetry.io/schemas/1.44.0`, `https://github.com/open-telemetry/semantic-conventions.git@v1.44.0[model]`)
       and genai `9ffc7e00c639be7712e544e3e54331e885dccf84`
       (`https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev`, `...semantic-conventions-genai.git@9ffc7e00c639be7712e544e3e54331e885dccf84[model]`).
-- [ ] `registry/nami/attributes.yaml`: `nami.project.id`, `nami.attribute.namespace`, `nami.attribute.key`,
+- [x] `registry/source/nami/attributes.yaml`: `nami.project.id`, `nami.attribute.namespace`, `nami.attribute.key`,
       `nami.gen_ai.tool.call.arguments_hash` with briefs, types, stability development, and annotations
       `nami.persisted` / `nami.token_exempt`.
-- [ ] `registry/nami/entities.yaml`: `entity.nami.project` (identity `nami.project.id`).
-- [ ] Imports of the core and genai groups nami stores (http, db, exception, gen_ai, mcp, session, vcs, cicd,
+- [x] `registry/source/nami/entities.yaml`: `entity.nami.project` (identity `nami.project.id`).
+- [x] Imports of the core and genai groups nami stores (http, db, exception, gen_ai, mcp, session, vcs, cicd,
       deployment, service, telemetry).
-- [ ] `registry/policies/*.rego`: every `nami.*` key must carry a brief and a stability.
-- [ ] `weaver registry check --future -r registry` exits 0 (run with the tool path above); write the exact
+- [x] `registry/policies/*.rego`: every `nami.*` key must carry a brief and a stability.
+- [x] `weaver registry check --future -r registry` exits 0 (run with the tool path above); write the exact
       command and output summary to `registry/README.md`.
-- [ ] If the nested dependency (nami → genai → core) resolves core twice, record it in
+- [x] If the nested dependency (nami → genai → core) resolves core twice, record it in
       `docs/integration/1-registry.md` and import core only through genai.
-- [ ] `registry/CHANGELOG.md` with the two pins and the resolved commit ids.
+- [x] `registry/CHANGELOG.md` with the two pins and the resolved commit ids.
 
 ### 2. C# templates — owns `templates/registry/csharp/`, `internal/nami.semconv/`
 
-- [ ] `templates/registry/csharp/weaver.yaml` + `*.j2` producing the API under "Generated semconv API"
+- [x] `templates/registry/csharp/weaver.yaml` + `*.j2` producing the API under "Generated semconv API"
       into `internal/nami.semconv/Generated/*.g.cs`; `Nami.SemanticConventions.csproj` (net11.0, no package refs).
-- [ ] Learn the v2 context shape from `weaver registry json-schema -j materialized-registry-v2`.
-- [ ] Until workstream 1 is green, generate against core alone (`-r https://github.com/open-telemetry/semantic-conventions.git@v1.44.0[model]`)
+- [x] Learn the v2 context shape from `weaver registry json-schema -j materialized-registry-v2`.
+- [x] Until workstream 1 is green, generate against core alone (`-r https://github.com/open-telemetry/semantic-conventions.git@v1.44.0[model]`)
       to validate the templates; the final run uses `-r registry --v2`.
-- [ ] Deterministic output: sorted keys, no timestamps, LF line endings; running generation twice is byte-identical.
-- [ ] `dotnet build internal/nami.semconv/Nami.SemanticConventions.csproj` compiles.
-- [ ] Write the generation command to `internal/nami.semconv/README.md`.
+- [x] Deterministic output: sorted keys, no timestamps, LF line endings; running generation twice is byte-identical.
+- [x] `dotnet build internal/nami.semconv/Nami.SemanticConventions.csproj` compiles.
+- [x] Write the generation command to `internal/nami.semconv/README.md`.
 
 ### 3. Rust and markdown templates — owns `templates/registry/rust/`, `templates/registry/markdown/`, `crates/`, `docs/semconv/`
 
-- [ ] `crates/nami-semconv`: `Cargo.toml` (edition 2021, no deps), generated `src/lib.rs` with `pub const`
+- [x] `crates/nami-semconv`: `Cargo.toml` (edition 2021, no deps), generated `src/lib.rs` with `pub const`
       string keys per namespace (`pub mod http { pub const REQUEST_METHOD: &str = "http.request.method"; }`),
       metric names/units, and `pub mod nami`.
-- [ ] `cargo build` in the crate succeeds.
-- [ ] Markdown templates render one page per namespace into `docs/semconv/` with stability per attribute.
-- [ ] Same determinism rule as workstream 2.
+- [x] `cargo build` in the crate succeeds.
+- [x] Markdown templates render one page per namespace into `docs/semconv/` with stability per attribute.
+- [x] Same determinism rule as workstream 2.
 
 ### 4. Contracts — owns `contracts/`, `internal/nami.contracts/`
 
-- [ ] Remove every model and route nami does not have: the 24 qyl tools, writes (annotations, saved queries,
+- [x] Remove every model and route nami does not have: the 24 qyl tools, writes (annotations, saved queries,
       failure status), sessions, runner, streaming, metrics query, health routes other than `/health`.
-- [ ] Add `contracts/models/tools.tsp` with the shapes under "Contract types"; keep `common/errors.tsp`,
+- [x] Add `contracts/models/tools.tsp` with the shapes under "Contract types"; keep `common/errors.tsp`,
       `common/types.tsp`, `common/telemetry-query.tsp` (rename `ToolCoverage` → `Freshness` with the new fields),
       `otel/*.tsp`.
-- [ ] Keep the C# emitter and the lint emitter; the ts-types emitter is deleted. Add a JSON-Schema emission
+- [x] Keep the C# emitter and the lint emitter; the ts-types emitter is deleted. Add a JSON-Schema emission
       (`@typespec/json-schema`) for the six tool inputs/outputs into `contracts/json-schema/`.
-- [ ] `bun install && bun run build` (or the script names in `contracts/package.json`) regenerates
+- [x] `bun install && bun run build` (or the script names in `contracts/package.json`) regenerates
       `internal/nami.contracts` and the JSON schemas; commit the outputs.
-- [ ] `dotnet build internal/nami.contracts/Nami.Api.Contracts.csproj` compiles.
+- [x] `dotnet build internal/nami.contracts/Nami.Api.Contracts.csproj` compiles.
 
 ### 5. Host and MCP server — owns `src/nami/Program.cs`, `src/nami/Mcp/`, `src/nami/Hosting/`, `src/nami/nami.csproj`
 
-- [ ] `nami.csproj`: net11.0, `PublishAot`, references ingestion, storage, contracts, semconv; package
+- [x] `nami.csproj`: net11.0, `PublishAot`, references ingestion, storage, contracts, semconv; package
       `ModelContextProtocol` (2.x) and `ModelContextProtocol.AspNetCore` — find the current versions on NuGet.
-- [ ] One Kestrel host: OTLP HTTP + gRPC endpoints from qyl's ingestion, MCP Streamable HTTP at `/mcp` in
+- [x] One Kestrel host: OTLP HTTP + gRPC endpoints from qyl's ingestion, MCP Streamable HTTP at `/mcp` in
       stateless mode (`HttpServerSessionMode.Stateless`), `--stdio` for stdio transport.
-- [ ] Tool registration without reflection: a static table built from the contracts (name, description,
+- [x] Tool registration without reflection: a static table built from the contracts (name, description,
       input JSON schema from `contracts/json-schema/`, annotations); no `WithTools<T>()`.
-- [ ] Result shaping: `content[0]` headline text, `content[1]` the JSON, `structuredContent` the same object,
+- [x] Result shaping: `content[0]` headline text, `content[1]` the JSON, `structuredContent` the same object,
       `max_bytes` applied to `structuredContent` with `truncated` and `next_cursor`.
-- [ ] `tools/list` deterministic order, `ttlMs` and `cacheScope` set.
-- [ ] `_meta.traceparent` extracted into the tool `Activity`; missing `_meta` starts a root.
-- [ ] Protocol errors as JSON-RPC errors; `ToolError` as `isError` results.
+- [x] `tools/list` deterministic order, `ttlMs` and `cacheScope` set.
+- [x] `_meta.traceparent` extracted into the tool `Activity`; missing `_meta` starts a root.
+- [x] Protocol errors as JSON-RPC errors; `ToolError` as `isError` results.
 
 ### 6. Tools — owns `src/nami/Tools/`, `src/nami/Analysis/` (adapt qyl's AnalysisEngine, delete what nami does not use)
 
-- [ ] `Result.cs`, `ToolClock`, `TimeSpec` parsing (`-15m`, RFC 3339) into an absolute half-open window
+- [x] `Result.cs`, `ToolClock`, `TimeSpec` parsing (`-15m`, RFC 3339) into an absolute half-open window
       `[start, now)` capped at the watermark.
-- [ ] Six pure tools under "Analysis API", built from qyl's `AnalysisEngine.*`:
+- [x] Six pure tools under "Analysis API", built from qyl's `AnalysisEngine.*`:
       `sources_status` ← `check_telemetry_health`; `errors_recent` ← `triage` + `get_failure_context`;
       `traces_get` ← `get_trace`; `traces_slowest` ← `list_traces` sorted by duration + `aggregate_telemetry`;
       `logs_search` ← `search_logs` (literal match only); `changes_recent` ← `list_releases` + `ci_log`
       from resource attribute changes (`vcs.ref.head.revision`, `service.version`, `deployment.environment.name`, `cicd.*`).
-- [ ] Freshness on every result; silence is a finding (`kind: "silent"`, `silent_for`).
-- [ ] Errors grouped from both sources: log records with `event_name == "exception"` and span events named
+- [x] Freshness on every result; silence is a finding (`kind: "silent"`, `silent_for`).
+- [x] Errors grouped from both sources: log records with `event_name == "exception"` and span events named
       `exception`, plus span status `ERROR` without either.
-- [ ] No raw dump: `errors_recent` carries no stacktrace; full spans only via `traces_get` with `fields`.
-- [ ] Delete the qyl analysis operations nami does not expose; keep shared helpers.
+- [x] No raw dump: `errors_recent` carries no stacktrace; full spans only via `traces_get` with `fields`.
+- [x] Delete the qyl analysis operations nami does not expose; keep shared helpers.
 
 ### 7. Ingestion and storage — owns `src/nami.collector.ingestion/`, `src/nami.collector.storage/`, `internal/nami.collector.storage.generators/`
 
-- [ ] Replace the NuGet semconv references (`Nami.Telemetry.SemanticConventions*`) with a project reference
+- [x] Replace the NuGet semconv references (`Nami.Telemetry.SemanticConventions*`) with a project reference
       to `internal/nami.semconv`; replace `CollectorSemanticAttributeCatalog.g.cs` with the generated
       `RegistryPolicy` / `AttributeStability` / `DeprecatedAttributes` (delete the old generated file and the
       `eng/config/collector-semantic-policy.json` dependency; keep the sanitizer limits 128 Ki / 32 KiB).
-- [ ] Watermark per (project, signal), monotone, persisted; `last_seen` per (project, service, signal) from
+- [x] Watermark per (project, signal), monotone, persisted; `last_seen` per (project, service, signal) from
       receipt time, not record time.
-- [ ] Deprecated keys rewritten to their successor on ingest (`DeprecatedAttributes.SuccessorOf`), original
+- [x] Deprecated keys rewritten to their successor on ingest (`DeprecatedAttributes.SuccessorOf`), original
       key kept only in `nami.attribute.key` discovery rows.
-- [ ] Stability mark stored next to development keys (column or side table) so tools can report it.
-- [ ] `ISnapshot` under "Analysis API" with the queries the six tools need; snapshot id stable for the same data.
-- [ ] Remove write paths (annotations, saved queries, failure status, delete) and the REST analysis routes.
-- [ ] `dotnet build` of both projects compiles (semconv stub acceptable until workstream 2 lands).
+- [x] Stability mark stored next to development keys (column or side table) so tools can report it.
+- [x] `ISnapshot` under "Analysis API" with the queries the six tools need; snapshot id stable for the same data.
+- [x] Remove write paths (annotations, saved queries, failure status, delete) and the REST analysis routes.
+- [x] `dotnet build` of both projects compiles (semconv stub acceptable until workstream 2 lands).
 
 ### 8. Build and CI — owns `eng/`, `nami.slnx`, `global.json`, `Directory.*.props/targets`, `Version.props`, `.github/`, `mise.toml`
 
-- [ ] `nami.slnx` listing the projects above; `global.json` as in "Layout".
-- [ ] `Version.props`: `NamiVersion` 0.1.0; drop every qyl-only version property (Api.Sdk, Cli, Orchestration,
+- [x] `nami.slnx` listing the projects above; `global.json` as in "Layout".
+- [x] `Version.props`: `NamiVersion` 0.1.0; drop every qyl-only version property (Api.Sdk, Cli, Orchestration,
       Workload, Telemetry packages); keep DuckDB 1.5.6, Grpc, Protobuf, OpenTelemetry, Fallout, MSTest versions.
-- [ ] Fallout targets: `Registry` (weaver check + generate + `git diff --exit-code`), `Contracts`,
+- [x] Fallout targets: `Registry` (weaver check + generate + `git diff --exit-code`), `Contracts`,
       `Compile`, `Check` (= Registry + Contracts + Compile; tests join later), `Publish` (NativeAOT).
       Delete ApiSdk, Cli, Mcp, Auth0, release targets.
-- [ ] `.github/workflows/check.yml`: install .NET 11 RC2 (`dotnet-install.sh --channel 11.0 --quality preview`),
+- [x] `.github/workflows/check.yml`: install .NET 11 RC2 (`dotnet-install.sh --channel 11.0 --quality preview`),
       weaver 0.28.0 from GitHub releases, bun; run `./eng/build.sh Check --Configuration Release`.
-- [ ] `mise.toml` pins dotnet 11.0.100-rc.2.26504.105, bun, node, weaver.
+- [x] `mise.toml` pins dotnet 11.0.100-rc.2.26504.105, bun, node, weaver.
 
 ### 9. Docs — owns `README.md`, `AGENTS.md`, `docs/architecture.yaml`, `docs/integration/README.md`, `claude/`
 
-- [ ] `README.md`: what nami is (from the PRD, in English), connect (stdio / Streamable HTTP), send telemetry
+- [x] `README.md`: what nami is (from the PRD, in English), connect (stdio / Streamable HTTP), send telemetry
       (OTLP ports), the six tools, build and gate, license.
-- [ ] `AGENTS.md`: layout, gate command, environment keys, the rule "decisions are made by the building
+- [x] `AGENTS.md`: layout, gate command, environment keys, the rule "decisions are made by the building
       agent and recorded in `docs/prd/nami.md`; objections go in a comment".
-- [ ] `docs/architecture.yaml` rewritten for one binary, two surfaces, one contract; delete qyl deployment
+- [x] `docs/architecture.yaml` rewritten for one binary, two surfaces, one contract; delete qyl deployment
       details; add Railway service `nami` (one service, two ports).
-- [ ] `claude/debugging-tomo.md`: fix the tool names to snake_case and note that the spec language is
+- [x] `claude/debugging-tomo.md`: fix the tool names to snake_case and note that the spec language is
       TypeSpec (decision 1 in the PRD); leave the rest.
 
 ### 10. Self-telemetry and deployment — owns `src/nami/Telemetry/`, `internal/nami.instrumentation*/`, `src/nami/Dockerfile`, `.railway/`
 
-- [ ] nami's own spans/metrics/logs use the `mcp.*` conventions from the genai registry
+- [x] nami's own spans/metrics/logs use the `mcp.*` conventions from the genai registry
       (`mcp.method.name`, `gen_ai.tool.name`, `mcp.session.id` absent in stateless mode) and export into its
       own store (loopback OTLP) under `nami.project.id = "nami"`.
-- [ ] nami's own errors: span event plus `ILogger` record with `exception.*`.
-- [ ] `src/nami/Dockerfile`: NativeAOT publish, two exposed ports (4318 OTLP HTTP, 5100 MCP), `/health`.
-- [ ] `.railway/railway.ts`: one service `nami`, volume `/data`, healthcheck `/health`.
-- [ ] `internal/nami.instrumentation*`: keep what the host uses, delete the rest.
+- [x] nami's own errors: span event plus `ILogger` record with `exception.*`.
+- [x] `src/nami/Dockerfile`: NativeAOT publish, two exposed ports (4318 OTLP HTTP, 5100 MCP), `/health`.
+- [x] `.railway/railway.ts`: one service `nami`, volume `/data`, healthcheck `/health`.
+- [x] `internal/nami.instrumentation*`: keep what the host uses, delete the rest.
 
 ## Integration (done by the orchestrator after all ten report)
 
-- [ ] `dotnet build nami.slnx -c Release` green; fix cross-workstream mismatches from `docs/integration/*.md`.
-- [ ] `weaver registry check --future -r registry` green; regenerate; `git diff --exit-code`.
-- [ ] One commit on `main`: "nami: first implementation from the PRD".
+- [x] `dotnet build nami.slnx -c Release` green; fix cross-workstream mismatches from `docs/integration/*.md`.
+- [x] `weaver registry check --future -r registry` green; regenerate; `git diff --exit-code`.
+- [x] One commit on `main`: "nami: first implementation from the PRD".
 
 ## Handoff: status and how to resume
 
@@ -286,7 +301,7 @@ conversation that produced this file. Everything above is the plan; this is the 
 | --- | --- |
 | `e025215` | `claude/debugging-tomo.md`: tomo's requirements towards nami (Opus-written) |
 | `93b68ec` | Scaffold: qyl `ecdfb564` collector, contracts, build, props copied and renamed `qyl → nami`; `docs/prd/nami.md`; this checklist |
-| `c259e79` | `registry/manifest.yaml`, `registry/nami/attributes.yaml`, `registry/nami/entities.yaml` (workstream 1, partial) |
+| `c259e79` | `registry/manifest.yaml`, `registry/source/nami/attributes.yaml`, `registry/source/nami/entities.yaml` (workstream 1, partial) |
 | `db7b587` | `README.md` draft (workstream 9, partial) |
 
 Everything else in the workstream sections above is unstarted unless a later commit says otherwise.
@@ -372,4 +387,4 @@ Round 1 ran from 01:26 to about 02:20 on 2026-10-24 under a platform incident (e
 `claude-opus-5-5`). The limit resets on 2026-10-25 at 15:00 Europe/Vienna. The ten agents keep their context in
 the Claude session `claude-74`; after the reset they can be resumed with a message each, or round 1 can be
 relaunched from the prompts above with any agent runtime. Everything written so far is on `main` (last commit
-of round 1: `43107aa`).
+of round 1: `2863f76`).

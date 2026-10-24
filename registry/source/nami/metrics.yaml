@@ -1,0 +1,26 @@
+file_format: definition/2
+metrics:
+  - name: nami.collector.attributes.dropped
+    brief: Attributes excluded by the persistence policy.
+    stability: development
+    requirement_level: recommended
+    instrument: counter
+    unit: "{attribute}"
+  - name: nami.collector.attributes.coalesced
+    brief: Alias attributes coalesced into a canonical semantic convention key.
+    stability: development
+    requirement_level: recommended
+    instrument: counter
+    unit: "{attribute}"
+  - name: nami.collector.attributes.sanitization_failed
+    brief: Exception attributes whose text could not be sanitized.
+    stability: development
+    requirement_level: recommended
+    instrument: counter
+    unit: "{attribute}"
+  - name: resource.missing_service_name
+    brief: Received resources without the required service name.
+    stability: development
+    requirement_level: recommended
+    instrument: counter
+    unit: "{resource}"

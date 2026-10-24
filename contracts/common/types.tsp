@@ -179,13 +179,12 @@ scalar Cursor extends string;
 // The revision is a canonical digest of the semantic OpenAPI projection and the
 // exported telemetry-key projection, not a package version. Presentation-only
 // fields and the release version stamped into `info.version` do not change it.
-// Truncated to 16 hex characters because it is compared for equality, never used
-// as a security boundary.
-@doc("Deterministic revision of the generated API contract: 'sha256:' followed by the first 16 hex characters of its canonical semantic digest.")
-@pattern("^sha256:[a-f0-9]{16}(?![\\s\\S])")
-@minLength(23)
-@maxLength(23)
-@example("sha256:0f1e2d3c4b5a6978")
+// The complete SHA-256 digest is retained so every semantic revision has its full fingerprint.
+@doc("Deterministic revision of the generated API contract: 'sha256:' followed by all 64 hex characters of its canonical semantic digest.")
+@pattern("^sha256:[a-f0-9]{64}(?![\\s\\S])")
+@minLength(71)
+@maxLength(71)
+@example("sha256:0f1e2d3c4b5a69780f1e2d3c4b5a69780f1e2d3c4b5a69780f1e2d3c4b5a6978")
 scalar ContractRevision extends string;
 
 @doc("Semantic version string (e.g., 1.2.3)")
@@ -229,7 +228,7 @@ scalar LanguageCode extends string;
 
 @doc("Base64 bytes projected by nami without colliding with an ordinary string attribute.")
 model AttributeBytesValue {
-  type: "bytes";
+  kind: "bytes";
   base64: bytes;
 }
 
@@ -247,24 +246,24 @@ union AttributeDouble {
 
 @doc("Tagged OTLP signed 64-bit integer attribute.")
 model AttributeIntValue {
-  type: "int";
+  kind: "int";
   value: AttributeInt64;
 }
 
 @doc("Tagged OTLP double attribute.")
 model AttributeDoubleValue {
-  type: "double";
+  kind: "double";
   value: AttributeDouble;
 }
 
 @doc("Tagged recursive OTLP key-value-list, distinct from other object-shaped attribute variants.")
 model AttributeKeyValueListValue {
-  type: "kvlist";
+  kind: "kvlist";
   values: Record<AttributeValue>;
 }
 
-@doc("Object-shaped AttributeValue variants. The variant name is the wire `type` tag.")
-@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+@doc("Object-shaped AttributeValue variants. The variant name is the wire `kind` tag.")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "kind" })
 union AttributeObjectValue {
   @doc("Lossless 64-bit integer value")
   int: AttributeIntValue,
@@ -306,6 +305,9 @@ model Attribute {
 
   @doc("Attribute value")
   value: AttributeValue;
+
+  @doc("Registry stability of this key, when recorded at ingestion.")
+  stability?: "stable" | "development" | "alpha" | "beta" | "release_candidate" | "deprecated" | "unknown";
 }
 
 @doc("Collection of attributes")

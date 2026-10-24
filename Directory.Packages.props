@@ -1,22 +1,9 @@
 <Project>
   <Import Project="Version.props"/>
-  <ItemGroup>
-    <PackageVersion Include="Nami.Orchestration" Version="$(NamiVersion)" />
-  </ItemGroup>
 
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
-
-  <!-- The Nami.Api.Sdk MSBuild SDK owns the versions of the packages it puts into every API it
-       builds. Importing its file here is the documented central-management path (Sdk/Sdk.props
-       imports it only when a repository has not), so those versions are declared exactly once
-       whether a project reaches the SDK through this repository or through the package. -->
-  <Import Project="$(MSBuildThisFileDirectory)packages/Nami.Api.Sdk/Build/Nami.Api.Sdk.Packages.props"/>
-
-  <!-- Every entry resolves through a property from Version.props. A literal version here is a bug:
-       it hides the bump from the one file that owns versions, and two packages on one release line
-       drift the moment their versions are typed separately. -->
 
   <ItemGroup Label="OpenTelemetry">
     <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryVersion)"/>
@@ -60,13 +47,7 @@
     <PackageVersion Include="Grpc.Tools" Version="$(GrpcToolsVersion)"/>
   </ItemGroup>
 
-  <ItemGroup Label="nami-owned">
-    <PackageVersion Include="Nami.Telemetry.Hosting" Version="$(NamiTelemetryVersion)"/>
-    <PackageVersion Include="Nami.Telemetry.AutoInstrumentation" Version="$(NamiTelemetryVersion)"/>
-    <PackageVersion Include="Nami.Telemetry.SemanticConventions" Version="$(NamiSemanticConventionsVersion)"/>
-    <PackageVersion Include="Nami.Telemetry.SemanticConventions.Incubating" Version="$(NamiSemanticConventionsVersion)"/>
-    <PackageVersion Include="Nami.Telemetry.SemanticConventions.Analyzers" Version="$(NamiSemanticConventionsVersion)"/>
-  </ItemGroup>
+
 
   <ItemGroup Label="Build and test tooling">
     <PackageVersion Include="Fallout.Common" Version="$(FalloutVersion)"/>
@@ -77,5 +58,9 @@
     <PackageVersion Include="Microsoft.Build" Version="[$(MicrosoftBuildVersion)]"/>
     <!-- Transitive-only pin: Fallout brings NuGet.Packaging; keep it on the .NET SDK's NuGet line. -->
     <PackageVersion Include="NuGet.Packaging" Version="$(NuGetPackagingVersion)"/>
+  </ItemGroup>
+  <ItemGroup Label="MCP">
+    <PackageVersion Include="ModelContextProtocol" Version="$(McpVersion)"/>
+    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="$(McpVersion)"/>
   </ItemGroup>
 </Project>

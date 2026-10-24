@@ -42,6 +42,8 @@ internal sealed record SpanBatch(IReadOnlyList<SpanStorageRow> Spans);
     """)]
 internal sealed partial record SpanStorageRow
 {
+    [JsonIgnore]
+    internal IReadOnlyList<AttributeRename> AttributeRenames { get; init; } = [];
     [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
     public required string ProjectId { get; init; }
     [DuckDbColumn(PrimaryKeyOrdinal = 2)]
@@ -153,6 +155,8 @@ internal sealed record SessionStatsRow
     """)]
 internal sealed partial record LogStorageRow
 {
+    [JsonIgnore]
+    internal IReadOnlyList<AttributeRename> AttributeRenames { get; init; } = [];
     // Preserve raw event time while ordering absent event times by observation.
     // https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/logs/data-model.md#field-observedtimestamp
     internal const string EffectiveTimeSql = "COALESCE(NULLIF(time_unix_nano, 0), NULLIF(observed_time_unix_nano, 0))";

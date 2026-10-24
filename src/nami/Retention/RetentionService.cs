@@ -69,6 +69,7 @@ internal sealed partial class RetentionService(
         long deletedMetricSeries = 0;
         long deletedAnnotations = 0;
         var deletedIdempotencyKeys = 0;
+        long deletedMetadata = 0;
         var writeBatches = 0;
 
         try
@@ -116,32 +117,14 @@ internal sealed partial class RetentionService(
                     break;
             }
 
-            // An annotation points at telemetry by id, so it expires with the same window,
-            // counted from its last change; saved queries are configuration and never expire.
-            while (true)
-            {
-                var deleted = await store.DeleteExpiredAnnotationsBatchAsync(
-                        cutoff,
-                        DeleteBatchSize,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-                writeBatches++;
-                deletedAnnotations += deleted;
-                if (deleted < DeleteBatchSize)
-                    break;
-            }
+            deletedMetadata = await store.DeleteExpiredMetadataAsync(cutoff, cancellationToken).ConfigureAwait(false);
 
-            deletedIdempotencyKeys = await store.DeleteExpiredIdempotencyKeysAsync(
-                    NamiTimeConversions.ToUnixNanoUnsigned(
-                        timeProvider.GetUtcNow() - Hosting.ResourceHttp.s_idempotencyKeyLifetime),
-                    cancellationToken)
-                .ConfigureAwait(false);
-            writeBatches++;
+
         }
         finally
         {
             if (deletedLogs + deletedSpans + deletedMetricPoints + deletedMetricSeries + deletedAnnotations +
-                deletedIdempotencyKeys > 0)
+                deletedIdempotencyKeys + deletedMetadata > 0)
                 await CheckpointAfterDeletionAsync(cancellationToken).ConfigureAwait(false);
         }
 

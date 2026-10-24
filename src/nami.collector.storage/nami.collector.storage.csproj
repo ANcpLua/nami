@@ -3,10 +3,14 @@
        tests reach DuckDB only through INamiStore and the other storage intent methods. -->
   <PropertyGroup>
     <RootNamespace>Nami.Collector.Storage</RootNamespace>
-    <LangVersion>14</LangVersion>
+    <LangVersion>preview</LangVersion>
     <IsAotCompatible>true</IsAotCompatible>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../internal/nami.semconv/Nami.SemanticConventions.csproj"/>
+  </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
@@ -22,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="nami.collector"/>
+    <InternalsVisibleTo Include="nami"/>
     <InternalsVisibleTo Include="Nami.Collector.Tests"/>
     <InternalsVisibleTo Include="Nami.Telemetry.IntegrationTests"/>
   </ItemGroup>

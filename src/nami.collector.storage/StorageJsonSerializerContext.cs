@@ -12,6 +12,7 @@ namespace Nami.Collector.Storage;
                      JsonNumberHandling.AllowNamedFloatingPointLiterals,
     AllowOutOfOrderMetadataProperties = true,
     WriteIndented = false)]
+[JsonSerializable(typeof(TelemetrySnapshot))]
 [JsonSerializable(typeof(List<SpanEventJson>), TypeInfoPropertyName = "SpanEventJsonList")]
 [JsonSerializable(typeof(List<SpanLinkJson>), TypeInfoPropertyName = "SpanLinkJsonList")]
 [JsonSerializable(typeof(List<ResourceEntityRefIngestionRecord>), TypeInfoPropertyName = "ResourceEntityRefIngestionRecordList")]

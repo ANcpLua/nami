@@ -35,6 +35,8 @@ internal static class IngestionStorageMapper
 
         return new SpanStorageRow
         {
+            AttributeRenames = NormalizedAttributes.Collect([span.Attributes, span.ResourceAttributes, span.ScopeAttributes,
+                .. span.Events.Select(static e => e.Attributes), .. span.Links.Select(static l => l.Attributes)]),
             ProjectId = ProjectScope.ForIngest(span.ProjectIdHint, authenticatedProjectId),
             SpanId = span.SpanId,
             TraceId = span.TraceId,
@@ -100,6 +102,7 @@ internal static class IngestionStorageMapper
 
         return new LogStorageRow
         {
+            AttributeRenames = NormalizedAttributes.Collect([log.Attributes, log.ResourceAttributes, log.ScopeAttributes]),
             ProjectId = projectId,
             LogId = StableStorageId("log", builder =>
             {
@@ -261,12 +264,13 @@ internal static class IngestionStorageMapper
 
         var remainingBytes = MaxPersistedLogBodyUtf8Bytes - Encoding.UTF8.GetByteCount(TruncatedLogBodySuffix);
         var builder = new StringBuilder(Math.Min(raw.Length, MaxPersistedLogBodyUtf8Bytes));
+        Span<char> utf16 = stackalloc char[2];
         foreach (var rune in raw.EnumerateRunes())
         {
             if (rune.Utf8SequenceLength > remainingBytes)
                 break;
 
-            builder.Append(rune.ToString());
+            builder.Append(utf16[..rune.EncodeToUtf16(utf16)]);
             remainingBytes -= rune.Utf8SequenceLength;
         }
 
