@@ -166,7 +166,8 @@ async function planTypeSpecFixCore(root: string, entrypoint: string, code: strin
 async function applyTypeSpecPlan(plan: Plan, directory: string, validate: typeof validateFixed): Promise<Result> {
   const edit = plan.edit!;
   const target = safePath(plan.root, edit.path);
-  if (await realpath(target) !== target) return store(plan.root, { phase: "refused", exitCode: 2,
+  if (!edit.path.startsWith(`contracts${sep}`) || !edit.path.endsWith(".tsp") || edit.path.includes(`${sep}node_modules${sep}`)
+      || await realpath(target) !== target) return store(plan.root, { phase: "refused", exitCode: 2,
     diagnostics: [finding(createDiagnostic({ code: "unsafe-target", target: NoTarget }))] });
   const original = await readFile(target, "utf8");
   const offered = await resolveOfferedFix(safePath(plan.root, edit.entrypoint), edit.code, edit.fixId);
