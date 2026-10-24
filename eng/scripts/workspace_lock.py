@@ -48,7 +48,8 @@ def main():
             json.dump(dict(root=root, pid=os.getpid(), token=token, entry=entry), lease)
             lease.flush()
             environment["NAMI_VERIFICATION_TOKEN"] = token
-        with subprocess.Popen([entry, *arguments], cwd=root, env=environment,
+        command = ["bash", entry.replace("\\", "/"), *arguments] if entry.endswith(".sh") else [entry, *arguments]
+        with subprocess.Popen(command, cwd=root, env=environment,
                               start_new_session=not inherited and os.name != "nt") as process:
             try:
                 code = process.wait()
