@@ -7,31 +7,13 @@ and increasing output detail from Unit through Integration to EndToEnd.
 MSTest dependencies point to the catalog root within each assembly; no cross-assembly dependency
 is used. The full `tools/list` golden is committed under `tests/Nami.EndToEndTests/Fixtures/`.
 
-## Latest validation
+## Current validation
 
-`./eng/build.sh Check --Configuration Release` passed on macOS arm64:
-
-- 172 test executions: Unit 26, Integration 108, EndToEnd 38; all passed, none failed or skipped.
-- The fresh TRX test-name multiset retains all 154 executions from before the suite reorganization.
-  Seventeen diagnostic regression cases and one native conformance case account for the additions.
-- Real 500000-span ingestion, bounded result bytes and complete cursor pagination passed.
-- The gate returned exit 0 with `PASS WITH DIAGNOSTICS`; it is not a warning-free verdict.
-- Registry publication, C#/Rust/Markdown determinism and compiled Rust crate passed.
-- TypeSpec regeneration produced byte-identical committed contracts.
-- NativeAOT Nami published and the MSTest EndToEnd suite executed against that binary.
-- Native conformance passed all six tools, all three OTLP signals, snapshot replay and restart.
-
-The full build log is `artifacts/logs/build-Check.log`; fresh runner reports are under
-`artifacts/test-results/`. Native toolchain/debug-symbol and third-party DuckDB analysis
-messages remain visible in the publish log; no first-party AOT suppression was added to hide them.
-The root-span polling test filters its operation before the top-ten ranking, so its own polling
-spans cannot hide the evidence being asserted. Both missing and malformed `traceparent` cases
-passed after this correction with two workers.
-
-The complete Release InspectCode run reported 600 findings (185 warnings, 415 notes), with no
-analyzer-loading failure and no findings located in generated outputs. The wrapper returned 1.
-This is a completed analysis with findings, not a clean solution verdict. Its fresh SARIF and
-raw tool log are under the run directory printed by `./eng/inspect.sh`.
+Run `mise diagnostics` for current results. This document describes test responsibilities;
+it is not a saved run or a claim about the current checkout. Verification output is stored
+outside the repository, one current record per lane. Old reports are removed rather than
+linked here. `./eng/inspect.sh --results current` and `./eng/test.sh --status current` provide
+bounded details. A changed source/output fingerprint requires fresh validation.
 
 ## Requirement-to-test map
 
@@ -107,12 +89,11 @@ raw tool log are under the run directory printed by `./eng/inspect.sh`.
 | Zero-test and ignored-exit-code runs cannot pass | `TestEntry_EmptySelection_PreservesMinimumFailure`; `TestEntry_IgnoredMtpExitCodes_IsRefused` |
 | A silent test remains identifiable | `TestStatus_DiagnosticEvents_NamesUnfinishedCase` |
 
-The 17 diagnostic methods and converted native conformance method contain 59 explicit assertions;
-none is assertion-free or trivial-only. Their subprocess exit codes, diagnostics, source locations,
+Diagnostic methods assert subprocess status, structured failure details and report handling. Their subprocess exit codes, diagnostics, source locations,
 fresh report identity and native restart state are asserted. This is a source/assertion review of
 these changed methods, not a mutation-score or repository-wide coverage claim.
 
-## Review
+## Historical review scope
 
 The final review used the code-testing, native MSTest, test-gap-analysis and assertion-quality
 workflows. Source-to-assertion checks found and closed gaps in signal coverage, registration checks,

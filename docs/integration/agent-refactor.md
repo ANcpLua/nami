@@ -163,8 +163,7 @@ Der Prozessabbau erfolgt über geordnetes stdin-Ende mit begrenzten Terminate/Ki
 Nach den vier beschriebenen Korrekturen bestanden alle 38 vorhandenen E2E-Fälle. Der anschließende
 vollständige Release-Check bestand mit 26 Unit-, 124 Integration- und 38 EndToEnd-Fällen;
 kein Fehler, kein übersprungener Fall. Auch NativeAOT-Publish, Registry und Contract-Parität
-bestanden. Ergebnis: `artifacts/test-results/run.ei1uqy96/summary.json`,
-Log: `/tmp/nami-refactor-baseline-20261024/check.log`.
+bestanden. Die damaligen Rohberichte wurden entfernt; aktuelle Evidenz liefert `mise diagnostics`.
 
 Verbleibende Publish-Diagnosen: DuckDB IL2104/IL3053 und Hinweise der lokalen Apple-Toolchain.
 Die Containerdefinition ist aktualisiert, aber mangels lokaler Docker-CLI nicht gebaut.
@@ -187,12 +186,11 @@ Timeout und Eingabelimit erstellt; lineare Sanitizer-Laufzeit wird nicht gegen e
 grünen Generator eingetauscht. Engine-Ressourcen besitzen einen expliziten asynchronen Owner,
 statt von lokalen Funktionen über einen äußeren Dispose-Scope erfasst zu werden.
 
-Der abschließende vollständige InspectCode-Lauf `artifacts/inspection/run.BTIHNO/inspectcode.sarif`
-ist erfolgreich und vollständig: **0 Fehler, 0 Warnungen, 269 Notizen**. Der Wrapper liefert wegen
+Der damalige abschließende vollständige InspectCode-Lauf war erfolgreich und vollständig: **0 Fehler, 0 Warnungen, 269 Notizen**. Der Wrapper liefert wegen
 der Notizen Exitcode 1; dieser wird nicht als sauberer Lauf umgedeutet. Enthalten sind unter
 anderem Stil-/API-Vorschläge, SQL-Analysehinweise sowie vier zentrale Konfigurationskonstanten,
 die in generiertem TypeScript verwendet werden. Keine pauschalen Unterdrückungen ergänzt.
-Der ursprüngliche `inspectcode.sarif` bleibt als Vorher-Bericht unverändert.
+Gespeicherte Vorher-/Nachher-Berichte wurden entfernt. Für den aktuellen Stand ausschließlich `mise diagnostics` verwenden.
 
 ## Weitere Nutzerpräzisierung: Modelle und Formate
 
@@ -269,11 +267,11 @@ das Netz fehlt, bleibt der geprüfte Commit lokal bis zum späteren Push.
 Kandidat `0999be5` bestand den vollständigen Release-Check: **26 Unit + 124 Integration +
 38 EndToEnd = 188 bestanden, 0 fehlgeschlagen, 0 übersprungen**. NativeAOT-Publish,
 TypeScript-Build, Registry und deterministische Generierung bestanden ebenfalls.
-Ergebnis: `/tmp/nami-ts-mcp-release-check/artifacts/test-results/run.phszsy_b/summary.json`.
+Die temporäre Prüfkopie und ihre Rohberichte wurden entfernt.
 
 Die anschließend wiederholte vollständige Inspektion ist erfolgreich und vollständig:
 **0 Fehler, 0 Warnungen, 262 Notizen**. Der Wrapper gibt wegen der Notizen weiterhin 1 zurück.
-Bericht: `/tmp/nami-ts-mcp-release-check/artifacts/inspection/run.dq0KQe/inspectcode.sarif`.
+Aktuelle Ergebnisse werden ausschließlich über `mise diagnostics` und `--results current` abgefragt.
 Keine Unterdrückungen und keine neuen Testfälle wurden ergänzt. Nach diesem geprüften
 Quellstand ändern sich nur die Abschlussnotizen. Bekannte NativeAOT-/Apple-Diagnosen sowie
 offene Schema-Versionierung, Instrumentierungsnachweise und reale Connector-Auslieferung

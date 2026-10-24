@@ -159,24 +159,19 @@ pinned in `global.json` too), Weaver `0.28.0`, Rust `1.99.0`, Bun and Node. The 
 | `./eng/build.sh Contracts` | Regenerates C#/TypeScript contracts, shared metadata and `contracts/json-schema/` from TypeSpec; commit them with the TypeSpec change. |
 | `./eng/build.sh Compile` | Checks/builds TypeScript MCP and the .NET solution. |
 | `./eng/test.sh --suite Unit` | Runs the fast MSTest contract suite. `Integration`, `EndToEnd` and `All` select the other scopes. |
-| `./eng/inspect.sh` | Builds and inspects all of `nami.slnx` in Release, prints diagnostic counts and every rule with a source location, and retains the full SARIF and tool log under `artifacts/inspection/`. |
-| `./eng/build.sh InspectCode --Configuration Release` | Runs the same inspection after the Fallout compile target. Findings fail this target; tool failures and incomplete reports fail separately. |
+| `./eng/inspect.sh` | Builds and inspects `nami.slnx` with pinned tools and bounded findings; retains only the current external result. |
+| `./eng/build.sh InspectCode --Configuration Release` | Runs the same inspection entry point; findings and invalid analysis remain distinct. |
 | `./eng/build.sh Publish` | Runs the full gate and produces the native engine and bundled MCP entry in `artifacts/publish`. |
 
-Inspection uses the installed JetBrains `jb` tool and the SDK selected by `global.json`; no shell PATH
-prefix is needed on the development Mac. Use `./eng/inspect.sh --configuration Debug` for Debug or
-`--no-build` only after a successful build of the same configuration. Every run writes to a new
-directory, so a stale SARIF cannot look like a successful inspection. When the tool exits successfully,
-the wrapper returns 0 for no findings, 1 for findings, or 2 for an incomplete or invalid analysis.
-A nonzero build or tool exit code is preserved and identified in the output.
-Analyzer-load and source-generator failures in the tool log invalidate a nominally successful SARIF.
-The `Check` gate retains its OTLP, DuckDB and NativeAOT proofs through the three MSTest suites;
-inspection is a separate explicit target while the current inspection findings are resolved.
+Start with `mise diagnostics` for the current build, test and inspection status. Executables
+resolve from `mise.toml`; validation does not auto-install missing tools. For details use
+`./eng/inspect.sh --results current`, or select `--target typescript` / `--target mcp`.
+The wrappers keep one current result per lane outside the checkout and remove old workspace
+reports. Do not read historical SARIF, TRX, logs or binlogs into an agent context.
 
-Normal build output keeps compiler warnings visible, even on success (`PASS WITH DIAGNOSTICS`).
-Build and publish binlogs use unique names under `artifacts/binlogs/`.
-See [testing and inspection](docs/testing.md) for prepared/module runs, expected test counts and
-the per-run evidence directories.
+`--no-build` requires a matching prepared build. Source/output drift, missing references and
+incomplete analysis are rejected. Build success is distinct from inspection findings.
+See [testing and inspection](docs/testing.md) for the command contract and current-state rules.
 
 Generated files are committed and never edited by hand: change the registry, a template or the
 TypeSpec, and regenerate.
