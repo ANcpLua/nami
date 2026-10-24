@@ -6,5 +6,6 @@ using TypeSpec.OpenAPI;
 @service(#{ title: "Nami telemetry and tools" })
 namespace Nami.Api.Contracts;
 @doc("Reports this process's health and contract revision.")
-@route("/health") @get
+@route("/health")
+@get
 op health(): Health.HealthReport;

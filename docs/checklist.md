@@ -8,15 +8,15 @@ and is not an instruction to launch parallel agents or skip tests.
 
 ## Current implementation versus target
 
-The repository currently contains the C# host in `src/nami`, ingestion and DuckDB, six tools,
-TypeSpec-generated C# contracts and JSON Schemas, Weaver output, and three executable MSTest suites.
-The new TypeScript host, private engine transport, connector bundles and full instrumentation proofs
-are **pending**. The documentation change does not implement or verify them.
+TypeScript MCP now supervises the C# NativeAOT engine through bounded private JSONL streams.
+TypeSpec generates both language types, stream limits, configuration names and the six-tool catalog.
+The existing 38 EndToEnd cases pass through this stack, including OTLP, project isolation and restart.
+DuckDB.NET is 1.5.6.1; its bundled native engine is still 1.5.6.
 
-Earlier successful Release runs and native proofs are recorded in [verification.md](verification.md).
-Those results concern the previous host and must not be presented as evidence for the new architecture.
-Keep its real OTLP, real DuckDB, three-signal, six-tool and persisted-snapshot proofs during migration.
-A checked item below records only the work explicitly described, not completion of the whole product.
+Full instrumentation-model proofs and actual Claude.ai/OpenAI distribution remain open. The user's
+current cleanup request explicitly forbids new test cases: existing suites are retained/adapted and
+run, while new PRD I/D test cases remain future work. See [integration/agent-refactor.md](integration/agent-refactor.md)
+for the saved request, code reductions, time fixes and current verification results.
 
 ## 1. Product and architecture documentation
 
@@ -32,35 +32,35 @@ A checked item below records only the work explicitly described, not completion 
 
 ## 2. Contract generation — `contracts/`, `internal/nami.contracts/`
 
-- [ ] Restore/adapt qyl's TypeScript emitter for the six nami input/result pairs and shared types.
-      Proposed output: `src/nami.mcp/src/contracts/generated/`; generated files are never edited by hand.
-- [ ] Model private request/result framing and explicit project-bound state identifiers in TypeSpec.
+- [x] Restore/adapt qyl's TypeScript emitter for the six nami input/result pairs and shared types.
+      Output: `src/nami.mcp/src/contracts/generated/`; generated files are never edited by hand.
+- [x] Model private request/result framing and explicit project-bound state identifiers in TypeSpec.
       Preserve existing tool payloads and wire names unless the PRD explicitly changes them.
-- [ ] Generate one semantic revision for both sides; reject incompatible private peers before dispatch.
+- [x] Generate one semantic revision for both sides; reject incompatible private peers before dispatch.
 - [ ] Preserve `kind`, required fields, absent/null distinctions and exact integer encodings across
       C#, TypeScript and enabled Rust consumers (S, I8/I9, D2).
-- [ ] Extend `./eng/build.sh Contracts` and parity checks to include the TypeScript artifacts.
-- [ ] Keep C# serialization AOT-safe with generated `JsonTypeInfo<T>`; validate TS inputs and outputs
+- [x] Extend `./eng/build.sh Contracts` and parity checks to include the TypeScript artifacts.
+- [x] Keep C# serialization AOT-safe with generated `JsonTypeInfo<T>`; validate TS inputs and outputs
       with the same generated JSON Schemas.
 
 ## 3. TypeScript MCP and engine process — `src/nami.mcp/`, `src/nami/`
 
-`src/nami.mcp/` is a proposed target path and is not an existing implementation claim.
+`src/nami.mcp/` contains the implemented MCP adapter and supervisor.
 
-- [ ] Build the MCP layer from qyl's TypeScript patterns using the official v2 SDK, strict typing,
+- [x] Build the MCP layer from qyl's TypeScript patterns using the official v2 SDK, strict typing,
       bounded agent results and the six existing read-only tools.
-- [ ] Move MCP transport, registration, result framing and host-facing authentication to TypeScript.
+- [x] Move MCP transport, registration, result framing and host-facing authentication to TypeScript.
       Remove C# MCP SDK/runtime dependency only when replacement behavior is proven.
-- [ ] Keep C# ingestion, storage and analysis in the native engine; preserve pure snapshot-based tools.
-- [ ] Add private long-lived UTF-8 JSON streams/pipes with framing, request correlation, contract
+- [x] Keep C# ingestion, storage and analysis in the native engine; preserve pure snapshot-based tools.
+- [x] Add private long-lived UTF-8 JSON streams/pipes with framing, request correlation, contract
       revision, bounded buffers, cancellation, backpressure and process-exit handling (D2–D6).
-- [ ] Let the local TypeScript launcher supervise the engine and own its private streams. Keep MCP
+- [x] Let the local TypeScript launcher supervise the engine and own its private streams. Keep MCP
       stdout separate from internal frames and route diagnostics to stderr.
-- [ ] Stream C# serialization into the transport with generated metadata. Avoid unnecessary whole-body
+- [x] Stream C# serialization into the transport with generated metadata. Avoid unnecessary whole-body
       copies; measure memory/latency before claiming improvement. No shared-heap assumption or required FFI.
-- [ ] Preserve authenticated project isolation and trace context through the private boundary (D5).
+- [x] Preserve authenticated project isolation and trace context through the private boundary (D5).
       Neither public tool arguments nor unverified metadata choose a project.
-- [ ] Package both processes and all declared runtime/native dependencies in one release. One native
+- [x] Package both processes and all declared runtime/native dependencies in one release. One native
       file and an internal HTTP API are not requirements.
 
 ## 4. Instrumentation and observation lifetime — owning paths to be finalized from existing generators
@@ -100,7 +100,8 @@ C# call sites; other languages require their appropriate instrumentation path.
 
 ## 6. Verification and release
 
-- [ ] Keep G/R/S/T baseline proofs while adapting them to the two-process stack.
+- [x] Keep the existing G/R/S/T baseline cases while adapting them to the two-process stack;
+      all 188 existing cases pass. This does not prove the newly specified I/D catalog.
 - [ ] Add every method named in PRD I1–I18 and D1–D6 to the appropriate proof suite; data-drive model
       checks from the complete generated manifest, with deliberate invalid and boundary fixtures.
 - [ ] Unit/Integration cover compiler, contract, controlled-clock and transport failure cases.
@@ -109,7 +110,7 @@ C# call sites; other languages require their appropriate instrumentation path.
       wait for its actual completion condition with a deadline, and then drain/tear down.
 - [ ] An existing test name, a skipped case, an empty run, successful serialization or a successful
       flush alone never proves the new requirement. Record traceable results and remaining exclusions.
-- [ ] Run `./eng/build.sh Check --Configuration Release` before every push. Use `./eng/test.sh`
+- [x] Run `./eng/build.sh Check --Configuration Release` before this migration's push. Use `./eng/test.sh`
       for all executable suites or `--suite Unit|Integration|EndToEnd`; preserve MTP exit codes.
 
 ## Repository conventions

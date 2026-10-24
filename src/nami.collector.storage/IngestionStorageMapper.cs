@@ -5,7 +5,8 @@ internal static class IngestionStorageMapper
     private const int MaxPersistedLogBodyUtf8Bytes = 64 * 1024;
     private const string TruncatedLogBodySuffix = "...[truncated]";
 
-    public static List<SpanStorageRow> ToSpanStorageRows(TraceIngestionBatch batch, string? authenticatedProjectId = null)
+    public static List<SpanStorageRow> ToSpanStorageRows(TraceIngestionBatch batch,
+        string? authenticatedProjectId = null)
     {
         var rows = new List<SpanStorageRow>(batch.Spans.Count);
 
@@ -31,12 +32,14 @@ internal static class IngestionStorageMapper
             throw new InvalidDataException("Span end time must not precede its start.");
         var durationNs = span.EndTimeUnixNano - span.StartTimeUnixNano;
         var projection = StorageAttributeProjection.ExtractSpanHotAttributes(span);
-        var resourceEntityRefsJson = StorageJson.SerializeResourceEntityRefs(span.ResourceEntityRefs);
+        var resourceEntityRefsJson = StorageJsonSerializerContext.SerializeResourceEntityRefs(span.ResourceEntityRefs);
 
         return new SpanStorageRow
         {
-            AttributeRenames = NormalizedAttributes.Collect([span.Attributes, span.ResourceAttributes, span.ScopeAttributes,
-                .. span.Events.Select(static e => e.Attributes), .. span.Links.Select(static l => l.Attributes)]),
+            AttributeRenames = NormalizedAttributes.Collect([
+                span.Attributes, span.ResourceAttributes, span.ScopeAttributes,
+                .. span.Events.Select(static e => e.Attributes), .. span.Links.Select(static l => l.Attributes)
+            ]),
             ProjectId = ProjectScope.ForIngest(span.ProjectIdHint, authenticatedProjectId),
             SpanId = span.SpanId,
             TraceId = span.TraceId,
@@ -94,7 +97,7 @@ internal static class IngestionStorageMapper
         var body = ToPersistedLogBody(storedBody, originalBody);
         var attributesJson = PersistedAttributePolicy.SerializeAttributes(log.Attributes);
         var resourceJson = PersistedAttributePolicy.SerializeAttributes(log.ResourceAttributes);
-        var resourceEntityRefsJson = StorageJson.SerializeResourceEntityRefs(log.ResourceEntityRefs);
+        var resourceEntityRefsJson = StorageJsonSerializerContext.SerializeResourceEntityRefs(log.ResourceEntityRefs);
         var scopeAttributesJson = PersistedAttributePolicy.SerializeScopeAttributes(log.ScopeAttributes);
         var resourceEntityRefsIdentity = GetResourceEntityRefsIdentity(
             log.ResourceEntityRefs,
@@ -102,35 +105,36 @@ internal static class IngestionStorageMapper
 
         return new LogStorageRow
         {
-            AttributeRenames = NormalizedAttributes.Collect([log.Attributes, log.ResourceAttributes, log.ScopeAttributes]),
+            AttributeRenames =
+                NormalizedAttributes.Collect([log.Attributes, log.ResourceAttributes, log.ScopeAttributes]),
             ProjectId = projectId,
             LogId = StableStorageId("log", builder =>
             {
-                builder.AppendSegment(projectId, terminate: true);
-                builder.AppendSegment(log.TraceId, terminate: true);
-                builder.AppendSegment(log.SpanId, terminate: true);
-                builder.AppendSegment(log.EventName, terminate: true);
-                builder.AppendSegment(sessionId, terminate: true);
+                builder.AppendSegment(projectId, true);
+                builder.AppendSegment(log.TraceId, true);
+                builder.AppendSegment(log.SpanId, true);
+                builder.AppendSegment(log.EventName, true);
+                builder.AppendSegment(sessionId, true);
                 AppendIdentityPart(builder, log.TimeUnixNano);
                 AppendIdentityPart(builder, log.ObservedTimeProvided ? log.ObservedTimeUnixNano : null);
                 if (log.UntimedRequestOrdinal is { } ordinal) AppendIdentityPart(builder, ordinal);
                 AppendIdentityPart(builder, severityNumber);
-                builder.AppendSegment(severityText, terminate: true);
-                builder.AppendSegment(originalBody, terminate: true);
-                builder.AppendSegment(log.ServiceName, terminate: true);
-                builder.AppendSegment(attributesJson, terminate: true);
-                builder.AppendSegment(resourceJson, terminate: true);
-                builder.AppendSegment(log.ScopeName, terminate: true);
-                builder.AppendSegment(log.ScopeVersion, terminate: true);
-                builder.AppendSegment(log.ScopeSchemaUrl, terminate: true);
-                builder.AppendSegment(scopeAttributesJson, terminate: true);
+                builder.AppendSegment(severityText, true);
+                builder.AppendSegment(originalBody, true);
+                builder.AppendSegment(log.ServiceName, true);
+                builder.AppendSegment(attributesJson, true);
+                builder.AppendSegment(resourceJson, true);
+                builder.AppendSegment(log.ScopeName, true);
+                builder.AppendSegment(log.ScopeVersion, true);
+                builder.AppendSegment(log.ScopeSchemaUrl, true);
+                builder.AppendSegment(scopeAttributesJson, true);
                 AppendIdentityPart(builder, log.ScopeDroppedAttributesCount);
-                builder.AppendSegment(log.ResourceSchemaUrl, terminate: true);
+                builder.AppendSegment(log.ResourceSchemaUrl, true);
                 AppendIdentityPart(builder, log.ResourceDroppedAttributesCount);
                 AppendIdentityPart(builder, log.Flags);
                 AppendIdentityPart(builder, log.DroppedAttributesCount);
                 if (!string.IsNullOrEmpty(resourceEntityRefsIdentity))
-                    builder.AppendSegment(resourceEntityRefsIdentity, terminate: true);
+                    builder.AppendSegment(resourceEntityRefsIdentity, true);
             }),
             TraceId = log.TraceId,
             SpanId = log.SpanId,
@@ -169,21 +173,21 @@ internal static class IngestionStorageMapper
     }
 
     private static void AppendIdentityPart(StringBuilder builder, byte value) =>
-        builder.AppendSegment(value.ToString(CultureInfo.InvariantCulture), terminate: true);
+        builder.AppendSegment(value.ToString(CultureInfo.InvariantCulture), true);
 
     private static void AppendIdentityPart(StringBuilder builder, int value) =>
-        builder.AppendSegment(value.ToString(CultureInfo.InvariantCulture), terminate: true);
+        builder.AppendSegment(value.ToString(CultureInfo.InvariantCulture), true);
 
     private static void AppendIdentityPart(StringBuilder builder, ulong value) =>
-        builder.AppendSegment(value.ToString(CultureInfo.InvariantCulture), terminate: true);
+        builder.AppendSegment(value.ToString(CultureInfo.InvariantCulture), true);
 
     private static void AppendIdentityPart(StringBuilder builder, ulong? value) =>
-        builder.AppendSegment(value?.ToString(CultureInfo.InvariantCulture), terminate: true);
+        builder.AppendSegment(value?.ToString(CultureInfo.InvariantCulture), true);
 
     /// <summary>
-    /// The stored body is a persisted attribute value, so a reader decodes it as one. A string body
-    /// is truncated before encoding; any other body that exceeds the limit is stored as its
-    /// truncated canonical text, so the column always holds valid JSON.
+    ///     The stored body is a persisted attribute value, so a reader decodes it as one. A string body
+    ///     is truncated before encoding; any other body that exceeds the limit is stored as its
+    ///     truncated canonical text, so the column always holds valid JSON.
     /// </summary>
     private static string? ToPersistedLogBody(StoredAttributeValue? body, string? original)
     {
@@ -191,13 +195,17 @@ internal static class IngestionStorageMapper
             return null;
 
         if (body is StoredAttributeValue.StringValue text)
+        {
             return Encoding.UTF8.GetByteCount(text.Value) <= MaxPersistedLogBodyUtf8Bytes
-                ? original : EncodeBody(new StoredAttributeValue.StringValue(TruncateBodyText(text.Value)));
+                ? original
+                : EncodeBody(new StoredAttributeValue.StringValue(TruncateBodyText(text.Value)));
+        }
 
         var encoded = original ?? throw new InvalidDataException("Nonempty log bodies require canonical content.");
         return FitsBodyBudget(encoded)
             ? encoded
-            : EncodeBody(new StoredAttributeValue.StringValue(TruncateBodyText(StoredAttributeValue.CanonicalText(body))));
+            : EncodeBody(
+                new StoredAttributeValue.StringValue(TruncateBodyText(StoredAttributeValue.CanonicalText(body))));
     }
 
     private static string EncodeBody(StoredAttributeValue body) =>
@@ -223,6 +231,7 @@ internal static class IngestionStorageMapper
             remaining -= size;
             return true;
         }
+
         if (value.ValueKind is not (JsonValueKind.Array or JsonValueKind.Object))
         {
             var size = value.GetRawText().Length;
@@ -230,6 +239,7 @@ internal static class IngestionStorageMapper
             remaining -= size;
             return true;
         }
+
         if (remaining < 2) return false;
         remaining -= 2;
         var separator = 0;
@@ -254,6 +264,7 @@ internal static class IngestionStorageMapper
                 separator = 1;
             }
         }
+
         return true;
     }
 
@@ -287,7 +298,7 @@ internal static class IngestionStorageMapper
         foreach (var entityRef in entityRefs)
         {
             var identity = new StringBuilder();
-            identity.AppendSegment(entityRef.Type, terminate: true);
+            identity.AppendSegment(entityRef.Type, true);
             var idKeys = entityRef.IdKeys.Order(StringComparer.Ordinal).ToArray();
             AppendIdentityPart(identity, idKeys.Length);
             foreach (var key in idKeys)
@@ -298,9 +309,10 @@ internal static class IngestionStorageMapper
                         $"Resource entity id_key '{key}' does not reference a persisted resource attribute.");
                 }
 
-                identity.AppendSegment(key, terminate: true);
-                identity.AppendSegment(StoredAttributeValue.CanonicalText(StoredRecordMapper.ToStored(value)), terminate: true);
+                identity.AppendSegment(key, true);
+                identity.AppendSegment(StoredAttributeValue.CanonicalText(StoredRecordMapper.ToStored(value)), true);
             }
+
             identities.Add(identity.ToString());
         }
 
@@ -308,8 +320,7 @@ internal static class IngestionStorageMapper
         var result = new StringBuilder();
         AppendIdentityPart(result, identities.Count);
         foreach (var identity in identities)
-            result.AppendSegment(identity, terminate: true);
+            result.AppendSegment(identity, true);
         return result.ToString();
     }
-
 }

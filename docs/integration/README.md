@@ -2,6 +2,31 @@
 
 The product requirements are `docs/prd/nami.md`; `docs/checklist.md` owns implementation scope.
 
+## 2026-10-24: implemented TypeScript boundary and cleanup
+
+TypeScript MCP now owns the six generated tools and supervises the native engine through private
+bounded JSONL streams. The C# MCP server/dependency was removed. Types, schemas, tool descriptions,
+protocol limits, configuration names and revision are generated together. The existing 38 EndToEnd
+cases pass through the new boundary, including authentication, self-telemetry and snapshot restart.
+This does not complete the separate instrumentation catalog or hosted connector delivery.
+
+Dead session/trace-page/metric-query APIs and their unused models were removed; stored OTLP data,
+identities and migrations remain. DuckDB.NET was updated to 1.5.6.1; typed native reads replace boxed
+numeric conversion. The supplied time-fix patch was applied, with stdio readiness using the actual
+engine/MCP handshake. JSON content parity is structural across the language boundary; the reviewed
+manifest change is limited to deriving the six descriptions from existing TypeSpec documentation.
+See [the saved request and working findings](agent-refactor.md) for scope and verification status.
+
+The full Release gate passed all 188 existing cases (26 Unit, 124 Integration, 38 EndToEnd),
+plus NativeAOT publish, registry and generated-contract parity. The full subsequent inspection
+completed with zero errors, zero warnings and 262 notes; notes still make its wrapper exit 1.
+DuckDB trim/AOT and local Apple toolchain publish diagnostics remain visible. No new test cases
+were added. Maintained production/generator source decreased from 16,834 to 15,844 lines against
+the saved working-tree baseline; generated artifacts and tests are excluded from that measure.
+The final isolated check includes the generated TypeScript model/JSON naming codecs; its schemas
+and wire revision remain unchanged by that correction. Model names, JSON names and C# names all
+come from the same TypeSpec property, with no hand-maintained mapping table.
+
 ## 2026-10-24: revised product scope and architecture
 
 The user's correction supersedes the former single-C#-binary target. MCP belongs to TypeScript/Bun;

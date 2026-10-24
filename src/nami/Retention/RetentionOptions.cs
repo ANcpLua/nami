@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Nami.Collector.Ingestion.Configuration;
 
-namespace Nami.Collector.Retention;
+namespace Nami.Retention;
 
 internal sealed class RetentionOptions
 {
@@ -12,7 +12,7 @@ internal sealed class RetentionOptions
     public int Days { get; set; } = 30;
 
     [ConfigurationKeyName(CollectorConfigurationKeys.RetentionIntervalMinutes)]
-    [ConfiguredRange(CollectorConfigurationKeys.RetentionIntervalMinutes, 1, int.MaxValue)]
+    [ConfiguredRange(CollectorConfigurationKeys.RetentionIntervalMinutes, 1, (uint.MaxValue - 1) / 60_000)]
     public int IntervalMinutes { get; set; } = 60;
 
     [ConfigurationKeyName(CollectorConfigurationKeys.StorageMinimumFreeMegabytes)]

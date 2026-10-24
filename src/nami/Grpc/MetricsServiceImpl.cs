@@ -1,16 +1,17 @@
 using Microsoft.Extensions.Options;
-using OpenTelemetry.Proto.Collector.Metrics.V1;
-using Nami.Collector.ApiKeys;
+using Nami.ApiKeys;
 using Nami.Collector.Storage;
+using OpenTelemetry.Proto.Collector.Metrics.V1;
 
-namespace Nami.Collector.Grpc;
+namespace Nami.Grpc;
 
 internal sealed class MetricsServiceImpl(INamiStore store, IOptions<OtlpApiKeyOptions>? options = null)
 {
     public Task<ExportMetricsServiceResponse> Export(
         ExportMetricsServiceRequest request,
-        ServerCallContext context) =>
-        GrpcExport.ExecuteAsync(async () =>
+        ServerCallContext context)
+    {
+        return GrpcExport.ExecuteAsync(async () =>
         {
             var batch = OtlpConverter.ConvertMetrics(request);
             var write = MetricStorageMapper.ToStorageRows(
@@ -25,4 +26,5 @@ internal sealed class MetricsServiceImpl(INamiStore store, IOptions<OtlpApiKeyOp
 
             return OtlpExportAck.Create(batch);
         }, "metric");
+    }
 }

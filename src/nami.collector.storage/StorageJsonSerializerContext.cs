@@ -1,9 +1,9 @@
 namespace Nami.Collector.Storage;
 
 /// <summary>
-/// The only serializer of persisted JSON and of every encoding an identifier hashes. It registers
-/// storage's own records and no API contract type, so contract serialization cannot change stored
-/// bytes or identifiers.
+///     The only serializer of persisted JSON and of every encoding an identifier hashes. It registers
+///     storage's own records and no API contract type, so contract serialization cannot change stored
+///     bytes or identifiers.
 /// </summary>
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
@@ -15,8 +15,10 @@ namespace Nami.Collector.Storage;
 [JsonSerializable(typeof(TelemetrySnapshot))]
 [JsonSerializable(typeof(List<SpanEventJson>), TypeInfoPropertyName = "SpanEventJsonList")]
 [JsonSerializable(typeof(List<SpanLinkJson>), TypeInfoPropertyName = "SpanLinkJsonList")]
-[JsonSerializable(typeof(List<ResourceEntityRefIngestionRecord>), TypeInfoPropertyName = "ResourceEntityRefIngestionRecordList")]
-[JsonSerializable(typeof(IReadOnlyList<ResourceEntityRefIngestionRecord>), TypeInfoPropertyName = "ResourceEntityRefIngestionRecordReadOnlyList")]
+[JsonSerializable(typeof(List<ResourceEntityRefIngestionRecord>),
+    TypeInfoPropertyName = "ResourceEntityRefIngestionRecordList")]
+[JsonSerializable(typeof(IReadOnlyList<ResourceEntityRefIngestionRecord>),
+    TypeInfoPropertyName = "ResourceEntityRefIngestionRecordReadOnlyList")]
 [JsonSerializable(typeof(StoredAttributeValue))]
 [JsonSerializable(typeof(StoredObjectValue))]
 [JsonSerializable(typeof(StoredIntValue))]
@@ -30,4 +32,8 @@ namespace Nami.Collector.Storage;
 [JsonSerializable(typeof(IReadOnlyList<string>), TypeInfoPropertyName = "IReadOnlyListString")]
 [JsonSerializable(typeof(IReadOnlyList<double>), TypeInfoPropertyName = "Doubles")]
 [JsonSerializable(typeof(IReadOnlyList<ulong>), TypeInfoPropertyName = "Counts")]
-internal partial class StorageJsonSerializerContext : JsonSerializerContext;
+internal partial class StorageJsonSerializerContext : JsonSerializerContext
+{
+    internal static string? SerializeResourceEntityRefs(IReadOnlyList<ResourceEntityRefIngestionRecord> values) =>
+        values.Count == 0 ? null : JsonSerializer.Serialize(values, Default.ResourceEntityRefIngestionRecordReadOnlyList);
+}

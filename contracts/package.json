@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "build:emitters": "tsc -p emitters/csharp && tsc -p emitters/nami-lint",
+    "build:emitters": "tsc -p emitters/csharp && tsc -p emitters/ts-types && tsc -p emitters/nami-lint",
     "compile": "node --test scripts/lib/*.test.mjs && node scripts/clean-generated.mjs && bun run build:emitters && tsp compile main.tsp --warn-as-error && node scripts/emit-schemas.mjs && node scripts/emit-contract-revision.mjs",
     "build": "bun run compile",
     "format": "tsp format **/*.tsp"

@@ -2,7 +2,7 @@
   "tools": [
     {
       "name": "changes_recent",
-      "description": "Resource revisions, versions, environments and pipeline runs that changed in the window.",
+      "description": "Resource changes recorded in telemetry, without querying a deployment service.",
       "inputSchema": {
         "type": "object",
         "description": "Resource changes recorded in telemetry, without querying a deployment service.",
@@ -184,7 +184,7 @@
     },
     {
       "name": "errors_recent",
-      "description": "Errors grouped by type and operation, with counts and example trace IDs.",
+      "description": "Recent errors grouped by error type and operation, without stack traces.",
       "inputSchema": {
         "type": "object",
         "description": "Recent errors grouped by error type and operation, without stack traces.",
@@ -380,7 +380,7 @@
     },
     {
       "name": "logs_search",
-      "description": "Log records containing the exact, case-sensitive query text.",
+      "description": "Find log bodies containing literal, case-sensitive text; this is not a regular expression.",
       "inputSchema": {
         "type": "object",
         "description": "Find log bodies containing literal, case-sensitive text; this is not a regular expression.",
@@ -578,7 +578,7 @@
     },
     {
       "name": "sources_status",
-      "description": "Telemetry sources and the last receipt time or silence duration of each signal.",
+      "description": "The health of telemetry sources, including silent signals.",
       "inputSchema": {
         "type": "object",
         "description": "The health of telemetry sources, including silent signals.",
@@ -776,7 +776,7 @@
     },
     {
       "name": "traces_get",
-      "description": "One trace, projected to the requested fields.",
+      "description": "Read one trace, projecting only requested fields.",
       "inputSchema": {
         "type": "object",
         "description": "Read one trace, projecting only requested fields.",
@@ -2120,7 +2120,7 @@
     },
     {
       "name": "traces_slowest",
-      "description": "The slowest traces in the window, optionally filtered by operation.",
+      "description": "The slowest traces in the selected window.",
       "inputSchema": {
         "type": "object",
         "description": "The slowest traces in the selected window.",

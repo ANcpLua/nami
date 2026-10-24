@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
-using Nami.Collector.Retention;
+using Nami.Retention;
 using Nami.Collector.Storage;
 
-namespace Nami.Collector.Health;
+namespace Nami.Health;
 
 internal sealed class DuckDbHealthCheck(INamiStore store, IOptions<RetentionOptions> retentionOptions) : IHealthCheck
 {
@@ -13,7 +13,7 @@ internal sealed class DuckDbHealthCheck(INamiStore store, IOptions<RetentionOpti
     {
         try
         {
-            var stats = await store.GetStorageStatsAsync(ProjectScope.DefaultProjectId, ct: cancellationToken)
+            var stats = await store.GetStorageStatsAsync(ProjectScope.DefaultProjectId, cancellationToken)
                 .ConfigureAwait(false);
             var fileMetrics = store.GetStorageFileMetrics();
             var data = new Dictionary<string, object>

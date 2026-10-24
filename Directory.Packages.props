@@ -48,7 +48,6 @@
   </ItemGroup>
 
 
-
   <ItemGroup Label="Build and test tooling">
     <PackageVersion Include="Fallout.Common" Version="$(FalloutVersion)"/>
     <PackageVersion Include="Fallout.Components" Version="$(FalloutVersion)"/>
@@ -61,6 +60,5 @@
   </ItemGroup>
   <ItemGroup Label="MCP">
     <PackageVersion Include="ModelContextProtocol" Version="$(McpVersion)"/>
-    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="$(McpVersion)"/>
   </ItemGroup>
 </Project>

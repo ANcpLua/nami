@@ -10,7 +10,7 @@ runtime:
   engine: {framework: net11.0, compilation: NativeAOT, duties: [otlp, storage, analysis]}
   processes: separately hosted MCP and engine, released together
   local_supervisor: TypeScript launcher owns engine process and private streams
-  current_implementation: C# MCP host remains until the checklist migration is complete
+  current_implementation: TypeScript MCP and native engine implemented; instrumentation and hosted delivery proofs remain tracked
 surfaces:
   claude_ai: remote MCP connector
   openai: plugin bundle with MCP integration
@@ -39,8 +39,8 @@ components:
   templates/registry/: Deterministic semantic CSharp, Rust and Markdown generation
   internal/nami.contracts/: Generated CSharp wire models and source-generated JSON serialization
   internal/nami.semconv/: Generated definitions, constants, stability and persistence policy
-  src/nami/: Current CSharp host, migrating to native engine and private IPC entry point
-  src/nami.mcp/: Planned TypeScript MCP, agent result framing and engine supervisor
+  src/nami/: Native engine and private JSONL entry point
+  src/nami.mcp/: TypeScript MCP, agent result framing and engine supervisor
   src/nami.collector.ingestion/: OTLP decoding, normalization and sanitization
   src/nami.collector.storage/: Project-bound DuckDB, watermarks and immutable snapshots
   internal/nami.collector.storage.generators/: DuckDB schema and row generation

@@ -6,24 +6,22 @@ namespace Nami.Collector.Storage;
 
 internal sealed partial class DuckDbStore : INamiStore
 {
-
     private const int MaxSpansPerBatch = 100;
 
     private const int MaxLogsPerBatch = 150;
 
-
     private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(5);
+    private readonly Func<CancellationToken, ValueTask>? _beforeWrite;
 
     private readonly CancellationTokenSource _cts = new();
-    private readonly Func<CancellationToken, ValueTask>? _beforeWrite;
-    private readonly TimeProvider _timeProvider;
-    private readonly TimeSpan _snapshotLifetime;
     private readonly string _databasePath;
     private readonly bool _isInMemory;
-    private readonly ILogger<DuckDbStore> _logger;
     private readonly Channel<WriteJob> _jobs;
-    private readonly Channel<IReadJob>? _reads;
+    private readonly ILogger<DuckDbStore> _logger;
     private readonly Task[] _readerTasks;
+    private readonly Channel<IReadJob>? _reads;
+    private readonly TimeSpan _snapshotLifetime;
+    private readonly TimeProvider _timeProvider;
     private readonly Task _writerTask;
     private int _disposed;
 
@@ -149,7 +147,8 @@ internal sealed partial class DuckDbStore : INamiStore
         }
         catch (TimeoutException ex)
         {
-            AddShutdownError(ref shutdownErrors, new TimeoutException("DuckDB writer did not stop before shutdown timeout.", ex));
+            AddShutdownError(ref shutdownErrors,
+                new TimeoutException("DuckDB writer did not stop before shutdown timeout.", ex));
         }
         catch (OperationCanceledException) when (_cts.IsCancellationRequested)
         {
@@ -177,8 +176,10 @@ internal sealed partial class DuckDbStore : INamiStore
         }
 
         if (_reads is not null)
+        {
             while (_reads.Reader.TryRead(out var leftover))
                 leftover.Cancel();
+        }
 
         // Flush the WAL into the main database file and truncate it so the next start is a clean,
         // fast open instead of a WAL replay. Pointless for an in-memory database.
@@ -207,6 +208,83 @@ internal sealed partial class DuckDbStore : INamiStore
         if (shutdownErrors is { Count: > 0 })
             throw new AggregateException("DuckDB store did not shut down cleanly.", shutdownErrors);
     }
+
+
+    public async ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        if (ct.IsCancellationRequested)
+            await ValueTask.FromCanceled(ct).ConfigureAwait(false);
+        if (batch.Spans.Count is 0)
+        {
+            return;
+        }
+
+        await ExecuteWriteAsync(
+                (con, token) => WriteBatchInternalAsync(con, batch, token),
+                ct)
+            .ConfigureAwait(false);
+    }
+
+
+
+
+
+    public Task<StorageStats> GetStorageStatsAsync(
+        string projectId,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        return ExecuteReadAsync(con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              SELECT
+                                  (SELECT COUNT(*) FROM spans WHERE project_id = $1) as span_count,
+                                  (SELECT COUNT(DISTINCT COALESCE(session_id, trace_id)) FROM spans WHERE project_id = $1) as session_count
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
+
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                return new StorageStats
+                {
+                    SpanCount = DuckDbValueReader.Read<long>(reader, 0, 0),
+                    SessionCount = DuckDbValueReader.Read<long>(reader, 1, 0)
+                };
+            }
+
+            return new StorageStats();
+        }, ct);
+    }
+
+    public async Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        if (logs.Count is 0)
+            return;
+
+        var knownTimes = logs.Any(static row => row.TimeUnixNano == 0 || row.ObservedTimeUnixNano == 0)
+            ? logs.Select(static row => row with
+            {
+                TimeUnixNano = row.TimeUnixNano is > 0 ? row.TimeUnixNano : null,
+                ObservedTimeUnixNano = row.ObservedTimeUnixNano is > 0 ? row.ObservedTimeUnixNano : null
+            }).ToArray()
+            : logs;
+        await ExecuteWriteAsync(async (con, token) =>
+        {
+            await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
+            await InsertRowsBatchedAsync(con, tx, knownTimes, LogStorageRow.AddParameters,
+                LogStorageRow.BuildMultiRowInsertSql, MaxLogsPerBatch, token);
+            RecordIngestion(con, tx, "logs",
+                knownTimes.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName, row.ResourceJson,
+                    row.AttributesJson, row.ScopeAttributesJson, row.AttributeRenames)), token);
+            await tx.CommitAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
+    }
+
+
 
 
     private async Task<T> ExecuteReadAsync<T>(Func<DuckDBConnection, T> read, CancellationToken ct = default)
@@ -265,437 +343,12 @@ internal sealed partial class DuckDbStore : INamiStore
     }
 
 
-    public async ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        if (ct.IsCancellationRequested)
-            await ValueTask.FromCanceled(ct).ConfigureAwait(false);
-        if (batch.Spans.Count is 0)
-        {
-            return;
-        }
-
-        await ExecuteWriteAsync(
-                (con, token) => WriteBatchInternalAsync(con, batch, token),
-                ct)
-            .ConfigureAwait(false);
-    }
-
-    public Task<IReadOnlyList<SpanStorageRow>> GetTraceAsync(
-        string traceId,
-        string projectId,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync<IReadOnlyList<SpanStorageRow>>(con =>
-        {
-            var spans = new List<SpanStorageRow>();
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
-                                        + " FROM spans WHERE project_id = $1 AND trace_id = $2 ORDER BY start_time_unix_nano ASC";
-            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
-            cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-                spans.Add(SpanStorageRow.MapFromReader(reader));
-
-            return spans;
-        }, ct);
-    }
-
-    public Task<IReadOnlyList<SpanStorageRow>> GetSpansAsync(
-        string projectId,
-        int limit = 100,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync<IReadOnlyList<SpanStorageRow>>(con =>
-        {
-            var spans = new List<SpanStorageRow>();
-            var qb = new QueryBuilder();
-
-            qb.Add("project_id = $N", projectId);
-
-            using var cmd = con.CreateCommand();
-            // CA2100: the generated column list, QueryBuilder's $n predicates and the limit's placeholder; values are parameters.
-            cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
-                                        + " FROM spans " + qb.WhereClause
-                                        + " ORDER BY start_time_unix_nano DESC LIMIT "
-                                        + qb.NextParam.ToString(CultureInfo.InvariantCulture);
-
-            qb.ApplyTo(cmd);
-            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-                spans.Add(SpanStorageRow.MapFromReader(reader));
-
-            return spans;
-        }, ct);
-    }
-
-    public Task<IReadOnlyList<SpanStorageRow>> GetTraceSpanPageAsync(
-        string traceId,
-        string projectId,
-        SpanPageCursor? cursor,
-        int? limit,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        if (limit < 1)
-            throw new ArgumentOutOfRangeException(nameof(limit), limit, "Span page limit must be positive.");
-
-        return ExecuteReadAsync<IReadOnlyList<SpanStorageRow>>(con =>
-        {
-            var spans = new List<SpanStorageRow>();
-            using var cmd = con.CreateCommand();
-            // CA2100: the generated column list only; every value is a $n parameter.
-            cmd.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
-                                        + " FROM spans WHERE project_id = $1 AND trace_id = $2"
-                                        + " AND ($3::UBIGINT IS NULL OR start_time_unix_nano > $3"
-                                        + " OR (start_time_unix_nano = $3 AND span_id > $4::VARCHAR))"
-                                        + " ORDER BY start_time_unix_nano ASC, span_id ASC"
-                                        + (limit.HasValue ? " LIMIT $5" : "");
-            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
-            cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
-            cmd.Parameters.Add(new DuckDBParameter
-            {
-                Value = cursor is { } after ? (decimal)after.StartTimeUnixNano : DBNull.Value
-            });
-            cmd.Parameters.Add(new DuckDBParameter { Value = cursor?.SpanId ?? (object)DBNull.Value });
-            if (limit is { } bounded)
-                cmd.Parameters.Add(new DuckDBParameter { Value = bounded });
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-                spans.Add(SpanStorageRow.MapFromReader(reader));
-
-            return spans;
-        }, ct);
-    }
-
-    public Task<TraceStoragePage> GetTracePageAsync(
-        TracePageQuery query,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        if (query.Limit < 1)
-            throw new ArgumentOutOfRangeException(nameof(query), query.Limit, "Trace page limit must be positive.");
-
-        var limit = query.Limit;
-        var projectId = query.ProjectId;
-        return ExecuteReadAsync(con =>
-        {
-            var heads = new List<(string TraceId, ulong ActivityUnixNano)>(limit + 1);
-            using (var headCommand = con.CreateCommand())
-            {
-                // Every filter is a HAVING over the whole trace, so a trace is listed whole or not
-                // at all. A session's traces are the traces any of its spans touched, under the
-                // session identity COALESCE(session_id, trace_id) the session list aggregates by.
-                headCommand.CommandText = """
-                                          WITH trace_heads AS (
-                                              SELECT trace_id, MAX(end_time_unix_nano) AS activity_unix_nano
-                                              FROM spans
-                                              WHERE project_id = $1
-                                                AND ($2::VARCHAR IS NULL OR trace_id IN (SELECT DISTINCT trace_id FROM spans WHERE project_id = $1 AND (session_id = $2 OR (session_id IS NULL AND trace_id = $2))))
-                                              GROUP BY trace_id
-                                              HAVING ($3::UBIGINT IS NULL OR MIN(start_time_unix_nano) >= $3)
-                                                 AND ($4::UBIGINT IS NULL OR MIN(start_time_unix_nano) < $4)
-                                                 AND ($5::VARCHAR IS NULL OR bool_or(service_name = $5))
-                                                 AND (NOT $6::BOOLEAN OR bool_or(status_code = 2))
-                                          )
-                                          SELECT trace_id, activity_unix_nano
-                                          FROM trace_heads
-                                          WHERE $7::UBIGINT IS NULL
-                                             OR activity_unix_nano < $7
-                                             OR (activity_unix_nano = $7 AND trace_id < $8::VARCHAR)
-                                          ORDER BY activity_unix_nano DESC, trace_id DESC
-                                          LIMIT $9
-                                          """;
-                headCommand.Parameters.Add(new DuckDBParameter { Value = projectId });
-                headCommand.Parameters.Add(new DuckDBParameter { Value = query.SessionId ?? (object)DBNull.Value });
-                headCommand.Parameters.Add(new DuckDBParameter
-                {
-                    Value = query.StartUnixNano is { } start ? (decimal)start : DBNull.Value
-                });
-                headCommand.Parameters.Add(new DuckDBParameter
-                {
-                    Value = query.EndUnixNano is { } end ? (decimal)end : DBNull.Value
-                });
-                headCommand.Parameters.Add(new DuckDBParameter { Value = query.ServiceName ?? (object)DBNull.Value });
-                headCommand.Parameters.Add(new DuckDBParameter { Value = query.ErrorsOnly });
-                headCommand.Parameters.Add(new DuckDBParameter
-                {
-                    Value = query.Cursor is { } after ? (decimal)after.ActivityUnixNano : DBNull.Value
-                });
-                headCommand.Parameters.Add(new DuckDBParameter { Value = query.Cursor?.TraceId ?? (object)DBNull.Value });
-                headCommand.Parameters.Add(new DuckDBParameter { Value = limit + 1 });
-                using var headReader = headCommand.ExecuteReader();
-                while (headReader.Read())
-                {
-                    heads.Add((
-                        DuckDbValueReader.ReadString(headReader, 0, string.Empty),
-                        DuckDbValueReader.ReadUInt64(headReader, 1, 0)));
-                }
-            }
-
-            var hasMore = heads.Count > limit;
-            if (hasMore) heads.RemoveRange(limit, heads.Count - limit);
-            if (heads.Count is 0) return new TraceStoragePage([], HasMore: false);
-
-            var spansByTrace = heads.ToDictionary(
-                static head => head.TraceId,
-                static _ => new List<SpanStorageRow>(),
-                StringComparer.Ordinal);
-            using (var spansCommand = con.CreateCommand())
-            {
-                var placeholders = string.Join(", ",
-                    Enumerable.Range(2, heads.Count).Select(static index =>
-                        "$" + index.ToString(CultureInfo.InvariantCulture)));
-                // CA2100: the generated column list and $n placeholders; the trace ids are bound parameters.
-                spansCommand.CommandText = "SELECT " + SpanStorageRow.SelectColumnList
-                                           + " FROM spans WHERE project_id = $1 AND trace_id IN ("
-                                           + placeholders
-                                           + ") ORDER BY trace_id DESC, start_time_unix_nano ASC, span_id ASC";
-                spansCommand.Parameters.Add(new DuckDBParameter { Value = projectId });
-                foreach (var head in heads)
-                    spansCommand.Parameters.Add(new DuckDBParameter { Value = head.TraceId });
-
-                using var spanReader = spansCommand.ExecuteReader();
-                while (spanReader.Read())
-                {
-                    var span = SpanStorageRow.MapFromReader(spanReader);
-                    spansByTrace[span.TraceId].Add(span);
-                }
-            }
-
-            return new TraceStoragePage(
-                [.. heads.Select(head => new TraceStoragePageItem(
-                    head.TraceId,
-                    head.ActivityUnixNano,
-                    spansByTrace[head.TraceId]))],
-                hasMore);
-        }, ct);
-    }
-
-
-    public Task<StorageStats> GetStorageStatsAsync(
-        string projectId,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync(con =>
-        {
-            using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              SELECT
-                                  (SELECT COUNT(*) FROM spans WHERE project_id = $1) as span_count,
-                                  (SELECT COUNT(DISTINCT COALESCE(session_id, trace_id)) FROM spans WHERE project_id = $1) as session_count
-                              """;
-            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
-
-            using var reader = cmd.ExecuteReader();
-            if (reader.Read())
-            {
-                return new StorageStats
-                {
-                    SpanCount = DuckDbValueReader.ReadInt64(reader, 0, 0),
-                    SessionCount = DuckDbValueReader.ReadInt64(reader, 1, 0)
-                };
-            }
-
-            return new StorageStats();
-        }, ct);
-    }
-
     private void AddShutdownError(ref List<Exception>? errors, Exception error)
     {
         errors ??= [];
         errors.Add(error);
         DuckDbStoreLog.ShutdownFailed(_logger, error);
     }
-
-    public async Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        if (logs.Count is 0)
-            return;
-
-        IReadOnlyList<LogStorageRow> knownTimes = logs.Any(static row => row.TimeUnixNano == 0 || row.ObservedTimeUnixNano == 0)
-            ? logs.Select(static row => row with
-            { TimeUnixNano = row.TimeUnixNano is > 0 ? row.TimeUnixNano : null,
-              ObservedTimeUnixNano = row.ObservedTimeUnixNano is > 0 ? row.ObservedTimeUnixNano : null }).ToArray()
-            : logs;
-        await ExecuteWriteAsync(async (con, token) =>
-        {
-            await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
-            await InsertRowsBatchedAsync(con, tx, knownTimes, LogStorageRow.AddParameters,
-                LogStorageRow.BuildMultiRowInsertSql, MaxLogsPerBatch, token);
-            RecordIngestion(con, tx, "logs", knownTimes.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName, row.ResourceJson, row.AttributesJson, row.ScopeAttributesJson, row.AttributeRenames)), token);
-            await tx.CommitAsync(token).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
-    }
-
-    // The search text matches literally (its LIKE metacharacters are escaped under ESCAPE '\') and
-    // against the text as it was logged. $A is the text itself, for the body (decoded from its JSON
-    // first), the severity and the service. $B is the text as JSON writes it, for the attributes:
-    // json() re-renders them with non-ASCII characters literal but quotes, backslashes and control
-    // characters still escaped. A body that is not JSON is a raw-text row from before attribute value
-    // storage and is searched as it is.
-    private const string LogSearchSql =
-        "(CASE WHEN json_valid(body) THEN body ->> '$' ELSE body END ILIKE $A ESCAPE '\\'"
-        + " OR severity_text ILIKE $A ESCAPE '\\'"
-        + " OR service_name ILIKE $A ESCAPE '\\'"
-        + " OR CASE WHEN json_valid(attributes_json) THEN json(attributes_json)::VARCHAR ELSE attributes_json END ILIKE $B ESCAPE '\\')";
-
-    private static string LogSearchPattern(string search) =>
-        "%" + search
-            .Replace(@"\", @"\\", StringComparison.Ordinal)
-            .Replace("%", @"\%", StringComparison.Ordinal)
-            .Replace("_", @"\_", StringComparison.Ordinal) + "%";
-
-    // The search text as it appears inside a JSON string: quotes, backslashes and control characters
-    // escaped, every other character literal.
-    private static string JsonStringContent(string search)
-    {
-        var builder = new StringBuilder(search.Length);
-        foreach (var character in search)
-        {
-            _ = character switch
-            {
-                '"' => builder.Append("\\\""),
-                '\\' => builder.Append(@"\\"),
-                '\n' => builder.Append(@"\n"),
-                '\r' => builder.Append(@"\r"),
-                '\t' => builder.Append(@"\t"),
-                '\b' => builder.Append(@"\b"),
-                '\f' => builder.Append(@"\f"),
-                < ' ' => builder.Append(CultureInfo.InvariantCulture, $"\\u{(int)character:x4}"),
-                _ => builder.Append(character)
-            };
-        }
-
-        return builder.ToString();
-    }
-
-    public Task<IReadOnlyList<LogStorageRow>> GetLogsAsync(
-        string projectId,
-        string? sessionId = null,
-        string? traceId = null,
-        string? severityText = null,
-        int? minSeverity = null,
-        string? search = null,
-        ulong? start = null,
-        ulong? before = null,
-        string? serviceName = null,
-        int limit = 500,
-        LogPageCursor? cursor = null,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync<IReadOnlyList<LogStorageRow>>(con =>
-        {
-            var logs = new List<LogStorageRow>();
-            var qb = new QueryBuilder();
-
-            qb.Add("project_id = $N", projectId);
-            if (!string.IsNullOrEmpty(sessionId))
-                qb.Add("session_id = $N", sessionId);
-            if (!string.IsNullOrEmpty(traceId))
-                qb.Add("trace_id = $N", traceId);
-            if (!string.IsNullOrEmpty(severityText))
-                qb.Add("severity_text = $N", severityText);
-            if (minSeverity.HasValue)
-                qb.Add("severity_number >= $N", minSeverity.Value);
-            if (!string.IsNullOrWhiteSpace(search))
-                qb.Add(LogSearchSql, LogSearchPattern(search), LogSearchPattern(JsonStringContent(search)));
-            if (!string.IsNullOrEmpty(serviceName))
-                qb.Add("service_name = $N", serviceName);
-            if (start.HasValue)
-                qb.Add(LogStorageRow.EffectiveTimeSql + " >= $N", (decimal)start.Value);
-            if (before.HasValue)
-                qb.Add(LogStorageRow.EffectiveTimeSql + " <= $N", (decimal)before.Value);
-            if (cursor is { TimeUnixNano: { } time } after)
-                qb.Add("(" + LogStorageRow.EffectiveTimeSql + " IS NULL OR " + LogStorageRow.EffectiveTimeSql + " < $A OR (" + LogStorageRow.EffectiveTimeSql + " = $A AND log_id < $B))",
-                    (decimal)time, after.LogId);
-            else if (cursor is { } unknownTime)
-                qb.Add("(" + LogStorageRow.EffectiveTimeSql + " IS NULL AND log_id < $N)", unknownTime.LogId);
-
-            using var cmd = con.CreateCommand();
-            // CA2100: the generated column list, QueryBuilder's $n predicates and the limit's placeholder; values are parameters.
-            cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
-                              + " FROM logs " + qb.WhereClause
-                              + " ORDER BY " + LogStorageRow.EffectiveTimeSql + " DESC, log_id DESC LIMIT "
-                              + qb.NextParam.ToString(CultureInfo.InvariantCulture);
-
-            qb.ApplyTo(cmd);
-            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-                logs.Add(LogStorageRow.MapFromReader(reader));
-
-            return logs;
-        }, ct);
-    }
-
-    public Task<IReadOnlyList<LogStorageRow>> GetLogStreamPageAsync(
-        string projectId,
-        string? serviceName = null,
-        int? minSeverity = null,
-        string? search = null,
-        long? afterIngestSequence = null,
-        int limit = 250,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return ExecuteReadAsync<IReadOnlyList<LogStorageRow>>(con =>
-        {
-            var logs = new List<LogStorageRow>();
-            var qb = new QueryBuilder();
-
-            qb.Add("project_id = $N", projectId);
-            if (!string.IsNullOrEmpty(serviceName))
-                qb.Add("service_name = $N", serviceName);
-            if (minSeverity.HasValue)
-                qb.Add("severity_number >= $N", minSeverity.Value);
-            if (!string.IsNullOrWhiteSpace(search))
-                qb.Add(LogSearchSql, LogSearchPattern(search), LogSearchPattern(JsonStringContent(search)));
-            if (afterIngestSequence.HasValue)
-                qb.Add("ingest_sequence > $N", afterIngestSequence.Value);
-
-            using var cmd = con.CreateCommand();
-            if (afterIngestSequence.HasValue)
-            {
-                // CA2100: the generated column list, QueryBuilder's $n predicates and the limit's placeholder; values are parameters.
-                cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
-                                  + " FROM logs " + qb.WhereClause
-                                  + " ORDER BY ingest_sequence ASC LIMIT "
-                                  + qb.NextParam.ToString(CultureInfo.InvariantCulture);
-            }
-            else
-            {
-                // CA2100: the generated column list, QueryBuilder's $n predicates and the limit's placeholder; values are parameters.
-                cmd.CommandText = "SELECT " + LogStorageRow.SelectColumnList
-                                  + " FROM (SELECT " + LogStorageRow.SelectColumnList
-                                  + " FROM logs " + qb.WhereClause
-                                  + " ORDER BY ingest_sequence DESC LIMIT "
-                                  + qb.NextParam.ToString(CultureInfo.InvariantCulture)
-                                  + ") AS latest_logs ORDER BY ingest_sequence ASC";
-            }
-
-            qb.ApplyTo(cmd);
-            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-                logs.Add(LogStorageRow.MapFromReader(reader));
-
-            return logs;
-        }, ct);
-    }
-
 
     private static async Task InsertRowsBatchedAsync<T>(
         DuckDBConnection con, DbTransaction tx, IReadOnlyList<T> rows,
@@ -798,11 +451,14 @@ internal sealed partial class DuckDbStore : INamiStore
 
         await InsertRowsBatchedAsync(con, tx, batch.Spans, SpanStorageRow.AddParameters,
             SpanStorageRow.BuildMultiRowInsertSql, MaxSpansPerBatch, ct);
-        RecordIngestion(con, tx, "traces", batch.Spans.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName, row.ResourceJson, row.AttributesJson, row.ScopeAttributesJson, row.AttributeRenames)), ct);
+        RecordIngestion(con, tx, "traces",
+            batch.Spans.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName, row.ResourceJson,
+                row.AttributesJson, row.ScopeAttributesJson, row.AttributeRenames)), ct);
         await tx.CommitAsync(ct).ConfigureAwait(false);
     }
 
-    private static void ConfigureDatabase(DuckDBConnection con, string? memoryLimit, int? threads, string? tempDirectory)
+    private static void ConfigureDatabase(DuckDBConnection con, string? memoryLimit, int? threads,
+        string? tempDirectory)
     {
         // Tuning for a write-heavy embedded store. preserve_insertion_order=false drops the
         // bookkeeping that keeps physical row order — telemetry never needs it — which cuts ingest
@@ -842,7 +498,7 @@ internal sealed partial class DuckDbStore : INamiStore
         var authoritativeMismatches = FindSchemaMismatches(
             con,
             transaction,
-            DuckDbGeneratedSchema.AuthoritativeTables, allowMissingNonUniqueIndexes: true);
+            DuckDbGeneratedSchema.AuthoritativeTables, true);
         if (stored is { AuthoritativeHash: not DuckDbGeneratedSchema.AuthoritativeHash })
         {
             var appended = PlanAdditiveRelease(con, transaction, authoritativeMismatches);
@@ -856,12 +512,13 @@ internal sealed partial class DuckDbStore : INamiStore
                 authoritativeMismatches = [];
             }
         }
+
         var derivedMismatches = FindSchemaMismatches(
             con,
             transaction,
             DuckDbGeneratedSchema.DerivedTables);
         var resetDerived = derivedMismatches.Count > 0 ||
-            stored is { DerivedHash: not DuckDbGeneratedSchema.DerivedHash };
+                           stored is { DerivedHash: not DuckDbGeneratedSchema.DerivedHash };
 
         if (authoritativeMismatches.Count > 0)
         {
@@ -884,8 +541,8 @@ internal sealed partial class DuckDbStore : INamiStore
             DropExpectedIndexes(
                 con,
                 transaction,
-                DuckDbGeneratedSchema.AuthoritativeTables.Where(
-                    table => authoritativeMismatches.Contains(table.Name, StringComparer.Ordinal)));
+                DuckDbGeneratedSchema.AuthoritativeTables.Where(table =>
+                    authoritativeMismatches.Contains(table.Name, StringComparer.Ordinal)));
             DropTables(con, transaction, authoritativeMismatches);
             if (authoritativeMismatches.Contains(LogStorageRow.TableName, StringComparer.Ordinal))
                 ExecuteSchemaSql(con, transaction, "DROP SEQUENCE IF EXISTS logs_ingest_sequence");
@@ -902,8 +559,9 @@ internal sealed partial class DuckDbStore : INamiStore
                 stored is { DerivedHash: not DuckDbGeneratedSchema.DerivedHash })
             {
                 DropExpectedIndexes(con, transaction, DuckDbGeneratedSchema.DerivedTables);
-                DropGeneratedTables(con, transaction, includeAuthoritative: false);
+                DropGeneratedTables(con, transaction, false);
             }
+
             CreateSchema(con, transaction, DuckDbGeneratedSchema.DerivedDdl);
         }
 
@@ -934,8 +592,8 @@ internal sealed partial class DuckDbStore : INamiStore
             if (!TableExists(con, transaction, name))
                 continue;
 
-            var table = DuckDbGeneratedSchema.AuthoritativeTables.Single(
-                expected => string.Equals(expected.Name, name, StringComparison.Ordinal));
+            var table = DuckDbGeneratedSchema.AuthoritativeTables.Single(expected =>
+                string.Equals(expected.Name, name, StringComparison.Ordinal));
             var actual = ReadColumns(con, transaction, name);
             if (actual.Count > table.Columns.Length)
                 return null;
@@ -946,7 +604,8 @@ internal sealed partial class DuckDbStore : INamiStore
             }
 
             var appended = table.Columns[actual.Count..];
-            if (appended.Any(static column => column.Required || column.DefaultSql is not null || column.PrimaryKeyOrdinal >= 0))
+            if (appended.Any(static column =>
+                    column.Required || column.DefaultSql is not null || column.PrimaryKeyOrdinal >= 0))
                 return null;
             plan.Add((table, appended));
         }
@@ -1031,8 +690,6 @@ internal sealed partial class DuckDbStore : INamiStore
         return mismatches;
     }
 
-    private sealed record ActualColumn(string Name, string Type, bool Nullable, string? Default);
-
     private static List<ActualColumn> ReadColumns(
         DuckDBConnection con,
         DbTransaction transaction,
@@ -1103,7 +760,7 @@ internal sealed partial class DuckDbStore : INamiStore
         }
 
         if (actualIndexes.Count > table.Indexes.Length ||
-            !allowMissingNonUniqueIndexes && actualIndexes.Count != table.Indexes.Length ||
+            (!allowMissingNonUniqueIndexes && actualIndexes.Count != table.Indexes.Length) ||
             actualIndexes.Keys.Any(name => table.Indexes.All(expected => expected.Name != name))) return false;
 
         foreach (var expected in table.Indexes)
@@ -1115,6 +772,7 @@ internal sealed partial class DuckDbStore : INamiStore
                 if (allowMissingNonUniqueIndexes && !expected.Unique) continue;
                 return false;
             }
+
             if (!string.Equals(actual.Table, table.Name, StringComparison.Ordinal) ||
                 actual.Unique != expected.Unique ||
                 !actual.Columns.SequenceEqual(expected.Columns, StringComparer.Ordinal))
@@ -1162,7 +820,7 @@ internal sealed partial class DuckDbStore : INamiStore
         // The rewrite runs before the parentheses are trimmed: trimming first cut the closing
         // parenthesis off CAST(...) so the rewrite could never match.
         static string Normalize(string value) => string.Concat(
-            value.Where(static character => !char.IsWhiteSpace(character)))
+                value.Where(static character => !char.IsWhiteSpace(character)))
             .ToUpperInvariant()
             .Replace("\"", "", StringComparison.Ordinal)
             // DuckDB reports a uuid()::varchar default as CAST(uuid() AS VARCHAR).
@@ -1284,8 +942,6 @@ internal sealed partial class DuckDbStore : INamiStore
     private static string QuoteIdentifier(string value) =>
         $"\"{value.Replace("\"", "\"\"")}\"";
 
-    private sealed record SchemaIdentity(string AuthoritativeHash, string DerivedHash);
-
     private static void VerifyPersistedPrimaryKeys(DuckDBConnection con)
     {
         foreach (var table in DuckDbGeneratedSchema.AuthoritativeTables
@@ -1327,6 +983,10 @@ internal sealed partial class DuckDbStore : INamiStore
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Read(ref _disposed) is not 0, this);
 
+    private sealed record ActualColumn(string Name, string Type, bool Nullable, string? Default);
+
+    private sealed record SchemaIdentity(string AuthoritativeHash, string DerivedHash);
+
     private abstract class WriteJob
     {
         public abstract bool TryClaim();
@@ -1345,6 +1005,7 @@ internal sealed partial class DuckDbStore : INamiStore
     {
         private readonly TaskCompletionSource<TResult> _tcs =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         private CancellationTokenRegistration _cancellationRegistration;
         private int _state;
 
@@ -1366,6 +1027,7 @@ internal sealed partial class DuckDbStore : INamiStore
                 _cancellationRegistration.Dispose();
                 return false;
             }
+
             _cancellationRegistration.Dispose();
             return true;
         }
@@ -1443,6 +1105,7 @@ internal sealed partial class DuckDbStore : INamiStore
             {
                 _tcs.TrySetException(ex);
             }
+
             return ValueTask.CompletedTask;
         }
 
@@ -1456,35 +1119,4 @@ internal sealed partial class DuckDbStore : INamiStore
                 _tcs.TrySetException(error);
         }
     }
-
-    private struct QueryBuilder()
-    {
-        private readonly List<string> _conditions = [];
-        private readonly List<DuckDBParameter> _parameters = [];
-        private int _paramIndex = 1;
-
-        public void Add(string condition, object value)
-        {
-            _conditions.Add(condition.Replace("$N", $"${_paramIndex++}"));
-            _parameters.Add(new DuckDBParameter { Value = value });
-        }
-
-        // A keyset predicate binds two values: $A is the sort key, $B the tie-breaker.
-        public void Add(string condition, object first, object second)
-        {
-            var a = $"${_paramIndex++}";
-            var b = $"${_paramIndex++}";
-            _conditions.Add(condition.Replace("$A", a).Replace("$B", b));
-            _parameters.Add(new DuckDBParameter { Value = first });
-            _parameters.Add(new DuckDBParameter { Value = second });
-        }
-
-        public readonly string WhereClause =>
-            _conditions.Count > 0 ? $"WHERE {string.Join(" AND ", _conditions)}" : "";
-
-        public readonly string NextParam => $"${_paramIndex}";
-
-        public readonly void ApplyTo(DuckDBCommand cmd) => cmd.Parameters.AddRange(_parameters);
-    }
-
 }

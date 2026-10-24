@@ -5,8 +5,8 @@ are in docs/prd/nami.md; implementation ownership and progress are in docs/check
 
 The target stack separates TypeScript/Bun MCP from the net11.0 NativeAOT engine (OTLP, DuckDB,
 analysis and C# compile-time instrumentation). Private streams/pipes connect the two; neither an
-internal HTTP API nor a single native binary is required. The current C# MCP host is the pre-migration
-implementation; track remaining work explicitly in docs/checklist.md.
+internal HTTP API nor a single native binary is required. The TypeScript supervisor owns the native engine process;
+track remaining instrumentation and connector-distribution work in docs/checklist.md.
 The six read-only tools are sources_status, errors_recent, traces_get, traces_slowest, logs_search
 and changes_recent. They serve agents through Claude.ai connectors and/or OpenAI plugin/MCP bundles,
 with local MCP clients also supported. No dashboard or human-facing analysis UI. Tomo is an example

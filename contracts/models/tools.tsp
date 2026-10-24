@@ -9,9 +9,14 @@ namespace Nami.Api.Contracts.Tools;
 model SourcesStatusInput extends ToolReadInput {}
 @doc("Recorded service and signal activity.")
 @jsonSchema
-model SourcesStatusResult extends ToolResult { services: ProjectedSourceStatus[]; }
+model SourcesStatusResult extends ToolResult {
+  services: ProjectedSourceStatus[];
+}
 @doc("A service's telemetry signals.")
-model SourceStatus { service: string; signals: SignalStatus[]; }
+model SourceStatus {
+  service: string;
+  signals: SignalStatus[];
+}
 @doc("The latest receipt time for one signal, or how long it has been silent.")
 model SignalStatus {
   signal: "traces" | "metrics" | "logs";
@@ -25,7 +30,9 @@ model SignalStatus {
 model ErrorsRecentInput extends ToolReadInput {}
 @doc("Groups of errors from log events, span events and error-status spans.")
 @jsonSchema
-model ErrorsRecentResult extends ToolResult { groups: ProjectedErrorGroup[]; }
+model ErrorsRecentResult extends ToolResult {
+  groups: ProjectedErrorGroup[];
+}
 @doc("A deduplicated error group and one correlated example when available.")
 model ErrorGroup {
   @encodedName("application/json", "error_type") errorType: string;
@@ -43,10 +50,14 @@ model TracesGetInput extends ToolReadInput {
   @encodedName("application/json", "trace_id") traceId: TraceId;
 }
 @doc("A projected trace. An omitted field was not requested; it is not a fabricated value.")
-model ProjectedTrace { ...OptionalProperties<Nami.Api.Contracts.OTel.Traces.Trace>; }
+model ProjectedTrace {
+  ...OptionalProperties<Nami.Api.Contracts.OTel.Traces.Trace>;
+}
 @doc("The requested trace and evidence completeness.")
 @jsonSchema
-model TracesGetResult extends ToolResult { trace: ProjectedTrace; }
+model TracesGetResult extends ToolResult {
+  trace: ProjectedTrace;
+}
 
 @doc("The slowest traces in the selected window.")
 @jsonSchema
@@ -56,7 +67,9 @@ model TracesSlowestInput extends ToolReadInput {
 }
 @doc("Traces ranked by descending duration.")
 @jsonSchema
-model TracesSlowestResult extends ToolResult { traces: ProjectedSlowTrace[]; }
+model TracesSlowestResult extends ToolResult {
+  traces: ProjectedSlowTrace[];
+}
 @doc("One trace in a duration ranking.")
 model SlowTrace {
   @encodedName("application/json", "trace_id") traceId: TraceId;
@@ -73,7 +86,9 @@ model LogsSearchInput extends ToolReadInput {
 }
 @doc("Log records containing the literal query.")
 @jsonSchema
-model LogsSearchResult extends ToolResult { records: ProjectedLogHit[]; }
+model LogsSearchResult extends ToolResult {
+  records: ProjectedLogHit[];
+}
 @doc("A matching log with optional trace correlation.")
 model LogHit {
   timestamp: Timestamp;
@@ -89,7 +104,9 @@ model LogHit {
 model ChangesRecentInput extends ToolReadInput {}
 @doc("Observed revision, version, environment and pipeline changes.")
 @jsonSchema
-model ChangesRecentResult extends ToolResult { changes: ProjectedChange[]; }
+model ChangesRecentResult extends ToolResult {
+  changes: ProjectedChange[];
+}
 @doc("A resource attribute transition observed on ingestion.")
 model Change {
   @encodedName("application/json", "observed_at") observedAt: Timestamp;
@@ -101,16 +118,26 @@ model Change {
 }
 
 @doc("A field projection of SourceStatus; omitted members were not requested.")
-model ProjectedSourceStatus { ...OptionalProperties<SourceStatus>; }
+model ProjectedSourceStatus {
+  ...OptionalProperties<SourceStatus>;
+}
 
 @doc("A field projection of ErrorGroup; omitted members were not requested.")
-model ProjectedErrorGroup { ...OptionalProperties<ErrorGroup>; }
+model ProjectedErrorGroup {
+  ...OptionalProperties<ErrorGroup>;
+}
 
 @doc("A field projection of SlowTrace; omitted members were not requested.")
-model ProjectedSlowTrace { ...OptionalProperties<SlowTrace>; }
+model ProjectedSlowTrace {
+  ...OptionalProperties<SlowTrace>;
+}
 
 @doc("A field projection of LogHit; omitted members were not requested.")
-model ProjectedLogHit { ...OptionalProperties<LogHit>; }
+model ProjectedLogHit {
+  ...OptionalProperties<LogHit>;
+}
 
 @doc("A field projection of Change; omitted members were not requested.")
-model ProjectedChange { ...OptionalProperties<Change>; }
+model ProjectedChange {
+  ...OptionalProperties<Change>;
+}

@@ -1,7 +1,7 @@
-namespace Nami.Collector.ApiKeys;
+namespace Nami.ApiKeys;
 
 /// <summary>
-/// Resolve the credential, and with it the project and roles, for both transports.
+///     Resolve the credential, and with it the project and roles, for both transports.
 /// </summary>
 internal static class OtlpApiKeyValidator
 {

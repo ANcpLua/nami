@@ -19,7 +19,7 @@ library, not a fourth test application. `Nami.UnitTests`, `Nami.IntegrationTests
 `Nami.EndToEndTests` each own their `testconfig.json`: cooperative test deadlines are 30, 120 and
 300 seconds respectively, with existing test-specific overrides retained, including 600 seconds
 for the real 500,000-span proof. Unit enables
-MSTest's generated discovery. The host tested by EndToEnd is the published native `nami` binary;
+MSTest's generated discovery. EndToEnd starts the bundled TypeScript MCP entry and published native `nami` engine;
 there is no separate hand-written conformance runner.
 The script also sets the .NET test driver's Minimal/Normal/Detailed output and forwards the suite's
 result selection explicitly: the driver's display is separate from the test application's config.
@@ -57,7 +57,7 @@ For a test stage containing built modules but lacking project restore state, use
 
 Module mode skips project evaluation. Its adjacent `testconfig.json`, runtime dependencies and
 the test's fixture inputs must still be present. EndToEnd also requires `artifacts/publish/nami`
-(`nami.exe` on Windows). Keep the expression narrow: support and unselected assemblies are rejected.
+(`nami.exe` on Windows), `artifacts/publish/mcp/main.js`, and Bun. Keep the expression narrow: support and unselected assemblies are rejected.
 
 ## Evidence and failure handling
 

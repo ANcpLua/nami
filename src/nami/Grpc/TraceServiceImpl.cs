@@ -1,16 +1,17 @@
 using Microsoft.Extensions.Options;
-using OpenTelemetry.Proto.Collector.Trace.V1;
-using Nami.Collector.ApiKeys;
+using Nami.ApiKeys;
 using Nami.Collector.Storage;
+using OpenTelemetry.Proto.Collector.Trace.V1;
 
-namespace Nami.Collector.Grpc;
+namespace Nami.Grpc;
 
 internal sealed class TraceServiceImpl(INamiStore store, IOptions<OtlpApiKeyOptions>? options = null)
 {
     public Task<ExportTraceServiceResponse> Export(
         ExportTraceServiceRequest request,
-        ServerCallContext context) =>
-        GrpcExport.ExecuteAsync(async () =>
+        ServerCallContext context)
+    {
+        return GrpcExport.ExecuteAsync(async () =>
         {
             var traceBatch = OtlpConverter.ConvertTraceRequest(request);
             var spans = IngestionStorageMapper.ToSpanStorageRows(
@@ -22,4 +23,5 @@ internal sealed class TraceServiceImpl(INamiStore store, IOptions<OtlpApiKeyOpti
 
             return OtlpExportAck.Create(traceBatch);
         }, "trace");
+    }
 }

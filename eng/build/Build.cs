@@ -7,7 +7,7 @@ namespace Nami.Build;
 #pragma warning disable CA1822 // Fallout discovers instance target properties.
 sealed class Build : FalloutBuild, IHasConfiguration
 {
-    private static readonly string[] s_generatedDirectories = ["internal/nami.contracts/Nami", "contracts/json-schema", "contracts/openapi"];
+    private static readonly string[] s_generatedDirectories = ["internal/nami.contracts/Nami", "contracts/json-schema", "contracts/openapi", "src/nami.mcp/src/contracts/generated"];
     string Configuration => ((IHasConfiguration)this).Configuration;
     static string CpuLimit => $"-maxcpucount:{Environment.GetEnvironmentVariable("NAMI_BUILD_WORKERS") ?? "2"}";
     static void Run(string tool, string arguments, string? directory = null) =>
@@ -39,7 +39,13 @@ sealed class Build : FalloutBuild, IHasConfiguration
     static string[] Snapshot() => s_generatedDirectories
         .SelectMany(p => Directory.Exists(RootDirectory / p) ? Directory.EnumerateFiles(RootDirectory / p, "*", SearchOption.AllDirectories) : [])
         .Order(StringComparer.Ordinal).Select(p => p + ":" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(p)))).ToArray();
-    public Target Compile => d => d.Description("Build the Nami solution")
+    public Target Mcp => d => d.Description("Build the TypeScript MCP adapter and validate generated wire types")
+        .Executes(() =>
+        {
+            Run("bun", "install --frozen-lockfile", (RootDirectory / "src/nami.mcp").ToString());
+            Run("bun", "run build", (RootDirectory / "src/nami.mcp").ToString());
+        });
+    public Target Compile => d => d.Description("Build the Nami solution").DependsOn(Mcp)
         .Executes(() => Run("dotnet", $"build nami.slnx -c {Configuration} {CpuLimit} -nodeReuse:false -p:UseSharedCompilation=false {BinaryLog("compile")}"));
     public Target BuildDiagnostics => d => d.Description("Verify build and inspection diagnostic reporting")
         .DependsOn(Compile)
@@ -52,7 +58,13 @@ sealed class Build : FalloutBuild, IHasConfiguration
         .Executes(() => Run("bash", $"eng/test.sh --configuration {Configuration} --no-build --no-restore"));
     public Target PublishNative => d => d.Description("Compile the NativeAOT application")
         .DependsOn(Compile)
-        .Executes(() => Run("dotnet", $"publish src/nami/nami.csproj -c {Configuration} -o artifacts/publish {CpuLimit} -nodeReuse:false -p:UseSharedCompilation=false {BinaryLog("publish")}"));
+        .Executes(() =>
+        {
+            Run("dotnet", $"publish src/nami/nami.csproj -c {Configuration} -o artifacts/publish {CpuLimit} -nodeReuse:false -p:UseSharedCompilation=false {BinaryLog("publish")}");
+            var output = (RootDirectory / "artifacts/publish/mcp").ToString();
+            Directory.CreateDirectory(output);
+            File.Copy((RootDirectory / "src/nami.mcp/dist/main.js").ToString(), Path.Combine(output, "main.js"), true);
+        });
     public Target Conformance => d => d.Description("Run the end-to-end proof against the published native binary")
         .DependsOn(Compile).DependsOn(PublishNative)
         .Executes(() => Run("bash", $"eng/test.sh --suite EndToEnd --configuration {Configuration} --no-build --no-restore"));

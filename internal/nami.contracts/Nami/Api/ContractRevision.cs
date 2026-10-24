@@ -4,5 +4,5 @@ namespace Nami.Api.Contracts;
 /// <summary>Fingerprint of the semantic wire schema, independent of presentation and package versions.</summary>
 public static class ContractRevision
 {
-    public static readonly string Value = "sha256:bac6e95d82586edf1f5d0c1811f76dc7de5168473e11d1d2fe85263f4e509ac6";
+    public static readonly string Value = "sha256:ec3535a0e97dc557deb649cdf148af543f6cbfe055c7dbdf995ce88f97b6662f";
 }

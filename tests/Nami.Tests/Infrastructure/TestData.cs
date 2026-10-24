@@ -1,6 +1,4 @@
-using Google.Protobuf;
 using Nami.Collector.Ingestion;
-using Nami.Collector.Ingestion.Primitives;
 using Nami.Collector.Storage;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Collector.Logs.V1;

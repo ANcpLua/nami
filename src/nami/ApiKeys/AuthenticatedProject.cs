@@ -1,19 +1,21 @@
 using Microsoft.Extensions.Options;
-using Nami.Collector.Ingestion.Primitives;
 
-namespace Nami.Collector.ApiKeys;
+namespace Nami.ApiKeys;
 
 internal static class AuthenticatedProject
 {
     private static readonly object s_httpKey = new();
     private static readonly object s_grpcKey = new();
 
-    public static void Set(HttpContext context, string projectId) => context.Items[s_httpKey] = projectId;
+    public static void Set(HttpContext context, string projectId)
+    {
+        context.Items[s_httpKey] = projectId;
+    }
 
-    public static string? ForHttpIngest(HttpContext context) => FromHttp(context);
-
-    public static string ForHttpRead(HttpContext context) =>
-        FromHttp(context) ?? ProjectIdentity.DefaultProjectId;
+    public static string? ForHttpIngest(HttpContext context)
+    {
+        return FromHttp(context);
+    }
 
     private static string? FromHttp(HttpContext context)
     {
@@ -26,7 +28,10 @@ internal static class AuthenticatedProject
         return null;
     }
 
-    public static void Set(ServerCallContext context, string projectId) => context.UserState[s_grpcKey] = projectId;
+    public static void Set(ServerCallContext context, string projectId)
+    {
+        context.UserState[s_grpcKey] = projectId;
+    }
 
     public static string? ForGrpcIngest(ServerCallContext context, OtlpApiKeyOptions? options)
     {

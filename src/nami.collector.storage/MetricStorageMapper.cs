@@ -3,27 +3,24 @@ using Nami.Collector.Ingestion.Primitives;
 namespace Nami.Collector.Storage;
 
 /// <summary>
-/// Folds the flat OTLP data points the converter produces into the two-table storage shape:
-/// one <see cref="MetricSeriesRow" /> per distinct stream and canonical observations
-/// for every nonidentical producer record.
+///     Folds the flat OTLP data points the converter produces into the two-table storage shape:
+///     one <see cref="MetricSeriesRow" /> per distinct stream and canonical observations
+///     for every nonidentical producer record.
 /// </summary>
 internal static class MetricStorageMapper
 {
-    internal readonly record struct MetricWriteSet(
-        IReadOnlyList<MetricSeriesRow> Series,
-        IReadOnlyList<MetricObservationRow> Observations);
-
     public static MetricWriteSet ToStorageRows(MetricIngestionBatch batch, string? authenticatedProjectId = null)
     {
         var series = new Dictionary<(string ProjectId, string SeriesId), MetricSeriesRow>();
-        var observations = new Dictionary<(string ProjectId, string SeriesId, string ObservationId), MetricObservationRow>();
+        var observations =
+            new Dictionary<(string ProjectId, string SeriesId, string ObservationId), MetricObservationRow>();
 
         foreach (var record in batch.Points)
         {
             var projectId = ProjectScope.ForIngest(record.ProjectIdHint, authenticatedProjectId);
             var attributesJson = PersistedAttributePolicy.SerializeAttributes(record.Attributes);
             var resourceJson = PersistedAttributePolicy.SerializeAttributes(record.ResourceAttributes);
-            var resourceEntityRefsJson = StorageJson.SerializeResourceEntityRefs(record.ResourceEntityRefs);
+            var resourceEntityRefsJson = StorageJsonSerializerContext.SerializeResourceEntityRefs(record.ResourceEntityRefs);
             var scopeAttributesJson = PersistedAttributePolicy.SerializeScopeAttributes(record.ScopeAttributes);
             var instrumentId = ComputeInstrumentId(
                 record.MetricName,
@@ -43,7 +40,8 @@ internal static class MetricStorageMapper
             var key = (projectId, seriesId);
             var row = new MetricSeriesRow
             {
-                AttributeRenames = NormalizedAttributes.Collect([record.Attributes, record.ResourceAttributes, record.ScopeAttributes])
+                AttributeRenames = NormalizedAttributes
+                    .Collect([record.Attributes, record.ResourceAttributes, record.ScopeAttributes])
                     .Concat(record.InstrumentMetadata is NormalizedContractAttributes metadata ? metadata.Renames : [])
                     .Concat(record.Exemplars is NormalizedMetricExemplars exemplars ? exemplars.Renames : [])
                     .Distinct().ToArray(),
@@ -92,9 +90,9 @@ internal static class MetricStorageMapper
     }
 
     /// <summary>
-    /// Resource, scope and name identify the catalog instrument. Point attributes and
-    /// conflicting identifying properties distinguish streams within that instrument.
-    /// https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/metrics/data-model.md#opentelemetry-protocol-data-model
+    ///     Resource, scope and name identify the catalog instrument. Point attributes and
+    ///     conflicting identifying properties distinguish streams within that instrument.
+    ///     https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/metrics/data-model.md#opentelemetry-protocol-data-model
     /// </summary>
     internal static string ComputeInstrumentId(
         string metricName,
@@ -107,17 +105,18 @@ internal static class MetricStorageMapper
         string? resourceSchemaUrl, string? resourceIdentity = null, string? scopeIdentity = null)
     {
         var builder = new StringBuilder("metric_instrument\n");
-        builder.AppendSegment(metricName, terminate: true);
-        builder.AppendSegment(serviceName, terminate: true);
-        builder.AppendSegment(resourceJson, terminate: true);
-        builder.AppendSegment(scopeName, terminate: true);
-        builder.AppendSegment(scopeVersion, terminate: true);
-        builder.AppendSegment(scopeSchemaUrl, terminate: true);
-        builder.AppendSegment(scopeAttributesJson, terminate: true);
-        builder.AppendSegment(resourceSchemaUrl, terminate: true);
-        if (resourceIdentity is not null) builder.AppendSegment(resourceIdentity, terminate: true);
-        if (scopeIdentity is not null) builder.AppendSegment(scopeIdentity, terminate: true);
-        return "mi_" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())).AsSpan(0, 16));
+        builder.AppendSegment(metricName, true);
+        builder.AppendSegment(serviceName, true);
+        builder.AppendSegment(resourceJson, true);
+        builder.AppendSegment(scopeName, true);
+        builder.AppendSegment(scopeVersion, true);
+        builder.AppendSegment(scopeSchemaUrl, true);
+        builder.AppendSegment(scopeAttributesJson, true);
+        builder.AppendSegment(resourceSchemaUrl, true);
+        if (resourceIdentity is not null) builder.AppendSegment(resourceIdentity, true);
+        if (scopeIdentity is not null) builder.AppendSegment(scopeIdentity, true);
+        return "mi_" +
+               Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())).AsSpan(0, 16));
     }
 
     internal static string InstrumentId(MetricSeriesRow row) => ComputeInstrumentId(
@@ -128,29 +127,6 @@ internal static class MetricStorageMapper
         row.InstrumentId ?? InstrumentId(row), row.AttributesJson,
         (MetricKind)row.MetricKind, (MetricTemporality)row.Temporality, row.IsMonotonic != 0, row.Unit);
 
-    internal static MetricCatalogEntry ToCatalogEntry(IReadOnlyCollection<MetricSeriesRow> rows)
-    {
-        var first = rows.OrderBy(static row => row.SeriesId, StringComparer.Ordinal).First();
-        var variants = rows.GroupBy(static row => (row.MetricKind, row.Temporality, row.IsMonotonic, row.Unit))
-            .OrderBy(static group => group.Key.MetricKind).ThenBy(static group => group.Key.Temporality)
-            .ThenBy(static group => group.Key.IsMonotonic).ThenBy(static group => group.Key.Unit, StringComparer.Ordinal)
-            .Select(static group => new MetricDescriptorVariant(group.Key.MetricKind, group.Key.Temporality,
-                group.Key.IsMonotonic, group.Key.Unit,
-                group.Select(static row => row.ServiceName).OfType<string>().Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray()))
-            .ToArray();
-        var shape = variants[0];
-        return new MetricCatalogEntry(first.MetricName, shape.Kind, shape.Temporality, shape.IsMonotonic, shape.Unit,
-            rows.Select(static row => row.Description).Aggregate(LongerDescription), rows.Count,
-            rows.Max(static row => row.LastSeenUnixNano))
-        {
-            InstrumentId = first.InstrumentId ?? InstrumentId(first), Variants = variants,
-            ServiceName = first.ServiceName, ResourceJson = first.ResourceJson, ResourceEntityRefsJson = first.ResourceEntityRefsJson,
-            ResourceSchemaUrl = first.ResourceSchemaUrl, ResourceDroppedAttributesCount = first.ResourceDroppedAttributesCount,
-            ScopeName = first.ScopeName, ScopeVersion = first.ScopeVersion, ScopeSchemaUrl = first.ScopeSchemaUrl,
-            ScopeAttributesJson = first.ScopeAttributesJson, ScopeDroppedAttributesCount = first.ScopeDroppedAttributesCount
-        };
-    }
-
     private static string ComputeSeriesId(string instrumentId, string? attributesJson,
         MetricKind kind,
         MetricTemporality temporality,
@@ -159,13 +135,13 @@ internal static class MetricStorageMapper
     {
         var builder = new StringBuilder(512);
         builder.Append("metric_series\n");
-        builder.AppendSegment(instrumentId, terminate: true);
-        builder.AppendSegment(attributesJson, terminate: true);
-        builder.AppendSegment(((byte)kind).ToString(CultureInfo.InvariantCulture), terminate: true);
-        builder.AppendSegment(((byte)temporality).ToString(CultureInfo.InvariantCulture), terminate: true);
-        builder.AppendSegment(isMonotonic ? "1" : "0", terminate: true);
-        builder.AppendSegment(unit, terminate: true);
-        if (attributesIdentity is not null) builder.AppendSegment(attributesIdentity, terminate: true);
+        builder.AppendSegment(instrumentId, true);
+        builder.AppendSegment(attributesJson, true);
+        builder.AppendSegment(((byte)kind).ToString(CultureInfo.InvariantCulture), true);
+        builder.AppendSegment(((byte)temporality).ToString(CultureInfo.InvariantCulture), true);
+        builder.AppendSegment(isMonotonic ? "1" : "0", true);
+        builder.AppendSegment(unit, true);
+        if (attributesIdentity is not null) builder.AppendSegment(attributesIdentity, true);
 
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));
         return "ms_" + Convert.ToHexStringLower(hash.AsSpan(0, 16));
@@ -177,4 +153,8 @@ internal static class MetricStorageMapper
         (left?.Length ?? 0) > (right?.Length ?? 0) ? left :
         (left?.Length ?? 0) < (right?.Length ?? 0) ? right :
         StringComparer.Ordinal.Compare(left, right) >= 0 ? left : right;
+
+    internal readonly record struct MetricWriteSet(
+        IReadOnlyList<MetricSeriesRow> Series,
+        IReadOnlyList<MetricObservationRow> Observations);
 }

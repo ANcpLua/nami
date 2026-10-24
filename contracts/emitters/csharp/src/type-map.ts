@@ -83,7 +83,7 @@ export function mapType(program: Program, type: Type): string {
       return "double";
     case "Intrinsic":
       if ((type as { name?: string }).name === "null") return "null";
-      if ((type as { name?: string }).name === "unknown") return "object";
+      if ((type as { name?: string }).name === "unknown") return "JsonElement";
       if ((type as { name?: string }).name === "void") return "void";
       if ((type as { name?: string }).name === "never") return "void";
       reportDiagnostic(program, { code: "unmapped-type", target: type, format: { name: `intrinsic:${(type as { name?: string }).name ?? "?"}` } });

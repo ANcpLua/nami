@@ -7,6 +7,7 @@ import os
 import queue
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -180,6 +181,11 @@ def main():
             if code:
                 return finish(summary, code)
             if "EndToEnd" in selected:
+                mcp = root / "src/nami.mcp"
+                for command in (["bun", "install", "--frozen-lockfile"], ["bun", "run", "build"]):
+                    code = execute(command, run / "mcp-build.log", mcp)
+                    if code:
+                        return finish(summary, code)
                 command = [args.dotnet, "publish", str(root / "src/nami/nami.csproj"), "-c", args.configuration,
                            "-o", str(root / "artifacts/publish"), f"-maxcpucount:{workers}", "-nodeReuse:false", "-p:UseSharedCompilation=false", f"-bl:{run}/publish-{{}}.binlog"]
                 if args.no_restore:
@@ -187,6 +193,9 @@ def main():
                 code = execute(command, run / "publish.log", root)
                 if code:
                     return finish(summary, code)
+                mcp_output = root / "artifacts/publish/mcp"
+                mcp_output.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(mcp / "dist/main.js", mcp_output / "main.js")
         module_files = []
         if args.test_modules:
             expression = args.test_modules if Path(args.test_modules).is_absolute() else str(root / args.test_modules)
@@ -215,6 +224,8 @@ def main():
                 print(f"MTP PROJECT: {project} IsTestingPlatformApplication={state['IsTestingPlatformApplication']}", flush=True)
                 command = [args.dotnet, "test", "--project", str(project), "-c", args.configuration, "--no-build", "--no-restore"]
                 config = project.parent / "testconfig.json"
+            if name == "EndToEnd" and not (root / "artifacts/publish/mcp/main.js").is_file():
+                raise HarnessError("The bundled TypeScript MCP host is missing. Prepare PublishNative first.")
             if name == "EndToEnd" and not (root / "artifacts/publish" / ("nami.exe" if os.name == "nt" else "nami")).is_file():
                 raise HarnessError("The NativeAOT Nami host is missing. Run without --no-build, or prepare PublishNative first.")
             if not config.is_file():

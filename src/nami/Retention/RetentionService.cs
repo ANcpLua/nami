@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Nami.Collector.Storage;
 
-namespace Nami.Collector.Retention;
+namespace Nami.Retention;
 
 internal sealed partial class RetentionService(
     INamiStore store,
@@ -11,10 +11,10 @@ internal sealed partial class RetentionService(
 {
     private const int DeleteBatchSize = 1000;
 
-    private readonly RetentionOptions _options = configured.Value;
-
     private static readonly TimeSpan s_initialDelay = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan s_shutdownCheckpointTimeout = TimeSpan.FromSeconds(30);
+
+    private readonly RetentionOptions _options = configured.Value;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -56,10 +56,10 @@ internal sealed partial class RetentionService(
         }
     }
 
-    internal async Task<RetentionCycleOutcome> RunCycleAsync(CancellationToken cancellationToken = default)
+    private async Task RunCycleAsync(CancellationToken cancellationToken = default)
     {
         if (!_options.IsEnabled)
-            return RetentionCycleOutcome.Empty;
+            return;
 
         var startedAt = Stopwatch.GetTimestamp();
         var fileBefore = store.GetStorageFileMetrics();
@@ -67,15 +67,14 @@ internal sealed partial class RetentionService(
         long deletedSpans = 0;
         long deletedMetricPoints = 0;
         long deletedMetricSeries = 0;
-        long deletedAnnotations = 0;
-        var deletedIdempotencyKeys = 0;
         long deletedMetadata = 0;
-        var writeBatches = 0;
 
         try
         {
-            var cutoff = NamiTimeConversions.ToUnixNanoUnsigned(
-                timeProvider.GetUtcNow().AddDays(-_options.Days));
+            var now = timeProvider.GetUtcNow();
+            var cutoff = _options.Days > (now - DateTimeOffset.UnixEpoch).Days
+                ? 0UL
+                : NamiTimeConversions.ToUnixNanoUnsigned(now.AddDays(-_options.Days));
 
             while (true)
             {
@@ -84,7 +83,6 @@ internal sealed partial class RetentionService(
                         DeleteBatchSize,
                         cancellationToken)
                     .ConfigureAwait(false);
-                writeBatches++;
                 deletedLogs += deleted;
                 if (deleted < DeleteBatchSize)
                     break;
@@ -97,7 +95,6 @@ internal sealed partial class RetentionService(
                         DeleteBatchSize,
                         cancellationToken)
                     .ConfigureAwait(false);
-                writeBatches++;
                 deletedSpans += deleted;
                 if (deleted is 0)
                     break;
@@ -110,7 +107,6 @@ internal sealed partial class RetentionService(
                         DeleteBatchSize,
                         cancellationToken)
                     .ConfigureAwait(false);
-                writeBatches++;
                 deletedMetricPoints += deleted.Points;
                 deletedMetricSeries += deleted.Series;
                 if (deleted.Points < DeleteBatchSize)
@@ -118,47 +114,18 @@ internal sealed partial class RetentionService(
             }
 
             deletedMetadata = await store.DeleteExpiredMetadataAsync(cutoff, cancellationToken).ConfigureAwait(false);
-
-
         }
         finally
         {
-            if (deletedLogs + deletedSpans + deletedMetricPoints + deletedMetricSeries + deletedAnnotations +
-                deletedIdempotencyKeys + deletedMetadata > 0)
+            if (deletedLogs + deletedSpans + deletedMetricPoints + deletedMetricSeries + deletedMetadata > 0)
                 await CheckpointAfterDeletionAsync(cancellationToken).ConfigureAwait(false);
         }
 
         var duration = Stopwatch.GetElapsedTime(startedAt);
         var fileAfter = store.GetStorageFileMetrics();
-        var result = new RetentionCycleOutcome(
-            deletedLogs,
-            deletedSpans,
-            deletedMetricPoints,
-            deletedMetricSeries,
-            deletedAnnotations,
-            deletedIdempotencyKeys,
-            writeBatches,
-            duration,
-            fileBefore.ManagedStorageBytes,
-            fileAfter.ManagedStorageBytes);
-
-        if (result.TotalRows > 0)
-        {
-            LogCycleCompleted(
-                logger,
-                result.DeletedLogRows,
-                result.DeletedSpanRows,
-                result.DeletedMetricPoints,
-                result.DeletedMetricSeries,
-                result.Duration.TotalMilliseconds,
-                result.FileSizeBeforeBytes,
-                result.FileSizeAfterBytes);
-        }
-
-        if (result.DeletedAnnotations + result.DeletedIdempotencyKeys > 0)
-            LogResourcesExpired(logger, result.DeletedAnnotations, result.DeletedIdempotencyKeys);
-
-        return result;
+        if (deletedLogs + deletedSpans + deletedMetricPoints + deletedMetricSeries > 0)
+            LogCycleCompleted(logger, deletedLogs, deletedSpans, deletedMetricPoints, deletedMetricSeries,
+                duration.TotalMilliseconds, fileBefore.ManagedStorageBytes, fileAfter.ManagedStorageBytes);
     }
 
     private async Task CheckpointAfterDeletionAsync(CancellationToken cancellationToken)
@@ -176,7 +143,8 @@ internal sealed partial class RetentionService(
     [LoggerMessage(
         EventId = 3001,
         Level = LogLevel.Information,
-        Message = "Retention cycle deleted {DeletedLogRows} logs, {DeletedSpanRows} spans, {DeletedMetricPoints} metric points, and {DeletedMetricSeries} metric series in {DurationMs} ms; managed storage changed from {FileSizeBeforeBytes} to {FileSizeAfterBytes} bytes")]
+        Message =
+            "Retention cycle deleted {DeletedLogRows} logs, {DeletedSpanRows} spans, {DeletedMetricPoints} metric points, and {DeletedMetricSeries} metric series in {DurationMs} ms; managed storage changed from {FileSizeBeforeBytes} to {FileSizeAfterBytes} bytes")]
     private static partial void LogCycleCompleted(
         ILogger logger,
         long deletedLogRows,
@@ -187,34 +155,6 @@ internal sealed partial class RetentionService(
         long fileSizeBeforeBytes,
         long fileSizeAfterBytes);
 
-    [LoggerMessage(
-        EventId = 3003,
-        Level = LogLevel.Information,
-        Message = "Retention cycle expired {DeletedAnnotations} annotations and {DeletedIdempotencyKeys} idempotency keys")]
-    private static partial void LogResourcesExpired(
-        ILogger logger,
-        long deletedAnnotations,
-        long deletedIdempotencyKeys);
-
     [LoggerMessage(EventId = 3002, Level = LogLevel.Error, Message = "Retention cycle failed")]
     private static partial void LogCycleFailed(ILogger logger, Exception exception);
-}
-
-internal readonly record struct RetentionCycleOutcome(
-    long DeletedLogRows,
-    long DeletedSpanRows,
-    long DeletedMetricPoints,
-    long DeletedMetricSeries,
-    long DeletedAnnotations,
-    long DeletedIdempotencyKeys,
-    int WriteBatches,
-    TimeSpan Duration,
-    long FileSizeBeforeBytes,
-    long FileSizeAfterBytes)
-{
-    public static RetentionCycleOutcome Empty { get; } = new(0, 0, 0, 0, 0, 0, 0, TimeSpan.Zero, 0, 0);
-
-    /// <summary>Telemetry rows deleted; the existing cycle log reports exactly these.</summary>
-    public long TotalRows =>
-        DeletedLogRows + DeletedSpanRows + DeletedMetricPoints + DeletedMetricSeries;
 }

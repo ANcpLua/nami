@@ -1,12 +1,7 @@
-global using System.Collections.Frozen;
 global using System.Globalization;
 global using System.IO.Compression;
-global using System.Runtime.CompilerServices;
-global using System.Runtime.InteropServices;
 global using System.Security.Cryptography;
 global using System.Text.Json;
-global using System.Text.Json.Serialization;
 global using Grpc.Core;
 global using Nami.Collector.Ingestion;
-global using NamiSessionActivity = Nami.Collector.Ingestion.Primitives.SessionActivity;
 global using NamiTimeConversions = Nami.Collector.Ingestion.Primitives.TimeConversions;

@@ -750,6 +750,134 @@
         "maxLength": 256,
         "description": "User identifier (pseudonymized for privacy)"
       },
+      "Engine.EngineLimits": {
+        "type": "object",
+        "required": [
+          "max_frame_bytes",
+          "max_pending",
+          "workers"
+        ],
+        "properties": {
+          "max_frame_bytes": {
+            "type": "integer",
+            "format": "int32",
+            "default": 1048576
+          },
+          "max_pending": {
+            "type": "integer",
+            "format": "int32",
+            "default": 32
+          },
+          "workers": {
+            "type": "integer",
+            "format": "int32",
+            "default": 2
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "Fixed bounds for the private protocol, shared by both implementations."
+      },
+      "Engine.EngineRequest": {
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "method",
+          "name",
+          "input",
+          "credential",
+          "traceparent",
+          "tracestate"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "call",
+              "health",
+              "cancel"
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "input": {},
+          "credential": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "traceparent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tracestate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One private engine request. Credentials select the project; client tool arguments never do."
+      },
+      "Engine.EngineResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "result",
+          "is_error"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "result": {},
+          "is_error": {
+            "type": "boolean"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One complete private response. A tool refusal is an explicit error value, never a lost reply."
+      },
       "Health.HealthCheckEntry": {
         "type": "object",
         "required": [

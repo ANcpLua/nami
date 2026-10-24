@@ -6,4 +6,5 @@ export const csharpGeneratedDirectory = repository("internal/nami.contracts/Nami
 export const csharpRevisionPath = repository("internal/nami.contracts/Nami/Api/ContractRevision.cs");
 export const jsonSchemaDirectory = repository("contracts/json-schema");
 export const contractSchemasPath = repository("internal/nami.contracts/Nami/Api/Contracts/contract-schemas.json");
+export const typescriptGeneratedDirectory = repository("src/nami.mcp/src/contracts/generated");
 export async function readOpenApi() { return JSON.parse(await readFile(openApiPath, "utf8")); }

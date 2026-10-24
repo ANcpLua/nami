@@ -1,17 +1,16 @@
 using Google.Protobuf;
-using Microsoft.AspNetCore.Mvc;
-using Nami.Collector.ApiKeys;
-using Nami.Collector.Grpc;
+using Nami.ApiKeys;
+using Nami.Grpc;
 using Nami.Collector.Storage;
 using ExportLogsServiceResponse = OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceResponse;
 using ExportMetricsServiceResponse = OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse;
 using ExportTraceServiceResponse = OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceResponse;
 
-namespace Nami.Collector.Hosting;
+namespace Nami.Hosting;
 
-internal static partial class CollectorEndpointExtensions
+internal static class CollectorEndpointExtensions
 {
-    public static WebApplication MapNamiCollectorEndpoints(this WebApplication app)
+    public static void MapNamiCollectorEndpoints(this WebApplication app)
     {
         app.MapGrpcService<TraceServiceImpl>();
         app.MapGrpcService<LogsServiceImpl>();
@@ -22,14 +21,14 @@ internal static partial class CollectorEndpointExtensions
         otlp.MapPost("/logs", IngestOtlpLogsAsync);
         otlp.MapPost("/metrics", IngestOtlpMetricsAsync);
 
-        return app;
     }
 
     internal static Task<IResult> IngestOtlpTracesAsync(
         HttpContext context,
         INamiStore store,
-        CancellationToken ct) =>
-        IngestOtlpAsync(
+        CancellationToken ct)
+    {
+        return IngestOtlpAsync(
             context,
             "traces",
             OtlpPayloadParser.ParseTraceRequestAsync,
@@ -38,19 +37,22 @@ internal static partial class CollectorEndpointExtensions
             OtlpConverter.ConvertTraceRequest,
             async (batch, token) =>
             {
-                var spans = IngestionStorageMapper.ToSpanStorageRows(batch, AuthenticatedProject.ForHttpIngest(context));
+                var spans = IngestionStorageMapper.ToSpanStorageRows(batch,
+                    AuthenticatedProject.ForHttpIngest(context));
                 if (spans.Count > 0) await store.EnqueueAsync(new SpanBatch(spans), token);
             },
             OtlpExportAck.Create,
             OtlpTracesLog.FailedToProcessPayload,
             ct);
+    }
 
     internal static Task<IResult> IngestOtlpLogsAsync(
         HttpContext context,
         INamiStore store,
         TimeProvider timeProvider,
-        CancellationToken ct) =>
-        IngestOtlpAsync(
+        CancellationToken ct)
+    {
+        return IngestOtlpAsync(
             context,
             "logs",
             OtlpPayloadParser.ParseLogsRequestAsync,
@@ -65,12 +67,14 @@ internal static partial class CollectorEndpointExtensions
             OtlpExportAck.Create,
             OtlpLogsLog.FailedToProcessPayload,
             ct);
+    }
 
     internal static Task<IResult> IngestOtlpMetricsAsync(
         HttpContext context,
         INamiStore store,
-        CancellationToken ct) =>
-        IngestOtlpAsync(
+        CancellationToken ct)
+    {
+        return IngestOtlpAsync(
             context,
             "metrics",
             OtlpPayloadParser.ParseMetricsRequestAsync,
@@ -86,11 +90,12 @@ internal static partial class CollectorEndpointExtensions
             OtlpExportAck.Create,
             OtlpMetricsLog.FailedToProcessPayload,
             ct);
+    }
 
     /// <summary>
-    /// One OTLP/HTTP export of any signal: an undecodable body is 413 over the size bound, 415 for a media type or
-    /// content encoding OTLP does not define and 400 otherwise; a decoded export the converter or the storage mapper
-    /// rejects is 400, and one the store cannot persist is a retryable 503.
+    ///     One OTLP/HTTP export of any signal: an undecodable body is 413 over the size bound, 415 for a media type or
+    ///     content encoding OTLP does not define and 400 otherwise; a decoded export the converter or the storage mapper
+    ///     rejects is 400, and one the store cannot persist is a retryable 503.
     /// </summary>
     private static async Task<IResult> IngestOtlpAsync<TRequest, TBatch>(
         HttpContext context,
@@ -151,7 +156,8 @@ internal static partial class CollectorEndpointExtensions
         }
         catch (Exception ex)
         {
-            return Failure(ex, StatusCodes.Status503ServiceUnavailable, $"The collector could not persist the OTLP {signal} payload.");
+            return Failure(ex, StatusCodes.Status503ServiceUnavailable,
+                $"The collector could not persist the OTLP {signal} payload.");
         }
 
         IResult Failure(Exception exception, int statusCode, string message)
@@ -161,7 +167,6 @@ internal static partial class CollectorEndpointExtensions
             return OtlpHttpResult.Failure(statusCode, encoding, message);
         }
     }
-
 }
 
 internal static partial class OtlpLogsLog

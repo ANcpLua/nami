@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using Nami.Collector.Ingestion.Configuration;
 using Nami.Collector.Storage;
 
-namespace Nami.Collector.Hosting;
+namespace Nami.Hosting;
 
 internal sealed class CollectorStorageOptions
 {

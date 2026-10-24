@@ -1,6 +1,6 @@
 using StatusCode = Grpc.Core.StatusCode;
 
-namespace Nami.Collector.Grpc;
+namespace Nami.Grpc;
 
 internal static class GrpcExport
 {

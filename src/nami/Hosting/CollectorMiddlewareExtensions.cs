@@ -1,15 +1,14 @@
 using Microsoft.Extensions.Options;
-using Nami.Collector.ApiKeys;
+using Nami.ApiKeys;
 
-namespace Nami.Collector.Hosting;
+namespace Nami.Hosting;
 
 internal static class CollectorMiddlewareExtensions
 {
-    public static WebApplication UseNamiCollectorMiddleware(this WebApplication app)
+    public static void UseNamiCollectorMiddleware(this WebApplication app)
     {
         if (app.Services.GetRequiredService<IOptions<OtlpCorsOptions>>().Value.IsEnabled)
             app.UseMiddleware<OtlpCorsMiddleware>();
         app.UseMiddleware<CollectorApiKeyMiddleware>();
-        return app;
     }
 }

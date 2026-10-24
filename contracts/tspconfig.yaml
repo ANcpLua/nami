@@ -1,15 +1,18 @@
 emit:
   - "./emitters/csharp"
+  - "./emitters/ts-types"
   - "@typespec/openapi3"
   - "@typespec/json-schema"
 options:
+  "@ancplua/typespec-emit-ts-types":
+    emitter-output-dir: "{project-root}/../src/nami.mcp/src/contracts/generated"
   "@ancplua/typespec-emit-csharp":
     emitter-output-dir: "{project-root}/../internal/nami.contracts"
   "@typespec/openapi3":
     emitter-output-dir: "{project-root}/openapi"
     output-file: "nami.openapi.json"
     file-type: json
-    openapi-versions: ["3.2.0"]
+    openapi-versions: [ "3.2.0" ]
     seal-object-schemas: true
     omit-unreachable-types: false
   "@typespec/json-schema":

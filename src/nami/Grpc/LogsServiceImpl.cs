@@ -1,16 +1,20 @@
 using Microsoft.Extensions.Options;
-using OpenTelemetry.Proto.Collector.Logs.V1;
-using Nami.Collector.ApiKeys;
+using Nami.ApiKeys;
 using Nami.Collector.Storage;
+using OpenTelemetry.Proto.Collector.Logs.V1;
 
-namespace Nami.Collector.Grpc;
+namespace Nami.Grpc;
 
-internal sealed class LogsServiceImpl(INamiStore store, TimeProvider timeProvider, IOptions<OtlpApiKeyOptions>? options = null)
+internal sealed class LogsServiceImpl(
+    INamiStore store,
+    TimeProvider timeProvider,
+    IOptions<OtlpApiKeyOptions>? options = null)
 {
     public Task<ExportLogsServiceResponse> Export(
         ExportLogsServiceRequest request,
-        ServerCallContext context) =>
-        GrpcExport.ExecuteAsync(async () =>
+        ServerCallContext context)
+    {
+        return GrpcExport.ExecuteAsync(async () =>
         {
             var logBatch = OtlpConverter.ConvertLogs(request, timeProvider);
             var logs = IngestionStorageMapper.ToLogStorageRows(
@@ -21,4 +25,5 @@ internal sealed class LogsServiceImpl(INamiStore store, TimeProvider timeProvide
             await store.InsertLogsAsync(logs, context.CancellationToken).ConfigureAwait(false);
             return OtlpExportAck.Create(logBatch);
         }, "log");
+    }
 }

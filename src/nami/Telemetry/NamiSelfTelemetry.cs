@@ -1,22 +1,22 @@
+using System.Diagnostics.Metrics;
+using System.Net.Sockets;
+using System.Text;
+using Nami.Hosting;
+using Nami.SemanticConventions;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using System.Diagnostics.Metrics;
-using Nami.Collector.ApiKeys;
-using Nami.Collector.Ingestion.Configuration;
-using Nami.SemanticConventions;
-using Nami.Collector.Hosting;
-using System.Net.Sockets;
 
-namespace Nami.Collector.Telemetry;
+namespace Nami.Telemetry;
 
 internal static partial class NamiTelemetry
 {
     public const string ServiceName = "nami";
     public static readonly ActivitySource Source = new(ServiceName, BuildVersion.ProductVersion);
     private static readonly Meter s_meter = new(ServiceName, BuildVersion.ProductVersion);
+
     public static readonly Histogram<double> Duration = s_meter.CreateHistogram<double>(
         Metrics.McpServerOperationDuration.Name, "s");
 
@@ -37,15 +37,18 @@ internal static partial class NamiTelemetry
 
 internal static class NamiSelfTelemetry
 {
-    public static IServiceCollection AddNamiSelfTelemetry(this IServiceCollection services, IConfiguration configuration)
+    public static void AddNamiSelfTelemetry(this IServiceCollection services,
+        IConfiguration configuration)
     {
         var credential = new SelfTelemetryCredential();
         services.AddSingleton(credential);
         var ports = new CollectorPortOptions();
         configuration.Bind(ports);
-        var port = ports.OtlpHttp > 0 ? ports.OtlpHttp : ports.Http;
+        if (ports.OtlpHttp <= 0) return;
+        var port = ports.OtlpHttp;
         var loopback = ports.ParseBindAddress().AddressFamily == AddressFamily.InterNetworkV6 ? "[::1]" : "127.0.0.1";
-        var resource = ResourceBuilder.CreateDefault().AddService(NamiTelemetry.ServiceName, serviceVersion: BuildVersion.ProductVersion)
+        var resource = ResourceBuilder.CreateDefault()
+            .AddService(NamiTelemetry.ServiceName, serviceVersion: BuildVersion.ProductVersion)
             .AddAttributes([new KeyValuePair<string, object>(NamiAttributes.ProjectId, NamiTelemetry.ServiceName)]);
         var headers = $"{OtlpConstants.ApiKeyHeaderName}={credential.Key}";
         services.AddOpenTelemetry()
@@ -65,7 +68,6 @@ internal static class NamiSelfTelemetry
             options.IncludeScopes = true;
             options.AddOtlpExporter(exporter => Configure(exporter, loopback, port, "/v1/logs", headers));
         }));
-        return services;
     }
 
     private static void Configure(OtlpExporterOptions options, string loopback, int port, string path, string headers)
@@ -80,6 +82,11 @@ internal static class NamiSelfTelemetry
 internal sealed class SelfTelemetryCredential
 {
     public string Key { get; } = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
-    public bool Matches(string? supplied) => supplied is { Length: 64 } &&
-        CryptographicOperations.FixedTimeEquals(System.Text.Encoding.ASCII.GetBytes(Key), System.Text.Encoding.ASCII.GetBytes(supplied));
+
+    public bool Matches(string? supplied)
+    {
+        return supplied is { Length: 64 } &&
+               CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(Key),
+                   Encoding.ASCII.GetBytes(supplied));
+    }
 }

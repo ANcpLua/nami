@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -14,19 +14,45 @@ internal sealed class McpHarness : IAsyncDisposable
     private readonly Task<string>? _stderr;
     private readonly Task<string>? _stdout;
     private HttpClientTransport? _transport;
-    internal McpClient Client { get; private set; } = null!;
+
+    private McpHarness(int httpPort, int otlpPort, int grpcPort,
+        Process? process = null, Task<string>? stderr = null, Task<string>? stdout = null)
+    {
+        (HttpPort, OtlpPort, GrpcPort, _process, _stderr, _stdout) =
+            (httpPort, otlpPort, grpcPort, process, stderr, stdout);
+    }
+
+    private McpClient? _client;
+    internal McpClient Client => _client ?? throw new InvalidOperationException("MCP startup has not completed.");
     internal HttpClient Http { get; } = new();
     internal int HttpPort { get; }
     internal int OtlpPort { get; }
     internal int GrpcPort { get; }
-    internal string DirectoryPath { get; }
-    internal string DatabasePath => Path.Combine(DirectoryPath, "nami.duckdb");
-    internal string StandardError => _stderr?.IsCompletedSuccessfully == true ? _stderr.Result : "";
 
-    private McpHarness(string directory, int httpPort, int otlpPort, int grpcPort,
-        Process? process = null, Task<string>? stderr = null, Task<string>? stdout = null)
-        => (DirectoryPath, HttpPort, OtlpPort, GrpcPort, _process, _stderr, _stdout) =
-           (directory, httpPort, otlpPort, grpcPort, process, stderr, stdout);
+    public async ValueTask DisposeAsync()
+    {
+        if (_client is not null) await _client.DisposeAsync().ConfigureAwait(false);
+        if (_transport is not null) await _transport.DisposeAsync().ConfigureAwait(false);
+        if (_process is not null)
+        {
+            if (!_process.HasExited)
+            {
+                _process.StandardInput.Close();
+                using var shutdown = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                try { await _process.WaitForExitAsync(shutdown.Token).ConfigureAwait(false); }
+                catch (OperationCanceledException) when (shutdown.IsCancellationRequested)
+                {
+                    _process.Kill();
+                    await _process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+            }
+            if (_stderr is not null) await _stderr.ConfigureAwait(false);
+            if (_stdout is not null) await _stdout.ConfigureAwait(false);
+            _process.Dispose();
+        }
+
+        Http.Dispose();
+    }
 
     internal static int FreePort()
     {
@@ -41,24 +67,30 @@ internal sealed class McpHarness : IAsyncDisposable
         CancellationToken cancellationToken, string? keys = null, string? readKey = null)
     {
         Directory.CreateDirectory(directory);
-        var httpPort = FreePort(); var otlpPort = FreePort(); var grpcPort = FreePort();
+        var httpPort = FreePort();
+        var otlpPort = FreePort();
+        var grpcPort = FreePort();
         while (otlpPort == httpPort) otlpPort = FreePort();
         while (grpcPort == httpPort || grpcPort == otlpPort) grpcPort = FreePort();
         var env = new Dictionary<string, string?>
         {
-            ["NAMI_PORT"] = httpPort.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["NAMI_OTLP_PORT"] = otlpPort.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["NAMI_GRPC_PORT"] = grpcPort.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["NAMI_PORT"] = httpPort.ToString(CultureInfo.InvariantCulture),
+            ["NAMI_OTLP_PORT"] = otlpPort.ToString(CultureInfo.InvariantCulture),
+            ["NAMI_GRPC_PORT"] = grpcPort.ToString(CultureInfo.InvariantCulture),
             ["NAMI_DATA_PATH"] = Path.Combine(directory, "nami.duckdb"),
             ["NAMI_OTLP_AUTH_MODE"] = keys is null ? "Unsecured" : "ApiKey",
             ["NAMI_OTLP_PROJECT_KEYS"] = keys,
             ["DOTNET_ENVIRONMENT"] = "Development"
         };
-        var managed = binary.EndsWith(".dll", StringComparison.Ordinal);
-        var command = managed ? "dotnet" : binary;
-        var args = managed ? new List<string> { binary } : [];
+        const string command = "bun";
+        var args = new List<string>
+        {
+            Path.Combine(ProcessRunner.RepositoryRoot, "artifacts", "publish", "mcp", "main.js"),
+            "--engine", binary
+        };
         if (stdio) args.Add("--stdio");
-        var options = new McpClientOptions { ProtocolVersion = "2026-07-28", InitializationTimeout = TimeSpan.FromSeconds(30) };
+        var options = new McpClientOptions
+            { ProtocolVersion = "2026-07-28", InitializationTimeout = TimeSpan.FromSeconds(30) };
         if (stdio)
         {
             var transport = new StdioClientTransport(new StdioClientTransportOptions
@@ -66,18 +98,32 @@ internal sealed class McpHarness : IAsyncDisposable
                 Command = command, Arguments = args, WorkingDirectory = directory,
                 EnvironmentVariables = env, ShutdownTimeout = TimeSpan.FromSeconds(5)
             });
-            var fixture = new McpHarness(directory, httpPort, otlpPort, grpcPort);
-            try { fixture.Client = await McpClient.CreateAsync(transport, options, cancellationToken: cancellationToken).ConfigureAwait(false);
-                await fixture.WaitForHealthAsync(cancellationToken).ConfigureAwait(false); return fixture; }
-            catch { await fixture.DisposeAsync().ConfigureAwait(false); throw; }
+            var fixture = new McpHarness(httpPort, otlpPort, grpcPort);
+            try
+            {
+                fixture._client = await McpClient.CreateAsync(transport, options, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+                // MCP startup follows the engine-ready handshake; stdio has no HTTP health listener.
+                return fixture;
+            }
+            catch
+            {
+                await fixture.DisposeAsync().ConfigureAwait(false);
+                throw;
+            }
         }
-        var start = new ProcessStartInfo(command) { UseShellExecute = false, RedirectStandardOutput = true,
-            RedirectStandardError = true, WorkingDirectory = directory };
+
+        var start = new ProcessStartInfo(command)
+        {
+            UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true,
+            RedirectStandardError = true, WorkingDirectory = directory
+        };
         foreach (var arg in args) start.ArgumentList.Add(arg);
         foreach (var pair in env) start.Environment[pair.Key] = pair.Value;
         var process = Process.Start(start) ?? throw new InvalidOperationException("Nami did not start.");
-        var host = new McpHarness(directory, httpPort, otlpPort, grpcPort, process,
-            process.StandardError.ReadToEndAsync(CancellationToken.None), process.StandardOutput.ReadToEndAsync(CancellationToken.None));
+        var host = new McpHarness(httpPort, otlpPort, grpcPort, process,
+            process.StandardError.ReadToEndAsync(CancellationToken.None),
+            process.StandardOutput.ReadToEndAsync(CancellationToken.None));
         try
         {
             await host.WaitForHealthAsync(cancellationToken).ConfigureAwait(false);
@@ -87,25 +133,48 @@ internal sealed class McpHarness : IAsyncDisposable
                 Endpoint = new Uri($"http://127.0.0.1:{httpPort}/mcp"), AdditionalHeaders = headers
             });
             host._transport = transport;
-            host.Client = await McpClient.CreateAsync(transport, options, cancellationToken: cancellationToken).ConfigureAwait(false);
+            host._client = await McpClient.CreateAsync(transport, options, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
             return host;
         }
-        catch { await host.DisposeAsync().ConfigureAwait(false); throw; }
+        catch
+        {
+            await host.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
     }
 
     private async Task WaitForHealthAsync(CancellationToken cancellationToken)
     {
-        var until = DateTimeOffset.UtcNow.AddSeconds(30);
-        while (DateTimeOffset.UtcNow < until)
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30), TimeProvider.System);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
+        Exception? lastRequestError = null;
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (_process?.HasExited == true) throw new InvalidOperationException("Nami exited: " + await _stderr!.ConfigureAwait(false));
-            try { using var response = await Http.GetAsync($"http://127.0.0.1:{HttpPort}/health", cancellationToken).ConfigureAwait(false);
-                if (response.IsSuccessStatusCode) return; }
-            catch (HttpRequestException) { }
-            await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+            while (true)
+            {
+                linked.Token.ThrowIfCancellationRequested();
+                if (_process?.HasExited == true)
+                    throw new InvalidOperationException("Nami exited: " + await _stderr!.ConfigureAwait(false));
+                try
+                {
+                    using var response = await Http.GetAsync($"http://127.0.0.1:{HttpPort}/health", linked.Token)
+                        .ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode) return;
+                }
+                catch (HttpRequestException error)
+                {
+                    lastRequestError = error;
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(50), TimeProvider.System, linked.Token).ConfigureAwait(false);
+            }
         }
-        throw new TimeoutException("Nami health endpoint did not become ready.");
+        catch (OperationCanceledException error) when (timeout.IsCancellationRequested &&
+                                                      !cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException("Nami health endpoint did not become ready.", lastRequestError ?? error);
+        }
     }
 
     internal ValueTask<CallToolResult> CallAsync(string name, string json, CancellationToken cancellationToken)
@@ -117,26 +186,12 @@ internal sealed class McpHarness : IAsyncDisposable
         }, cancellationToken);
     }
 
-    internal async Task<HttpResponseMessage> SendJsonAsync(string signal, string json, CancellationToken cancellationToken, string? key = null)
+    internal async Task<HttpResponseMessage> SendJsonAsync(string signal, string json,
+        CancellationToken cancellationToken, string? key = null)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"http://127.0.0.1:{OtlpPort}/v1/{signal}")
-            { Content = new StringContent(json, Encoding.UTF8, "application/json") };
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"http://127.0.0.1:{OtlpPort}/v1/{signal}");
+        request.Content = new StringContent(json, Encoding.UTF8, "application/json");
         if (key is not null) request.Headers.Add("x-otlp-api-key", key);
         return await Http.SendAsync(request, cancellationToken).ConfigureAwait(false);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (Client is not null) await Client.DisposeAsync().ConfigureAwait(false);
-        if (_transport is not null) await _transport.DisposeAsync().ConfigureAwait(false);
-        if (_process is not null)
-        {
-            if (!_process.HasExited) _process.Kill(entireProcessTree: true);
-            await _process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
-            if (_stderr is not null) await _stderr.ConfigureAwait(false);
-            if (_stdout is not null) await _stdout.ConfigureAwait(false);
-            _process.Dispose();
-        }
-        Http.Dispose();
     }
 }

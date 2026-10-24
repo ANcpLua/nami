@@ -3,11 +3,11 @@ using System.Text.Encodings.Web;
 namespace Nami.Collector.Storage;
 
 /// <summary>
-/// An attribute value as storage persists it: in attribute columns, span event and link attributes,
-/// log bodies, exemplar filtered attributes and instrument metadata, and in every identifier hashed
-/// from them. A string, boolean or array is written as itself; an integer, float, byte string or map
-/// is a tagged <see cref="StoredObjectValue" />. Storage owns this format. Ingestion values map into
-/// it at the write boundary and the API contract maps from it on read; neither serializes it.
+///     An attribute value as storage persists it: in attribute columns, span event and link attributes,
+///     log bodies, exemplar filtered attributes and instrument metadata, and in every identifier hashed
+///     from them. A string, boolean or array is written as itself; an integer, float, byte string or map
+///     is a tagged <see cref="StoredObjectValue" />. Storage owns this format. Ingestion values map into
+///     it at the write boundary and the API contract maps from it on read; neither serializes it.
 /// </summary>
 [JsonConverter(typeof(StoredAttributeValueJsonConverter))]
 internal abstract class StoredAttributeValue
@@ -16,35 +16,16 @@ internal abstract class StoredAttributeValue
     {
     }
 
-    internal sealed class StringValue(string value) : StoredAttributeValue
-    {
-        public string Value { get; } = value;
-    }
-
-    internal sealed class BoolValue(bool value) : StoredAttributeValue
-    {
-        public bool Value { get; } = value;
-    }
-
-    internal sealed class ArrayValue(IReadOnlyList<StoredAttributeValue?> items) : StoredAttributeValue
-    {
-        public IReadOnlyList<StoredAttributeValue?> Items { get; } = items;
-    }
-
-    internal sealed class ObjectValue(StoredObjectValue value) : StoredAttributeValue
-    {
-        public StoredObjectValue Value { get; } = value;
-    }
-
     /// <summary>
-    /// The canonical text identities hash: the persisted JSON with every map's keys in ordinal order,
-    /// relaxed escaping and floats as ECMAScript prints them; the empty value is <c>null</c>.
-    /// Resource entity identities in log identifiers consist of it, so it never changes.
+    ///     The canonical text identities hash: the persisted JSON with every map's keys in ordinal order,
+    ///     relaxed escaping and floats as ECMAScript prints them; the empty value is <c>null</c>.
+    ///     Resource entity identities in log identifiers consist of it, so it never changes.
     /// </summary>
     internal static string CanonicalText(StoredAttributeValue? value)
     {
         var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))
+        using (var writer = new Utf8JsonWriter(buffer,
+                   new JsonWriterOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))
             WriteCanonical(writer, value);
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
@@ -101,21 +82,43 @@ internal abstract class StoredAttributeValue
                     writer.WritePropertyName(key);
                     WriteCanonical(writer, nested);
                 }
+
                 writer.WriteEndObject();
                 break;
             default:
                 throw new InvalidOperationException("Unknown stored attribute object shape.");
         }
+
         writer.WriteEndObject();
     }
 
     // ECMAScript Number::toString, so a canonical float reads the same in every language.
     private static void WriteEcmaScriptNumber(Utf8JsonWriter writer, double value)
     {
-        if (double.IsNaN(value)) { writer.WriteStringValue("NaN"); return; }
-        if (double.IsPositiveInfinity(value)) { writer.WriteStringValue("Infinity"); return; }
-        if (double.IsNegativeInfinity(value)) { writer.WriteStringValue("-Infinity"); return; }
-        if (value == 0) { writer.WriteRawValue("0", skipInputValidation: true); return; }
+        if (double.IsNaN(value))
+        {
+            writer.WriteStringValue("NaN");
+            return;
+        }
+
+        if (double.IsPositiveInfinity(value))
+        {
+            writer.WriteStringValue("Infinity");
+            return;
+        }
+
+        if (double.IsNegativeInfinity(value))
+        {
+            writer.WriteStringValue("-Infinity");
+            return;
+        }
+
+        if (value == 0)
+        {
+            writer.WriteRawValue("0", true);
+            return;
+        }
+
         var round = Math.Abs(value).ToString("R", CultureInfo.InvariantCulture);
         var exponentIndex = round.IndexOfAny(['E', 'e']);
         var mantissa = exponentIndex < 0 ? round : round[..exponentIndex];
@@ -131,15 +134,36 @@ internal abstract class StoredAttributeValue
         var k = digits.Length;
         string text;
         if (k <= n && n <= 21) text = digits + new string('0', n - k);
-        else if (0 < n && n <= 21) text = digits[..n] + "." + digits[n..];
-        else if (-6 < n && n <= 0) text = "0." + new string('0', -n) + digits;
+        else if (n is > 0 and <= 21) text = digits[..n] + "." + digits[n..];
+        else if (n is > -6 and <= 0) text = "0." + new string('0', -n) + digits;
         else
         {
             var e = n - 1;
             text = (k == 1 ? digits : digits[..1] + "." + digits[1..]) + "e" + (e >= 0 ? "+" : "-") +
                    Math.Abs(e).ToString(CultureInfo.InvariantCulture);
         }
-        writer.WriteRawValue((value < 0 ? "-" : "") + text, skipInputValidation: true);
+
+        writer.WriteRawValue((value < 0 ? "-" : "") + text, true);
+    }
+
+    internal sealed class StringValue(string value) : StoredAttributeValue
+    {
+        public string Value { get; } = value;
+    }
+
+    internal sealed class BoolValue(bool value) : StoredAttributeValue
+    {
+        public bool Value { get; } = value;
+    }
+
+    internal sealed class ArrayValue(IReadOnlyList<StoredAttributeValue?> items) : StoredAttributeValue
+    {
+        public IReadOnlyList<StoredAttributeValue?> Items { get; } = items;
+    }
+
+    internal sealed class ObjectValue(StoredObjectValue value) : StoredAttributeValue
+    {
+        public StoredObjectValue Value { get; } = value;
     }
 }
 
@@ -184,8 +208,7 @@ internal sealed class StoredDoubleValue : StoredNumberValue
 
 internal sealed class StoredBytesValue : StoredObjectValue
 {
-    [JsonPropertyName("base64")]
-    public required ReadOnlyMemory<byte> Base64 { get; init; }
+    [JsonPropertyName("base64")] public required ReadOnlyMemory<byte> Base64 { get; init; }
 }
 
 internal sealed class StoredKeyValueListValue : StoredObjectValue
@@ -197,7 +220,8 @@ internal sealed class StoredKeyValueListValue : StoredObjectValue
 
 internal sealed class StoredAttributeValueJsonConverter : JsonConverter<StoredAttributeValue>
 {
-    public override StoredAttributeValue? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override StoredAttributeValue? Read(ref Utf8JsonReader reader, Type typeToConvert,
+        JsonSerializerOptions options)
     {
         switch (reader.TokenType)
         {
@@ -217,7 +241,8 @@ internal sealed class StoredAttributeValueJsonConverter : JsonConverter<StoredAt
             }
             case JsonTokenType.StartObject:
             {
-                var value = (StoredObjectValue?)JsonSerializer.Deserialize(ref reader, options.GetTypeInfo(typeof(StoredObjectValue)));
+                var value = JsonSerializer.Deserialize(ref reader,
+                    options.GetTypeInfo<StoredObjectValue>());
                 return value is null ? null : new StoredAttributeValue.ObjectValue(value);
             }
             default:
@@ -242,10 +267,11 @@ internal sealed class StoredAttributeValueJsonConverter : JsonConverter<StoredAt
                     if (item is null) writer.WriteNullValue();
                     else Write(writer, item, options);
                 }
+
                 writer.WriteEndArray();
                 return;
             case StoredAttributeValue.ObjectValue tagged:
-                JsonSerializer.Serialize(writer, tagged.Value, options.GetTypeInfo(typeof(StoredObjectValue)));
+                JsonSerializer.Serialize(writer, tagged.Value, options.GetTypeInfo<StoredObjectValue>());
                 return;
             default:
                 throw new JsonException("Unknown stored attribute value shape.");

@@ -307,7 +307,14 @@ model Attribute {
   value: AttributeValue;
 
   @doc("Registry stability of this key, when recorded at ingestion.")
-  stability?: "stable" | "development" | "alpha" | "beta" | "release_candidate" | "deprecated" | "unknown";
+  stability?:
+    | "stable"
+    | "development"
+    | "alpha"
+    | "beta"
+    | "release_candidate"
+    | "deprecated"
+    | "unknown";
 }
 
 @doc("Collection of attributes")

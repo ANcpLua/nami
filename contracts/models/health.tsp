@@ -15,6 +15,7 @@ enum HealthStatus {
 model HealthCheckEntry {
   status: HealthStatus;
   description?: string;
+
   @encodedName("application/json", "duration_ms")
   durationMs: float64;
 }
@@ -22,8 +23,10 @@ model HealthCheckEntry {
 @doc("Readiness or liveness report returned by /health and /alive.")
 model HealthReport {
   status: HealthStatus;
+
   @encodedName("application/json", "total_duration_ms")
   totalDurationMs: float64;
+
   entries: Record<HealthCheckEntry>;
 
   // The meta surface of the contract loop: first-party clients compare this to

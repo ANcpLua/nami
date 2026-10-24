@@ -1,5 +1,4 @@
 using System.Diagnostics.Metrics;
-using Nami.SemanticConventions;
 
 namespace Nami.Collector.Ingestion;
 

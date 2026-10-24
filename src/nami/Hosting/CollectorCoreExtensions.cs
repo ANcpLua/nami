@@ -2,16 +2,16 @@ using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Model;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Nami.Grpc;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
-using Nami.Collector.Grpc;
 
-namespace Nami.Collector.Hosting;
+namespace Nami.Hosting;
 
 internal static class CollectorCoreExtensions
 {
-    public static IServiceCollection AddNamiCollectorCore(
+    public static void AddNamiCollectorCore(
         this IServiceCollection services,
         IConfiguration config)
     {
@@ -65,10 +65,10 @@ internal static class CollectorCoreExtensions
             for (var i = 0; i < options.CompressionProviders.Count; i++)
             {
                 if (options.CompressionProviders[i] is not BoundedDecompressionProvider)
-                    options.CompressionProviders[i] = new BoundedDecompressionProvider(options.CompressionProviders[i], limit);
+                    options.CompressionProviders[i] =
+                        new BoundedDecompressionProvider(options.CompressionProviders[i], limit);
             }
         });
 
-        return services;
     }
 }

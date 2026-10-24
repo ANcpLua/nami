@@ -20,9 +20,9 @@ configure and authorize the integration; there is no human-facing analysis dashb
   stability and persistence policy, including generated artifacts for supported Rust applications.
 - A common release carries both processes and their declared dependencies. It need not be one native file.
 
-The existing C# MCP host is the pre-migration implementation. [The checklist](../docs/checklist.md)
-records the pending TypeScript, IPC, instrumentation and distribution work; this document does not
-claim those changes have already shipped.
+TypeScript MCP and private IPC are implemented and exercised by the existing EndToEnd suite.
+[The checklist](../docs/checklist.md) tracks remaining full instrumentation and host-distribution
+proofs; a local protocol test does not by itself prove a hosted connector release.
 
 ## Instrumentation
 

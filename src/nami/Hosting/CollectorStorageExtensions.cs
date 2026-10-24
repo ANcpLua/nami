@@ -1,14 +1,13 @@
 using Microsoft.Extensions.Options;
-using Nami.Collector.Health;
-using Nami.Collector.Retention;
+using Nami.Health;
+using Nami.Retention;
 using Nami.Collector.Storage;
 
-namespace Nami.Collector.Hosting;
+namespace Nami.Hosting;
 
 internal static class CollectorStorageExtensions
 {
-
-    public static IServiceCollection AddNamiCollectorStorage(
+    public static void AddNamiCollectorStorage(
         this IServiceCollection services,
         IConfiguration configuration)
     {
@@ -21,7 +20,6 @@ internal static class CollectorStorageExtensions
         services.AddHealthChecks()
             .AddCheck<DuckDbHealthCheck>("duckdb", tags: ["db", "storage", "ready"]);
 
-        return services;
     }
 
     private static INamiStore CreateStore(IServiceProvider services)

@@ -44,7 +44,7 @@
          run it after any DuckDB bump because the option is experimental and its trigger
          timing has shifted between patch releases before. -->
     <!-- renovate: datasource=nuget depName=DuckDB.NET.Data.Full -->
-    <DuckDBVersion>1.5.6</DuckDBVersion>
+    <DuckDBVersion>1.5.6.1</DuckDBVersion>
     <!-- renovate: datasource=nuget depName=Google.Protobuf -->
     <GoogleProtobufVersion>3.36.2</GoogleProtobufVersion>
     <!-- renovate: datasource=nuget depName=Grpc.AspNetCore -->

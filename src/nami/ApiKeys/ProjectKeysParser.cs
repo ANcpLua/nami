@@ -1,11 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
 using Nami.Collector.Ingestion.Configuration;
 
-namespace Nami.Collector.ApiKeys;
+namespace Nami.ApiKeys;
 
 /// <summary>
-/// Reads NAMI_OTLP_PROJECT_KEYS, a JSON object mapping each project to its credentials. A failure
-/// names the setting and what is wrong with it, never the credential it holds.
+///     Reads NAMI_OTLP_PROJECT_KEYS, a JSON object mapping each project to its credentials. A failure
+///     names the setting and what is wrong with it, never the credential it holds.
 /// </summary>
 internal static class ProjectKeysParser
 {
@@ -45,20 +45,23 @@ internal static class ProjectKeysParser
             {
                 if (string.IsNullOrWhiteSpace(project.Name) || project.Name != project.Name.Trim() ||
                     !projects.Add(project.Name) || project.Value.ValueKind != JsonValueKind.Array)
-                    throw new InvalidOperationException($"{CollectorConfigurationKeys.ProjectKeys} has an invalid or duplicate project.");
+                    throw new InvalidOperationException(
+                        $"{CollectorConfigurationKeys.ProjectKeys} has an invalid or duplicate project.");
 
                 var count = 0;
                 foreach (var entry in project.Value.EnumerateArray())
                 {
                     var (value, roles) = ParseCredential(entry);
                     if (!credentials.Add(value))
-                        throw new InvalidOperationException($"{CollectorConfigurationKeys.ProjectKeys} has an invalid or duplicate credential.");
+                        throw new InvalidOperationException(
+                            $"{CollectorConfigurationKeys.ProjectKeys} has an invalid or duplicate credential.");
                     keys.Add(new ProjectApiKey(project.Name, value, roles));
                     count++;
                 }
 
                 if (count is 0)
-                    throw new InvalidOperationException($"{CollectorConfigurationKeys.ProjectKeys} has a project without credentials.");
+                    throw new InvalidOperationException(
+                        $"{CollectorConfigurationKeys.ProjectKeys} has a project without credentials.");
             }
 
             return keys;
@@ -98,7 +101,8 @@ internal static class ProjectKeysParser
         }
 
         return roles is ApiKeyRoles.None
-            ? throw new InvalidOperationException($"{CollectorConfigurationKeys.ProjectKeys} has a credential without roles.")
+            ? throw new InvalidOperationException(
+                $"{CollectorConfigurationKeys.ProjectKeys} has a credential without roles.")
             : (keyElement.GetString()!, roles);
     }
 }

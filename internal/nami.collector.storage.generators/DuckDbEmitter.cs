@@ -18,6 +18,7 @@ internal static class DuckDbEmitter
             sb.AppendLine("using System.Threading;");
             sb.AppendLine("using Apache.Arrow;");
         }
+
         if (!table.AppenderEligible)
             sb.AppendLine("using System.Collections.Concurrent;");
         sb.AppendLine("using System.Data.Common;");
@@ -66,7 +67,8 @@ internal static class DuckDbEmitter
         DuckDbColumnInfo[] selectColumns)
     {
         sb.AppendLine($"public const string TableName = \"{tableName}\";");
-        sb.AppendLine($"private const string QuotedTableName = \"{EscapeCSharpString(SqlIdentifier.Quote(tableName))}\";");
+        sb.AppendLine(
+            $"private const string QuotedTableName = \"{EscapeCSharpString(SqlIdentifier.Quote(tableName))}\";");
         sb.AppendLine();
 
         EmitColumnNameConstants(sb, selectColumns);
@@ -83,6 +85,7 @@ internal static class DuckDbEmitter
             sb.AppendLine(
                 $"public const string {column.PropertyName}ColumnName = \"{EscapeCSharpString(SqlIdentifier.Quote(column.ColumnName))}\";");
         }
+
         sb.AppendLine();
     }
 
@@ -169,6 +172,7 @@ internal static class DuckDbEmitter
                     ddl.Append(", ");
                 ddl.Append(SqlIdentifier.Quote(primaryKeyColumns[i].ColumnName));
             }
+
             ddl.AppendLine(")");
         }
 
@@ -213,8 +217,10 @@ internal static class DuckDbEmitter
                     ddl.Append(", ");
                 ddl.Append(SqlIdentifier.Quote(index.ColumnNames[i]));
             }
+
             ddl.Append(");");
         }
+
         return ddl.ToString();
     }
 
@@ -270,9 +276,11 @@ internal static class DuckDbEmitter
     private static string BuildParameterValueExpr(DuckDbColumnInfo col, string value)
     {
         if (col.PropertyType.TrimEnd('?') is "ulong" or "System.UInt64")
+        {
             return col.IsNullable
                 ? $"{value}.HasValue ? (object)(decimal){value}.Value : DBNull.Value"
                 : $"(decimal){value}";
+        }
 
         return col.IsNullable
             ? $"{value} ?? (object)DBNull.Value"
@@ -288,7 +296,8 @@ internal static class DuckDbEmitter
             var columns = parameterSet.Columns.ToArray();
             var parameterNames = BuildParameterNames(columns);
             EmitColumnListConstant(sb, $"{parameterSet.Name}ColumnList", columns);
-            sb.AppendLine("/// <summary>Adds typed positional parameters in the generated operation-column order.</summary>");
+            sb.AppendLine(
+                "/// <summary>Adds typed positional parameters in the generated operation-column order.</summary>");
             sb.AppendLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]");
             sb.AppendLine($"public static void Add{parameterSet.Name}Parameters(");
             sb.AppendLine("    DuckDBCommand cmd,");
@@ -298,6 +307,7 @@ internal static class DuckDbEmitter
                 var suffix = i == columns.Length - 1 ? ")" : ",";
                 sb.AppendLine($"    {column.PropertyType} {parameterNames[i]}{suffix}");
             }
+
             sb.BeginBlock();
             for (var i = 0; i < columns.Length; i++)
             {
@@ -305,6 +315,7 @@ internal static class DuckDbEmitter
                 sb.AppendLine(
                     $"cmd.Parameters.Add(new DuckDBParameter {{ Value = {BuildParameterValueExpr(column, parameterNames[i])} }});");
             }
+
             sb.EndBlock();
             sb.AppendLine();
         }
@@ -327,6 +338,7 @@ internal static class DuckDbEmitter
             occurrences[baseName] = count;
             names[i] = count is 1 ? baseName : baseName + count.ToString(CultureInfo.InvariantCulture);
         }
+
         return names;
     }
 
@@ -346,7 +358,8 @@ internal static class DuckDbEmitter
         sb.AppendLine("    connection.CreateAppender(TableName);");
         sb.AppendLine();
 
-        sb.AppendLine("/// <summary>Appends one row in generated physical-column order without a per-row allocation.</summary>");
+        sb.AppendLine(
+            "/// <summary>Appends one row in generated physical-column order without a per-row allocation.</summary>");
         sb.AppendLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]");
         sb.AppendLine($"public static void AppendRow(DuckDBAppender appender, {table.TypeName} state) =>");
         sb.AppendLine("    appender.AppendRow(state, static (row, value) =>");
@@ -357,6 +370,7 @@ internal static class DuckDbEmitter
                 ? "row.AppendDefault();"
                 : $"row.AppendValue(value.{column.PropertyName});");
         }
+
         sb.EndBlock("});");
         sb.AppendLine();
     }
@@ -392,20 +406,24 @@ internal static class DuckDbEmitter
         var baseType = col.PropertyType.TrimEnd('?');
 
         if (col.IsNullable)
+        {
             return baseType switch
             {
                 "string" => $"DuckDbValueReader.ReadString(reader, {ordinal})",
-                "ulong" or "System.UInt64" => $"DuckDbValueReader.ReadUInt64(reader, {ordinal})",
-                "long" or "System.Int64" => $"DuckDbValueReader.ReadInt64(reader, {ordinal})",
-                "double" or "System.Double" => $"DuckDbValueReader.ReadDouble(reader, {ordinal})",
+                "ulong" or "System.UInt64" => $"DuckDbValueReader.Read<ulong>(reader, {ordinal})",
+                "long" or "System.Int64" => $"DuckDbValueReader.Read<long>(reader, {ordinal})",
+                "double" or "System.Double" => $"DuckDbValueReader.Read<double>(reader, {ordinal})",
                 "decimal" or "System.Decimal" => $"reader.IsDBNull({ordinal}) ? null : reader.GetDecimal({ordinal})",
-                "int" or "System.Int32" => $"DuckDbValueReader.ReadInt32(reader, {ordinal})",
-                "uint" or "System.UInt32" => $"DuckDbValueReader.ReadUInt32(reader, {ordinal})",
-                "byte" or "System.Byte" => $"DuckDbValueReader.ReadByte(reader, {ordinal})",
-                "byte[]" or "System.Byte[]" => $"reader.IsDBNull({ordinal}) ? null : DuckDbValueReader.ReadBytes(reader, {ordinal})",
-                "System.DateTimeOffset" or "DateTimeOffset" => $"DuckDbValueReader.ReadDateTimeOffset(reader, {ordinal})",
+                "int" or "System.Int32" => $"DuckDbValueReader.Read<int>(reader, {ordinal})",
+                "uint" or "System.UInt32" => $"DuckDbValueReader.Read<uint>(reader, {ordinal})",
+                "byte" or "System.Byte" => $"DuckDbValueReader.Read<byte>(reader, {ordinal})",
+                "byte[]" or "System.Byte[]" =>
+                    $"reader.IsDBNull({ordinal}) ? null : DuckDbValueReader.ReadBytes(reader, {ordinal})",
+                "System.DateTimeOffset" or "DateTimeOffset" =>
+                    $"DuckDbValueReader.Read<DateTimeOffset>(reader, {ordinal})",
                 _ => $"reader.IsDBNull({ordinal}) ? default : reader.GetValue({ordinal})"
             };
+        }
 
         // A required member fails closed on NULL, as the Arrow reader does: a NULL here is a schema or
         // query error, never a value to substitute.
@@ -413,15 +431,17 @@ internal static class DuckDbEmitter
         return baseType switch
         {
             "string" => $"DuckDbValueReader.ReadString(reader, {ordinal}) ?? {missing}",
-            "ulong" or "System.UInt64" => $"DuckDbValueReader.ReadUInt64(reader, {ordinal}) ?? {missing}",
-            "long" or "System.Int64" => $"DuckDbValueReader.ReadInt64(reader, {ordinal}) ?? {missing}",
-            "double" or "System.Double" => $"DuckDbValueReader.ReadDouble(reader, {ordinal}) ?? {missing}",
+            "ulong" or "System.UInt64" => $"DuckDbValueReader.Read<ulong>(reader, {ordinal}) ?? {missing}",
+            "long" or "System.Int64" => $"DuckDbValueReader.Read<long>(reader, {ordinal}) ?? {missing}",
+            "double" or "System.Double" => $"DuckDbValueReader.Read<double>(reader, {ordinal}) ?? {missing}",
             "decimal" or "System.Decimal" => $"reader.IsDBNull({ordinal}) ? {missing} : reader.GetDecimal({ordinal})",
-            "int" or "System.Int32" => $"DuckDbValueReader.ReadInt32(reader, {ordinal}) ?? {missing}",
-            "uint" or "System.UInt32" => $"DuckDbValueReader.ReadUInt32(reader, {ordinal}) ?? {missing}",
-            "byte" or "System.Byte" => $"DuckDbValueReader.ReadByte(reader, {ordinal}) ?? {missing}",
-            "byte[]" or "System.Byte[]" => $"reader.IsDBNull({ordinal}) ? {missing} : DuckDbValueReader.ReadBytes(reader, {ordinal})",
-            "System.DateTimeOffset" or "DateTimeOffset" => $"DuckDbValueReader.ReadDateTimeOffset(reader, {ordinal}) ?? {missing}",
+            "int" or "System.Int32" => $"DuckDbValueReader.Read<int>(reader, {ordinal}) ?? {missing}",
+            "uint" or "System.UInt32" => $"DuckDbValueReader.Read<uint>(reader, {ordinal}) ?? {missing}",
+            "byte" or "System.Byte" => $"DuckDbValueReader.Read<byte>(reader, {ordinal}) ?? {missing}",
+            "byte[]" or "System.Byte[]" =>
+                $"reader.IsDBNull({ordinal}) ? {missing} : DuckDbValueReader.ReadBytes(reader, {ordinal})",
+            "System.DateTimeOffset" or "DateTimeOffset" =>
+                $"DuckDbValueReader.Read<DateTimeOffset>(reader, {ordinal}) ?? {missing}",
             _ => $"reader.IsDBNull({ordinal}) ? {missing} : reader.GetValue({ordinal})"
         };
     }
@@ -431,13 +451,16 @@ internal static class DuckDbEmitter
         DuckDbTableInfo table,
         IReadOnlyList<DuckDbColumnInfo> columns)
     {
-        sb.AppendLine("/// <summary>Streams Arrow record batches and maps rows in generated physical-column order.</summary>");
-        sb.AppendLine($"public static async ValueTask<(long Rows, int Batches)> ReadArrowRowsAsync<TState>(DuckDBCommand command, TState state, Action<TState, {table.TypeName}> consume, CancellationToken cancellationToken)");
+        sb.AppendLine(
+            "/// <summary>Streams Arrow record batches and maps rows in generated physical-column order.</summary>");
+        sb.AppendLine(
+            $"public static async ValueTask<(long Rows, int Batches)> ReadArrowRowsAsync<TState>(DuckDBCommand command, TState state, Action<TState, {table.TypeName}> consume, CancellationToken cancellationToken)");
         sb.BeginBlock();
         sb.AppendLine("command.UseStreamingMode = true;");
         sb.AppendLine("long rows = 0;");
         sb.AppendLine("var batches = 0;");
-        sb.AppendLine("await foreach (var batch in command.ExecuteArrowBatchesAsync(cancellationToken).ConfigureAwait(false))");
+        sb.AppendLine(
+            "await foreach (var batch in command.ExecuteArrowBatchesAsync(cancellationToken).ConfigureAwait(false))");
         sb.BeginBlock();
         sb.AppendLine("using (batch)");
         sb.BeginBlock();
@@ -452,6 +475,7 @@ internal static class DuckDbEmitter
             var separator = i < columns.Count - 1 ? "," : "";
             sb.AppendLine($"{columns[i].PropertyName} = {BuildArrowAccessExpr(columns[i], i)}{separator}");
         }
+
         sb.EndBlock("});");
         sb.AppendLine("rows++;");
         sb.EndBlock();
@@ -475,7 +499,8 @@ internal static class DuckDbEmitter
             "ulong" or "System.UInt64" => $"((UInt64Array)batch.Column({ordinal})).GetValue(rowIndex)",
             "double" or "System.Double" => $"((DoubleArray)batch.Column({ordinal})).GetValue(rowIndex)",
             "byte[]" or "System.Byte[]" => $"((BinaryArray)batch.Column({ordinal})).GetBytes(rowIndex).ToArray()",
-            "System.DateTimeOffset" or "DateTimeOffset" => $"((TimestampArray)batch.Column({ordinal})).GetTimestamp(rowIndex)",
+            "System.DateTimeOffset" or "DateTimeOffset" =>
+                $"((TimestampArray)batch.Column({ordinal})).GetTimestamp(rowIndex)",
             _ => throw new InvalidOperationException(
                 $"No Arrow mapping for {column.PropertyType} on {column.PropertyName}.")
         };

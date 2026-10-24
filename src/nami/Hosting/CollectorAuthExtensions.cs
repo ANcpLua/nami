@@ -1,11 +1,11 @@
 using Microsoft.Extensions.Options;
-using Nami.Collector.ApiKeys;
+using Nami.ApiKeys;
 
-namespace Nami.Collector.Hosting;
+namespace Nami.Hosting;
 
 internal static class CollectorAuthExtensions
 {
-    public static IServiceCollection AddNamiCollectorAuth(
+    public static void AddNamiCollectorAuth(
         this IServiceCollection services,
         IConfiguration config,
         IHostEnvironment environment)
@@ -24,6 +24,5 @@ internal static class CollectorAuthExtensions
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<OtlpApiKeyOptions>, OtlpApiKeyOptionsRules>();
 
-        return services;
     }
 }

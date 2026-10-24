@@ -4,14 +4,14 @@ using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
 namespace Nami.Collector.Ingestion;
 
 /// <summary>
-/// Shared incoming-OTLP value policy for the registry's exception text keys.
-/// This runs before any ingestion model can reach storage or an original-point journal.
-/// ILogger classification/redaction does not cover those incoming values.
-/// The outcome depends on the text alone: every pattern matches without backtracking, in time linear in
-/// the bounded input, so no wall-clock deadline exists that a loaded machine could miss and turn
-/// valid text into the failure marker.
+///     Shared incoming-OTLP value policy for the registry's exception text keys.
+///     This runs before any ingestion model can reach storage or an original-point journal.
+///     ILogger classification/redaction does not cover those incoming values.
+///     The outcome depends on the text alone: every pattern matches without backtracking, in time linear in
+///     the bounded input, so no wall-clock deadline exists that a loaded machine could miss and turn
+///     valid text into the failure marker.
 /// </summary>
-internal static partial class ExceptionTextSanitizer
+internal static class ExceptionTextSanitizer
 {
     private const int MaxInputCharacters = 128 * 1024;
     private const int MaxPersistedUtf8Bytes = 32 * 1024;
@@ -30,12 +30,12 @@ internal static partial class ExceptionTextSanitizer
         try
         {
             _ = s_strictUtf8.GetByteCount(text);
-            var sanitized = EmbeddedUrls().Replace(text, SanitizeUrl);
+            var sanitized = s_embeddedUrls.Replace(text, SanitizeUrl);
             sanitized = SanitizeAssignments(sanitized);
-            sanitized = AuthorizationValues().Replace(sanitized,
+            sanitized = s_authorizationValues.Replace(sanitized,
                 static match => match.Groups["scheme"].Value + Replacement);
-            sanitized = JwtCandidates().Replace(sanitized, RedactJwt);
-            sanitized = KnownApiTokens().Replace(sanitized, Replacement);
+            sanitized = s_jwtCandidates.Replace(sanitized, RedactJwt);
+            sanitized = s_knownApiTokens.Replace(sanitized, Replacement);
             return BoundPersistedText(sanitized);
         }
         catch (EncoderFallbackException)
@@ -63,7 +63,7 @@ internal static partial class ExceptionTextSanitizer
     {
         var networkPath = match.Value.StartsWith("//", StringComparison.Ordinal);
         var candidate = networkPath ? "http:" + match.Value : match.Value;
-        if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri) || uri.Host.Length == 0 && !uri.IsFile)
+        if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri) || (uri.Host.Length == 0 && !uri.IsFile))
         {
             // A '//' text that is no URL, such as the XPath step //button[text()='Submit'], has no user
             // information, query or fragment to remove; only a scheme URL or such a part fails closed.
@@ -71,6 +71,7 @@ internal static partial class ExceptionTextSanitizer
                 return match.Value;
             throw new UriFormatException("An exception attribute contains an invalid URL.");
         }
+
         if (uri.UserInfo.Length == 0 && uri.Query.Length == 0 && uri.Fragment.Length == 0)
             return match.Value;
 
@@ -84,7 +85,7 @@ internal static partial class ExceptionTextSanitizer
     {
         StringBuilder? result = null;
         var copied = 0;
-        foreach (Match match in CredentialAssignments().Matches(text))
+        foreach (Match match in s_credentialAssignments.Matches(text))
         {
             if (match.Index < copied) continue;
             var start = match.Index + match.Length;
@@ -95,12 +96,13 @@ internal static partial class ExceptionTextSanitizer
             result.Append(text, copied, start - copied);
             var opening = text[start];
             var closing = opening == '{' ? '}' : opening;
-            var quoted = (opening is '"' or '\'' or '{') && end > start + 1 && text[end - 1] == closing;
+            var quoted = opening is '"' or '\'' or '{' && end > start + 1 && text[end - 1] == closing;
             if (quoted) result.Append(opening);
             result.Append(Replacement);
             if (quoted) result.Append(closing);
             copied = end;
         }
+
         return result is null ? text : result.Append(text, copied, text.Length - copied).ToString();
     }
 
@@ -112,11 +114,22 @@ internal static partial class ExceptionTextSanitizer
             var closing = opening == '{' ? '}' : opening;
             for (var index = start + 1; index < text.Length; index++)
             {
-                if (text[index] == '\\' && index + 1 < text.Length) { index++; continue; }
+                if (text[index] == '\\' && index + 1 < text.Length)
+                {
+                    index++;
+                    continue;
+                }
+
                 if (text[index] != closing) continue;
-                if (index + 1 < text.Length && text[index + 1] == closing) { index++; continue; }
+                if (index + 1 < text.Length && text[index + 1] == closing)
+                {
+                    index++;
+                    continue;
+                }
+
                 return index + 1;
             }
+
             // An unterminated quoted credential cannot safely expose its remainder.
             return text.Length;
         }
@@ -148,7 +161,9 @@ internal static partial class ExceptionTextSanitizer
         using var document = JsonDocument.Parse(decoded[..length].ToArray(),
             new JsonDocumentOptions { MaxDepth = 16 });
         return document.RootElement.TryGetProperty("alg", out var algorithm)
-            && algorithm.ValueKind == JsonValueKind.String ? Replacement : match.Value;
+               && algorithm.ValueKind == JsonValueKind.String
+            ? Replacement
+            : match.Value;
     }
 
     private static string BoundPersistedText(string text)
@@ -164,26 +179,24 @@ internal static partial class ExceptionTextSanitizer
             bytes += rune.Utf8SequenceLength;
             characters += rune.Utf16SequenceLength;
         }
+
         return text[..characters] + Marker;
     }
 
-    [GeneratedRegex("""(?:[a-z][a-z0-9+.-]*://|//)[^\s<>"'\x60]+""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Timeout.Infinite)]
-    private static partial Regex EmbeddedUrls();
+    private static readonly Regex s_embeddedUrls = new("""(?:[a-z][a-z0-9+.-]*://|//)[^\s<>"'\x60]+""",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
 
-    [GeneratedRegex("""\b(?:authorization|proxy[-_ ]?authorization|x[-_]?otlp[-_]?api[-_]?key|x[-_]?api[-_]?key|api[-_ ]?key|access[-_ ]?key(?:[-_ ]?id)?|account[-_ ]?key|shared[-_ ]?access[-_ ]?(?:key|signature)|client[-_ ]?secret|secret(?:[-_ ]?key)?|private[-_ ]?key|password|passwd|pwd|user(?:[-_ ]?(?:id|name))?|uid|token|access[-_ ]?token|refresh[-_ ]?token|auth[-_ ]?token|bearer[-_ ]?token|session[-_ ]?(?:token|key)|id[-_ ]?token)\b["']?[ \t]*(?<separator>[:=])[ \t]*(?:(?:Bearer|Basic)[ \t]+)?""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Timeout.Infinite)]
-    private static partial Regex CredentialAssignments();
+    private static readonly Regex s_credentialAssignments = new(
+        """\b(?:authorization|proxy[-_ ]?authorization|x[-_]?otlp[-_]?api[-_]?key|x[-_]?api[-_]?key|api[-_ ]?key|access[-_ ]?key(?:[-_ ]?id)?|account[-_ ]?key|shared[-_ ]?access[-_ ]?(?:key|signature)|client[-_ ]?secret|secret(?:[-_ ]?key)?|private[-_ ]?key|password|passwd|pwd|user(?:[-_ ]?(?:id|name))?|uid|token|access[-_ ]?token|refresh[-_ ]?token|auth[-_ ]?token|bearer[-_ ]?token|session[-_ ]?(?:token|key)|id[-_ ]?token)\b["']?[ \t]*(?<separator>[:=])[ \t]*(?:(?:Bearer|Basic)[ \t]+)?""",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
 
-    [GeneratedRegex("""(?<scheme>\b(?:Bearer|Basic)[ \t]+)[A-Za-z0-9._~+/=-]+""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Timeout.Infinite)]
-    private static partial Regex AuthorizationValues();
+    private static readonly Regex s_authorizationValues = new("""(?<scheme>\b(?:Bearer|Basic)[ \t]+)[A-Za-z0-9._~+/=-]+""",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
 
-    [GeneratedRegex("""\b[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*""",
-        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Timeout.Infinite)]
-    private static partial Regex JwtCandidates();
+    private static readonly Regex s_jwtCandidates = new("""\b[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*""",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
 
-    [GeneratedRegex("""\b(?:sk-(?:proj-)?[A-Za-z0-9_-]{16,}|sk_(?:live|test)_[A-Za-z0-9]{16,}|gh[pousr]_[A-Za-z0-9_]{16,}|github_pat_[A-Za-z0-9_]{16,}|npm_[A-Za-z0-9]{16,}|xox[baprs]-[A-Za-z0-9-]{16,})\b""",
-        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Timeout.Infinite)]
-    private static partial Regex KnownApiTokens();
+    private static readonly Regex s_knownApiTokens = new(
+        """\b(?:sk-(?:proj-)?[A-Za-z0-9_-]{16,}|sk_(?:live|test)_[A-Za-z0-9]{16,}|gh[pousr]_[A-Za-z0-9_]{16,}|github_pat_[A-Za-z0-9_]{16,}|npm_[A-Za-z0-9]{16,}|xox[baprs]-[A-Za-z0-9-]{16,})\b""",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
 }

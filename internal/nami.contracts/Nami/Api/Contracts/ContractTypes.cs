@@ -8,7 +8,8 @@ namespace Nami.Api.Contracts;
 public static class ContractTypes
 {
     public static IJsonTypeInfoResolver Resolver => GeneratedContractJsonContext.Default;
-    public static JsonTypeInfo<T> TypeInfo<T>() => (JsonTypeInfo<T>)(GeneratedContractJsonContext.Default.GetTypeInfo(typeof(T)) ?? throw new ArgumentException($"No generated serializer for {typeof(T)}."));
+    public static IReadOnlyList<string> Tools { get; } = ["changes_recent", "errors_recent", "logs_search", "sources_status", "traces_get", "traces_slowest"];
+    public static JsonTypeInfo<T> TypeInfo<T>() => GeneratedContractJsonContext.Default.Options.GetTypeInfo<T>();
     public static (string Input, string Output) Analysis(string operation) => operation switch
     {
         "changes_recent" => ("Tools.ChangesRecentInput", "Tools.ChangesRecentResult"),
@@ -35,6 +36,9 @@ public static class ContractTypes
         _ when type == typeof(global::Nami.Api.Contracts.Common.ToolError) => "Common.ToolError",
         _ when type == typeof(global::Nami.Api.Contracts.Common.ToolReadInput) => "Common.ToolReadInput",
         _ when type == typeof(global::Nami.Api.Contracts.Common.ToolResult) => "Common.ToolResult",
+        _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineLimits) => "Engine.EngineLimits",
+        _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineRequest) => "Engine.EngineRequest",
+        _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineResponse) => "Engine.EngineResponse",
         _ when type == typeof(global::Nami.Api.Contracts.Health.HealthCheckEntry) => "Health.HealthCheckEntry",
         _ when type == typeof(global::Nami.Api.Contracts.Health.HealthReport) => "Health.HealthReport",
         _ when type == typeof(global::Nami.Api.Contracts.Health.HealthStatus) => "Health.HealthStatus",
@@ -100,6 +104,9 @@ public static class ContractTypes
         "Common.ToolError" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Common.ToolError))!,
         "Common.ToolReadInput" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Common.ToolReadInput))!,
         "Common.ToolResult" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Common.ToolResult))!,
+        "Engine.EngineLimits" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineLimits))!,
+        "Engine.EngineRequest" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineRequest))!,
+        "Engine.EngineResponse" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineResponse))!,
         "Health.HealthCheckEntry" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Health.HealthCheckEntry))!,
         "Health.HealthReport" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Health.HealthReport))!,
         "Health.HealthStatus" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Health.HealthStatus))!,
@@ -167,6 +174,9 @@ public static class ContractTypes
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Common.ToolError))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Common.ToolReadInput))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Common.ToolResult))]
+[JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineLimits))]
+[JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineRequest))]
+[JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineResponse))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Health.HealthCheckEntry))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Health.HealthReport))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Health.HealthStatus))]

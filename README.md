@@ -6,47 +6,48 @@ and/or an OpenAI plugin with bundled MCP integration; local clients are also sup
 no dashboard or human-facing analysis UI. Tomo is an example Rust developer whose application an
 agent investigates, not the only supported application.
 
-The approved target is **TypeScript/Bun MCP + C#/.NET 11 NativeAOT engine**, connected locally by
+The runtime is **TypeScript/Bun MCP + C#/.NET 11 NativeAOT engine**, connected locally by
 private streams/pipes. TypeSpec generates the shared C#/TypeScript wire contracts and JSON Schemas;
 Weaver supplies semantic definitions and persistence rules. A common release need not be one native file.
 See the [PRD](docs/prd/nami.md), [architecture](docs/architecture.yaml) and
 [migration checklist](docs/checklist.md).
 
-**Current implementation:** the commands below describe the existing C# MCP host. The TypeScript
-host, private transport, connector bundles and full instrumentation proofs are pending migration.
-The runtime instructions below are not evidence that the new target architecture is implemented.
+The transport migration is implemented; the existing 38 EndToEnd cases run through the
+TypeScript host and published native engine. The full instrumentation catalog and actual
+Claude.ai/OpenAI distribution are tracked separately in the checklist.
 
-## Current host: two surfaces
+## Two surfaces
 
 | Surface | Used by | What it is |
 | --- | --- | --- |
 | OTLP | Instrumented OpenTelemetry producers | OTLP/HTTP (protobuf or JSON) and OTLP/gRPC. No custom wire format, so no SDK. |
 | MCP | Agents | Six read-only tools over stdio or Streamable HTTP; MCP `2026-07-28`, stateless, no protocol session. |
 
-One process serves both. `nami --stdio` is for a client that starts nami itself, such as Claude
-Code; `nami` serves MCP over Streamable HTTP. Either way the OTLP ports are open.
+The TypeScript supervisor starts the native engine and owns its private, bounded JSONL streams.
+MCP uses stdio or Streamable HTTP; the engine exposes OTLP. No internal REST analysis endpoint is needed.
 
 Stdio reads the `default` project. For another project, use Streamable HTTP with its project-bound read credential.
 
 ## Connect an agent
 
-Publish the binary into a directory of its own; it loads the DuckDB library that lands beside it.
-NativeAOT needs the platform's native toolchain (on Linux, `clang` and `zlib1g-dev`).
+Publish the native engine and bundled TypeScript entry point together. Bun is required at runtime;
+the container includes it. The engine loads the DuckDB library beside it and does not require an
+installed .NET runtime. Publishing needs the platform's native toolchain (on Linux, `clang` and `zlib1g-dev`).
 
 ```bash
-dotnet publish src/nami/nami.csproj -c Release -o artifacts/nami
+./eng/build.sh PublishNative --Configuration Release
 ```
 
 **stdio.** Claude Code starts nami and speaks MCP over its stdin and stdout:
 
 ```bash
-claude mcp add --env NAMI_OTLP_AUTH_MODE=Unsecured --transport stdio nami -- "$PWD/artifacts/nami/nami" --stdio
+claude mcp add --env NAMI_OTLP_AUTH_MODE=Unsecured --transport stdio nami -- bun "$PWD/artifacts/publish/mcp/main.js" --engine "$PWD/artifacts/publish/nami" --stdio
 ```
 
 **Streamable HTTP.** Run nami yourself; MCP is at `http://127.0.0.1:5100/mcp`:
 
 ```bash
-NAMI_OTLP_AUTH_MODE=Unsecured artifacts/nami/nami
+NAMI_OTLP_AUTH_MODE=Unsecured bun artifacts/publish/mcp/main.js --engine "$PWD/artifacts/publish/nami"
 claude mcp add --transport http nami http://127.0.0.1:5100/mcp
 ```
 
@@ -54,9 +55,10 @@ nami listens on loopback unless `NAMI_BIND_ADDRESS` says otherwise. `NAMI_OTLP_A
 lets local producers send without a key; outside the Development environment the default is
 `ApiKey`, which needs project keys (below). The store is the DuckDB file `NAMI_DATA_PATH`, by
 default `nami.duckdb` in the working directory. Each nami process binds the OTLP ports and holds
-its store open, so for several MCP clients at once, run one `nami` and connect them all over
-Streamable HTTP. `/health` on the MCP port reports readiness. Hosted, the same binary runs as the
-Railway service `nami` ([architecture](docs/architecture.yaml)).
+its store open, so for several MCP clients at once, run one supervisor and connect them over
+Streamable HTTP. `/health` on the MCP port reports native-engine readiness. A non-loopback MCP
+listener requires `NAMI_PUBLIC_URL`; on Railway its public domain is used automatically. The
+container runs the same two-process stack ([architecture](docs/architecture.yaml)).
 
 ## Send telemetry
 
@@ -71,8 +73,8 @@ All three land in the same rows. What the tools can answer comes from the resour
 
 - `service.name` is what every tool's `service` argument filters on. A resource without it is
   counted as a problem of its project, not dropped.
-- `nami.project.id` names the project the telemetry is stored under; without it, `default`. No
-  tool argument, header or `_meta` field selects a project.
+- In authenticated mode the credential selects the project; a conflicting `nami.project.id`
+  resource value is refused. Tool arguments and unverified metadata never select another project.
 - `vcs.ref.head.revision`, `service.version`, `deployment.environment.name` and `cicd.*` on the
   resource are what `changes_recent` reports when they change.
 - An exception counts whether it arrives as a log record with event name `exception` or as a span
@@ -130,12 +132,13 @@ ingest lag; it never means "no errors". A window that ends past the watermark is
 
 | Path | What it is |
 | --- | --- |
-| `src/nami` | The binary: one Kestrel host with the OTLP endpoints and MCP over stdio and Streamable HTTP, the six tools (`Tools/`, `Analysis/`), self-telemetry (`Telemetry/`) and the `Dockerfile`. |
+| `src/nami` | Native OTLP/analysis engine, private stream transport, self-telemetry and container definition. |
+| `src/nami.mcp` | TypeScript MCP server, generated tool manifest, authentication and native-engine supervisor. |
 | `src/nami.collector.ingestion` | OTLP decoding over HTTP and gRPC, attribute normalization against the registry, sanitizer limits, watermarks. |
 | `src/nami.collector.storage` | DuckDB storage per project and the read-only snapshots the tools run on. |
 | `registry/` | The canonical Weaver registry and policies; editable definitions and pinned imports live in `registry/source/`. |
 | `templates/registry/` | Jinja templates that generate C# (`internal/nami.semconv`), Rust (`crates/nami-semconv`) and Markdown (`docs/semconv/`) from the registry. |
-| `contracts/` | TypeSpec for every tool input and result. It generates the C# types in `internal/nami.contracts` and the JSON Schema in `contracts/json-schema/`; the target additionally restores generated TypeScript types. |
+| `contracts/` | TypeSpec for every tool input and result. It generates C# types in `internal/nami.contracts`, JSON Schema in `contracts/json-schema/`, and TypeScript types and tool metadata in `src/nami.mcp/src/contracts/generated`. |
 | `internal/` | Generated contracts and conventions, nami's self-telemetry defaults, and the source generators. |
 | `eng/` | The Fallout build. |
 | `tests/` | Shared test support plus MSTest Unit, Integration and EndToEnd suites; EndToEnd drives the NativeAOT host. |
@@ -153,12 +156,12 @@ pinned in `global.json` too), Weaver `0.28.0`, Rust `1.99.0`, Bun and Node. The 
 | --- | --- |
 | `./eng/build.sh Check --Configuration Release` | The gate before every push, and in CI on every push and pull request: Registry, contract parity, compilation, MSTest suites and the published NativeAOT conformance proof. |
 | `./eng/build.sh Registry` | Runs `weaver registry check --future -r registry`, regenerates the C#, Rust and Markdown outputs, and fails if they differ from the commit. |
-| `./eng/build.sh Contracts` | Regenerates `internal/nami.contracts` and `contracts/json-schema/` from the TypeSpec; commit them with the TypeSpec change. |
-| `./eng/build.sh Compile` | Builds `nami.slnx`. |
+| `./eng/build.sh Contracts` | Regenerates C#/TypeScript contracts, shared metadata and `contracts/json-schema/` from TypeSpec; commit them with the TypeSpec change. |
+| `./eng/build.sh Compile` | Checks/builds TypeScript MCP and the .NET solution. |
 | `./eng/test.sh --suite Unit` | Runs the fast MSTest contract suite. `Integration`, `EndToEnd` and `All` select the other scopes. |
 | `./eng/inspect.sh` | Builds and inspects all of `nami.slnx` in Release, prints diagnostic counts and every rule with a source location, and retains the full SARIF and tool log under `artifacts/inspection/`. |
 | `./eng/build.sh InspectCode --Configuration Release` | Runs the same inspection after the Fallout compile target. Findings fail this target; tool failures and incomplete reports fail separately. |
-| `./eng/build.sh Publish` | Runs the full gate and produces the NativeAOT binary in `artifacts/publish`. |
+| `./eng/build.sh Publish` | Runs the full gate and produces the native engine and bundled MCP entry in `artifacts/publish`. |
 
 Inspection uses the installed JetBrains `jb` tool and the SDK selected by `global.json`; no shell PATH
 prefix is needed on the development Mac. Use `./eng/inspect.sh --configuration Debug` for Debug or

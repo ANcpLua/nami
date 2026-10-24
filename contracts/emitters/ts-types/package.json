@@ -1,0 +1,14 @@
+{
+  "name": "@ancplua/typespec-emit-ts-types",
+  "private": true,
+  "description": "ANcpLua TypeSpec emitter for TypeScript types (branded scalars + interfaces)",
+  "type": "module",
+  "main": "dist/index.js",
+  "tspMain": "lib/main.tsp",
+  "exports": {
+    ".": {
+      "typespec": "./lib/main.tsp",
+      "default": "./dist/index.js"
+    }
+  }
+}

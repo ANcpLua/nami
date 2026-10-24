@@ -1,10 +1,6 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Nami.Api.Contracts;
-using Nami.Api.Contracts.Common;
-using Nami.Api.Contracts.OTel.Metrics;
 using Nami.Tests.Infrastructure;
-using Nami.Tools;
 namespace Nami.IntegrationTests;
 
 [TestClass]

@@ -12,5 +12,6 @@ import "./otel/logs.tsp";
 import "./models/metric-points.tsp";
 import "./models/health.tsp";
 import "./models/tools.tsp";
+import "./models/engine.tsp";
 import "./api/routes.tsp";
 import "./emit-config.tsp";

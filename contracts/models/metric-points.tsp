@@ -92,6 +92,7 @@ model MetricQuantileValue {
   @minValue(0)
   @maxValue(1)
   quantile: float64;
+
   value: AttributeDouble;
 }
 

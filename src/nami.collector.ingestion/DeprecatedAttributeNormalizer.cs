@@ -1,4 +1,3 @@
-using Nami.SemanticConventions;
 
 namespace Nami.Collector.Ingestion;
 

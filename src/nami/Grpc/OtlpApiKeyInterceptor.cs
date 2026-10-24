@@ -1,17 +1,17 @@
-using Microsoft.Extensions.Options;
 using Grpc.Core.Interceptors;
-using Nami.Collector.ApiKeys;
+using Microsoft.Extensions.Options;
+using Nami.ApiKeys;
 using Nami.Collector.Ingestion.Primitives;
 
-namespace Nami.Collector.Grpc;
+namespace Nami.Grpc;
 
 /// <summary>
-/// The gRPC mirror of <see cref="Nami.Collector.ApiKeys.CollectorApiKeyMiddleware"/>: in ApiKey
-/// mode every OTLP export call must carry a valid <c>x-otlp-api-key</c> metadata entry with the
-/// <c>ingest</c> role — the same project bindings and fixed-time validation, <c>Unauthenticated</c>
-/// instead of 401, <c>PermissionDenied</c> instead of 403, and <c>InvalidArgument</c> instead of
-/// 400 when <c>x-nami-project</c> names another project.
-/// All OTLP export methods are unary, so the unary handler is the whole boundary.
+///     The gRPC mirror of <see cref="Nami.ApiKeys.CollectorApiKeyMiddleware" />: in ApiKey
+///     mode every OTLP export call must carry a valid <c>x-otlp-api-key</c> metadata entry with the
+///     <c>ingest</c> role — the same project bindings and fixed-time validation, <c>Unauthenticated</c>
+///     instead of 401, <c>PermissionDenied</c> instead of 403, and <c>InvalidArgument</c> instead of
+///     400 when <c>x-nami-project</c> names another project.
+///     All OTLP export methods are unary, so the unary handler is the whole boundary.
 /// </summary>
 internal sealed class OtlpApiKeyInterceptor(IOptions<OtlpApiKeyOptions> configured) : Interceptor
 {
@@ -25,7 +25,7 @@ internal sealed class OtlpApiKeyInterceptor(IOptions<OtlpApiKeyOptions> configur
         if (_options.IsApiKeyMode)
         {
             if (OtlpApiKeyValidator.Resolve(
-                context.RequestHeaders.GetValue(OtlpConstants.ApiKeyHeaderName), _options) is not { } credential)
+                    context.RequestHeaders.GetValue(OtlpConstants.ApiKeyHeaderName), _options) is not { } credential)
                 throw new RpcException(new Status(StatusCode.Unauthenticated, "Missing or invalid API key."));
 
             if ((credential.Roles & ApiKeyRoles.Ingest) is ApiKeyRoles.None)

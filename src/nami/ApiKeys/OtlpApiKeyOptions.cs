@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Nami.Collector.Ingestion.Configuration;
 
-namespace Nami.Collector.ApiKeys;
+namespace Nami.ApiKeys;
 
 internal sealed class OtlpApiKeyOptions
 {
@@ -24,8 +24,8 @@ internal sealed class OtlpApiKeyOptions
 }
 
 /// <summary>
-/// The mode is one of ApiKey and Unsecured, the credential JSON parses, and ApiKey mode has
-/// credentials. A failure never repeats a credential.
+///     The mode is one of ApiKey and Unsecured, the credential JSON parses, and ApiKey mode has
+///     credentials. A failure never repeats a credential.
 /// </summary>
 internal sealed class OtlpApiKeyOptionsRules : IValidateOptions<OtlpApiKeyOptions>
 {
@@ -52,9 +52,9 @@ internal sealed class OtlpApiKeyOptionsRules : IValidateOptions<OtlpApiKeyOption
 internal sealed record ProjectApiKey(string ProjectId, string ApiKey, ApiKeyRoles Roles);
 
 /// <summary>
-/// What a credential may do (NAMI-A2). The roles are orthogonal: a write key that must also read
-/// the resources it changes carries <see cref="Read"/> as well, so a leaked ingest key can never
-/// change or delete anything.
+///     What a credential may do (NAMI-A2). The roles are orthogonal: a write key that must also read
+///     the resources it changes carries <see cref="Read" /> as well, so a leaked ingest key can never
+///     change or delete anything.
 /// </summary>
 [Flags]
 internal enum ApiKeyRoles
@@ -76,10 +76,10 @@ internal enum ApiKeyRoles
 
 internal static class ApiKeyRoleNames
 {
-    public const string Ingest = "ingest";
-    public const string Read = "read";
-    public const string Write = "write";
-    public const string Delete = "delete";
+    private const string Ingest = "ingest";
+    private const string Read = "read";
+    private const string Write = "write";
+    private const string Delete = "delete";
 
     public static bool TryParse(string? value, out ApiKeyRoles role)
     {
@@ -93,33 +93,4 @@ internal static class ApiKeyRoleNames
         };
         return role is not ApiKeyRoles.None;
     }
-
-    public static string Name(ApiKeyRoles role) => role switch
-    {
-        ApiKeyRoles.Ingest => Ingest,
-        ApiKeyRoles.Read => Read,
-        ApiKeyRoles.Write => Write,
-        ApiKeyRoles.Delete => Delete,
-        _ => throw new ArgumentOutOfRangeException(nameof(role), role, "Exactly one role is required.")
-    };
-}
-
-/// <summary>
-/// The one role a route requires, attached to every <c>/api/v1</c> endpoint. A route that
-/// carries none (the problem+json fallback) requires the role its HTTP method implies.
-/// </summary>
-internal sealed record ApiKeyRoleRequirement(ApiKeyRoles Role)
-{
-    public static ApiKeyRoles ForMethod(string method) =>
-        HttpMethods.IsGet(method) || HttpMethods.IsHead(method) || HttpMethods.IsOptions(method)
-            ? ApiKeyRoles.Read
-            : HttpMethods.IsDelete(method)
-                ? ApiKeyRoles.Delete
-                : ApiKeyRoles.Write;
-}
-
-internal static class ApiKeyRoleEndpointExtensions
-{
-    public static RouteHandlerBuilder RequireKeyRole(this RouteHandlerBuilder builder, ApiKeyRoles role) =>
-        builder.WithMetadata(new ApiKeyRoleRequirement(role));
 }
