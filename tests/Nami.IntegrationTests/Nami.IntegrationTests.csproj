@@ -1,0 +1,12 @@
+<Project Sdk="MSTest.Sdk">
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+    <ProjectReference Include="../Nami.Tests/Nami.Tests.csproj" />
+    <ProjectReference Include="../../src/nami/nami.csproj" />
+    <ProjectReference Include="../../internal/nami.contracts/Nami.Api.Contracts.csproj" />
+    <ProjectReference Include="../../internal/nami.semconv/Nami.SemanticConventions.csproj" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <None Update="testconfig.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

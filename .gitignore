@@ -1,4 +1,5 @@
 artifacts/
+/inspectcode.sarif
 .agents/worktrees/
 [Bb]in/
 [Oo]bj/

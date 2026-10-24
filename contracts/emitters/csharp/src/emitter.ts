@@ -670,8 +670,6 @@ ${primitiveCases.join("\n")}
             case ${name}.${cases.objectCase} typed:
                 WriteStableObject(writer, typed.Value);
                 return;
-            default:
-                throw new InvalidOperationException($"Unknown ${name} case '{value.GetType().FullName}'.");
         }
     }
 

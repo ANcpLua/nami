@@ -17,11 +17,13 @@ internal static class ProcessRunner
     }
 
     internal static async Task<ProcessResult> RunAsync(string file, IEnumerable<string> args,
-        string? directory, CancellationToken cancellationToken)
+        string? directory, CancellationToken cancellationToken, IReadOnlyDictionary<string, string?>? environment = null)
     {
         var start = new ProcessStartInfo(file) { RedirectStandardOutput = true, RedirectStandardError = true,
             UseShellExecute = false, WorkingDirectory = directory ?? RepositoryRoot };
         foreach (var arg in args) start.ArgumentList.Add(arg);
+        if (environment is not null)
+            foreach (var pair in environment) start.Environment[pair.Key] = pair.Value;
         using var process = Process.Start(start) ?? throw new InvalidOperationException("Process did not start.");
         var output = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var error = process.StandardError.ReadToEndAsync(cancellationToken);

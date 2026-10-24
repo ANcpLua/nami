@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization.Metadata;
 using System.Text.Json.Serialization;
 
 namespace Nami.Api.Contracts;
@@ -47,12 +46,6 @@ public static class ContractJson
             throw new JsonException($"{issue.Field}: {issue.Message}", issue.Field, null, null);
     }
 
-    public static T? Deserialize<T>(JsonElement value, JsonTypeInfo<T> type)
-    {
-        Require(ContractTypes.NameOf(type.Type), value);
-        return value.Deserialize(type);
-    }
-
     public static T? Deserialize<T>(JsonElement value)
     {
         var name = ContractTypes.NameOf(typeof(T));
@@ -74,12 +67,6 @@ public static class ContractJson
         return json;
     }
 
-    public static JsonElement SerializeArray<T>(IEnumerable<T> values) =>
-        ToElement(new JsonArray(values.Select(value => JsonNode.Parse(Serialize(value).GetRawText())).ToArray()));
-
-    public static Task SerializeAsync<T>(Stream stream, T value, CancellationToken cancellationToken = default) =>
-        JsonSerializer.SerializeAsync(stream, Serialize(value), ContractTypes.TypeInfo<JsonElement>(), cancellationToken);
-
     /// <summary>Serializes an internal document; null optional members mean unset, as on generated C# models.</summary>
     public static JsonElement Serialize(string name, JsonElement value)
     {
@@ -92,15 +79,6 @@ public static class ContractJson
         Require(name, result);
         return result;
     }
-
-    /// <summary>Round-trips a validated wire value through its generated C# type.</summary>
-    public static JsonElement RoundTrip(string name, JsonElement value)
-    {
-        Require(name, value);
-        return Serialize(name, value);
-    }
-
-    public static ContractIssue? Validate(string name, JsonNode? value) => Validate(name, ToElement(value));
 
     public static JsonElement ToElement(JsonNode? value)
     {

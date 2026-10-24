@@ -6,9 +6,10 @@ using Nami.Collector.Ingestion;
 using Nami.Collector.Storage;
 using Nami.Tests.Infrastructure;
 using OpenTelemetry.Proto.Common.V1;
-namespace Nami.Collector.Tests;
+namespace Nami.IntegrationTests;
 
 [TestClass]
+[TestCategory("Integration")]
 public sealed class IngestStoreTests(TestContext context)
 {
     [TestMethod]
@@ -112,7 +113,7 @@ public sealed class IngestStoreTests(TestContext context)
         var snapshot=await store.ReadSnapshotAsync("default",ct:context.CancellationToken);
         var mark=Assert.ContainsSingle(snapshot.AttributeStabilities.Where(static a=>a.AttributeKey=="gen_ai.usage.input_tokens").ToArray());
         Assert.AreEqual("development",mark.Stability);
-        StringAssert.Contains(Assert.ContainsSingle(snapshot.Spans).AttributesJson!,"42");
+        Assert.Contains("42",Assert.ContainsSingle(snapshot.Spans).AttributesJson!);
     }
 
     [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]

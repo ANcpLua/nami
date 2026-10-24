@@ -33,9 +33,4 @@
     <AdditionalFiles Include="AnalyzerReleases\AnalyzerReleases.Unshipped.md"/>
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="..\..\artifacts\">
-      <Link>nami\artifacts</Link>
-    </Folder>
-  </ItemGroup>
 </Project>

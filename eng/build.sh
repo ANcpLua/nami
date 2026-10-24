@@ -2,6 +2,13 @@
 
 set -eo pipefail
 SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
+cd "$SCRIPT_DIR/.."
+# shellcheck source=eng/scripts/limits.sh
+source "$SCRIPT_DIR/scripts/limits.sh"
+
+if [[ $(uname -s) == Darwin && -x /usr/local/share/dotnet/dotnet ]]; then
+    export PATH="/usr/local/share/dotnet:$PATH"
+fi
 
 # Quiet unless --verbose or NAMI_VERBOSE=1: eng/scripts/quiet.sh prints the target table, PASS or
 # FAIL and the failing target's last lines, and keeps the whole output in
@@ -13,7 +20,7 @@ name=build
 for argument in "$@"; do
     case $argument in
         --verbose) verbose=1; continue ;;
-        --help | -h | Print) verbose=1 ;;
+        --help | -h | Print | InspectCode) verbose=1 ;;
         -*) parameters=1 ;;
         *) [[ -n ${parameters:-} ]] || name+="-$argument" ;;
     esac
@@ -73,5 +80,6 @@ fi
 echo "Microsoft (R) .NET SDK version $("$DOTNET_EXE" --version)"
 
 # Dash-form switches: Git Bash on the Windows release legs rewrites an argument that starts with / as a path.
-"$DOTNET_EXE" build "$BUILD_PROJECT_FILE" -nodeReuse:false -p:UseSharedCompilation=false -nologo -clp:NoSummary --verbosity quiet
+mkdir -p "$SCRIPT_DIR/../artifacts/binlogs"
+"$DOTNET_EXE" build "$BUILD_PROJECT_FILE" "-maxcpucount:$NAMI_BUILD_WORKERS" -nodeReuse:false -p:UseSharedCompilation=false -nologo -clp:NoSummary --verbosity quiet "-bl:$SCRIPT_DIR/../artifacts/binlogs/bootstrap-{}.binlog"
 "$DOTNET_EXE" run --project "$BUILD_PROJECT_FILE" --no-build -- "$@"

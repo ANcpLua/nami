@@ -75,8 +75,6 @@ public closed class AttributeValue
             case AttributeValue.ObjectValue typed:
                 WriteStableObject(writer, typed.Value);
                 return;
-            default:
-                throw new InvalidOperationException($"Unknown AttributeValue case '{value.GetType().FullName}'.");
         }
     }
 

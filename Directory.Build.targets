@@ -1,4 +1,12 @@
 <Project>
+  <!-- Preserve analyzer inputs while distinguishing repository and SDK versions in IDE views. -->
+  <ItemGroup Condition="'$(ANcpLuaSdkName)' != ''">
+    <AdditionalFiles Update="@(AdditionalFiles)">
+      <Link Condition="'%(Filename)%(Extension)' == 'Version.props'">Build/SDK/Version.props</Link>
+    </AdditionalFiles>
+    <AdditionalFiles Update="$(MSBuildThisFileDirectory)Version.props" Link="Build/Repository/Version.props" />
+  </ItemGroup>
+
   <!-- Private Collector modules ship together on one conventions pin; incubating coupling
        is intentional here. A module made packable keeps the public-library diagnostic. -->
   <PropertyGroup Condition="$(MSBuildProjectName.StartsWith('nami.collector')) And '$(IsPackable)' != 'true'">

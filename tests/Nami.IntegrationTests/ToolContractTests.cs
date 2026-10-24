@@ -7,9 +7,10 @@ using Nami.Api.Contracts;
 using Nami.Collector.Storage;
 using Nami.Tests.Infrastructure;
 using Nami.Tools;
-namespace Nami.Collector.Tests;
+namespace Nami.IntegrationTests;
 
 [TestClass]
+[TestCategory("Integration")]
 [DependsOn(typeof(IngestStoreTests), nameof(IngestStoreTests.Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
 public sealed class ToolContractTests(TestContext context)
 {
@@ -172,7 +173,7 @@ public sealed class ToolContractTests(TestContext context)
         Assert.AreEqual("max_bytes",result.Content.GetProperty("field").GetString()); Assert.IsNull(ContractJson.Validate("Common.ToolError",result.Content));
     }
 
-    [TestMethod,Timeout(600000)]
+    [TestMethod,Timeout(600000, CooperativeCancellation = true)]
     public async Task ErrorsRecent_FiveHundredThousandSpans_UnderMaxBytes()
     {
         var clock=new FakeTimeProvider(TestData.Now);await using var store=new DuckDbStore(":memory:",jobQueueCapacity:2,timeProvider:clock);

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs build steps quietly. The terminal gets one line per step (for a Fallout run, its target
-# table), then PASS or FAIL with the total time and the log path; a failing step adds its last 60
+# table), then PASS or FAIL with the total time and the log path. Compiler/build diagnostics
+# remain visible on success as well; a failing step adds its last 60
 # lines (for a Fallout run, the failing target's). The whole output goes to
 # artifacts/logs/<name>.log. The exit code is the failing step's, else 0. NAMI_VERBOSE=1 streams
 # everything to the terminal instead.
@@ -22,6 +23,23 @@ duration() {
 # turns Fallout's no-break spaces into spaces and drops its zero-width ones.
 plain() {
   perl -pe 'BEGIN { $| = 1 } s/\e\[[0-?]*[ -\/]*[@-~]//g; s/\e\][^\a\e]*(?:\a|\e\\)//g; s/^.*\r(?=.)//; s/\r$//; s/\xc2\xa0/ /g; s/\xe2\x80\x8b//g'
+}
+
+diagnostic_lines() {
+  perl -ne 's/^\d{2}:\d{2}:\d{2} \[[A-Z]+\] //;
+    s/^[ \t]+//;
+    print if /\b(?:warning|error)\s+[A-Z]+\d+\s*:|(?:^|:\s+)(?:warning|error)\s*:/i && !$seen{$_}++' "$1"
+}
+
+# Keep long-running verification useful without streaming every successful compilation line.
+live_progress() {
+  perl -ne 'BEGIN { $| = 1 }
+    s/^\d{2}:\d{2}:\d{2} \[[A-Z]+\] //;
+    s/^[ \t]+//;
+    if (/^(?:TEST (?:RUN:|SUITE:|RESULT|WAIT|SETUP FAILED:|REPORT FAILED:|MINIMUM FAILED:|RUN PASSED:)|Results:|Summary:)/) {
+      print; next;
+    }
+    print if /\b(?:warning|error)\s+[A-Z]+\d+\s*:|(?:^|:\s+)(?:warning|error)\s*:/i && !$seen{$_}++'
 }
 
 # The rows of the last Fallout target table in a step's output. Targets that succeeded in under a
@@ -99,10 +117,11 @@ main() {
 
   local started=$SECONDS status=0 failed=
   run_step() {
-    local label=$1 start=$SECONDS indent= word=PASS
+    local label=$1 start=$SECONDS indent='' word=PASS
     shift
     printf '\n===== %s\n' "$label" >>"$work/log"
-    NAMI_VERBOSE=1 "$@" 2>&1 | plain | tee -a "$work/log" >"$work/step"
+    : >"$work/step"
+    NAMI_VERBOSE=1 "$@" 2>&1 | plain | tee -a "$work/log" "$work/step" | live_progress
     status=${PIPESTATUS[0]}
     ((status == 0)) || word=FAIL
     if ((!single)); then
@@ -124,7 +143,13 @@ main() {
   fi
 
   if ((status == 0)); then
-    printf 'PASS %s in %s, log %s\n' "$name" "$(duration $((SECONDS - started)))" "$log"
+    local diagnostics
+    diagnostics=$(diagnostic_lines "$work/log" | wc -l | tr -d ' ')
+    if ((diagnostics)); then
+      printf 'PASS WITH DIAGNOSTICS %s in %s (%d diagnostic lines), log %s\n' "$name" "$(duration $((SECONDS - started)))" "$diagnostics" "$log"
+    else
+      printf 'PASS %s in %s, log %s\n' "$name" "$(duration $((SECONDS - started)))" "$log"
+    fi
   else
     printf 'FAIL %s in %s (exit %d%s), log %s\n' "$name" "$(duration $((SECONDS - started)))" "$status" "$failed" "$log"
   fi

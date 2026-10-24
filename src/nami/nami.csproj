@@ -18,9 +18,10 @@
     <ProjectReference Include="../../internal/nami.semconv/Nami.SemanticConventions.csproj"/>
     <ProjectReference Include="../nami.collector.ingestion/nami.collector.ingestion.csproj"/>
     <ProjectReference Include="../nami.collector.storage/nami.collector.storage.csproj"/>
-    <EmbeddedResource Include="../../contracts/json-schema/*.json" LogicalName="Schemas.%(Filename)%(Extension)"/>
+    <EmbeddedResource Include="../../contracts/json-schema/*.json" LogicalName="Schemas.%(Filename)%(Extension)" Link="Contracts/Schemas/%(Filename)%(Extension)"/>
     <Content Include="../../LICENSE" Link="LICENSE" CopyToPublishDirectory="PreserveNewest"/>
     <Content Include="../../contracts/THIRD-PARTY-NOTICES.txt" Link="THIRD-PARTY-NOTICES.txt" CopyToPublishDirectory="PreserveNewest"/>
-    <InternalsVisibleTo Include="Nami.Collector.Tests"/>
+    <InternalsVisibleTo Include="Nami.UnitTests" />
+    <InternalsVisibleTo Include="Nami.IntegrationTests" />
   </ItemGroup>
 </Project>

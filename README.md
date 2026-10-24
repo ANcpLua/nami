@@ -131,7 +131,7 @@ ingest lag; it never means "no errors". A window that ends past the watermark is
 | `contracts/` | TypeSpec for every tool input and result. It generates the C# types in `internal/nami.contracts` and the JSON Schema in `contracts/json-schema/`, which tomo turns into Rust types. |
 | `internal/` | Generated contracts and conventions, nami's self-telemetry defaults, and the source generators. |
 | `eng/` | The Fallout build. |
-| `tests/` | MSTest registry and collector suites, plus the NativeAOT end-to-end conformance executable. |
+| `tests/` | Shared test support plus MSTest Unit, Integration and EndToEnd suites; EndToEnd drives the NativeAOT host. |
 | `docs/` | The PRD, the architecture, the implementation checklist and the integration notes. |
 | `claude/debugging-tomo.md` | What Claude needs from nami to debug tomo: the requirements nami was built from. |
 | `.railway/railway.ts` | The Railway service `nami`. |
@@ -148,7 +148,25 @@ pinned in `global.json` too), Weaver `0.28.0`, Rust `1.99.0`, Bun and Node. The 
 | `./eng/build.sh Registry` | Runs `weaver registry check --future -r registry`, regenerates the C#, Rust and Markdown outputs, and fails if they differ from the commit. |
 | `./eng/build.sh Contracts` | Regenerates `internal/nami.contracts` and `contracts/json-schema/` from the TypeSpec; commit them with the TypeSpec change. |
 | `./eng/build.sh Compile` | Builds `nami.slnx`. |
+| `./eng/test.sh --suite Unit` | Runs the fast MSTest contract suite. `Integration`, `EndToEnd` and `All` select the other scopes. |
+| `./eng/inspect.sh` | Builds and inspects all of `nami.slnx` in Release, prints diagnostic counts and every rule with a source location, and retains the full SARIF and tool log under `artifacts/inspection/`. |
+| `./eng/build.sh InspectCode --Configuration Release` | Runs the same inspection after the Fallout compile target. Findings fail this target; tool failures and incomplete reports fail separately. |
 | `./eng/build.sh Publish` | Runs the full gate and produces the NativeAOT binary in `artifacts/publish`. |
+
+Inspection uses the installed JetBrains `jb` tool and the SDK selected by `global.json`; no shell PATH
+prefix is needed on the development Mac. Use `./eng/inspect.sh --configuration Debug` for Debug or
+`--no-build` only after a successful build of the same configuration. Every run writes to a new
+directory, so a stale SARIF cannot look like a successful inspection. When the tool exits successfully,
+the wrapper returns 0 for no findings, 1 for findings, or 2 for an incomplete or invalid analysis.
+A nonzero build or tool exit code is preserved and identified in the output.
+Analyzer-load and source-generator failures in the tool log invalidate a nominally successful SARIF.
+The `Check` gate retains its OTLP, DuckDB and NativeAOT proofs through the three MSTest suites;
+inspection is a separate explicit target while the current inspection findings are resolved.
+
+Normal build output keeps compiler warnings visible, even on success (`PASS WITH DIAGNOSTICS`).
+Build and publish binlogs use unique names under `artifacts/binlogs/`.
+See [testing and inspection](docs/testing.md) for prepared/module runs, expected test counts and
+the per-run evidence directories.
 
 Generated files are committed and never edited by hand: change the registry, a template or the
 TypeSpec, and regenerate.

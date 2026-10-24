@@ -173,26 +173,44 @@ freshness:
 
 ## E2E-Harness
 
-Der Harness ist qyls: MSTest.Sdk 4.5.1 auf Microsoft.Testing.Platform, Fallout als Gate, eine NativeAOT-Conformance-App ohne Testframework. Drei Testprojekte, nach Beweisart getrennt:
+Der Harness verwendet ausschließlich MSTest.Sdk 4.5.1 auf der nativen Microsoft.Testing.Platform
+2.5.1, gesteuert durch `./eng/test.sh` und das Fallout-Gate. Gemeinsame Hilfen werden einmal in
+`Nami.Tests` kompiliert. Es gibt drei ausführbare Suiten nach Beweisart:
 
-| Projekt | Beweist | Läuft | Wurzel-Test |
-| --- | --- | --- | --- |
-| `Nami.Registry.Tests` | G1–G10, S1 | JIT; braucht `weaver` auf dem PATH (`[ExecutableCondition("weaver", "--version")]`) und Roslyn | `Catalog_MatchesResolvedRegistry` |
-| `Nami.Collector.Tests` | R1–R10, S2–S9, T1–T13 | JIT; In-Memory-DuckDB unter `TestContext.TestTempDirectory`, OTLP über Loopback, MCP-Client in-process über stdio | `Catalog_EmbeddedConstants_MatchRegistrySnapshot` |
-| `Nami.Conformance` | Das veröffentlichte AOT-Binary: ein OTLP-Batch rein, sechs Tools über stdio raus, Freshness-Block korrekt | `PublishAot`, kein MSTest (qyls `Qyl.Sdk.Conformance`-Muster) | der Prozess selbst |
+| Projekt | Beweist | Läuft |
+| --- | --- | --- |
+| `Nami.Tests` | Gemeinsame OTLP-Daten, Prozess- und MCP-Hilfen | Bibliothek, keine Testanwendung |
+| `Nami.UnitTests` | Reine Vertrags-, Serialisierungs- und Werteprüfungen | MSTest/MTP mit generierter Discovery |
+| `Nami.IntegrationTests` | Registry/Compiler, echte DuckDB-Persistenz, Tool-Verträge und Diagnose-Einstiege | MSTest/MTP; reale Integrationen |
+| `Nami.EndToEndTests` | HTTP/protobuf/gRPC → Host → DuckDB → MCP sowie Snapshot-Replay nach Neustart | MSTest/MTP gegen das veröffentlichte NativeAOT-`nami` |
+
+Der frühere Konsolen-Conformance-Lauf ist als `NativeConformanceTests` Teil von EndToEnd. Die
+Prüfung der drei OTLP-Signale, aller sechs Tools, der Freshness, der Inhaltsparität und des
+persistierten Snapshot-Replays bleibt erhalten. Es gibt keinen eigenen Test-`Main` und keinen
+VSTest-Ausweichpfad. Reflexionsabhängige Compiler-/Vertragsprüfungen bleiben im verwalteten
+MSTest-Harness; die Produktgrenze wird durch das tatsächlich gestartete native Binary bewiesen.
 
 **Regeln.**
 
-- Testklassen `sealed`, `TestContext` über den Primär-Konstruktor, `context.CancellationToken` an jeden Call (`MSTEST0049`); `[Timeout]` auf jedem Test, der einen Socket oder einen Prozess öffnet (qyl: 23 Stellen).
-- `Assert.Scope()` (experimentell, `#pragma warning disable MSTESTEXP`) für Attribut- und Freshness-Prüfungen: alle Abweichungen eines Ergebnisses in einem Lauf.
-- `[CombinatorialData]` über die sechs Tools × drei OTLP-Transporte; Werte aus dem geladenen Katalog, nie Literale im Test.
-- `[DependsOn]` nur innerhalb einer Assembly, jeweils auf den Wurzel-Test; die Reihenfolge der Assemblies erzwingt Fallout.
-- `[ResourceLock(WellKnownResources.EnvironmentVariables)]` für `NAMI_*`/`OTEL_*`-Variablen; `[DoNotParallelize]` nur für Tests, die feste Ports binden (qyl: 13 Stellen); alles andere parallel.
-- Eingabe ist immer echtes OTLP (protobuf-Bytes oder JSON), erzeugt aus dem aufgelösten Schema; synthetische Telemetrie existiert nur in Tests (qyls Regel).
-- Golden-Dateien für `tools/list` und für den Katalog; Vergleich über `Assert.AreEquivalent(expected, actual, strict: true)` auf dem deserialisierten Modell, IDs und Zeitstempel normalisiert.
-- `testconfig.json`: `captureTrace: Live`, `captureAssertionFailureDiagnostics: true` (nicht unter AOT wirksam).
+- Testklassen sind `sealed`; benötigter `TestContext` wird über den Primär-Konstruktor injiziert.
+  Jeder unterstützte asynchrone Call erhält `context.CancellationToken`.
+- Jede ausführbare Suite besitzt ein eigenes `testconfig.json`. Unit zeigt vor allem Fehler,
+  Integration Fehler und übersprungene Fälle, EndToEnd alle Ergebnisse und erfasste Ausgabe.
+  Kooperative Standardfristen betragen 30/120/300 Sekunden; vorhandene testspezifische Fristen
+  bleiben erhalten, einschließlich 600 Sekunden für den realen 500.000-Spans-Nachweis.
+- `[DependsOn]` verbindet nur Tests derselben Assembly. Registry-/Build-Prüfungen, die gemeinsame
+  Ausgaben neu erzeugen, werden nicht parallel zu anderen Integrationsfällen ausgeführt.
+  Der All-Aufruf führt Unit → Integration → EndToEnd aus und stoppt beim ersten Fehler.
+- Jeder Lauf prüft MTP-Erkennung und Restore-Zustand, explizite Mindest-Testzahlen und frische TRX-
+  Ergebnisse. Fehlende, übersprungene oder zu wenige Fälle sind kein erfolgreicher Gate-Lauf.
+- `TestContext.TestTempDirectory` besitzt veränderliche Testdaten; Prozesse, Ports und Datenbanken
+  haben pro Fall eigene Lebenszeiten. Echte OTLP-Daten sind Testeingaben, niemals Produktionstelemetrie.
+- Golden-Dateien werden mit expliziten Werten, Byte-/Sequenzvergleichen oder struktureller
+  `JsonElement.DeepEquals`-Parität geprüft. Keine Assertion wird für AOT oder bequemere Ausgabe
+  abgeschwächt; benötigte Diagnoseartefakte werden erhalten.
 
-**Was der Harness bewusst nicht tut:** sampeln, filtern, Telemetrie erfinden. Jeder gesendete Record wird gelesen; die Begrenzung der Antwort (T4) ist Eigenschaft des Tools, nicht des Harness.
+Der Harness sampelt oder filtert keine angefragten Tests stillschweigend. Der Skripteinstieg,
+Ergebnisverzeichnisse und die Grenzen von `--no-build`/`--test-modules` stehen in `docs/testing.md`.
 
 ## Testmethoden-Katalog
 
@@ -278,7 +296,7 @@ nami wird von Agenten für Agenten gebaut. Entscheidungen trifft der Agent, der 
 
 | Risiko | Wo es auffällt | Gegenmaßnahme |
 | --- | --- | --- |
-| MCP im .NET-Binary: das C#-SDK v2 spricht 2026-07-28 (stateless, stdio, Streamable HTTP, MRTR); ob Tool-Registrierung und Schema-Erzeugung unter NativeAOT ohne Reflection laufen, ist nicht belegt. | `Nami.Conformance` | Erster Conformance-Lauf vor jedem Tool-Code; Tool-Metadaten aus dem Vertrag generieren, nicht per `WithTools<T>` reflektieren |
+| MCP im .NET-Binary: das C#-SDK v2 spricht 2026-07-28 (stateless, stdio, Streamable HTTP, MRTR); ob Tool-Registrierung und Schema-Erzeugung unter NativeAOT ohne Reflection laufen, ist nicht belegt. | `Nami.EndToEndTests` | Erster Conformance-Lauf vor jedem Tool-Code; Tool-Metadaten aus dem Vertrag generieren, nicht per `WithTools<T>` reflektieren |
 | Weaver 0.28.0 liefert keine C#-Templates; verschachtelte Registry-Abhängigkeit (nami → genai → core) ist in der Dokumentation nicht als Beispiel belegt. | G1, G2 | `weaver registry check --future` am Sonntag als erster Befehl; eigene `.j2` wie GenAI; bei Doppelauflösung Core nur über GenAI importieren |
 | Development-Konventionen (`gen_ai.*`, `mcp.*`) benennen sich zwischen GenAI-Commits um; ohne Tag kein Semver. | G9, R4 | Commit-Pin plus `weaver registry diff` als Gate; Normalisierungstabelle aus dem Diff pflegen |
 | tomos `tracing-opentelemetry` schreibt `error!`-Events als Span-Events, nicht als Log-Records; die stabile Exception-Konvention ist der Log-Pfad. | R7 | nami erkennt beide Quellen; tomo entscheidet am Sonntag, ob `opentelemetry-appender-tracing` mitläuft |

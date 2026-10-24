@@ -12,16 +12,16 @@ using Nami.Collector.Storage;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
-namespace Nami.Collector.Tests;
+namespace Nami.EndToEndTests;
 
 [TestClass]
-[DependsOn(typeof(IngestStoreTests), nameof(IngestStoreTests.Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
+[TestCategory("EndToEnd")]
 public sealed class HostTransportTests(TestContext context)
 {
     private static readonly string[] ToolNames = ["changes_recent","errors_recent","logs_search","sources_status","traces_get","traces_slowest"];
     private static JsonElement Content(CallToolResult result) => (object?)result.StructuredContent is JsonElement json ? json : throw new InvalidOperationException("No structured content");
 
-    [TestMethod,Timeout(90000)]
+    [TestMethod,Timeout(90000, CooperativeCancellation = true)]
     [DataRow("json","traces",DisplayName="Traces HTTP JSON")]
     [DataRow("protobuf","traces",DisplayName="Traces HTTP protobuf")]
     [DataRow("grpc","traces",DisplayName="Traces gRPC")]
@@ -61,7 +61,7 @@ public sealed class HostTransportTests(TestContext context)
         await using var store=new DuckDbStore(Path.Combine(dir,"nami.duckdb"));
         var snapshot=await store.ReadSnapshotAsync("default",ct:context.CancellationToken);
         if(signal=="traces") {Assert.HasCount(1,snapshot.Spans);Assert.AreEqual("GET /orders",snapshot.Spans[0].Name);}
-        else if(signal=="logs") {Assert.HasCount(1,snapshot.Logs);StringAssert.Contains(snapshot.Logs[0].Body!,"order accepted");}
+        else if(signal=="logs") {Assert.HasCount(1,snapshot.Logs);Assert.Contains("order accepted",snapshot.Logs[0].Body!);}
         else
         {
             Assert.HasCount(1,snapshot.Metrics);Assert.AreEqual("http.server.active_requests",snapshot.Metrics[0].MetricName);
@@ -93,8 +93,8 @@ public sealed class HostTransportTests(TestContext context)
                 yield return new((tool,transport)){DisplayName=tool+" via "+transport};
     }
 
-    [TestMethod,Timeout(90000)]
-    [DynamicData(nameof(ToolTransportCases), DynamicDataSourceType.Method)]
+    [TestMethod,Timeout(90000, CooperativeCancellation = true)]
+    [DynamicData(nameof(ToolTransportCases))]
     public async Task EveryTool_ThreeOtlpTransports_ReturnsTypedEvidence(string tool,string transport)
     {
         await using var host=await McpHarness.StartAsync(TestData.HostBinary,false,context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),context.CancellationToken);
@@ -136,7 +136,7 @@ public sealed class HostTransportTests(TestContext context)
         }
     }
 
-    [TestMethod,Timeout(90000)]
+    [TestMethod,Timeout(90000, CooperativeCancellation = true)]
     [DataRow(false,DisplayName="HTTP MCP result")]
     [DataRow(true,DisplayName="stdio MCP result")]
     public async Task Result_ThreeParts_OneSource(bool stdio)
@@ -145,10 +145,10 @@ public sealed class HostTransportTests(TestContext context)
         var result=await host.CallAsync("sources_status","{}",context.CancellationToken);
         Assert.IsFalse(result.IsError==true);Assert.HasCount(2,result.Content);
         Assert.AreEqual(Content(result).GetRawText(),Assert.IsExactInstanceOfType<TextContentBlock>(result.Content[1]).Text);
-        StringAssert.Contains(Assert.IsExactInstanceOfType<TextContentBlock>(result.Content[0]).Text,"incomplete");
+        Assert.Contains("incomplete",Assert.IsExactInstanceOfType<TextContentBlock>(result.Content[0]).Text);
     }
 
-    [TestMethod,Timeout(90000)]
+    [TestMethod,Timeout(90000, CooperativeCancellation = true)]
     public async Task ToolsList_Snapshot_MatchesAnnotationsAndCache()
     {
         await using var host=await McpHarness.StartAsync(TestData.HostBinary,false,context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),context.CancellationToken);
@@ -163,13 +163,13 @@ public sealed class HostTransportTests(TestContext context)
         var complete=JsonSerializer.SerializeToElement(list,ModelContextProtocol.McpJsonUtilities.DefaultOptions.GetTypeInfo<ListToolsResult>());
         var actualPath=Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),"tools-list.actual.json");
         await File.WriteAllTextAsync(actualPath,complete.GetRawText(),context.CancellationToken);context.AddResultFile(actualPath);
-        var expectedPath=Path.Combine(ProcessRunner.RepositoryRoot,"tests/Nami.Collector.Tests/Fixtures/tools-list.json");
+        var expectedPath=Path.Combine(ProcessRunner.RepositoryRoot,"tests/Nami.EndToEndTests/Fixtures/tools-list.json");
         Assert.IsTrue(File.Exists(expectedPath),"The committed tools/list golden is missing. Actual: "+actualPath);
         using var expected=JsonDocument.Parse(await File.ReadAllTextAsync(expectedPath,context.CancellationToken));
         Assert.IsTrue(JsonElement.DeepEquals(expected.RootElement,complete),"Full tools/list manifest differs from committed golden. Actual: "+actualPath);
     }
 
-    [TestMethod,Timeout(90000)]
+    [TestMethod,Timeout(90000, CooperativeCancellation = true)]
     public async Task SourcesStatus_AfterOneRequest_LastSeenWithinOneSecond()
     {
         await using var host=await McpHarness.StartAsync(TestData.HostBinary,false,context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),context.CancellationToken);
@@ -182,7 +182,7 @@ public sealed class HostTransportTests(TestContext context)
         Assert.IsTrue(last>=before&&last<=DateTimeOffset.UtcNow);Assert.IsLessThanOrEqualTo(1,(last-before).TotalSeconds);
     }
 
-    [TestMethod,Timeout(90000)]
+    [TestMethod,Timeout(90000, CooperativeCancellation = true)]
     public async Task Http_KeyAndResourceConflict_Refused()
     {
         const string keys="{\"a\":[{\"key\":\"test-a\",\"roles\":[\"ingest\",\"read\"]}],\"b\":[{\"key\":\"test-b\",\"roles\":[\"ingest\",\"read\"]}]}";
@@ -193,7 +193,7 @@ public sealed class HostTransportTests(TestContext context)
         var response=Content(await host.CallAsync("traces_slowest","{}",context.CancellationToken));Assert.HasCount(1,response.GetProperty("traces").EnumerateArray().ToArray());
     }
 
-    [TestMethod,Timeout(90000)]
+    [TestMethod,Timeout(90000, CooperativeCancellation = true)]
     public async Task IncomingMeta_Traceparent_ParentsToolSpan()
     {
         const string traceId="0123456789abcdef0123456789abcdef";const string parentId="fedcba9876543210";
@@ -210,7 +210,7 @@ public sealed class HostTransportTests(TestContext context)
         Assert.IsNotNull(recorded,"Self-exported MCP span was not ingested");
         Assert.AreEqual(parentId,recorded.Value.GetProperty("spans")[0].GetProperty("parent_span_id").GetString());
     }
-    [TestMethod,Timeout(90000)]
+    [TestMethod,Timeout(90000, CooperativeCancellation = true)]
     public async Task Http_KeyRolesAndCrossProjectReads_AreEnforced()
     {
         const string keys="{\"a\":[{\"key\":\"ingest-a\",\"roles\":[\"ingest\"]},{\"key\":\"read-a\",\"roles\":[\"read\"]}],\"b\":[{\"key\":\"read-b\",\"roles\":[\"read\"]}]}";
@@ -227,7 +227,7 @@ public sealed class HostTransportTests(TestContext context)
         Assert.AreEqual(0,Content(foreign).GetProperty("traces").GetArrayLength());
     }
 
-    [TestMethod,Timeout(90000)]
+    [TestMethod,Timeout(90000, CooperativeCancellation = true)]
     [DataRow(false,DisplayName="Missing traceparent")]
     [DataRow(true,DisplayName="Malformed traceparent")]
     public async Task IncomingMeta_AbsentOrInvalid_StartsRoot(bool invalid)
@@ -240,7 +240,8 @@ public sealed class HostTransportTests(TestContext context)
         var deadline=DateTimeOffset.UtcNow.AddSeconds(20);JsonElement? root=null;
         while(DateTimeOffset.UtcNow<deadline)
         {
-            var rows=Content(await host.CallAsync("traces_slowest","{}",context.CancellationToken)).GetProperty("traces");
+            // Polling emits its own spans; query the operation under test before applying the top-ten limit.
+            var rows=Content(await host.CallAsync("traces_slowest","{\"operation\":\"tools/call sources_status\"}",context.CancellationToken)).GetProperty("traces");
             var matches=rows.EnumerateArray().Where(static r=>r.GetProperty("operation").GetString()=="tools/call sources_status").ToArray();
             if(matches.Length>0)
             {
@@ -253,7 +254,7 @@ public sealed class HostTransportTests(TestContext context)
         Assert.IsNotNull(root,"Root tool span was not exported");Assert.IsFalse(root.Value.TryGetProperty("parent_span_id",out _));
     }
 
-    [TestMethod,Timeout(90000)]
+    [TestMethod,Timeout(90000, CooperativeCancellation = true)]
     public async Task Health_ReturnsGeneratedSchemaAndRevision()
     {
         await using var host=await McpHarness.StartAsync(TestData.HostBinary,false,context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),context.CancellationToken);

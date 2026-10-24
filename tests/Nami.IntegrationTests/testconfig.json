@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/testfx/v4.5.1/docs/testconfig.schema.json",
+  "commandLineOptions": {
+    "show-test-results": "failed,skipped",
+    "show-stdout": "Failed",
+    "show-stderr": "Failed",
+    "progress": "auto",
+    "ansi": "off"
+  },
+  "mstest": {
+    "timeout": { "test": 120000, "useCooperativeCancellation": true },
+    "output": { "captureTrace": "Result" },
+    "execution": { "captureAssertionFailureDiagnostics": true, "treatDiscoveryWarningsAsErrors": true }
+  }
+}

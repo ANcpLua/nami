@@ -10,8 +10,9 @@
     <Project Path="internal/nami.collector.storage.generators/nami.collector.storage.generators.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Nami.Registry.Tests/Nami.Registry.Tests.csproj"/>
-    <Project Path="tests/Nami.Collector.Tests/Nami.Collector.Tests.csproj"/>
-    <Project Path="tests/Nami.Conformance/Nami.Conformance.csproj"/>
+    <Project Path="tests/Nami.Tests/Nami.Tests.csproj" />
+    <Project Path="tests/Nami.UnitTests/Nami.UnitTests.csproj" />
+    <Project Path="tests/Nami.IntegrationTests/Nami.IntegrationTests.csproj" />
+    <Project Path="tests/Nami.EndToEndTests/Nami.EndToEndTests.csproj" />
   </Folder>
 </Solution>

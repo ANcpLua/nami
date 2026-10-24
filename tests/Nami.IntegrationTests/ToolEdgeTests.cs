@@ -6,9 +6,10 @@ using Microsoft.Extensions.Time.Testing;
 using Nami.Collector.Storage;
 using Nami.Tests.Infrastructure;
 using Nami.Tools;
-namespace Nami.Collector.Tests;
+namespace Nami.IntegrationTests;
 
 [TestClass]
+[TestCategory("Integration")]
 [DependsOn(typeof(IngestStoreTests), nameof(IngestStoreTests.Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
 public sealed class ToolEdgeTests(TestContext context)
 {

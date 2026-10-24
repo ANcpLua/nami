@@ -4,9 +4,10 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Nami.SemanticConventions;
 using Nami.Tests.Infrastructure;
-namespace Nami.Registry.Tests;
+namespace Nami.IntegrationTests;
 
 [TestClass]
+[TestCategory("Integration")]
 public sealed class RegistryGateTests(TestContext context)
 {
     private static readonly string[] GeneratedDirectories = ["internal/nami.semconv/Generated", "crates/nami-semconv/src", "docs/semconv"];
@@ -23,7 +24,7 @@ public sealed class RegistryGateTests(TestContext context)
     }
 
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
-    [TestMethod,Timeout(180000)]
+    [TestMethod,Timeout(180000, CooperativeCancellation = true)]
     public async Task Registry_Check_PassesWithFuture()
     {
         var result=await ProcessRunner.RunAsync(Weaver,["--future","registry","check","--v2","-r",Path.Combine(Root,"registry"),"-p",Path.Combine(Root,"registry/policies")],Root,context.CancellationToken);
@@ -56,7 +57,8 @@ public sealed class RegistryGateTests(TestContext context)
     public void Registry_NestedCoreDependency_ResolvesOnce() => Assert.HasCount(1,AttributeCatalog.All.Where(static a=>a.Key=="http.request.method").ToArray());
 
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
-    [TestMethod,Timeout(240000)]
+    [TestMethod,Timeout(240000, CooperativeCancellation = true)]
+    [DoNotParallelize]
     public async Task Generate_TwiceSameRegistry_IsByteIdentical()
     {
         var before=Snapshot();
@@ -114,7 +116,7 @@ public sealed class RegistryGateTests(TestContext context)
     }
 
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
-    [TestMethod,Timeout(120000)]
+    [TestMethod,Timeout(120000, CooperativeCancellation = true)]
     public async Task PolicyNamingUnpersistedKey_FailsGeneration()
     {
         var temp=Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),"invalid-registry");Directory.CreateDirectory(temp);
@@ -124,11 +126,11 @@ public sealed class RegistryGateTests(TestContext context)
         attr["annotations"]!.AsObject().Remove("nami.persisted");
         await File.WriteAllTextAsync(Path.Combine(temp,"resolved.json"),node.ToJsonString(),context.CancellationToken);
         var result=await ProcessRunner.RunAsync(Weaver,["--future","registry","check","--v2","-r",temp,"-p",Path.Combine(Root,"registry/policies")],Root,context.CancellationToken);
-        Assert.AreNotEqual(0,result.ExitCode);StringAssert.Contains(result.Output+result.Error,"nami_persistence_required");
+        Assert.AreNotEqual(0,result.ExitCode);Assert.Contains("nami_persistence_required",result.Output+result.Error);
     }
 
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
-    [TestMethod,Timeout(60000)]
+    [TestMethod,Timeout(60000, CooperativeCancellation = true)]
     public async Task PinChange_WithoutDiffEntry_FailsGate()
     {
         var temp=Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),"pin-change");Directory.CreateDirectory(Path.Combine(temp,"registry/source"));
@@ -140,11 +142,12 @@ public sealed class RegistryGateTests(TestContext context)
         await File.WriteAllTextAsync(script,code,context.CancellationToken);
         var changelog=Path.Combine(temp,"registry/CHANGELOG.md");await File.WriteAllTextAsync(changelog,(await File.ReadAllTextAsync(changelog,context.CancellationToken)).Replace(RegistryInfo.CoreCommit,changed,StringComparison.Ordinal),context.CancellationToken);
         var result=await ProcessRunner.RunAsync("python3",[script,"--check"],temp,context.CancellationToken);
-        Assert.AreNotEqual(0,result.ExitCode);StringAssert.Contains(result.Error,"pin change");
+        Assert.AreNotEqual(0,result.ExitCode);Assert.Contains("pin change",result.Error);
     }
 
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
-    [TestMethod,Timeout(120000)]
+    [TestMethod,Timeout(120000, CooperativeCancellation = true)]
+    [DoNotParallelize]
     public async Task GeneratedCode_AotAnalyzers_ReportNothing()
     {
         var log=Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),"semconv.binlog");
@@ -155,7 +158,7 @@ public sealed class RegistryGateTests(TestContext context)
     }
 
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
-    [TestMethod,Timeout(120000)]
+    [TestMethod,Timeout(120000, CooperativeCancellation = true)]
     public async Task TokenExemption_ForUnpersistedKey_FailsGeneration()
     {
         var temp=Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),"invalid-exemption");Directory.CreateDirectory(temp);
@@ -165,7 +168,7 @@ public sealed class RegistryGateTests(TestContext context)
         attr["annotations"]!["nami.persisted"]=false;attr["annotations"]!["nami.token_exempt"]=true;
         await File.WriteAllTextAsync(Path.Combine(temp,"resolved.json"),node.ToJsonString(),context.CancellationToken);
         var result=await ProcessRunner.RunAsync(Weaver,["--future","registry","check","--v2","-r",temp,"-p",Path.Combine(Root,"registry/policies")],Root,context.CancellationToken);
-        Assert.AreNotEqual(0,result.ExitCode);StringAssert.Contains(result.Output+result.Error,"nami_token_exemption_requires_persistence");
+        Assert.AreNotEqual(0,result.ExitCode);Assert.Contains("nami_token_exemption_requires_persistence",result.Output+result.Error);
     }
 
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]

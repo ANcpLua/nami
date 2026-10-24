@@ -27,7 +27,9 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="nami"/>
-    <InternalsVisibleTo Include="Nami.Collector.Tests"/>
+    <InternalsVisibleTo Include="Nami.Tests" />
+    <InternalsVisibleTo Include="Nami.IntegrationTests" />
+    <InternalsVisibleTo Include="Nami.EndToEndTests" />
     <InternalsVisibleTo Include="Nami.Telemetry.IntegrationTests"/>
   </ItemGroup>
 

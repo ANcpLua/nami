@@ -1,13 +1,11 @@
 using Google.Protobuf;
-using Microsoft.Extensions.Time.Testing;
 using Nami.Collector.Ingestion;
 using Nami.Collector.Ingestion.Primitives;
 using Nami.Collector.Storage;
-using Nami.Tests.Infrastructure;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
-namespace Nami.Collector.Tests;
+namespace Nami.Tests.Infrastructure;
 
 internal static class TestData
 {
@@ -49,5 +47,5 @@ internal static class TestData
         var rows = MetricStorageMapper.ToStorageRows(batch);
         await store.InsertMetricsAsync(rows.Series, rows.Observations, token);
     }
-    internal static string HostBinary => Path.Combine(ProcessRunner.RepositoryRoot, "artifacts", "bin", "nami", "release", "nami.dll");
+    internal static string HostBinary => Path.Combine(ProcessRunner.RepositoryRoot, "artifacts", "publish", OperatingSystem.IsWindows() ? "nami.exe" : "nami");
 }

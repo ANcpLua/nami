@@ -2,9 +2,10 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Nami.Api.Contracts;
 using Nami.Tests.Infrastructure;
-namespace Nami.Registry.Tests;
+namespace Nami.IntegrationTests;
 
 [TestClass]
+[TestCategory("Integration")]
 [DependsOn(typeof(RegistryGateTests), nameof(RegistryGateTests.Catalog_MatchesResolvedRegistry))]
 public sealed class UnionCompilerTests(TestContext context)
 {
@@ -32,6 +33,6 @@ public sealed class UnionCompilerTests(TestContext context)
         var union=line.Replace(");",", AddedCase);",StringComparison.Ordinal);
         var errors=Errors("using Nami.Api.Contracts.OTel.Metrics; namespace Probe { "+union+" public class AddedCase {} public static class Consumer { public static int Read(MetricPointData v) => v switch { MetricNumberPointData => 1, MetricHistogramPointData => 2, MetricExponentialHistogramPointData => 3, MetricSummaryPointData => 4 }; }}");
         Assert.IsTrue(errors.Any(static d=>d.Id=="CS8509"),string.Join("\n",errors.Select(static e=>e.ToString())));
-        StringAssert.Contains(string.Join("\n",errors.Select(static e=>e.ToString())),"AddedCase");
+        Assert.Contains("AddedCase",string.Join("\n",errors.Select(static e=>e.ToString())));
     }
 }

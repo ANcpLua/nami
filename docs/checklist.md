@@ -388,3 +388,12 @@ Round 1 ran from 01:26 to about 02:20 on 2026-10-24 under a platform incident (e
 the Claude session `claude-74`; after the reset they can be resumed with a message each, or round 1 can be
 relaunched from the prompts above with any agent runtime. Everything written so far is on `main` (last commit
 of round 1: `2863f76`).
+
+
+### Agent-facing verification layout
+
+The active test layout is `Nami.Tests` (shared support), `Nami.UnitTests`,
+`Nami.IntegrationTests`, and `Nami.EndToEndTests`. Use `eng/test.sh`; the earlier registry/collector
+project names and the standalone conformance executable above describe the original implementation.
+The native host proof remains in the EndToEnd suite. `docs/testing.md` owns the current commands,
+minimum-count/report checks and inspection scopes.
