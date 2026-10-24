@@ -47,8 +47,9 @@ internal static class MetricObservationCodec
     private static string NumericIdentity(StoredNumberValue? value) => value switch
     {
         StoredIntValue integer => integer.Value.ToString(CultureInfo.InvariantCulture),
-        StoredDoubleValue number when double.IsFinite(number.Value) && number.Value == Math.Truncate(number.Value) &&
-            number.Value >= long.MinValue && number.Value < 9223372036854775808d => ((long)number.Value).ToString(CultureInfo.InvariantCulture),
+        StoredDoubleValue number when double.IsInteger(number.Value) &&
+                                      number.Value is >= long.MinValue and < 9_223_372_036_854_775_808d =>
+            ((long)number.Value).ToString(CultureInfo.InvariantCulture),
         StoredDoubleValue number => number.Value.ToString("R", CultureInfo.InvariantCulture),
         null => "absent",
         _ => throw new InvalidDataException("Unknown OTLP metric numeric representation.")

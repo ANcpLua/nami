@@ -69,4 +69,11 @@ The product requirements are `docs/prd/nami.md`; `docs/checklist.md` owns implem
   wrapper and the JsonNode validation overload. Optional-value converters remain because the
   emitter references them and the PRD explicitly requires their three-state semantics.
 
+- Numeric measurement identity uses `double.IsInteger` for exact integrality, with the inclusive
+  `long.MinValue` and exclusive `2^63` bounds retained before conversion. Integral doubles share
+  measurement identity with their exact Int64 equivalent; fractions, non-finite values and values
+  outside Int64 stay on invariant round-trip formatting. Observation identity still preserves the
+  original numeric representation. `MetricIdentityTests` covers both boundaries, adjacent doubles,
+  negative zero, non-finite values and absent values.
+
 The build and tests, not unchecked tasks or an older chat status, establish completion.
