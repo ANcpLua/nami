@@ -364,3 +364,12 @@ Workstream-specific additions (append to the preamble):
 Tests are written sequentially by one agent from the PRD's test catalog (`docs/prd/nami.md`, section
 "Testmethoden-Katalog"): `Nami.Registry.Tests`, `Nami.Collector.Tests`, `Nami.Conformance`. That agent
 also replaces every stub left in `src/nami/Tools/Pending/` and any `#if NAMI_SEMCONV_STUB` fallback.
+
+### Round 1 ended at the weekly usage limit
+
+Round 1 ran from 01:26 to about 02:20 on 2026-10-24 under a platform incident (elevated errors, status page
+`h101vcmhnfky`) and then hit the account's weekly limit (HTTP 429; the API confirmed the agents ran as
+`claude-opus-5-5`). The limit resets on 2026-10-25 at 15:00 Europe/Vienna. The ten agents keep their context in
+the Claude session `claude-74`; after the reset they can be resumed with a message each, or round 1 can be
+relaunched from the prompts above with any agent runtime. Everything written so far is on `main` (last commit
+of round 1: `43107aa`).
