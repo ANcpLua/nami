@@ -8,7 +8,10 @@ namespace Nami.IntegrationTests;
 public sealed class BuildDiagnosticsTests(TestContext context)
 {
     private const string ValidReport = """{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"InspectCode"}},"invocations":[{"executionSuccessful":true}],"results":[]}]}""";
-    private string Temporary => context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
+    private string Temporary => InspectionFixture.Temporary(context);
+
+    [TestCleanup]
+    public void Cleanup() => InspectionFixture.Cleanup(context);
 
     private async Task<ProcessResult> ReportAsync(string? report = ValidReport, string log = "", int exitCode = 0)
     {

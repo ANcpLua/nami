@@ -74,6 +74,8 @@ checkout's canonical path. Each lane has exactly one `current` directory. A new 
 lane's preceding result before writing `RUNNING`; it cannot show an older success as the new run.
 `NAMI_DIAGNOSTICS_HOME` can select another external state root; an in-repository path is rejected.
 Build outputs remain in `artifacts/bin`, `artifacts/obj` and `artifacts/publish`.
+Generated MSTest temporary folders beside those binaries are removed after verification;
+the diagnostic workflow fixtures use external scratch space and clean it after every case.
 
 Build/test/inspect entry points remove the legacy workspace diagnostic directories automatically:
 `artifacts/inspection`, `artifacts/test-results`, `artifacts/binlogs`, `artifacts/logs` and generated

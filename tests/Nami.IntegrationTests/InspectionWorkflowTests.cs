@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -13,14 +14,19 @@ namespace Nami.IntegrationTests;
 [TestCategory("Integration")]
 public sealed class InspectionWorkflowTests(TestContext context)
 {
+    [TestCleanup]
+    public void Cleanup() => InspectionFixture.Cleanup(context);
+
     [TestMethod]
     public async Task Diagnostics_Cleanup_RemovesReportsAndPreservesSourceAndBuilds()
     {
         var fixture = await InspectionFixture.CreateAsync(context);
         string[] discarded = ["artifacts/inspection/old/report.sarif", "artifacts/test-results/old/result.trx",
-            "artifacts/binlogs/old.binlog", "artifacts/logs/old.log", ".fallout/temp/build.log"];
+            "artifacts/binlogs/old.binlog", "artifacts/logs/old.log", ".fallout/temp/build.log",
+            "artifacts/bin/Nami.IntegrationTests/release/Mock_00000000000000000000000000000000/report.json"];
         string[] preserved = ["src/Example.cs", "artifacts/bin/Example.dll", "artifacts/obj/project.assets.json",
-            "artifacts/publish/nami", ".fallout/parameters.json", ".agents/guide.md"];
+            "artifacts/publish/nami", ".fallout/parameters.json", ".agents/guide.md",
+            "artifacts/bin/Nami.IntegrationTests/release/Nami.IntegrationTests.dll"];
         foreach (var path in discarded.Concat(preserved))
         {
             var full = Path.Combine(fixture.Root, path);
@@ -54,6 +60,7 @@ public sealed class InspectionWorkflowTests(TestContext context)
     {
         var fixture = await InspectionFixture.CreateAsync(context);
         var result = await fixture.RunAsync(["--project", "Example"]);
+        Assert.IsFalse(fixture.Root.StartsWith(ProcessRunner.RepositoryRoot, StringComparison.Ordinal));
         Assert.AreEqual(0, result.ExitCode, result.Output + result.Error);
         var commands = fixture.Commands();
         var inspection = commands.Single(command => command.Contains("inspectcode"));
@@ -238,6 +245,19 @@ public sealed class InspectionWorkflowTests(TestContext context)
 
 internal sealed class InspectionFixture(string root, TestContext context)
 {
+    private static readonly ConditionalWeakTable<TestContext, DirectoryInfo> TemporaryDirectories = new();
+
+    internal static string Temporary(TestContext context) => TemporaryDirectories.GetValue(context, _ =>
+        Directory.CreateDirectory(Path.Combine(System.Environment.GetEnvironmentVariable("NAMI_DIAGNOSTICS_ROOT")
+                                               ?? Path.GetTempPath(), "test-scratch-" + Guid.NewGuid().ToString("N")))).FullName;
+
+    internal static void Cleanup(TestContext context)
+    {
+        if (!TemporaryDirectories.TryGetValue(context, out var directory)) return;
+        if (directory.Exists) directory.Delete(true);
+        TemporaryDirectories.Remove(context);
+    }
+
     internal string Root => root;
     internal string Output => Path.Combine(root, "artifacts/bin/Example/release/Example.dll");
     internal Dictionary<string, string?> Environment { get; } = new();
@@ -257,7 +277,7 @@ internal sealed class InspectionFixture(string root, TestContext context)
 
     internal static async Task<InspectionFixture> CreateAsync(TestContext context)
     {
-        var root = Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException(), "checkout");
+        var root = Path.Combine(Temporary(context), "checkout");
         Directory.CreateDirectory(Path.Combine(root, "eng/scripts"));
         Directory.CreateDirectory(Path.Combine(root, "src"));
         Directory.CreateDirectory(Path.Combine(root, ".config"));
@@ -319,7 +339,7 @@ internal sealed class InspectionFixture(string root, TestContext context)
         }
         var fixture = new InspectionFixture(root, context);
         fixture.Environment["DOTNET_EXE"] = dotnet;
-        fixture.Environment["NAMI_DIAGNOSTICS_HOME"] = Path.Combine(context.TestTempDirectory!, "diagnostics");
+        fixture.Environment["NAMI_DIAGNOSTICS_HOME"] = Path.Combine(Temporary(context), "diagnostics");
         fixture.Environment["PATH"] = root + Path.PathSeparator + System.Environment.GetEnvironmentVariable("PATH");
         return fixture;
     }

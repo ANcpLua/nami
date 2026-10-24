@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -62,6 +63,14 @@ def clean_workspace(root):
         for path in (root / name).rglob(".DS_Store"):
             path.unlink()
     for path in (root / ".agents").rglob("__pycache__"):
+        remove(path)
+    # MSTest's default per-case temporary folders can sit beside the built DLL.
+    # Remove only generated case folders, never the test assemblies/configuration.
+    for project in (root / "artifacts/bin").glob("*Tests"):
+        for path in sorted(project.rglob("*"), reverse=True):
+            if path.is_dir() and re.search(r"_[0-9a-f]{32}$", path.name):
+                remove(path)
+    for path in state_root(root).glob("test-scratch-*"):
         remove(path)
 
 
