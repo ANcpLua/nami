@@ -19,6 +19,12 @@ run = "./eng/build.sh Check --Configuration Release"
 description = "Show the single current diagnostic record for this checkout"
 run = "bash ./eng/diagnostics.sh"
 
+[tasks."contracts:verify"]
+run = "bash ./eng/contracts.sh verify"
+
+[tasks."contracts:status"]
+run = "bash ./eng/contracts.sh status"
+
 [tasks.publish]
 run = "./eng/build.sh Publish --Configuration Release"
 

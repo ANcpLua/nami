@@ -62,6 +62,33 @@ the test's fixture inputs must still be present. EndToEnd also requires `artifac
 
 ## Current diagnostics: one entry, no report history in the workspace
 
+### Contract generation signals
+
+`./eng/contracts.sh verify` (also `mise contracts:verify`) checks two consecutive generations,
+compares their bytes, and restores the original generated files before returning. Use
+`./eng/contracts.sh status --limit 20 --offset 0` for bounded details without regenerating.
+`mise diagnostics` includes the current contract result. Source changes invalidate a recorded
+verification result. `./eng/build.sh Contracts` deliberately keeps a reproducible new generation.
+
+| Direct contract command exit | Signal | Meaning |
+| --- | --- | --- |
+| 0 | `CURRENT` / `GENERATED` | Files were current, or requested generation completed reproducibly. |
+| 1 | `GENERATION_REQUIRED` | Reproducible output differs from the working files. Run Contracts, review and commit. |
+| 2 | `GENERATION_FAILED` / `SETUP_FAILED` / `STALE` | The check did not establish a valid current result. The original generator exit is recorded separately. |
+| 3 | `NONDETERMINISTIC` | Consecutive generations differ; fix the generator. |
+
+The enclosing Fallout build can return its own nonzero exit; the contracts lane retains the
+specific signal and direct exit above. Reports and generation logs remain in external current
+diagnostic state, never in `.agents` or source directories.
+
+Wire changes compare the canonical generated schema with Git HEAD: `UNCHANGED`, `ADDITIONS`,
+`REMOVALS`, `MODIFICATIONS`, `MIXED`, or `UNAVAILABLE` without a baseline. They include changed
+JSON pointers and before/after values. Documentation is excluded using the same canonicalization
+as the contract revision; a field literally named `description` is still contract data. A schema
+addition may tighten validation. Compatibility and quality are therefore `NOT_ASSESSED`, not
+automatic "improvement" or "regression" verdicts. Changed wire shape is review information;
+stale generated files and unstable/failed generation fail verification.
+
 The repository helpers require Python 3.11+ and mise.
 
 Start with `mise diagnostics` (or `bash ./eng/diagnostics.sh`). It displays the current build,

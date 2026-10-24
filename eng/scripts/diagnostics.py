@@ -131,7 +131,7 @@ def show(root):
     base = state_root(root)
     print("CURRENT DIAGNOSTICS (one record per lane; no historical runs)")
     found = False
-    for lane in ("build", "tests", "inspection/dotnet", "inspection/typescript", "inspection/mcp", "agent", "union"):
+    for lane in ("build", "tests", "contracts", "inspection/dotnet", "inspection/typescript", "inspection/mcp", "agent", "union"):
         path = base / lane / "current/summary.json"
         if not path.is_file():
             continue
@@ -161,6 +161,8 @@ def show(root):
             else:
                 status = "recorded " + status
             print(f"{lane}: {status}; exit={exit_code}")
+            if lane == "contracts":
+                print(f"  generated files changed={len(value.get('fileChanges', []))}; wire={value.get('wire', {}).get('status', 'UNAVAILABLE')}; compatibility/quality=NOT_ASSESSED")
             for problem in value.get("problems", [])[:3]:
                 print("  " + " ".join(str(problem).split())[:300])
             for suite in value.get("suites", []):
