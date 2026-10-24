@@ -9,6 +9,69 @@ import shutil
 import sys
 from pathlib import Path
 
+LEGACY_ROOTS = ("artifacts/inspection", "artifacts/test-results", "artifacts/binlogs", "artifacts/logs",
+                "artifacts/verification.lock", "inspectcode.sarif", ".fallout/build.schema.json",
+                ".agents/skills/csharp-union-types/validation/last-run.json")
+
+
+def owned_paths(root):
+    candidates = [root / name for name in LEGACY_ROOTS]
+    candidates += [p for p in (root / ".fallout/temp").rglob("*")
+                   if p.is_file() and (p.suffix in {".log", ".binlog"} or p.name == "build-graph.json")]
+    for name in (".agents", ".config", ".fallout", "artifacts"):
+        candidates += list((root / name).rglob(".DS_Store"))
+    candidates += list((root / ".agents").rglob("__pycache__"))
+    for project in (root / "artifacts/bin").glob("*Tests"):
+        candidates += [p for p in project.rglob("*") if p.is_dir() and re.search(r"_[0-9a-f]{32}$", p.name)]
+    result = []
+    for path in sorted(set(candidates), key=lambda p: (len(p.parts), str(p))):
+        if (path.exists() or path.is_symlink()) and not any(path.is_relative_to(parent) for parent in result):
+            result.append(path)
+    return result
+
+
+def owns_path(root, path):
+    relative = path.relative_to(root)
+    if any(relative == Path(name) or relative.is_relative_to(name) for name in LEGACY_ROOTS):
+        return True
+    parts = relative.parts
+    if parts[:2] == (".fallout", "temp") and (path.suffix in {".log", ".binlog"} or path.name == "build-graph.json"):
+        return True
+    if parts and parts[0] in {".agents", ".config", ".fallout", "artifacts"} and path.name == ".DS_Store":
+        return True
+    if parts and parts[0] == ".agents" and "__pycache__" in parts:
+        return True
+    return (len(parts) > 3 and parts[:2] == ("artifacts", "bin") and parts[2].endswith("Tests")
+            and any(re.search(r"_[0-9a-f]{32}$", part) for part in parts[3:]))
+
+
+def artifact_inventory(root, overrides=None):
+    from inspect_code import digest, source_files
+    artifacts = []
+    for path in owned_paths(root):
+        rows = []
+        size = 0
+        members = [path]
+        if path.is_dir() and not path.is_symlink():
+            for directory, children, files in os.walk(path, followlinks=False):
+                members += [Path(directory, name) for name in children + files]
+        for member in sorted(set(members)):
+            relative = str(member.relative_to(path.parent))
+            if member.is_symlink():
+                data = os.readlink(member).encode()
+                kind = "symlink"
+            elif member.is_file():
+                data = member.read_bytes()
+                kind = "file"
+                size += len(data)
+            else:
+                data, kind = b"", "directory"
+            rows.append((relative, kind, hashlib.sha256(data).hexdigest()))
+        artifacts.append(dict(path=str(path.relative_to(root)), sha256=hashlib.sha256(json.dumps(rows).encode()).hexdigest(),
+                              kind="symlink" if path.is_symlink() else "directory" if path.is_dir() else "file", bytes=size))
+    protected = digest((p for p in source_files(root) if not owns_path(root, p)), root, overrides)
+    return dict(protectedSource=protected, artifacts=artifacts)
+
 
 def state_root(root):
     root = Path(root).resolve()
@@ -46,30 +109,15 @@ def current(root, lane, requested="current"):
 def clean_workspace(root):
     root = Path(root).resolve()
     # These are generated diagnostics only. Preserve bin/obj/publish, source and config.
-    for name in ("artifacts/inspection", "artifacts/test-results", "artifacts/binlogs", "artifacts/logs",
-                 "artifacts/verification.lock", "inspectcode.sarif", ".fallout/build.schema.json"):
-        remove(root / name)
+    for path in owned_paths(root):
+        remove(path)
     temporary = root / ".fallout/temp"
     if temporary.exists():
-        for path in list(temporary.rglob("*")):
-            if path.is_file() and (path.suffix in {".log", ".binlog"} or path.name == "build-graph.json"):
-                path.unlink()
         for path in sorted(temporary.rglob("*"), reverse=True):
             if path.is_dir() and not any(path.iterdir()):
                 path.rmdir()
         if not any(temporary.iterdir()):
             temporary.rmdir()
-    for name in (".agents", ".config", ".fallout", "artifacts"):
-        for path in (root / name).rglob(".DS_Store"):
-            path.unlink()
-    for path in (root / ".agents").rglob("__pycache__"):
-        remove(path)
-    # MSTest's default per-case temporary folders can sit beside the built DLL.
-    # Remove only generated case folders, never the test assemblies/configuration.
-    for project in (root / "artifacts/bin").glob("*Tests"):
-        for path in sorted(project.rglob("*"), reverse=True):
-            if path.is_dir() and re.search(r"_[0-9a-f]{32}$", path.name):
-                remove(path)
     for path in state_root(root).glob("test-scratch-*"):
         remove(path)
 
@@ -78,7 +126,7 @@ def show(root):
     base = state_root(root)
     print("CURRENT DIAGNOSTICS (one record per lane; no historical runs)")
     found = False
-    for lane in ("build", "tests", "inspection/dotnet", "inspection/typescript", "inspection/mcp", "union"):
+    for lane in ("build", "tests", "inspection/dotnet", "inspection/typescript", "inspection/mcp", "agent", "union"):
         path = base / lane / "current/summary.json"
         if not path.is_file():
             continue
@@ -91,7 +139,9 @@ def show(root):
             if context.get("source"):
                 from inspect_code import outputs, sources
                 changed_outputs = False
-                if lane in ("inspection/typescript", "inspection/mcp"):
+                if lane == "agent":
+                    actual = artifact_inventory(Path(root).resolve())["protectedSource"]
+                elif lane in ("inspection/typescript", "inspection/mcp"):
                     from inspect_agent import fingerprint, output_hash
                     actual = fingerprint(Path(root).resolve())
                     if context.get("outputs"):
@@ -122,7 +172,7 @@ def show(root):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("path", "clean", "show"))
+    parser.add_argument("action", choices=("path", "clean", "show", "inventory", "predict"))
     parser.add_argument("root", type=Path)
     args = parser.parse_args()
     try:
@@ -130,6 +180,14 @@ if __name__ == "__main__":
             print(state_root(args.root))
         elif args.action == "clean":
             clean_workspace(args.root)
+        elif args.action == "inventory":
+            print(json.dumps(artifact_inventory(args.root.resolve())))
+        elif args.action == "predict":
+            root = args.root.resolve()
+            overrides = {root / name: value.encode() for name, value in json.load(sys.stdin).items()}
+            if any(not path.resolve().is_relative_to(root) for path in overrides):
+                raise ValueError("Predicted file is outside the checkout")
+            print(artifact_inventory(root, overrides)["protectedSource"])
         else:
             show(args.root)
     except (OSError, ValueError) as error:

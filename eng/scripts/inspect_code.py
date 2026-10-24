@@ -27,26 +27,35 @@ def write_json(path, value):
     path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
 
 
-def digest(paths, root=ROOT):
+def digest(paths, root=ROOT, overrides=None):
     result = hashlib.sha256()
     for path in sorted(set(paths)):
         result.update(str(path.relative_to(root)).encode() + b"\0")
-        result.update(hashlib.sha256(path.read_bytes()).digest() if path.is_file() else b"<missing>")
+        data = overrides.get(path) if overrides and path in overrides else path.read_bytes() if path.is_file() else None
+        result.update(hashlib.sha256(data).digest() if data is not None else b"<missing>")
     return result.hexdigest()
 
 
-def sources(root=ROOT):
+def source_files(root=ROOT):
     listing = subprocess.check_output(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"], cwd=root)
     paths = [root / os.fsdecode(name) for name in listing.split(b"\0") if name]
     # Git ignore rules do not control Compile's implicit globs. An ignored .cs file
     # still affects a build, so include build inputs inside every solution project.
-    for project in ET.parse(root / "nami.slnx").iter("Project"):
-        for directory, children, files in os.walk((root / project.attrib["Path"]).parent):
-            children[:] = [name for name in children if name not in {"bin", "obj", "artifacts", "node_modules", ".git"}]
+    folders = [(root / project.attrib["Path"]).parent for project in ET.parse(root / "nami.slnx").iter("Project")]
+    folders += [root / "contracts", root / "src/nami.mcp", root / "eng/agent-policy"]
+    generated = {root / "contracts/json-schema", root / "contracts/openapi", root / "src/nami.mcp/src/contracts/generated"}
+    for folder in folders:
+        for directory, children, files in os.walk(folder):
+            children[:] = [name for name in children if name not in {"bin", "obj", "artifacts", "node_modules", ".git", "dist", "__pycache__"}
+                           and Path(directory, name) not in generated]
             paths.extend(Path(directory, name) for name in files
-                         if Path(name).suffix in {".cs", ".csproj", ".props", ".targets", ".proto", ".resx", ".json"}
+                         if Path(name).suffix in {".cs", ".csproj", ".props", ".targets", ".proto", ".resx", ".json", ".tsp", ".ts", ".mts", ".cts", ".js", ".mjs", ".yaml", ".yml", ".lean"}
                          or name == ".editorconfig")
-    return digest(paths, root)
+    return paths
+
+
+def sources(root=ROOT):
+    return digest(source_files(root), root)
 
 
 def outputs(configuration, root=ROOT):

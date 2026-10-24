@@ -8,9 +8,11 @@
 // wire name or already is one.
 
 import type { ModelProperty } from "@typespec/compiler";
-import { createRule, paramMessage, resolveEncodedName } from "@typespec/compiler";
+import { createAddDecoratorCodeFix, createRule, paramMessage, resolveEncodedName } from "@typespec/compiler";
 import { getHeaderFieldName, isCookieParam, isHeader, isStatusCode } from "@typespec/http";
 import { PRODUCT_NAMESPACE, SNAKE_CASE, expectedWireName, isInNamespace } from "../policy.js";
+
+export const wireNameFixId = "nami-add-wire-name";
 
 export const wireNameSnakeCaseRule = createRule({
   name: "wire-name-snake-case",
@@ -64,6 +66,10 @@ export const wireNameSnakeCaseRule = createRule({
           messageId,
           target: property,
           format: { property: property.name, wire, expected },
+          codefixes: wire === property.name && !property.decorators.some(item => item.decorator.name === "$encodedName")
+            ? [{ ...createAddDecoratorCodeFix(property, "encodedName", ['"application/json"', JSON.stringify(expected)]),
+                id: wireNameFixId, label: `Declare JSON wire name '${expected}'` }]
+            : undefined,
         });
       },
     };

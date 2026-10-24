@@ -23,4 +23,4 @@ options:
 linter:
   extends:
     - "@typespec/http/all"
-    - "./emitters/nami-lint/all"
+    - "@ancplua/typespec-nami-lint/all"

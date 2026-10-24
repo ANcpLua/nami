@@ -1,0 +1,34 @@
+{
+  "name": "@ancplua/nami-agent-control",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "tspMain": "lib/main.tsp",
+  "files": [
+    "lib/**/*.tsp",
+    "tspconfig.yaml",
+    "dist/**"
+  ],
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./control": {
+      "types": "./dist/control.d.ts",
+      "import": "./dist/control.js"
+    },
+    "./query": {
+      "types": "./dist/query.d.ts",
+      "import": "./dist/query.js"
+    }
+  },
+  "peerDependencies": {
+    "@typespec/compiler": "1.17.0"
+  },
+  "dependencies": {
+    "@ancplua/typespec-nami-lint": "workspace:*"
+  }
+}

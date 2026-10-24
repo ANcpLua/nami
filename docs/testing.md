@@ -133,3 +133,13 @@ also reject concurrent source or output mutations. Do not bypass a busy lock.
 Tests remain native MSTest/MTP. Fresh TRX is validated by the runner before it records the current
 summary. A zero-test, failed or skipped run cannot pass; filtered runs cannot replace the full gate.
 Build success, inspection findings and analysis validity are distinct facts in every summary.
+
+## Agent control verification
+
+`mise agent -- proof` checks the Lean transition policy. `AgentControlTests` in the existing
+Integration suite verifies the actual filesystem and TypeSpec adapters. The policy is pinned by
+`lean-toolchain`; install that exact toolchain explicitly through elan when absent. The CI job
+installs it before the gate. The user-facing workflow and proof boundary are documented in
+`contracts/agent-control/README.md`. Compiler/assembler/linker tools retain their own semantics;
+the controller coordinates them and never treats a successful state transition as a proof of
+arbitrary generated machine code.

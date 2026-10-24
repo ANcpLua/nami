@@ -51,7 +51,8 @@ def main():
             json.dump(dict(root=root, pid=os.getpid(), token=token, entry=entry), lease)
             lease.flush()
             environment["NAMI_VERIFICATION_TOKEN"] = token
-            clean_workspace(root)
+            if not entry.endswith("/agent.sh"):
+                clean_workspace(root)
             if entry.endswith("/build.sh"):
                 begin(root, "build")
                 from inspect_code import sources
@@ -71,7 +72,8 @@ def main():
                 return 130
             finally:
                 if not inherited:
-                    clean_workspace(root)
+                    if not entry.endswith("/agent.sh"):
+                        clean_workspace(root)
                     summary_path = state_root(root) / "build/current/summary.json"
                     if entry.endswith("/build.sh") and summary_path.is_file():
                         summary = json.loads(summary_path.read_text())

@@ -36,6 +36,9 @@ Keep .agents/skills limited to instructions and source examples, never captured 
 SETUP_FAILED, BUILD_FAILED, ANALYSIS_FAILED and STALE mean no valid clean analysis.
 Build, test and inspection entry points share a checkout lock. Do not bypass it when busy.
 An inspection belongs to its recorded workspace fingerprint, not to another checkout or later edits.
+For supported automatic repairs use mise agent: diagnose/codefixes, plan/tsp-plan, then apply the
+exact plan ID. Plans and backups stay in external current state. Do not substitute suppression
+for a fix. Lean checks transition guards; compiler/runtime checks validate the actual outcome.
 For contracts/TypeScript use ./eng/inspect.sh --target typescript; for isolated MCP client checks
 use --target mcp. These lanes resolve pinned executables via mise.toml, retain compiler/protocol
 diagnostics separately and support the same bounded --results queries. MCP checks cover the

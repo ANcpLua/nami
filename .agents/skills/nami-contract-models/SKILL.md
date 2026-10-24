@@ -223,7 +223,7 @@ declaring them unavailable. Their absence from that XML is observed; its cause i
 ## TypeSpec lint and runtime validators
 
 Nami already has TypeSpec lint: `/Users/alexandernachtmann/RiderProjects/nami/contracts/tspconfig.yaml`
-extends `@typespec/http/all` and `./emitters/nami-lint/all`. The local library at
+extends `@typespec/http/all` and `@ancplua/typespec-nami-lint/all`. The local library at
 `/Users/alexandernachtmann/RiderProjects/nami/contracts/emitters/nami-lint/src/index.ts` enables
 `wire-name-snake-case`, `http-param-snake-case`, `identity-binding`, `identity-edge-typed` and
 `confusable-identity-documented`. The 1.17.0 compiler runs lint even with `noEmit`, as implemented
@@ -344,3 +344,17 @@ On the second occurrence of the same mistake, update the matching case above wit
 symptom, cause if established, prerequisites, applied fix, source version and observable
 result. Preserve the intended semantics while iterating. Do not record a speculative workaround
 as a proven solution or create another contradictory checklist for the same case.
+
+## Controlled repair entry
+
+`contracts/agent-control` is the private developer control library. Use `mise agent -- codefixes`
+to inspect offered native fixes, `tsp-plan` to resolve a supported fix without writing, and
+`apply PLAN_ID` to execute it through the checked transition policy. Artifact cleanup uses
+`plan` and the same explicit apply step. Read `contracts/agent-control/README.md` for the
+current commands and ownership bounds. Suppression is not an executable fix.
+
+Lean 4.34.1 checks the guard implications in `eng/agent-policy/Policy.lean`; the CLI executes
+that same transition function. This does not prove arbitrary program semantics or the filesystem.
+Native TypeSpec compilation and post-write fingerprints check the actual result. Type info uses
+the library's opt-in `$provideTypeInfo` and stays read-only. Never treat stored plans or previous
+successful checks as proof for changed sources.

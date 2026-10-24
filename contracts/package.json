@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "build:emitters": "tsc -p emitters/csharp && tsc -p emitters/ts-types && tsc -p emitters/nami-lint",
+    "build:emitters": "tsc -p emitters/csharp && tsc -p emitters/ts-types && tsc -p emitters/nami-lint && tsc -p agent-control",
     "compile": "node --test scripts/lib/*.test.mjs && node scripts/clean-generated.mjs && bun run build:emitters && tsp compile main.tsp --warn-as-error && node scripts/emit-schemas.mjs && node scripts/emit-contract-revision.mjs",
     "build": "bun run compile",
     "format": "tsp format **/*.tsp",
@@ -20,6 +20,12 @@
     "@typespec/json-schema": "1.17.0",
     "@typespec/openapi": "1.17.0",
     "@typespec/openapi3": "1.17.0",
-    "typescript": "7.1.0-beta"
-  }
+    "typescript": "7.1.0-beta",
+    "@ancplua/nami-agent-control": "workspace:*",
+    "@ancplua/typespec-nami-lint": "workspace:*"
+  },
+  "workspaces": [
+    "agent-control",
+    "emitters/nami-lint"
+  ]
 }

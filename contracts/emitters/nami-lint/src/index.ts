@@ -35,3 +35,4 @@ export const $linter = defineLinter({
 });
 
 export * from "./policy.js";
+export { wireNameFixId } from "./rules/wire-name-snake-case.js";

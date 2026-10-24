@@ -2,6 +2,20 @@
 
 The product requirements are `docs/prd/nami.md`; `docs/checklist.md` owns implementation scope.
 
+## 2026-10-24: checked agent fix transactions
+
+The private `contracts/agent-control` package supplies stable TypeSpec diagnostics, read-only
+type information and CLI fix planning. `eng/agent.sh` shares the checkout lock but does not run
+implicit cleanup: diagnosing and planning must be observational. Artifact ownership is reused
+from `diagnostics.py`; native TypeSpec edits are restricted to the named wire-name codefix.
+Loading the Nami linter as a workspace package replaces checkout-dependent diagnostic prefixes
+with its library identity. Suppression is not an executable repair.
+
+Lean 4.34.1 checks the transition definition and the CLI invokes that same definition. Theorems
+cover guard/validation requirements, not source-level correctness or operating-system behavior.
+Node/TypeSpec effects are checked by real integration tests and conditional rollback. Plans and
+backups use external current state. The pinned CI installer checks its download hash before use.
+
 ## 2026-10-24: current diagnostic state outside the instruction workspace
 
 The prior per-run workspace archives are superseded. `mise diagnostics` is the single discovery

@@ -25,3 +25,9 @@ run = "./eng/build.sh Publish --Configuration Release"
 [settings]
 exec_auto_install = false
 task.run_auto_install = false
+
+[tasks.agent]
+run = "bash ./eng/agent.sh"
+
+[tasks."agent:proof"]
+run = "bash ./eng/agent.sh proof"

@@ -5,6 +5,8 @@
     "": {
       "name": "nami-contracts",
       "devDependencies": {
+        "@ancplua/nami-agent-control": "workspace:*",
+        "@ancplua/typespec-nami-lint": "workspace:*",
         "@types/node": "26.6.5",
         "@typespec/compiler": "1.17.0",
         "@typespec/http": "1.17.0",
@@ -14,8 +16,26 @@
         "typescript": "7.1.0-beta",
       },
     },
+    "agent-control": {
+      "name": "@ancplua/nami-agent-control",
+      "version": "0.1.0",
+      "dependencies": {
+        "@ancplua/typespec-nami-lint": "workspace:*",
+      },
+      "peerDependencies": {
+        "@typespec/compiler": "1.17.0",
+      },
+    },
+    "emitters/nami-lint": {
+      "name": "@ancplua/typespec-nami-lint",
+      "version": "0.1.0",
+    },
   },
   "packages": {
+    "@ancplua/nami-agent-control": ["@ancplua/nami-agent-control@workspace:agent-control"],
+
+    "@ancplua/typespec-nami-lint": ["@ancplua/typespec-nami-lint@workspace:emitters/nami-lint"],
+
     "@babel/code-frame": ["@babel/code-frame@8.0.6", "", { "dependencies": { "@babel/helper-validator-identifier": "^8.0.6", "js-tokens": "^10.0.0" } }, "sha512-uMHhvmDmwFiLuiozaoRYTZHqMFuu3fem/X9JY78lohAuLoh8LSGGC8JqUzo2cVuBsBxkjMZNk56CE7ock8Xxkw=="],
 
     "@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@8.0.6", "", {}, "sha512-HYx0YmuchRxRSpnjvcNffnPS8DCauKNmnumIuHG3jnQAVewRA7kfJGwF13ayEpSZs7s4R/oBH4eppuXcAQd5JQ=="],
