@@ -2,6 +2,21 @@
 
 The product requirements are `docs/prd/nami.md`; `docs/checklist.md` owns implementation scope.
 
+## 2026-10-24: TypeScript 7.1 Beta
+
+Both contract emitters and the MCP host now pin `typescript` to `7.1.0-beta`, with matching
+Bun lockfiles. The installed compiler resolves to the native ARM64 package and reports
+`Version 7.1.0-beta`; its embedded revision matches package gitHead
+`3e9236361fa97a9e6c685f4833ac457ae2d8c50a`. Compiler API exports now use `typescript/sync`
+and related paths instead of `typescript/unstable/*`. The current Nami build uses the CLI,
+so no compiler API imports needed changing.
+
+The shared entry-point CPU budget now also sets `GOMAXPROCS`. Contract generation and MCP
+build passed with the beta; generated schemas and wire revision are unchanged. The complete
+Release gate passed on the isolated upgrade: 26 Unit, 142 Integration and 38 EndToEnd cases
+(206 passed, zero failed/skipped), plus NativeAOT publish, registry and contract parity. The
+existing DuckDB IL2104/IL3053 and Apple toolchain diagnostics remain. No new test cases were added.
+
 ## 2026-10-24: local compiler sources and persistent model knowledge
 
 Preview/beta/RC/dev/nightly and experimental features are explicitly authorized when they serve
@@ -13,7 +28,7 @@ local Codex skill link. AGENTS.md routes model/compiler work to it.
 Local execution confirmed version-mutator snapshots, preservation of the original namespace,
 the installed three-argument `resolveEncodedName` signature, and the actual generic JSON metadata
 methods in .NET 11 RC2. These observations do not claim production multi-version support. Nami
-remains on TypeSpec 1.17.0 and native TypeScript 7.0.2 until a concrete integration changes the pins.
+uses TypeSpec 1.17.0; the subsequent compiler upgrade pins native TypeScript 7.1.0-beta.
 The user-mentioned TypeSpec/TypeScript-Go clone paths were not found in the inspected local
 locations and were requested; no replacement clone, online lookup or speculative upgrade was made.
 The previously downloaded TypeSpec preview packages were retained at a permanent local source path.

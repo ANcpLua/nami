@@ -39,7 +39,7 @@ Baseline recorded on 2026-10-24; Nami source commit
 | Absolute path | Source state and relevant content |
 | --- | --- |
 | `/Users/alexandernachtmann/RiderProjects/nami/global.json` | SDK `11.0.100-rc.2.26504.105`; inspect SDK and MSBuild pins here. |
-| `/Users/alexandernachtmann/RiderProjects/nami/contracts/package.json` | Active TypeSpec compiler/HTTP/OpenAPI/JSON-Schema `1.17.0`, TypeScript `7.0.2`; the permission to use newer releases does not change these pins. |
+| `/Users/alexandernachtmann/RiderProjects/nami/contracts/package.json` | Active TypeSpec compiler/HTTP/OpenAPI/JSON-Schema `1.17.0`, TypeScript `7.1.0-beta`; the beta is now explicitly pinned in both package manifests. |
 | `/Users/alexandernachtmann/RiderProjects/nami/contracts/node_modules/@typespec/compiler/dist/src/lib/encoded-names.d.ts` | Compiler `1.17.0`, `resolveEncodedName`, lines 31–33. The installed signature includes `program`. |
 | `/Users/alexandernachtmann/RiderProjects/nami/contracts/node_modules/@typespec/compiler/dist/src/core/features.js` | Compiler `1.17.0`, `compilerFeatures` and `isCompilerFeatureEnabled`; feature ownership follows the declaring project/library. |
 | `/Users/alexandernachtmann/RiderProjects/nami/contracts/node_modules/@typespec/compiler/dist/src/config/config-schema.js` | Compiler `1.17.0`, `kind`/`features` configuration keys. |
@@ -49,9 +49,9 @@ Baseline recorded on 2026-10-24; Nami source commit
 | `/Users/alexandernachtmann/.local/share/nami/sources/typespec-preview-1.18.0-dev.8/node_modules/@typespec/versioning/dist/src/mutator.d.ts` | Locally cached versioning `0.88.0-dev.2`; `VersionedMutators`, `TransientVersioningMutator`, `getVersioningMutators`. |
 | `/Users/alexandernachtmann/.local/share/nami/sources/typespec-preview-1.18.0-dev.8/node_modules/@typespec/versioning/dist/src/mutator.js` | Same release, `createVersionMutator`: rename, availability, property type and optionality are applied to clones. |
 | `/Users/alexandernachtmann/.local/share/nami/sources/typespec-preview-1.18.0-dev.8/node_modules/@typespec/json-schema/dist/src/json-schema-emitter.js` | JSON-Schema `1.18.0-dev.1`; the inspected preview still builds required names from `prop.name`; upgrading alone does not fix the encoded-name mismatch. |
-| `/Users/alexandernachtmann/RiderProjects/nami/contracts/node_modules/typescript/package.json` | Native compiler package `7.0.2`, gitHead `2bd066d87f5bafd315be9f40889d0a60b9e58e0b`; actual installed version, not 7.1 Beta. |
+| `/Users/alexandernachtmann/RiderProjects/nami/contracts/node_modules/typescript/package.json` | Native compiler package `7.1.0-beta`, gitHead `3e9236361fa97a9e6c685f4833ac457ae2d8c50a`; upgraded from `7.0.2` on 2026-10-24. |
 | `/Users/alexandernachtmann/RiderProjects/nami/contracts/node_modules/typescript/lib/getExePath.js` | Same commit, `getExePath`; resolves the platform native binary. A source checkout instead uses `built/local/tsgo`. |
-| `/Users/alexandernachtmann/RiderProjects/nami/contracts/node_modules/typescript/dist/api/sync/api.d.ts` | Same commit, installed unstable synchronous compiler API. Read its actual declarations before using it; do not assume the old JS compiler API. |
+| `/Users/alexandernachtmann/RiderProjects/nami/contracts/node_modules/typescript/dist/api/sync/api.d.ts` | Same commit, synchronous compiler API published as `typescript/sync`. Read its actual declarations before using it; do not assume the old JS compiler API. |
 | `/Users/alexandernachtmann/RiderProjects/nami/contracts/emitters/ts-types/src/index.ts` | Nami baseline, `renderInterface` and both model/JSON outputs. |
 | `/Users/alexandernachtmann/RiderProjects/nami/contracts/emitters/ts-types/src/serialization.ts` | Nami baseline, `renderSerialization`; recursive generated codecs. |
 | `/Users/alexandernachtmann/RiderProjects/nami/contracts/emitters/csharp/src/emitter.ts` | Nami baseline, property emission around lines 340–362 and typed JSON metadata generation around line 124. |
@@ -61,10 +61,41 @@ Baseline recorded on 2026-10-24; Nami source commit
 | `/Users/alexandernachtmann/RiderProjects/csharp-union-types/SKILL.md` | Separate skill repository HEAD `8cc7b770168a484780080e00b284dcdfa287291c`, with additional pre-existing working changes; use for C# 15 union semantics. |
 
 The package snapshots are release artifacts, not Git clones. No TypeSpec/TypeScript-Go
-upstream clone or TypeScript 7.1 Beta was found in the inspected local locations. The user
+upstream clone was found in the inspected local locations. TypeScript 7.1 Beta is now installed
+from its pinned release package. The user
 has been asked for the clone paths. Do not invent a clone path or substitute a web source.
 When supplied, replace this missing-source note with the exact checkout HEAD and relevant
 source files; retain active project package versions separately.
+
+## Applied upgrade: native TypeScript 7.1 Beta
+
+Both `/Users/alexandernachtmann/RiderProjects/nami/contracts/package.json` and
+`/Users/alexandernachtmann/RiderProjects/nami/src/nami.mcp/package.json` pin
+`typescript: "7.1.0-beta"`; their own `bun.lock` files include matching platform packages.
+Use the exact release, not a floating `beta` tag. Run the installed `tsc --version` in
+both packages and resolve `getExePath()` before claiming which compiler ran.
+
+The actual executable is
+`/Users/alexandernachtmann/RiderProjects/nami/contracts/node_modules/@typescript/typescript-darwin-arm64/lib/tsc`.
+It reports `Version 7.1.0-beta`, is a Mach-O ARM64 executable, and embeds
+`microsoft_toolset_version=go1.27.2-2-microsoft` and
+`vcs.revision=3e9236361fa97a9e6c685f4833ac457ae2d8c50a`.
+The MCP package resolves the matching native package under its own node_modules.
+
+**Observed API change:** 7.0.2 exported `typescript/unstable/sync` and corresponding
+`unstable/*` paths. The 7.1.0-beta package exports `typescript/sync`, `typescript/async`,
+`typescript/fs`, `typescript/path`, `typescript/proto` and `typescript/ast/*`. Inspect its
+`package.json` and the referenced `.d.ts` files; removing `unstable` from a path is not a
+promise that all beta APIs are stable. Nami's emitters use the CLI and needed no API-import
+migration. The root `typescript` export still points to version metadata, not the old JS API.
+
+`/Users/alexandernachtmann/RiderProjects/nami/eng/scripts/limits.sh` sets `GOMAXPROCS` from
+`NAMI_BUILD_WORKERS`, alongside `DOTNET_PROCESSOR_COUNT`, so native compiler work inherits the
+same concurrency budget. Generation, MCP build and the full Release gate passed with
+`7.1.0-beta`: 26 Unit + 142 Integration + 38 EndToEnd = 206 cases, no failures/skips.
+The generated schemas/revision stayed unchanged; existing DuckDB/Apple publish diagnostics remain.
+For command logs, use absolute destinations: the packages have different working-directory
+depths, and a mistaken relative log path previously failed before package installation began.
 
 ## Applied fix: code names are not JSON names
 

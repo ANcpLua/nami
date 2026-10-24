@@ -19,6 +19,6 @@
     "@typespec/json-schema": "1.17.0",
     "@typespec/openapi": "1.17.0",
     "@typespec/openapi3": "1.17.0",
-    "typescript": "7.0.2"
+    "typescript": "7.1.0-beta"
   }
 }
