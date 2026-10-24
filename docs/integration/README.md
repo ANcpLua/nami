@@ -2,6 +2,21 @@
 
 The product requirements are `docs/prd/nami.md`; `docs/checklist.md` owns implementation scope.
 
+## 2026-10-24: reproducible TypeScript and MCP validation
+
+`eng/inspect.sh --target typescript` owns frozen dependency restore, exact native-compiler
+selection, contract-generation parity and the TypeScript MCP build. `--target mcp` adds a
+published NativeAOT engine and an isolated `mcpdo` 2.11.0 client. The existing default target
+continues to use the pinned .NET InspectCode workflow.
+
+The agent lanes record exact tool versions/paths/hashes, direct package versions, source and
+output fingerprints, command exit codes and bounded queryable findings. Source fingerprints
+include ignored TypeScript inputs under compilation roots. Prepared builds are reused only
+when those identities still match. Native build diagnostics, compiler/schema findings and MCP
+protocol findings stay separate. The MCP matrix covers stdio and HTTP, modern and legacy
+negotiation, generated tool catalogs and a structured read response; hosted OAuth, actual
+connector deployment and complete protocol conformance remain outside this local check.
+
 ## 2026-10-24: repository-local C# union skill
 
 The [C# union skill](../../.agents/skills/csharp-union-types/SKILL.md) is installed locally from

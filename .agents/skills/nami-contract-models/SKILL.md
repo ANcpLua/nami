@@ -222,6 +222,51 @@ declaring them unavailable. Their absence from that XML is observed; its cause i
 
 ## Validation and learning loop
 
+The reproducible entry point also owns the TypeScript and MCP lanes:
+
+```bash
+/Users/alexandernachtmann/RiderProjects/nami/eng/inspect.sh --target typescript
+/Users/alexandernachtmann/RiderProjects/nami/eng/inspect.sh --target mcp
+```
+
+Read `/Users/alexandernachtmann/RiderProjects/nami/.config/agent-tools.json` for the exact
+Bun/Node/mcpdo pins. The mcpdo source is
+`/opt/homebrew/lib/node_modules/@modelcontextprotocol/inspector/clients/mcpdo/build/mcp-bin.js`
+and its shared implementation is
+`/opt/homebrew/lib/node_modules/@modelcontextprotocol/inspector/clients/mcpdo/build/chunk-O6RN6WMD.js`,
+package release `2.11.0`. Local CLI help and the executed stdio/HTTP probes establish the flags.
+
+The applied integration uses `mcpdo private` and propagates only its
+`MCP_INSPECTOR_DAEMON_DIR`/`MCP_INSPECTOR_DAEMON_TOKEN` exports in memory. It uses a generated,
+read-only `--config` and explicit connection names, `--stored-auth-only`, and `--elicit off`.
+Never eval the exports, log the token, inspect personal catalogs or stop a shared user daemon.
+Check `pendingAuth` and the negotiated connection details; exit 0 alone is not readiness.
+
+Observed CLI/config distinction: combining `--config` with `--catalog` produced
+`--catalog and --config are mutually exclusive`. The applied fix uses only `--config`.
+An HTTP config with `transport: "http"` was treated as stdio and failed with
+`The "file" argument must be of type string. Received undefined`. The working file form is
+`{ "type": "streamable-http", "url": "http://127.0.0.1:PORT/mcp" }`; `http` is the CLI flag
+spelling, not the config discriminator. The file form is verified for modern and legacy peers.
+
+For wrappers running macOS Bash with `set -u`, an empty `arguments` array caused
+`arguments[@]: unbound variable`. `/Users/alexandernachtmann/RiderProjects/nami/eng/inspect.sh`
+uses the already established guarded expansion `${arguments[@]+"${arguments[@]}"}`.
+
+Validation of a failing TypeSpec compile must preserve generated files. Nami's compile script
+runs `clean-generated.mjs` before compilation; a compiler failure otherwise leaves outputs
+deleted. The applied inspection runner snapshots the generated directories, retains before/
+after manifests and candidate output as evidence, and restores the original bytes in `finally`.
+A local invalid-reference probe verified both the compiler diagnostic and byte-identical restoration.
+Record per-file hashes when diagnosing generation drift: an earlier aggregate mismatch could not
+be attributed after the fact because its initial file manifest had not been retained.
+
+`/Users/alexandernachtmann/RiderProjects/nami/eng/scripts/inspect_agent.py` owns preparation,
+tool/source/output fingerprints, deadlines, cleanup and bounded reports.
+`/Users/alexandernachtmann/RiderProjects/nami/eng/scripts/mcp_evidence.mjs` compares client-observed
+schemas and result frames to generated models. These checks do not establish complete protocol
+conformance or hosted connector authentication. Read the summary's explicit coverage/exclusions.
+
 Use `/Users/alexandernachtmann/RiderProjects/nami/eng/build.sh Contracts` for regeneration,
 the package's `check` script for TypeScript, and the repository's Release gate before a push.
 Follow the current `/Users/alexandernachtmann/RiderProjects/nami/AGENTS.md` for inspection,

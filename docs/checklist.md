@@ -100,6 +100,8 @@ C# call sites; other languages require their appropriate instrumentation path.
 
 ## 6. Verification and release
 
+- [x] Provide pinned, fingerprinted TypeScript/contract and isolated mcpdo inspection lanes;
+      keep compiler, schema and protocol findings separate and report the actual probe scope.
 - [x] Keep the existing G/R/S/T baseline cases while adapting them to the two-process stack;
       all 188 existing cases pass. This does not prove the newly specified I/D catalog.
 - [ ] Add every method named in PRD I1–I18 and D1–D6 to the appropriate proof suite; data-drive model

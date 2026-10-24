@@ -123,3 +123,43 @@ Build diagnostics are printed even on a successful command. `PASS WITH DIAGNOSTI
 process result while making compiler, linker and tool messages visible. The quiet build also
 streams warnings, test counts and the active-test status while the gate is running. Unique binary logs under
 `artifacts/binlogs` retain the build graph and import evidence.
+# TypeScript/contracts and MCP inspection
+
+These are separate from the MSTest suites and the default .NET InspectCode lane:
+
+```bash
+./eng/inspect.sh --target typescript
+./eng/inspect.sh --target mcp
+./eng/inspect.sh --target mcp --no-build --transport stdio --era modern
+```
+
+The TypeScript lane restores frozen lockfiles, checks the native compiler selected by each
+package, regenerates contracts and refuses changed generated artifacts, then builds the MCP
+bundle. It preserves TypeScript 7.1.0-beta and the TypeSpec version in the package manifests.
+The MCP lane additionally publishes the native engine and uses pinned `mcpdo` 2.11.0 against
+fresh local state. By default it covers stdio and HTTP in modern and legacy modes, checks all
+six advertised tool schemas/descriptions/annotations against generated data, and validates a
+`sources_status` read result and its contract revision. It does not claim hosted authentication,
+all tool business behavior, or complete MCP conformance; existing E2E suites own those business checks.
+
+`.config/agent-tools.json` pins Bun, Node and mcpdo. Install that exact inspector package when
+mcpdo is missing: `npm install --global @modelcontextprotocol/inspector@2.11.0`. A mismatched
+tool returns `SETUP_FAILED`; no unpinned fallback is used. `MCPDO_PATH` can identify the installed
+JavaScript CLI entry explicitly. The runner creates a private daemon and read-only connection
+config, never reads personal catalogs, and tears down its own connections and HTTP host.
+
+`--no-build` requires preparation by the same target/configuration with unchanged inputs,
+tool identities and outputs. Ignored TypeScript inputs inside the source roots are fingerprinted
+too. Each run writes `summary.json`, `findings.jsonl`, per-command logs/exit codes and generated
+artifact manifests under `artifacts/inspection/agent/run.*`. Compiler, schema and protocol
+findings have distinct lanes; native build warnings remain in `buildDiagnostics`.
+
+```bash
+./eng/inspect.sh --target mcp --results artifacts/inspection/agent/run.EXAMPLE --limit 10
+./eng/inspect.sh --target typescript --results artifacts/inspection/agent/run.EXAMPLE --rule TS2322
+```
+
+Use the actual run path printed by the entry point. Queries reject changed source/output
+fingerprints as `STALE`. Exit 0 is a completed clean lane, 1 is findings, 2 is setup/build/analysis/
+protocol failure or stale evidence, and 130 is cancellation. A successful compile is not a
+successful protocol check. Pending authorization/elicitation is never counted as a connection.
