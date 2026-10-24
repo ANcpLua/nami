@@ -51,8 +51,7 @@ sealed class Build : FalloutBuild, IHasConfiguration
         .DependsOn(Compile)
         .Executes(() => Run("bash", $"eng/test.sh --suite Integration --configuration {Configuration} --no-build --filter FullyQualifiedName~BuildDiagnosticsTests"));
     public Target InspectCode => d => d.Description("Inspect the entire solution and reject findings or incomplete analysis")
-        .DependsOn(Compile)
-        .Executes(() => Run("bash", $"eng/inspect.sh --configuration {Configuration} --no-build"));
+        .Executes(() => Run("bash", $"eng/inspect.sh --configuration {Configuration}"));
     public Target Test => d => d.Description("Run the .NET verification suite")
         .DependsOn(Compile).DependsOn(PublishNative)
         .Executes(() => Run("bash", $"eng/test.sh --configuration {Configuration} --no-build --no-restore"));

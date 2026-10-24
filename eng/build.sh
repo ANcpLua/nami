@@ -5,6 +5,10 @@ SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
 cd "$SCRIPT_DIR/.."
 # shellcheck source=eng/scripts/limits.sh
 source "$SCRIPT_DIR/scripts/limits.sh"
+if [[ ${NAMI_LOCKED_ENTRY:-} != "$SCRIPT_DIR/build.sh" ]]; then
+    exec python3 "$SCRIPT_DIR/scripts/workspace_lock.py" "$PWD" "$SCRIPT_DIR/build.sh" "$@"
+fi
+unset NAMI_LOCKED_ENTRY
 
 if [[ $(uname -s) == Darwin && -x /usr/local/share/dotnet/dotnet ]]; then
     export PATH="/usr/local/share/dotnet:$PATH"

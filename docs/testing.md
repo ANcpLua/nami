@@ -11,8 +11,9 @@ root as shown below. The scripts resolve `nami.slnx`, the SDK in `global.json`, 
 | `./eng/test.sh` | Build once, prepare the native host, then run Unit → Integration → EndToEnd. |
 | `./eng/test.sh --status artifacts/test-results/run.…` | Show which test is still running, using the MTP diagnostic events. |
 | `./eng/build.sh Check --Configuration Release` | Required push gate: contracts, registry, all suites and the native host proof. |
-| `./eng/inspect.sh` | Full solution analysis; fresh SARIF and tool log, with findings reflected in the exit status. |
-| `./eng/inspect.sh --no-build --project Nami.UnitTests` | Focused analysis after a matching build; it does not prove the whole solution is clean. |
+| `./eng/inspect.sh` | Build and inspect the full solution; bounded findings and a recorded workspace fingerprint. |
+| `./eng/inspect.sh --project nami.collector.storage` | Inspect one project with the full solution reference graph. |
+| `./eng/inspect.sh --file src/nami.collector.ingestion/OtlpConverter.MetricIdentity.cs` | Report findings for one file; build and reference context remain solution-wide. |
 
 Only MSTest 4.5.1 and native Microsoft.Testing.Platform are used. `tests/Nami.Tests` is a support
 library, not a fourth test application. `Nami.UnitTests`, `Nami.IntegrationTests` and
@@ -76,12 +77,47 @@ run is recorded as filtered and never substitutes for the complete gate.
 The restore-state checks and distinct exit codes follow the
 [MTP troubleshooting guidance](https://learn.microsoft.com/en-us/dotnet/core/testing/microsoft-testing-platform-troubleshooting).
 
-Inspection writes fresh results under `artifacts/inspection/run.*`. With a successful tool process,
-exit 0 means no findings, 1 means findings, and 2 means incomplete/invalid analysis; a failing tool
-or build retains its own code. The tool log is checked for loader and generator failures as well
-as the SARIF invocation status. Generated outputs, package sources, DLLs and build directories are
-excluded from findings. They can still be loaded to resolve symbols and run source generators;
-an `Analyzing ...g.cs` line alone does not mean the file is included twice in compilation.
+Inspection has one supported entry point: `./eng/inspect.sh`. Agents must not call a global `jb`,
+pass a `.csproj` directly to InspectCode, or interpret raw SARIF themselves. The repository-local
+`.config/dotnet-tools.json` pins JetBrains; `global.json` pins the required SDK. The wrapper restores
+and invokes that local tool, checks the selected SDK exactly, ignores personal IDE inspection
+settings, and always supplies `nami.slnx`. The JetBrains host runtime and the application SDK are
+separate components; the recorded SDK controls compilation.
+
+A normal run builds the solution in Release with two workers and passes `--jobs=2` to InspectCode.
+`--configuration Debug` is explicit.
+`--no-build` only accepts a successful build previously prepared by this wrapper with identical
+source files, toolchain, configuration and build outputs. A stale or missing preparation fails with
+an actionable message. It does not infer success from old DLLs or SARIF files. A common checkout
+lock serializes `eng/build.sh`, `eng/test.sh` and `eng/inspect.sh`, including nested gate commands;
+`eng/test.sh --status ...` remains available while tests run. Direct IDE/external commands do not
+participate in this lock. Source and output hashes before/after inspection detect concurrent edits
+or external builds; such a run is invalid, even if InspectCode reported success.
+
+Each inspection prints at most 20 findings by default, with rule, file, line, column and message.
+`--limit` accepts 1–200. `--project NAME` selects an exact solution project; `--file PATH` selects a
+file or directory and can be repeated. Only a complete solution scope supports a solution-wide
+claim. `--rule ID` and `--level warning` filter the displayed findings, not the recorded scope or
+exit status. Never describe zero displayed matches as a clean solution.
+
+Use the run path printed by the command to ask follow-up questions without rerunning InspectCode:
+
+```bash
+./eng/inspect.sh --results artifacts/inspection/run.ABC123 --rule UnusedMember.Global --limit 10
+./eng/inspect.sh --results artifacts/inspection/run.ABC123 --offset 20
+```
+
+`ABC123` above stands for the exact run directory printed by your invocation. Replaying a run after
+source changes prints `STALE` and exits 2. No implicit “latest report” is used. Each run contains a
+compact `summary.json` (context, source hash, status, totals and failures), `findings.jsonl`
+(normalized findings), the exact `command.json`, and raw logs/SARIF for debugging the wrapper.
+Normal agent work consumes the bounded CLI response and summary, not the raw files.
+
+Exit 0 means a valid clean scoped analysis; 1 means valid findings; 2 means invalid setup, stale
+state or incomplete analysis. Nonzero build/tool exit codes are preserved. Read the named status
+alongside the code: `SETUP_FAILED`, `BUILD_FAILED`, `ANALYSIS_FAILED` and `STALE` are never clean.
+Missing references, Roslyn/generator load failures, compiler errors, missing reports and failed
+SARIF invocations invalidate a result even when the tool process exits 0.
 
 Build diagnostics are printed even on a successful command. `PASS WITH DIAGNOSTICS` preserves the
 process result while making compiler, linker and tool messages visible. The quiet build also

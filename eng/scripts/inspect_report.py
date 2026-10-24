@@ -21,7 +21,7 @@ def location(result, artifacts):
     return f"{path}:{region.get('startLine', 1)}:{region.get('startColumn', 1)}"
 
 
-def summarize(report_path, log_path, process_exit, output):
+def collect(report_path, log_path, process_exit):
     problems = []
     findings = []
     try:
@@ -31,7 +31,8 @@ def summarize(report_path, log_path, process_exit, output):
         problems.append(f"Cannot read tool log: {error}")
     plain = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", log)
     for line in plain.splitlines():
-        if re.match(r"(?:Roslyn error\b|Warning: Roslyn Source Generator error\b|Error:|ERROR\b)", line):
+        if (re.match(r"(?:Roslyn error\b|Warning: Roslyn Source Generator error\b|Error:|ERROR\b)", line)
+                or re.search(r"(?:Unable to resolve reference|Referenced project .+ not found|\[MsBuild\].*\b(?:CS|MSB|NETSDK)\d+:)", line)):
             problems.append(" ".join(line.split())[:350])
     try:
         document = json.loads(report_path.read_text(encoding="utf-8-sig"))
@@ -66,6 +67,11 @@ def summarize(report_path, log_path, process_exit, output):
     except (OSError, ValueError, TypeError, KeyError, IndexError, AttributeError) as error:
         problems.append(f"Invalid or missing report: {error}")
 
+    return findings, list(dict.fromkeys(problems))
+
+
+def summarize(report_path, log_path, process_exit, output):
+    findings, problems = collect(report_path, log_path, process_exit)
     levels = Counter(finding[0] for finding in findings)
     groups = Counter((finding[0], finding[1]) for finding in findings)
     examples = {(finding[0], finding[1]): finding for finding in reversed(findings)}

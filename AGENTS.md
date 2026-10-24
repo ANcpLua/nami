@@ -25,7 +25,15 @@ Nami.Tests is shared support; the three executable suites own separate testconfi
 Never ignore MTP exit codes, count an empty/skipped run as success, or add a custom test Main.
 Entry points limit builds/tool CPU parallelism to two; test suites use two workers and one module at a time.
 Do not overlap full IDE analysis, InspectCode and the full gate on the development laptop.
-Inspect code with ./eng/inspect.sh; --project NAME --no-build narrows a prepared working run.
+Inspect code ONLY with ./eng/inspect.sh. Never invoke global jb/InspectCode directly or pass
+a .csproj as its solution. Use --project NAME or --file PATH to ask a scoped question;
+the wrapper always loads nami.slnx, pins the SDK/tool and builds the full reference graph.
+Read its bounded stdout and summary.json; do not infer results by opening raw SARIF.
+Use --results RUN --rule ID/--level warning/--offset N to query more findings through the same entry point.
+--no-build requires an unchanged build prepared by this wrapper; it refuses stale inputs/outputs.
+SETUP_FAILED, BUILD_FAILED, ANALYSIS_FAILED and STALE mean no valid clean analysis.
+Build, test and inspection entry points share a checkout lock. Do not bypass it when busy.
+An inspection belongs to its recorded workspace fingerprint, not to another checkout or later edits.
 Only a full solution inspection supports a solution-wide claim; report findings separately from build/test success.
 Generate contracts: ./eng/build.sh Contracts. Generate conventions: bash registry/generate.sh.
 Publish NativeAOT: ./eng/build.sh Publish --Configuration Release.

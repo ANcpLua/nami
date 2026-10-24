@@ -43,7 +43,7 @@ internal static partial class OtlpConverter
             case AnyValue.ValueOneofCase.KvlistValue:
                 return new AnyValue { KvlistValue = CanonicalAttributes(value.KvlistValue.Values) };
             case AnyValue.ValueOneofCase.ArrayValue:
-                var array = new ArrayValue();
+                var array = new OpenTelemetry.Proto.Common.V1.ArrayValue();
                 array.Values.Add(value.ArrayValue.Values.Select(CanonicalIdentityValue));
                 return new AnyValue { ArrayValue = array };
             default: return new AnyValue();

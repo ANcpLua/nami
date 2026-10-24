@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "jetbrains.resharper.globaltools": {
+      "version": "2026.3.0-eap07",
+      "commands": ["jb"]
+    }
+  }
+}

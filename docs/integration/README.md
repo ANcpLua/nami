@@ -2,6 +2,23 @@
 
 The product requirements are `docs/prd/nami.md`; `docs/checklist.md` owns implementation scope.
 
+## 2026-10-24: reproducible agent inspection
+
+`eng/inspect.sh` owns inspection setup, build context, scope and result interpretation. JetBrains
+is pinned as a local tool; the selected SDK must equal `global.json`. Every scope retains the full
+solution graph. The default response is bounded and follow-up queries use normalized run artifacts
+through the same command. Raw SARIF is wrapper input, not an agent reasoning requirement.
+
+Prepared builds and recorded results carry source fingerprints; reuse rejects changed sources,
+toolchains or outputs. Concurrent build/test/inspect commands share a checkout lock, and inspection
+rejects edits or external output changes during a run. This cannot prevent manual IDE actions,
+but those actions cannot silently produce a valid “clean” result after detected drift. Personal
+IDE settings are excluded from the command-line inspection context.
+
+The reported `ArrayValue` errors were a separate source mismatch: metric identity requires the
+OTLP protobuf array, not the Nami contract case. That call site now names the protobuf type
+explicitly. Inspector host runtime version and the .NET application SDK remain distinct facts.
+
 ## 2026-10-24: implemented TypeScript boundary and cleanup
 
 TypeScript MCP now owns the six generated tools and supervises the native engine through private

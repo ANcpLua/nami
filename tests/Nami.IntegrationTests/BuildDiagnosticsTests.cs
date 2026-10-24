@@ -132,37 +132,15 @@ public sealed class BuildDiagnosticsTests(TestContext context)
     [TestMethod]
     public async Task InspectWrapper_ForeignDirectory_DoesNotReusePreviousReport()
     {
-        var dotnet = Path.Combine(Temporary, "dotnet");
-        var jb = Path.Combine(Temporary, "jb");
-        await File.WriteAllTextAsync(dotnet, "#!/bin/sh\nprintf '%s\\n' '11.0.100-test'\n", context.CancellationToken);
-        await File.WriteAllTextAsync(jb, $$"""
-        #!/usr/bin/env python3
-        import os, sys
-        from pathlib import Path
-        if os.environ.get('TEST_OMIT_REPORT') != '1':
-            Path(next(arg.split('=', 1)[1] for arg in sys.argv if arg.startswith('--output='))).write_text('''{{ValidReport}}''')
-        """, context.CancellationToken);
-        if (!OperatingSystem.IsWindows())
-        {
-            File.SetUnixFileMode(dotnet, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-            File.SetUnixFileMode(jb, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        }
-        var environment = new Dictionary<string, string?>
-        {
-            ["DOTNET_EXE"] = dotnet,
-            ["PATH"] = Temporary + Path.PathSeparator + Environment.GetEnvironmentVariable("PATH"),
-            ["TEST_OMIT_REPORT"] = "0"
-        };
-        var script = Path.Combine(ProcessRunner.RepositoryRoot, "eng/inspect.sh");
-        var first = await ProcessRunner.RunAsync("bash", [script, "--no-build"], Temporary, context.CancellationToken, environment);
+        var fixture = await InspectionFixture.CreateAsync(context);
+        var first = await fixture.RunAsync([]);
         Assert.AreEqual(0, first.ExitCode, first.Output + first.Error);
-        Assert.Contains(Path.Combine(ProcessRunner.RepositoryRoot, "nami.slnx"), first.Output);
-        environment["TEST_OMIT_REPORT"] = "1";
-        var second = await ProcessRunner.RunAsync("bash", [script, "--no-build"], Temporary, context.CancellationToken, environment);
+        var firstRun = fixture.LatestRun();
+        fixture.Environment["FAKE_OMIT_REPORT"] = "1";
+        var second = await fixture.RunAsync(["--no-build"]);
         Assert.AreEqual(2, second.ExitCode, second.Output + second.Error);
-        Assert.Contains("INSPECTCODE FAILED", second.Output);
-        Assert.AreNotEqual(first.Output.Split('\n').First(static line => line.StartsWith("Report:", StringComparison.Ordinal)),
-            second.Output.Split('\n').First(static line => line.StartsWith("Report:", StringComparison.Ordinal)));
+        Assert.Contains("INSPECT ANALYSIS_FAILED", second.Output);
+        Assert.AreNotEqual(firstRun, fixture.LatestRun());
     }
 
     [TestMethod]
