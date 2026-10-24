@@ -10,6 +10,10 @@ SARIF/TRX/log/binlog data stays in external checkout-keyed state; new runs repla
 The wrappers physically remove the old workspace diagnostic directories. Build binaries and
 source examples remain. Captured compiler runs were removed from `.agents/skills`.
 
+The contract parity snapshot excludes Finder's `.DS_Store`, matching the TypeScript lane's
+generated manifest. Contract source/output files remain checked. A mismatch now names the
+changed paths (bounded to 20) instead of requiring an agent to infer them from large logs.
+
 Executable pins resolve through mise, without implicit installation. `global.json` still binds
 MSBuild SDK selection, package lockfiles bind library dependencies, and the local JetBrains manifest
 binds its .NET tool. TypeScript lint and MCP protocol checks remain separate from C# analysis.

@@ -36,10 +36,17 @@ sealed class Build : FalloutBuild, IHasConfiguration
             Run("bun", "install --frozen-lockfile", (RootDirectory / "contracts").ToString());
             Run("bun", "run compile", (RootDirectory / "contracts").ToString());
             var after = Snapshot();
-            if (!before.SequenceEqual(after)) throw new InvalidOperationException("Generated contracts changed. Run Contracts and commit the outputs.");
+            if (!before.SequenceEqual(after))
+            {
+                var changed = before.Except(after).Concat(after.Except(before))
+                    .Select(static item => item[..item.LastIndexOf(':')]).Distinct().Take(20);
+                throw new InvalidOperationException("Generated contracts changed: " + string.Join(", ", changed) +
+                                                    ". Run Contracts and commit the outputs.");
+            }
         });
     static string[] Snapshot() => s_generatedDirectories
         .SelectMany(p => Directory.Exists(RootDirectory / p) ? Directory.EnumerateFiles(RootDirectory / p, "*", SearchOption.AllDirectories) : [])
+        .Where(static p => Path.GetFileName(p) != ".DS_Store")
         .Order(StringComparer.Ordinal).Select(p => p + ":" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(p)))).ToArray();
     public Target Mcp => d => d.Description("Build the TypeScript MCP adapter and validate generated wire types")
         .Executes(() =>
