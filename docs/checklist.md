@@ -274,3 +274,93 @@ snapshot id gives the same answer. `Result<T, E>` lives in `src/nami/Tools/Resul
 - [ ] `dotnet build nami.slnx -c Release` green; fix cross-workstream mismatches from `docs/integration/*.md`.
 - [ ] `weaver registry check --future -r registry` green; regenerate; `git diff --exit-code`.
 - [ ] One commit on `main`: "nami: first implementation from the PRD".
+
+## Handoff: status and how to resume
+
+This section lets anyone — a fresh Claude session, Codex on a laptop, a human — continue without the
+conversation that produced this file. Everything above is the plan; this is the state.
+
+### Commits on `main` so far
+
+| Commit | What |
+| --- | --- |
+| `e025215` | `claude/debugging-tomo.md`: tomo's requirements towards nami (Opus-written) |
+| `93b68ec` | Scaffold: qyl `ecdfb564` collector, contracts, build, props copied and renamed `qyl → nami`; `docs/prd/nami.md`; this checklist |
+| `c259e79` | `registry/manifest.yaml`, `registry/nami/attributes.yaml`, `registry/nami/entities.yaml` (workstream 1, partial) |
+| `db7b587` | `README.md` draft (workstream 9, partial) |
+
+Everything else in the workstream sections above is unstarted unless a later commit says otherwise.
+Progress is visible in the tree, not in this file: a workstream is done when its "owns" paths exist and
+its listed commands pass.
+
+### Resume on any machine
+
+```bash
+git clone https://github.com/ANcpLua/nami && cd nami
+# toolchain: .NET 11 RC2 (dotnet-install.sh --channel 11.0 --quality preview), weaver 0.28.0
+# (https://github.com/open-telemetry/weaver/releases/tag/v0.28.0), bun 1.x, node 22, cargo stable
+git clone --depth 1 https://github.com/ANcpLua/qyl /tmp/qyl   # read-only reference, commit ecdfb564
+```
+
+Then start one agent per workstream with the prompt below, all in parallel, each confined to its "owns"
+paths. No tests in this round. The orchestrator (whoever starts the agents) integrates afterwards:
+`dotnet build nami.slnx -c Release`, `weaver registry check --future -r registry`, fix what
+`docs/integration/*.md` reports, one commit.
+
+### Agent prompt (common preamble, then the workstream line)
+
+> You are workstream N of ten parallel agents implementing `nami` in the repo at `<repo path>`. Read
+> `docs/checklist.md` first (all of it), then your section "### N. <title>". The product spec is
+> `docs/prd/nami.md` (German). A read-only checkout of qyl at commit `ecdfb564` is at `<qyl path>` for
+> anything the copy lost. Rules: you own only the paths listed under your section; do not edit any other
+> path; do not write tests; use the toolchain paths from the checklist. Anything another workstream must
+> change for you goes into `docs/integration/N-<name>.md` (create it). Try to keep your own projects
+> compiling; where other workstreams' types are missing, stub minimally inside your own paths and say so in
+> your integration file. Budget about 30 minutes. Finish by reporting in at most 15 lines: what exists,
+> which exact commands pass, open issues.
+
+Workstream-specific additions (append to the preamble):
+
+1. Registry: Weaver docs for custom registries are the `manifest.yaml` section of the Weaver documentation
+   ("Define your own telemetry schema"). Work until `weaver registry check --future -r registry` exits 0;
+   write the passing command and a diagnostics summary to `registry/README.md`.
+2. C# templates: learn the v2 context with `weaver registry json-schema -j materialized-registry-v2`;
+   until the registry is green, generate against core alone
+   (`-r https://github.com/open-telemetry/semantic-conventions.git@v1.44.0[model]`); the generated API is
+   exactly the one under "Generated semconv API"; deterministic output; `dotnet build` the semconv project.
+3. Rust and markdown: same v2 context and core-only fallback; the crate has no dependencies and must
+   `cargo build`; one markdown page per namespace with stability per attribute.
+4. Contracts: cut to the six tools under "Contract types"; `Freshness` replaces `ToolCoverage`; keep
+   `ToolError`, the OTel projections, `ContractJson`, `Timestamp`, `OptionalValue`, `JsonInteger`; keep the
+   C# and lint emitters, drop ts-types; emit JSON Schema per tool into `contracts/json-schema/<tool>.input.json`
+   and `<tool>.result.json`; regenerate `internal/nami.contracts` and `dotnet build` it. Produce the C#
+   types early; workstreams 5 and 6 code against them.
+5. Host and MCP: official C# MCP SDK v2 (`ModelContextProtocol`, `ModelContextProtocol.AspNetCore`,
+   docs https://csharp.sdk.modelcontextprotocol.io/v2/); stateless Streamable HTTP at `/mcp` in the same
+   Kestrel host as OTLP, `--stdio` for stdio; tool table from the JSON schemas, no `WithTools<T>()`; result
+   shaping, `max_bytes`, sorted `tools/list` with `ttlMs`/`cacheScope`, `_meta.traceparent`; delete REST
+   analysis and write endpoints.
+6. Tools: six pure tools per "Analysis API", derived from qyl's `AnalysisEngine.*` as mapped in section 6;
+   `Result.cs`, `ToolClock`, `TimeSpec` (`-15m`, RFC 3339 → `[start, now)` capped at the watermark);
+   freshness on every result; silence is a finding; errors from log event, span event and span status;
+   no stacktrace in `errors_recent`; literal `logs_search`.
+7. Ingestion and storage: ProjectReference to `internal/nami.semconv` instead of the semconv NuGet packages;
+   delete the old generated catalog and its policy JSON; watermark per (project, signal) and `last_seen`
+   from receipt time; deprecated-key rewrite; stability mark; `ISnapshot` with the queries the six tools
+   need; remove write paths and REST routes; keep both projects compiling.
+8. Build and CI: `nami.slnx`, `global.json` (11.0.100-rc.2.26504.105), `Version.props` with only nami's
+   versions, Fallout targets Registry/Contracts/Compile/Check/Publish, `.github/workflows/check.yml`,
+   `mise.toml`; delete qyl-only targets; `./eng/build.sh --help` lists the targets.
+9. Docs: `README.md`, `AGENTS.md`, `docs/architecture.yaml` (one binary, two surfaces, one Railway
+   service), `docs/integration/README.md`; `claude/debugging-tomo.md` tool names to snake_case plus a note
+   that the spec language is TypeSpec (PRD decision 1).
+10. Self-telemetry and deployment: `mcp.*` conventions for nami's own spans/metrics/logs exported over
+    loopback OTLP under `nami.project.id = "nami"`; own errors as span event plus `ILogger` record with
+    `exception.*`; `src/nami/Dockerfile` (NativeAOT, ports 4318/4317/5100, `/health`); `.railway/railway.ts`
+    with one service `nami`; trim `internal/nami.instrumentation*` to what the host uses.
+
+### After this round
+
+Tests are written sequentially by one agent from the PRD's test catalog (`docs/prd/nami.md`, section
+"Testmethoden-Katalog"): `Nami.Registry.Tests`, `Nami.Collector.Tests`, `Nami.Conformance`. That agent
+also replaces every stub left in `src/nami/Tools/Pending/` and any `#if NAMI_SEMCONV_STUB` fallback.

@@ -1,24 +1,24 @@
 {
   "name": "nami-contracts",
   "private": true,
-  "description": "The nami API contract: TypeSpec models and routes, the in-repo emitters and the generation scripts. `bun run compile` writes openapi/nami.openapi.json, internal/nami.contracts and services/nami.mcp/src/contracts/generated.",
+  "description": "The nami contract: TypeSpec models, the in-repo emitters and the generation scripts. `bun run compile` writes openapi/nami.openapi.json (intermediate), internal/nami.contracts and json-schema/.",
   "type": "module",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "build:emitters": "tsc -p emitters/csharp && tsc -p emitters/ts-types && tsc -p emitters/nami-lint",
-    "compile": "node --test scripts/lib/*.test.mjs && node scripts/clean-generated.mjs && bun run build:emitters && tsp compile main.tsp --warn-as-error && node scripts/emit-mcp-schemas.mjs && node scripts/emit-contract-revision.mjs",
+    "build:emitters": "tsc -p emitters/csharp && tsc -p emitters/nami-lint",
+    "compile": "node --test scripts/lib/*.test.mjs && node scripts/clean-generated.mjs && bun run build:emitters && tsp compile main.tsp --warn-as-error && node scripts/emit-schemas.mjs && node scripts/emit-contract-revision.mjs",
+    "build": "bun run compile",
     "format": "tsp format **/*.tsp"
   },
   "devDependencies": {
     "@types/node": "26.6.5",
     "@typespec/compiler": "1.17.0",
-    "@typespec/events": "0.87.0",
     "@typespec/http": "1.17.0",
+    "@typespec/json-schema": "1.17.0",
     "@typespec/openapi": "1.17.0",
     "@typespec/openapi3": "1.17.0",
-    "@typespec/sse": "0.87.0",
     "typescript": "7.0.2"
   }
 }
