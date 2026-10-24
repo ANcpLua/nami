@@ -1,20 +1,27 @@
 # nami
 
-nami is an OTLP target plus MCP tools in one NativeAOT binary on .NET 11, built for agents only.
-tomo, a Rust service, sends it OpenTelemetry traces, logs and metrics; Claude asks questions
-through six read-only tools and gets typed answers that state how fresh they are. nami has no
-SDK, no REST API and no dashboard: the tools are the API.
+nami is an agent-operated application debugging stack: compile-time instrumentation, OpenTelemetry,
+DuckDB-backed analysis and six read-only MCP tools. Agents use it through a Claude.ai connector
+and/or an OpenAI plugin with bundled MCP integration; local clients are also supported. There is
+no dashboard or human-facing analysis UI. Tomo is an example Rust developer whose application an
+agent investigates, not the only supported application.
 
-nami succeeds qyl and starts from qyl commit `ecdfb564`: the same OTLP ingestion, DuckDB storage
-and analysis, without qyl's TypeScript MCP server, REST analysis routes, SDK, CLI and write tools.
-The product spec is [`docs/prd/nami.md`](docs/prd/nami.md) (German).
+The approved target is **TypeScript/Bun MCP + C#/.NET 11 NativeAOT engine**, connected locally by
+private streams/pipes. TypeSpec generates the shared C#/TypeScript wire contracts and JSON Schemas;
+Weaver supplies semantic definitions and persistence rules. A common release need not be one native file.
+See the [PRD](docs/prd/nami.md), [architecture](docs/architecture.yaml) and
+[migration checklist](docs/checklist.md).
 
-## Two surfaces
+**Current implementation:** the commands below describe the existing C# MCP host. The TypeScript
+host, private transport, connector bundles and full instrumentation proofs are pending migration.
+The runtime instructions below are not evidence that the new target architecture is implemented.
+
+## Current host: two surfaces
 
 | Surface | Used by | What it is |
 | --- | --- | --- |
-| OTLP | tomo and any other OpenTelemetry producer | OTLP/HTTP (protobuf or JSON) and OTLP/gRPC. No custom wire format, so no SDK. |
-| MCP | Claude | Six read-only tools over stdio or Streamable HTTP; MCP `2026-07-28`, stateless, no protocol session. |
+| OTLP | Instrumented OpenTelemetry producers | OTLP/HTTP (protobuf or JSON) and OTLP/gRPC. No custom wire format, so no SDK. |
+| MCP | Agents | Six read-only tools over stdio or Streamable HTTP; MCP `2026-07-28`, stateless, no protocol session. |
 
 One process serves both. `nami --stdio` is for a client that starts nami itself, such as Claude
 Code; `nami` serves MCP over Streamable HTTP. Either way the OTLP ports are open.
@@ -71,14 +78,14 @@ All three land in the same rows. What the tools can answer comes from the resour
 - An exception counts whether it arrives as a log record with event name `exception` or as a span
   event named `exception` (the `tracing-opentelemetry` path); `errors_recent` groups both together.
 
-tomo takes attribute names from the generated crate `crates/nami-semconv`, so a renamed convention
-is a compile error in tomo, never a silent miss in nami. With `NAMI_OTLP_AUTH_MODE=ApiKey`, every
+Supported Rust applications can take attribute names from the generated `crates/nami-semconv` crate,
+so renamed constants fail at compilation rather than silently diverging from the catalog. With `NAMI_OTLP_AUTH_MODE=ApiKey`, every
 OTLP request carries a project key in the `x-otlp-api-key` header; `NAMI_OTLP_PROJECT_KEYS` maps
 projects to keys, and a resource whose `nami.project.id` names another project is refused.
 
 ## Tools
 
-Six read-only tools, in the order Claude reaches for them when debugging tomo:
+Six read-only tools for agents investigating supported applications:
 
 | Tool | Answers | Extra arguments |
 | --- | --- | --- |
@@ -128,12 +135,12 @@ ingest lag; it never means "no errors". A window that ends past the watermark is
 | `src/nami.collector.storage` | DuckDB storage per project and the read-only snapshots the tools run on. |
 | `registry/` | The canonical Weaver registry and policies; editable definitions and pinned imports live in `registry/source/`. |
 | `templates/registry/` | Jinja templates that generate C# (`internal/nami.semconv`), Rust (`crates/nami-semconv`) and Markdown (`docs/semconv/`) from the registry. |
-| `contracts/` | TypeSpec for every tool input and result. It generates the C# types in `internal/nami.contracts` and the JSON Schema in `contracts/json-schema/`, which tomo turns into Rust types. |
+| `contracts/` | TypeSpec for every tool input and result. It generates the C# types in `internal/nami.contracts` and the JSON Schema in `contracts/json-schema/`; the target additionally restores generated TypeScript types. |
 | `internal/` | Generated contracts and conventions, nami's self-telemetry defaults, and the source generators. |
 | `eng/` | The Fallout build. |
 | `tests/` | Shared test support plus MSTest Unit, Integration and EndToEnd suites; EndToEnd drives the NativeAOT host. |
 | `docs/` | The PRD, the architecture, the implementation checklist and the integration notes. |
-| `claude/debugging-tomo.md` | What Claude needs from nami to debug tomo: the requirements nami was built from. |
+| `claude/debugging-tomo.md` | Agent debugging workflow and the corrected Rust-developer example. |
 | `.railway/railway.ts` | The Railway service `nami`. |
 
 ## Build
@@ -174,8 +181,8 @@ TypeSpec, and regenerate.
 ## Documentation
 
 - [Product spec](docs/prd/nami.md) (German): purpose, architecture, the invariants, decisions and risks
-- [Architecture](docs/architecture.yaml): one binary, two surfaces, one contract
-- [What Claude needs from nami to debug tomo](claude/debugging-tomo.md)
+- [Architecture](docs/architecture.yaml): TypeScript MCP, native engine, one shared contract
+- [Agent debugging workflow](claude/debugging-tomo.md)
 - [Semantic conventions](docs/semconv/): generated from the registry, one page per namespace
 - [Implementation checklist](docs/checklist.md) and [integration notes](docs/integration/README.md)
 

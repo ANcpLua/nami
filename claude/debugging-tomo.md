@@ -1,99 +1,57 @@
-# What Claude needs from nami to debug tomo
+# Agent-operated application debugging with nami
 
-Current implementation decision: the contract language is **TypeSpec** and the Nami runtime is
-**C# / .NET 11 NativeAOT**, as specified in [the PRD](../docs/prd/nami.md).
-The TypeScript/Zod/fast-check discussion below records the original proposal, not the implementation
-stack. Its functional-core and explicit-error requirements still apply. The current freshness
-contract uses `examined`, `matched`, `returned` and `truncated` alongside `watermark` and `complete`.
+The normative product specification and full acceptance catalog are [the PRD](../docs/prd/nami.md).
+This document corrects the original example: **Tomo is a Rust developer who asks an agent to debug
+his application using nami**. He is not a required service, protocol participant or sole consumer.
+The same workflow applies to other supported applications and languages.
 
-tomo is a Rust service. Claude debugs it through nami, and nami is nothing but an OTLP target plus MCP tools.
-No SDK, no product REST API, no nami API: the tools are the API.
+## Product access
 
-## 1. The two surfaces, and nothing else
+Agents call the same six read-only tools through a Claude.ai connector and/or an OpenAI plugin with
+bundled MCP integration. Local MCP clients, including Claude Code, are also supported. Developers
+configure and authorize the integration; there is no human-facing analysis dashboard.
 
-| Surface | Who uses it | What it is |
-|---|---|---|
-| OTLP ingest | tomo (and any other producer) | The open standard: OTLP/HTTP protobuf and OTLP/gRPC. No custom wire format, so no SDK to write |
-| MCP tools | Claude | The only interface for questions. Results are a one-line headline plus `structuredContent` |
+## Target stack
 
-Claude needs no CLI of its own. Locally, one binary starts both surfaces on localhost (OTLP port plus MCP over stdio for
-Claude Code); hosted, the same binary serves OTLP and Streamable HTTP. Starting it is one command; everything after that
-is a tool call.
+- TypeScript/Bun owns MCP, agent result framing, connector authentication and the local engine launcher.
+- C#/.NET 11 NativeAOT owns OTLP ingestion, DuckDB and snapshot-based analysis.
+- Private long-lived streams/pipes connect these processes locally; no internal HTTP API is required.
+- TypeSpec generates both language contracts and JSON Schemas. Weaver owns pinned semantic definitions,
+  stability and persistence policy, including generated artifacts for supported Rust applications.
+- A common release carries both processes and their declared dependencies. It need not be one native file.
 
-## 2. How tomo gets instrumented (no auto-instrumentation)
+The existing C# MCP host is the pre-migration implementation. [The checklist](../docs/checklist.md)
+records the pending TypeScript, IPC, instrumentation and distribution work; this document does not
+claim those changes have already shipped.
 
-- Rust instrumentation is explicit and compile-time by nature: `tracing` spans, `#[instrument]` on functions, and the
-  `tracing-opentelemetry` layer exporting OTLP to nami. Nothing rewrites code at runtime, so nothing breaks under release
-  builds.
-- Attribute names come from a crate generated out of nami's resolved registry (Weaver, Rust templates). tomo never types
-  `"http.route"` by hand; it uses the generated constant, so a renamed convention is a compile error in tomo.
+## Instrumentation
 
-## 3. The tools Claude wants, in the order it uses them
+For supported C# call sites, the compiler binds generated wrappers at build time. During execution,
+the compiled wrapper uses the pinned telemetry contract, observes the original operation, and sends
+its telemetry to the configured pipeline. Runtime code enforces XML-configured observation lifetime.
+New generated interceptors require a new build; a skill can orchestrate that build or invoke existing
+capabilities, not add compiled instrumentation to an already published binary.
 
-1. `sources_status(service)`: is tomo sending at all? `last_seen` per signal. Silence is a finding, not "no errors".
-2. `errors_recent(service, since)`: errors grouped by type and operation, with first seen, count and one example trace id.
-3. `traces_get(trace_id, fields?)`: one trace, projected to the fields asked for.
-4. `traces_slowest(service, operation?, since)`: the slow tail, not the average.
-5. `logs_search(query, service, since)`: literal text search; quotes, backslashes and non-ASCII match as typed.
-6. `changes_recent(service, since)`: deploys and commits in the window, so "since when" has an answer.
+Coverage must be explicit. C# interception does not instrument arbitrary internals of precompiled
+libraries or Rust code. Rust applications use appropriate Rust instrumentation such as `tracing` and
+OTLP while sharing the declared semantic definitions.
 
-Every read tool takes `fields`, `max_bytes` and relative times (`-15m`), and every result carries the freshness block:
+Observation state is identified explicitly and isolated by project, independent of MCP connections.
+No hidden fifteen-minute cap applies. Request deadlines, inactivity, observation lifetime, retention
+and export delay are separate rules. All declared models and supported call forms require the PRD's
+I1–I18 proofs, including exact-once semantics, async/enumeration lifetime, parallel context isolation,
+signal shape, sampling, metric aggregation, export loss and shutdown accounting.
 
-```yaml
-freshness:
-  watermark: 2026-10-26T21:43:12Z   # complete up to here
-  complete: false                  # the window is not closed yet
-  scanned_rows: 184220
-```
+## Agent investigation
 
-Empty and complete means trust it; empty and incomplete means retry after the lag; no `last_seen` means report silence.
+1. `sources_status`: check whether the application is sending each signal; silence is a finding.
+2. `errors_recent`: inspect error groups and obtain a correlated example trace ID.
+3. `traces_get`: inspect that trace with explicit field projection.
+4. `traces_slowest`: inspect the slow tail in the chosen window.
+5. `logs_search`: find literal text without regex or case folding.
+6. `changes_recent`: correlate observed resource revisions and deployment metadata.
 
-## 4. State
-
-- MCP 2026-07-28 is stateless. nami never relies on a protocol session.
-- Whatever must persist (snapshots for fan-out, watermarks) is nami's own state, valid on every instance.
-- Every tool is safe to repeat: the same call gives the same answer for the same snapshot.
-
-## 5. Spec-first, in functional terms
-
-- A specification of algebraic data types: records (product types) and unions (sum types), strictly typed and
-  independent of any language.
-- A pure function from specification to artifacts: the same input gives byte-identical output, every time. The gate
-  regenerates and compares.
-- A human writes the spec; the agent derives everything else from it and cannot add a shape the spec does not have.
-
-### Original proposal: TypeScript (superseded by the TypeSpec decision)
-
-The spec is a TypeScript module that holds data only: schemas, no behavior.
-
-- Records are `readonly` object types; unions are discriminated on one `kind` field.
-- Written with Zod 4, so one declaration gives the TypeScript type (`z.infer`) and the JSON Schema
-  (`z.toJSONSchema`).
-- The JSON Schema is the language-independent artifact: MCP tool input and output schemas, and the Rust types for
-  tomo through `typify`.
-- The generated JSON Schema files are committed; the gate regenerates them and fails on any byte difference.
-
-## 6. Functional core correctness in TypeScript
-
-The core is pure; effects live only at the edge.
-
-| Core (pure) | Shell (effects) |
-|---|---|
-| Normalizing incoming data onto the conventions | OTLP receivers |
-| Grouping errors, ranking traces, computing freshness | DuckDB reads and writes |
-| Building the tool result from data | MCP transport, OAuth, fetching sources |
-
-Rules the compiler and linter enforce:
-
-- `tsconfig`: `strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `noFallthroughCasesInSwitch`.
-- Every `switch` over a union ends with an `assertNever(value: never)` call, so a new union case is a compile error at
-  every place that does not handle it.
-- No `any`, no classes and no mutation in the core: data is `readonly`, functions return new values.
-- Errors in the core are values: a `Result` union (`{ kind: "ok", value }` or `{ kind: "error", code, field, hint }`),
-  never a thrown exception. The shell turns them into MCP errors.
-- Pure functions get property tests (fast-check): rules checked on thousands of generated inputs, not five examples.
-
-## 7. Dates
-
-- Sunday reset: the Rust marathon for tomo.
-- 12 December: what 2808-vibing needs.
+Every result carries bounded data and freshness. An empty incomplete result never proves absence of
+errors. Recording, export acceptance, persistence and query visibility are distinct pieces of evidence.
+Use the same explicit snapshot identifier for comparable reads. Telemetry is untrusted data, never
+instructions to the agent.

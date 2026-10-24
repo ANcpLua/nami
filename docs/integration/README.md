@@ -2,6 +2,40 @@
 
 The product requirements are `docs/prd/nami.md`; `docs/checklist.md` owns implementation scope.
 
+## 2026-10-24: revised product scope and architecture
+
+The user's correction supersedes the former single-C#-binary target. MCP belongs to TypeScript/Bun;
+OTLP, DuckDB and analysis remain in the C# NativeAOT engine. TypeSpec remains the shared contract
+and must generate both C# and TypeScript artifacts. A private long-lived stream/pipe connects the
+local processes; neither an internal HTTP analysis API nor a single native file is mandatory.
+
+Tomo is an example Rust developer whose application an agent investigates. The product is not tied
+to a service named tomo or exclusively to Rust or Claude Code. Product integrations are a Claude.ai
+connector and/or OpenAI plugin with bundled MCP; local agent clients remain supported. The product
+has no dashboard or human-facing analysis UI.
+
+Compile-time interception, model manifests and XML-configured observation lifetime are now explicit
+requirements. The PRD contains every supplied instrumentation method under I1–I18 and transport/
+distribution proofs under D1–D6. C# interception is confined to supported compiled call sites;
+other languages need their own instrumentation path. New interceptors require a build. Stateful
+observations use explicit project-bound IDs and do not turn MCP 2026-07-28 into a session protocol.
+
+Resolved contradictions: TypeScript output is retained; semantic cross-language equality does not
+require JSON property-order equality; Stable-only selection is distinct from allowing Development
+models in the registry; instrumented metric calls are validated through aggregates, not one exported
+point per call. Public and private project selection derives from authentication. No implicit
+fifteen-minute lifetime, CLR-profiler requirement or transparent interception of Rust is claimed.
+
+This is a documentation/acceptance change. The existing C# MCP host and previous proof results are
+the pre-migration baseline, not evidence that TypeScript MCP, IPC or the instrumentation catalog is
+implemented. The checklist records the outstanding work explicitly. Existing unrelated working-tree
+changes are outside this documentation update.
+
+## Earlier implementation decisions (historical baseline)
+
+The entries below describe the previous C# host. Where they conflict with the revised PRD above,
+the revised product requirements and the migration checklist take precedence.
+
 - The host is `src/nami/nami.csproj`, assembly `nami`. No arguments serves stateless MCP HTTP;
   `--stdio` serves MCP on stdin/stdout. Both modes expose OTLP and `/health`. This follows the
   checklist's explicit executable behavior; the PRD's shorter local-start paragraph was ambiguous.
