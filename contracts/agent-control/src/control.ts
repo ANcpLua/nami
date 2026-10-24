@@ -224,7 +224,7 @@ async function applyArtifactPlanCore(root: string, id: string, effects: Artifact
   const targets = plan.inventory.artifacts.map(item => safePath(root, item.path));
   for (const target of targets) {
     const parent = await realpath(dirname(target));
-    if (parent !== root && !parent.startsWith(root + sep)) return store(root, { phase: "refused", exitCode: 2,
+    if (parent !== dirname(target)) return store(root, { phase: "refused", exitCode: 2,
       diagnostics: [finding(createDiagnostic({ code: "unsafe-target", target: NoTarget }))] });
   }
   plan.phase = await transition(plan.phase, "apply", { revisionMatches: true, targetsOwned: true, sourcesPreserved: true });

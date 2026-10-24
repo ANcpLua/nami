@@ -30,7 +30,7 @@ def owned_paths(root):
         candidates += [p for p in project.rglob("*") if p.is_dir() and re.search(r"_[0-9a-f]{32}$", p.name)]
     result = []
     for path in sorted(set(candidates), key=lambda p: (len(p.parts), str(p))):
-        if (path.exists() or path.is_symlink()) and path.parent.resolve().is_relative_to(root) and not any(path.is_relative_to(parent) for parent in result):
+        if (path.exists() or path.is_symlink()) and path.parent.resolve() == path.parent and not any(path.is_relative_to(parent) for parent in result):
             result.append(path)
     return result
 
@@ -117,9 +117,9 @@ def clean_workspace(root):
     for path in owned_paths(root):
         remove(path)
     temporary = root / ".fallout/temp"
-    if temporary.exists() and temporary.resolve().is_relative_to(root):
+    if temporary.exists() and temporary.resolve() == temporary:
         for path in sorted(temporary.rglob("*"), reverse=True):
-            if path.is_dir() and not any(path.iterdir()):
+            if path.is_dir() and not path.is_symlink() and not any(path.iterdir()):
                 path.rmdir()
         if not any(temporary.iterdir()):
             temporary.rmdir()

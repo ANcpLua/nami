@@ -176,18 +176,30 @@ public sealed class AgentControlTests(TestContext context)
     }
 
     [TestMethod]
-    public async Task AgentFix_ExternalArtifactLink_IsNotOwned()
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task AgentFix_ArtifactParentLink_IsNotOwned(bool inside)
     {
         var fixture = await InspectionFixture.CreateAsync(context);
-        var external = Path.Combine(InspectionFixture.Temporary(context), "external");
+        var external = inside ? Path.Combine(fixture.Root, "src/redirected") : Path.Combine(InspectionFixture.Temporary(context), "external");
         Directory.CreateDirectory(Path.Combine(external, "logs"));
+        var empty = Path.Combine(external, "empty");
+        Directory.CreateDirectory(empty);
         var protectedFile = Path.Combine(external, "logs/keep.log");
         await File.WriteAllTextAsync(protectedFile, "external data", context.CancellationToken);
         Directory.CreateSymbolicLink(Path.Combine(fixture.Root, "artifacts"), external);
+        Directory.CreateDirectory(Path.Combine(fixture.Root, ".fallout"));
+        Directory.CreateSymbolicLink(Path.Combine(fixture.Root, ".fallout/temp"), external);
         var id = await PlanAsync(fixture);
         var result = await RunAsync(fixture, "apply", id);
         Assert.AreEqual(0, result.ExitCode, result.Output + result.Error);
         Assert.Contains("Owned targets: 0", result.Output);
+        Assert.AreEqual("external data", await File.ReadAllTextAsync(protectedFile, context.CancellationToken));
+        var cleanup = await ProcessRunner.RunAsync("python3",
+            [Path.Combine(ProcessRunner.RepositoryRoot, "eng/scripts/diagnostics.py"), "clean", fixture.Root],
+            ProcessRunner.RepositoryRoot, context.CancellationToken, fixture.Environment);
+        Assert.AreEqual(0, cleanup.ExitCode, cleanup.Error);
+        Assert.IsTrue(Directory.Exists(empty));
         Assert.AreEqual("external data", await File.ReadAllTextAsync(protectedFile, context.CancellationToken));
     }
 
