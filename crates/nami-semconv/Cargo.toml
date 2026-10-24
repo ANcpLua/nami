@@ -1,0 +1,15 @@
+[package]
+name = "nami-semconv"
+version = "0.1.0"
+edition = "2021"
+description = "OpenTelemetry semantic convention constants from nami's Weaver registry (generated)."
+license = "MIT"
+repository = "https://github.com/ANcpLua/nami"
+readme = "README.md"
+keywords = ["opentelemetry", "semconv", "telemetry"]
+categories = ["development-tools::debugging", "no-std"]
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
