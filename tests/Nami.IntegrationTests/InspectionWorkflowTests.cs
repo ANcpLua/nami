@@ -95,6 +95,7 @@ public sealed class InspectionWorkflowTests(TestContext context)
     [TestMethod]
     [DataRow("source")]
     [DataRow("output")]
+    [DataRow("ignored source")]
     public async Task Inspection_ConcurrentMutation_InvalidatesResult(string change)
     {
         var fixture = await InspectionFixture.CreateAsync(context);
@@ -227,7 +228,7 @@ internal sealed class InspectionFixture(string root, TestContext context)
         foreach (var file in new[] { "eng/inspect.sh", "eng/scripts/inspect_code.py", "eng/scripts/inspect_report.py",
                      "eng/scripts/workspace_lock.py", "eng/scripts/limits.sh", ".config/dotnet-tools.json" })
             File.Copy(Path.Combine(ProcessRunner.RepositoryRoot, file), Path.Combine(root, file));
-        await File.WriteAllTextAsync(Path.Combine(root, ".gitignore"), "artifacts/\n__pycache__/\n", context.CancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(root, ".gitignore"), "artifacts/\n__pycache__/\nignored.cs\n", context.CancellationToken);
         await File.WriteAllTextAsync(Path.Combine(root, "global.json"), """{"sdk":{"version":"11.0.100-test"}}""", context.CancellationToken);
         await File.WriteAllTextAsync(Path.Combine(root, "nami.slnx"), """<Solution><Project Path="src/Example.csproj"/></Solution>""", context.CancellationToken);
         await File.WriteAllTextAsync(Path.Combine(root, "src/Example.csproj"), "<Project />", context.CancellationToken);
@@ -256,6 +257,7 @@ internal sealed class InspectionFixture(string root, TestContext context)
                 while not (root/'artifacts/release').exists(): time.sleep(.01)
             if os.environ.get('FAKE_MUTATION') == 'source': (root/'src/Example.cs').write_text('class Changed {}')
             if os.environ.get('FAKE_MUTATION') == 'output': output.write_text('different assembly')
+            if os.environ.get('FAKE_MUTATION') == 'ignored source': (root/'src/ignored.cs').write_text('class Ignored {}')
             if os.environ.get('FAKE_OMIT_REPORT'): sys.exit(0)
             print(os.environ.get('FAKE_LOG', ''))
             findings = [{'ruleId':'RuleA','level':'warning','message':{'text':'Fix this'},'locations':[{'physicalLocation':{'artifactLocation':{'uri':'src/Example.cs'},'region':{'startLine':i+1,'startColumn':1}}}]} for i in range(int(os.environ.get('FAKE_FINDINGS','0')))]

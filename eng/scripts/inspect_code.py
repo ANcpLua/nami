@@ -35,7 +35,16 @@ def digest(paths):
 
 def sources():
     listing = subprocess.check_output(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"], cwd=ROOT)
-    return digest(ROOT / os.fsdecode(name) for name in listing.split(b"\0") if name)
+    paths = [ROOT / os.fsdecode(name) for name in listing.split(b"\0") if name]
+    # Git ignore rules do not control Compile's implicit globs. An ignored .cs file
+    # still affects a build, so include build inputs inside every solution project.
+    for project in ET.parse(ROOT / "nami.slnx").iter("Project"):
+        for directory, children, files in os.walk((ROOT / project.attrib["Path"]).parent):
+            children[:] = [name for name in children if name not in {"bin", "obj", "artifacts", "node_modules", ".git"}]
+            paths.extend(Path(directory, name) for name in files
+                         if Path(name).suffix in {".cs", ".csproj", ".props", ".targets", ".proto", ".resx", ".json"}
+                         or name == ".editorconfig")
+    return digest(paths)
 
 
 def outputs(configuration):
