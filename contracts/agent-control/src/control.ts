@@ -166,6 +166,8 @@ async function planTypeSpecFixCore(root: string, entrypoint: string, code: strin
 async function applyTypeSpecPlan(plan: Plan, directory: string, validate: typeof validateFixed): Promise<Result> {
   const edit = plan.edit!;
   const target = safePath(plan.root, edit.path);
+  if (await realpath(target) !== target) return store(plan.root, { phase: "refused", exitCode: 2,
+    diagnostics: [finding(createDiagnostic({ code: "unsafe-target", target: NoTarget }))] });
   const original = await readFile(target, "utf8");
   const offered = await resolveOfferedFix(safePath(plan.root, edit.entrypoint), edit.code, edit.fixId);
   if (!offered || hash(original) !== edit.before || (await previewFix(offered.fix)).get(offered.edits[0].file.path) !== edit.after)
@@ -219,6 +221,11 @@ async function applyArtifactPlanCore(root: string, id: string, effects: Artifact
   if (plan.edit) return applyTypeSpecPlan(plan, directory, effects.validateTypeSpec ?? validateFixed);
   // The inventory comes from the same ownership implementation used by automatic cleanup.
   const targets = plan.inventory.artifacts.map(item => safePath(root, item.path));
+  for (const target of targets) {
+    const parent = await realpath(dirname(target));
+    if (parent !== root && !parent.startsWith(root + sep)) return store(root, { phase: "refused", exitCode: 2,
+      diagnostics: [finding(createDiagnostic({ code: "unsafe-target", target: NoTarget }))] });
+  }
   plan.phase = await transition(plan.phase, "apply", { revisionMatches: true, targetsOwned: true, sourcesPreserved: true });
   await json(join(directory, "plan.json"), plan);
   const backups = join(directory, "backups");

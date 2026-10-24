@@ -176,6 +176,22 @@ public sealed class AgentControlTests(TestContext context)
     }
 
     [TestMethod]
+    public async Task AgentFix_ExternalArtifactLink_IsNotOwned()
+    {
+        var fixture = await InspectionFixture.CreateAsync(context);
+        var external = Path.Combine(InspectionFixture.Temporary(context), "external");
+        Directory.CreateDirectory(Path.Combine(external, "logs"));
+        var protectedFile = Path.Combine(external, "logs/keep.log");
+        await File.WriteAllTextAsync(protectedFile, "external data", context.CancellationToken);
+        Directory.CreateSymbolicLink(Path.Combine(fixture.Root, "artifacts"), external);
+        var id = await PlanAsync(fixture);
+        var result = await RunAsync(fixture, "apply", id);
+        Assert.AreEqual(0, result.ExitCode, result.Output + result.Error);
+        Assert.Contains("Owned targets: 0", result.Output);
+        Assert.AreEqual("external data", await File.ReadAllTextAsync(protectedFile, context.CancellationToken));
+    }
+
+    [TestMethod]
     public async Task AgentFix_FilesystemFailure_RestoresDeletedArtifact()
     {
         var fixture = await InspectionFixture.CreateAsync(context);
