@@ -2,6 +2,15 @@
 
 The product requirements are `docs/prd/nami.md`; `docs/checklist.md` owns implementation scope.
 
+## 2026-10-24: repository-local C# union skill
+
+The [C# union skill](../../.agents/skills/csharp-union-types/SKILL.md) is installed locally from
+`ANcpLua/csharp-union-types` revision `bb7b90d55f9d2bb039ab853c1d5fffc406b94d9e`. Its references,
+examples, verifier, probes, polyfills and license notices are bundled without nested Git metadata.
+It covers typed/generic unions, default/null handling and functional Result composition. The
+bundled report records 36 successful checks against .NET 11 RC2; that source-repository evidence
+is separate from Nami's own build, OTLP, DuckDB and NativeAOT verification.
+
 ## 2026-10-24: TypeScript 7.1 Beta
 
 Both contract emitters and the MCP host now pin `typescript` to `7.1.0-beta`, with matching

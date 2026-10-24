@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net10.0;net11.0</TargetFrameworks>
+    <OutputType Condition="'$(TargetFramework)' != 'netstandard2.0'">Exe</OutputType>
+    <LangVersion>15.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../polyfills/UnionAttribute.cs" Link="UnionAttribute.cs" />
+    <Compile Include="../../polyfills/IUnion.cs" Link="IUnion.cs" />
+  </ItemGroup>
+</Project>

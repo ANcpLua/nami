@@ -1,0 +1,4 @@
+<!-- Deliberately empty: stops MSBuild inheriting any Directory.Build.props from folders above, so the
+     probes build exactly as they did in an isolated temp directory. -->
+<Project>
+</Project>
