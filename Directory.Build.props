@@ -28,7 +28,7 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest</AnalysisLevel>
     <AnalysisMode>Recommended</AnalysisMode>
-    <WarningsAsErrors>$(WarningsAsErrors);CA1816;CA2000;CA2012;CA2016</WarningsAsErrors>
+    <WarningsAsErrors>$(WarningsAsErrors);CA1816;CA2000;CA2012;CA2016;CS8509;CS8655;CS8846</WarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(NamiAot)' == 'false'">
@@ -60,6 +60,6 @@
     <Copyright>Copyright (c) 2025-2026 ancplua</Copyright>
   </PropertyGroup>
 
-  <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/Shared.props"/>
+  <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/Shared.props" />
 
 </Project>

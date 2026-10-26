@@ -1,6 +1,3 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Nami.ApiKeys;
 
@@ -26,6 +23,5 @@ internal static class CollectorAuthExtensions
                 ProjectKeysParser.TryParse(options.ProjectKeys, out var keys, out _) ? keys : [])
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<OtlpApiKeyOptions>, OtlpApiKeyOptionsRules>();
-
     }
 }

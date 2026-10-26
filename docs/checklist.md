@@ -3,20 +3,17 @@
 The product requirements are [docs/prd/nami.md](prd/nami.md). This checklist records the migration
 approved on 2026-10-24: **TypeScript MCP + C# NativeAOT engine + TypeSpec contracts**, with
 compile-time instrumentation and explicit observation lifetime. Work only in this repository;
-qyl is a read-only implementation reference. The earlier ten-workstream plan remains in Git history
+No predecessor checkout is required. The earlier ten-workstream plan remains in Git history
 and is not an instruction to launch parallel agents or skip tests.
 
 ## Current implementation versus target
 
 TypeScript MCP now supervises the C# NativeAOT engine through bounded private JSONL streams.
 TypeSpec generates both language types, stream limits, configuration names and the six-tool catalog.
-The existing 38 EndToEnd cases pass through this stack, including OTLP, project isolation and restart.
+The EndToEnd suite exercises this stack, including OTLP, project isolation and restart.
 DuckDB.NET is 1.5.6.1; its bundled native engine is still 1.5.6.
 
-Full instrumentation-model proofs and actual Claude.ai/OpenAI distribution remain open. The user's
-current cleanup request explicitly forbids new test cases: existing suites are retained/adapted and
-run, while new PRD I/D test cases remain future work. See [integration/agent-refactor.md](integration/agent-refactor.md)
-for the saved request, code reductions, time fixes and current verification results.
+The product roadmap still includes full instrumentation-model proofs and hosted Claude.ai/OpenAI distribution. Those are product features, separate from the completed prototype test-harness integration. The current testing workflow and handover are documented in [testing.md](testing.md) and [integration/test-harness.md](integration/test-harness.md). Tests may be added or adapted for the behavior under change; old one-turn prohibitions are not repository policy.
 
 ## 1. Product and architecture documentation
 
@@ -32,7 +29,7 @@ for the saved request, code reductions, time fixes and current verification resu
 
 ## 2. Contract generation — `contracts/`, `internal/nami.contracts/`
 
-- [x] Restore/adapt qyl's TypeScript emitter for the six nami input/result pairs and shared types.
+- [x] Maintain the TypeScript emitter for the six nami input/result pairs and shared types.
       Output: `src/nami.mcp/src/contracts/generated/`; generated files are never edited by hand.
 - [x] Model private request/result framing and explicit project-bound state identifiers in TypeSpec.
       Preserve existing tool payloads and wire names unless the PRD explicitly changes them.
@@ -47,7 +44,7 @@ for the saved request, code reductions, time fixes and current verification resu
 
 `src/nami.mcp/` contains the implemented MCP adapter and supervisor.
 
-- [x] Build the MCP layer from qyl's TypeScript patterns using the official v2 SDK, strict typing,
+- [x] Build the MCP layer from the generated TypeSpec contracts using the official v2 SDK, strict typing,
       bounded agent results and the six existing read-only tools.
 - [x] Move MCP transport, registration, result framing and host-facing authentication to TypeScript.
       Remove C# MCP SDK/runtime dependency only when replacement behavior is proven.

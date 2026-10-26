@@ -3,6 +3,9 @@ using System;
 #if FUNCTIONAL_EXAMPLES
 FunctionalExamples.Verify();
 #endif
+#if CLOSED_HIERARCHY_EXAMPLES
+ClosedHierarchyExamples.Verify();
+#endif
 
 Outcome accepted = new Accepted("Stored");
 Outcome rejected = new Rejected("Invalid project");

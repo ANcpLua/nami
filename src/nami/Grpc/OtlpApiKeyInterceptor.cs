@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using Grpc.Core.Interceptors;
 using Microsoft.Extensions.Options;
 using Nami.ApiKeys;
@@ -23,21 +22,20 @@ internal sealed class OtlpApiKeyInterceptor(IOptions<OtlpApiKeyOptions> configur
         ServerCallContext context,
         UnaryServerMethod<TRequest, TResponse> continuation)
     {
-        if (_options.IsApiKeyMode)
-        {
-            if (OtlpApiKeyValidator.Resolve(
-                    context.RequestHeaders.GetValue(OtlpConstants.ApiKeyHeaderName), _options) is not { } credential)
-                throw new RpcException(new Status(StatusCode.Unauthenticated, "Missing or invalid API key."));
+        if (!_options.IsApiKeyMode)
+            return continuation(request, context);
+        if (OtlpApiKeyValidator.Resolve(
+                context.RequestHeaders.GetValue(OtlpConstants.ApiKeyHeaderName), _options) is not { } credential)
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Missing or invalid API key."));
 
-            if ((credential.Roles & ApiKeyRoles.Ingest) is ApiKeyRoles.None)
-                throw new RpcException(new Status(StatusCode.PermissionDenied, "The API key lacks the ingest role."));
+        if ((credential.Roles & ApiKeyRoles.Ingest) is ApiKeyRoles.None)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "The API key lacks the ingest role."));
 
-            if (ProjectIdentity.Conflicts(context.RequestHeaders.GetValue(ProjectIdentity.HeaderName),
-                    credential.ProjectId))
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "Project does not match the API key."));
+        if (ProjectIdentity.Conflicts(context.RequestHeaders.GetValue(ProjectIdentity.HeaderName),
+                credential.ProjectId))
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Project does not match the API key."));
 
-            AuthenticatedProject.Set(context, credential.ProjectId);
-        }
+        AuthenticatedProject.Set(context, credential.ProjectId);
 
         return continuation(request, context);
     }

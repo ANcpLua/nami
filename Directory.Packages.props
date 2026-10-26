@@ -1,64 +1,68 @@
 <Project>
-  <Import Project="Version.props"/>
+  <Import Project="Version.props" />
 
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
   <ItemGroup Label="OpenTelemetry">
-    <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryVersion)"/>
+    <PackageVersion Include="OpenTelemetry" Version="$(OpenTelemetryVersion)" />
     <!-- Transitive-only pin: nothing references it directly, but it must not float. -->
-    <PackageVersion Include="OpenTelemetry.Api" Version="$(OpenTelemetryVersion)"/>
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="$(OpenTelemetryVersion)"/>
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryVersion)"/>
+    <PackageVersion Include="OpenTelemetry.Api" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Platform">
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)" />
     <!-- Transitive-only pins: NuGet.Packaging and MSBuild in the build host and the ASP.NET Core
          packages bring both; the runtime line's servicing build carries the advisory fixes. -->
-    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="$(DotNetRuntimeVersion)"/>
-    <PackageVersion Include="System.Security.Cryptography.Xml" Version="$(DotNetRuntimeVersion)"/>
-    <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Compliance.Abstractions" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Compliance.Redaction" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="$(MicrosoftExtensionsVersion)"/>
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="$(DotNetRuntimeVersion)" />
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="$(DotNetRuntimeVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Compliance.Abstractions" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Compliance.Redaction" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common"
+                    Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization"
+                    Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring"
+                    Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="$(MicrosoftExtensionsVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Roslyn">
-    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(RoslynVersion)"/>
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersion)"/>
-    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Sources" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(RoslynVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersion)" />
+    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Sources" Version="$(ANcpLuaRoslynUtilitiesVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Storage and wire">
-    <PackageVersion Include="DuckDB.NET.Data.Full" Version="$(DuckDBVersion)"/>
-    <PackageVersion Include="Google.Protobuf" Version="$(GoogleProtobufVersion)"/>
-    <PackageVersion Include="Grpc.AspNetCore" Version="$(GrpcAspNetCoreVersion)"/>
-    <PackageVersion Include="Grpc.Net.Client" Version="$(GrpcAspNetCoreVersion)"/>
-    <PackageVersion Include="Grpc.Tools" Version="$(GrpcToolsVersion)"/>
+    <PackageVersion Include="DuckDB.NET.Data.Full" Version="$(DuckDBVersion)" />
+    <PackageVersion Include="Google.Protobuf" Version="$(GoogleProtobufVersion)" />
+    <PackageVersion Include="Grpc.AspNetCore" Version="$(GrpcAspNetCoreVersion)" />
+    <PackageVersion Include="Grpc.Net.Client" Version="$(GrpcAspNetCoreVersion)" />
+    <PackageVersion Include="Grpc.Tools" Version="$(GrpcToolsVersion)" />
   </ItemGroup>
 
 
   <ItemGroup Label="Build and test tooling">
-    <PackageVersion Include="Fallout.Common" Version="$(FalloutVersion)"/>
-    <PackageVersion Include="Fallout.Components" Version="$(FalloutVersion)"/>
-    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsVersion)"/>
-    <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)"/>
-    <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="$(NetFrameworkReferenceAssembliesVersion)"/>
-    <PackageVersion Include="Microsoft.Build" Version="[$(MicrosoftBuildVersion)]"/>
+    <PackageVersion Include="Fallout.Common" Version="$(FalloutVersion)" />
+    <PackageVersion Include="Fallout.Components" Version="$(FalloutVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)" />
+    <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies"
+                    Version="$(NetFrameworkReferenceAssembliesVersion)" />
+    <PackageVersion Include="Microsoft.Build" Version="[$(MicrosoftBuildVersion)]" />
     <!-- Transitive-only pin: Fallout brings NuGet.Packaging; keep it on the .NET SDK's NuGet line. -->
-    <PackageVersion Include="NuGet.Packaging" Version="$(NuGetPackagingVersion)"/>
+    <PackageVersion Include="NuGet.Packaging" Version="$(NuGetPackagingVersion)" />
   </ItemGroup>
   <ItemGroup Label="MCP">
-    <PackageVersion Include="ModelContextProtocol" Version="$(McpVersion)"/>
+    <PackageVersion Include="ModelContextProtocol" Version="$(McpVersion)" />
   </ItemGroup>
 </Project>

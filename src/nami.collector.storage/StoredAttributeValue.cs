@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Text.Encodings.Web;
 
 namespace Nami.Collector.Storage;
@@ -13,7 +10,7 @@ namespace Nami.Collector.Storage;
 ///     it at the write boundary and the API contract maps from it on read; neither serializes it.
 /// </summary>
 [JsonConverter(typeof(StoredAttributeValueJsonConverter))]
-internal abstract class StoredAttributeValue
+internal closed class StoredAttributeValue
 {
     private protected StoredAttributeValue()
     {
@@ -33,70 +30,17 @@ internal abstract class StoredAttributeValue
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
-    private static void WriteCanonical(Utf8JsonWriter writer, StoredAttributeValue? value)
+    internal static void WriteCanonical(Utf8JsonWriter writer, StoredAttributeValue? value)
     {
-        switch (value)
-        {
-            case null:
-                writer.WriteNullValue();
-                return;
-            case StringValue text:
-                writer.WriteStringValue(text.Value);
-                return;
-            case BoolValue flag:
-                writer.WriteBooleanValue(flag.Value);
-                return;
-            case ArrayValue array:
-                writer.WriteStartArray();
-                foreach (var item in array.Items) WriteCanonical(writer, item);
-                writer.WriteEndArray();
-                return;
-            case ObjectValue tagged:
-                WriteCanonical(writer, tagged.Value);
-                return;
-            default:
-                throw new InvalidOperationException("Unknown stored attribute value shape.");
-        }
+        if (value is null) writer.WriteNullValue();
+        else value.WriteCanonical(writer);
     }
 
-    private static void WriteCanonical(Utf8JsonWriter writer, StoredObjectValue value)
-    {
-        writer.WriteStartObject();
-        switch (value)
-        {
-            case StoredIntValue integer:
-                writer.WriteString("type", "int");
-                writer.WriteString("value", integer.Value.ToString(CultureInfo.InvariantCulture));
-                break;
-            case StoredDoubleValue number:
-                writer.WriteString("type", "double");
-                writer.WritePropertyName("value");
-                WriteEcmaScriptNumber(writer, number.Value);
-                break;
-            case StoredBytesValue bytes:
-                writer.WriteString("base64", Convert.ToBase64String(bytes.Base64.Span));
-                writer.WriteString("type", "bytes");
-                break;
-            case StoredKeyValueListValue map:
-                writer.WriteString("type", "kvlist");
-                writer.WriteStartObject("values");
-                foreach (var (key, nested) in map.Values.OrderBy(static item => item.Key, StringComparer.Ordinal))
-                {
-                    writer.WritePropertyName(key);
-                    WriteCanonical(writer, nested);
-                }
-
-                writer.WriteEndObject();
-                break;
-            default:
-                throw new InvalidOperationException("Unknown stored attribute object shape.");
-        }
-
-        writer.WriteEndObject();
-    }
+    internal abstract void WriteCanonical(Utf8JsonWriter writer);
+    internal abstract void WriteJson(Utf8JsonWriter writer, JsonSerializerOptions options);
 
     // ECMAScript Number::toString, so a canonical float reads the same in every language.
-    private static void WriteEcmaScriptNumber(Utf8JsonWriter writer, double value)
+    internal static void WriteEcmaScriptNumber(Utf8JsonWriter writer, double value)
     {
         if (double.IsNaN(value))
         {
@@ -116,7 +60,7 @@ internal abstract class StoredAttributeValue
             return;
         }
 
-        if (value == 0)
+        if (value is 0)
         {
             writer.WriteRawValue("0", true);
             return;
@@ -125,26 +69,28 @@ internal abstract class StoredAttributeValue
         var round = Math.Abs(value).ToString("R", CultureInfo.InvariantCulture);
         var exponentIndex = round.IndexOfAny(['E', 'e']);
         var mantissa = exponentIndex < 0 ? round : round[..exponentIndex];
-        var exponent = exponentIndex < 0 ? 0 : int.Parse(round[(exponentIndex + 1)..], CultureInfo.InvariantCulture);
+        var exponent = 0;
+        if (exponentIndex >= 0 && !int.TryParse(round.AsSpan(exponentIndex + 1),
+                NumberStyles.Integer, CultureInfo.InvariantCulture, out exponent))
+            throw new FormatException("The round-trip double exponent is not an integer.");
         var pointIndex = mantissa.IndexOf('.', StringComparison.Ordinal);
         var integerPart = pointIndex < 0 ? mantissa : mantissa[..pointIndex];
         var fraction = pointIndex < 0 ? "" : mantissa[(pointIndex + 1)..];
         var digits = (integerPart + fraction).TrimStart('0');
         var n = integerPart.TrimStart('0').Length + exponent;
-        if (integerPart.TrimStart('0').Length == 0)
+        if (integerPart.TrimStart('0').Length is 0)
             n = -(fraction.Length - fraction.TrimStart('0').Length) + exponent;
         digits = digits.TrimEnd('0');
         var k = digits.Length;
-        string text;
-        if (k <= n && n <= 21) text = digits + new string('0', n - k);
-        else if (n is > 0 and <= 21) text = digits[..n] + "." + digits[n..];
-        else if (n is > -6 and <= 0) text = "0." + new string('0', -n) + digits;
-        else
+        var e = n - 1;
+        var text = n switch
         {
-            var e = n - 1;
-            text = (k == 1 ? digits : digits[..1] + "." + digits[1..]) + "e" + (e >= 0 ? "+" : "-") +
-                   Math.Abs(e).ToString(CultureInfo.InvariantCulture);
-        }
+            <= 21 when k <= n => digits + new string('0', n - k),
+            > 0 and <= 21 => digits[..n] + "." + digits[n..],
+            > -6 and <= 0 => "0." + new string('0', -n) + digits,
+            _ => (k == 1 ? digits : digits[..1] + "." + digits[1..]) + "e" + (e >= 0 ? "+" : "-") +
+                 Math.Abs(e).ToString(CultureInfo.InvariantCulture)
+        };
 
         writer.WriteRawValue((value < 0 ? "-" : "") + text, true);
     }
@@ -152,73 +98,47 @@ internal abstract class StoredAttributeValue
     internal sealed class StringValue(string value) : StoredAttributeValue
     {
         public string Value { get; } = value;
+        internal override void WriteCanonical(Utf8JsonWriter writer) => writer.WriteStringValue(Value);
+        internal override void WriteJson(Utf8JsonWriter writer, JsonSerializerOptions options) => writer.WriteStringValue(Value);
     }
 
     internal sealed class BoolValue(bool value) : StoredAttributeValue
     {
         public bool Value { get; } = value;
+        internal override void WriteCanonical(Utf8JsonWriter writer) => writer.WriteBooleanValue(Value);
+        internal override void WriteJson(Utf8JsonWriter writer, JsonSerializerOptions options) => writer.WriteBooleanValue(Value);
     }
 
     internal sealed class ArrayValue(IReadOnlyList<StoredAttributeValue?> items) : StoredAttributeValue
     {
         public IReadOnlyList<StoredAttributeValue?> Items { get; } = items;
+        internal override void WriteCanonical(Utf8JsonWriter writer)
+        {
+            writer.WriteStartArray();
+            foreach (var item in Items) WriteCanonical(writer, item);
+            writer.WriteEndArray();
+        }
+
+        internal override void WriteJson(Utf8JsonWriter writer, JsonSerializerOptions options)
+        {
+            writer.WriteStartArray();
+            foreach (var item in Items)
+            {
+                if (item is null) writer.WriteNullValue();
+                else item.WriteJson(writer, options);
+            }
+            writer.WriteEndArray();
+        }
     }
 
     internal sealed class ObjectValue(StoredObjectValue value) : StoredAttributeValue
     {
         public StoredObjectValue Value { get; } = value;
+        internal override void WriteCanonical(Utf8JsonWriter writer) => Value.WriteCanonical(writer);
+        internal override void WriteJson(Utf8JsonWriter writer, JsonSerializerOptions options) =>
+            JsonSerializer.Serialize(writer, Value, options.GetTypeInfo<StoredObjectValue>());
     }
-}
 
-/// <summary>The tagged forms of a stored attribute value, discriminated by <c>type</c>.</summary>
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
-[JsonDerivedType(typeof(StoredIntValue), "int")]
-[JsonDerivedType(typeof(StoredDoubleValue), "double")]
-[JsonDerivedType(typeof(StoredBytesValue), "bytes")]
-[JsonDerivedType(typeof(StoredKeyValueListValue), "kvlist")]
-internal abstract class StoredObjectValue
-{
-    private protected StoredObjectValue()
-    {
-    }
-}
-
-/// <summary>An exact int64 or a float64: a metric or exemplar measurement, or a numeric attribute value.</summary>
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
-[JsonDerivedType(typeof(StoredIntValue), "int")]
-[JsonDerivedType(typeof(StoredDoubleValue), "double")]
-internal abstract class StoredNumberValue : StoredObjectValue
-{
-    private protected StoredNumberValue()
-    {
-    }
-}
-
-internal sealed class StoredIntValue : StoredNumberValue
-{
-    // Decimal text: an int64 outside ±2^53 must survive JSON readers that parse numbers as float64.
-    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString)]
-    [JsonPropertyName("value")]
-    public required long Value { get; init; }
-}
-
-internal sealed class StoredDoubleValue : StoredNumberValue
-{
-    [JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]
-    [JsonPropertyName("value")]
-    public required double Value { get; init; }
-}
-
-internal sealed class StoredBytesValue : StoredObjectValue
-{
-    [JsonPropertyName("base64")] public required ReadOnlyMemory<byte> Base64 { get; init; }
-}
-
-internal sealed class StoredKeyValueListValue : StoredObjectValue
-{
-    /// <summary>Entries in ordinal key order; the persisted bytes depend on it.</summary>
-    [JsonPropertyName("values")]
-    public required IReadOnlyDictionary<string, StoredAttributeValue?> Values { get; init; }
 }
 
 internal sealed class StoredAttributeValueJsonConverter : JsonConverter<StoredAttributeValue>
@@ -248,36 +168,73 @@ internal sealed class StoredAttributeValueJsonConverter : JsonConverter<StoredAt
                     options.GetTypeInfo<StoredObjectValue>());
                 return value is null ? null : new StoredAttributeValue.ObjectValue(value);
             }
+            case JsonTokenType.None:
+            case JsonTokenType.EndObject:
+            case JsonTokenType.EndArray:
+            case JsonTokenType.PropertyName:
+            case JsonTokenType.Comment:
+            case JsonTokenType.Number:
             default:
                 throw new JsonException($"A stored attribute value cannot start with token '{reader.TokenType}'.");
         }
     }
 
-    public override void Write(Utf8JsonWriter writer, StoredAttributeValue value, JsonSerializerOptions options)
-    {
-        switch (value)
-        {
-            case StoredAttributeValue.StringValue text:
-                writer.WriteStringValue(text.Value);
-                return;
-            case StoredAttributeValue.BoolValue flag:
-                writer.WriteBooleanValue(flag.Value);
-                return;
-            case StoredAttributeValue.ArrayValue array:
-                writer.WriteStartArray();
-                foreach (var item in array.Items)
-                {
-                    if (item is null) writer.WriteNullValue();
-                    else Write(writer, item, options);
-                }
+    public override void Write(Utf8JsonWriter writer, StoredAttributeValue value, JsonSerializerOptions options) =>
+        value.WriteJson(writer, options);
+}
 
-                writer.WriteEndArray();
-                return;
-            case StoredAttributeValue.ObjectValue tagged:
-                JsonSerializer.Serialize(writer, tagged.Value, options.GetTypeInfo<StoredObjectValue>());
-                return;
-            default:
-                throw new JsonException("Unknown stored attribute value shape.");
+internal partial class StoredObjectValue
+{
+    internal abstract void WriteCanonical(Utf8JsonWriter writer);
+}
+
+internal sealed partial class StoredIntValue
+{
+    internal override void WriteCanonical(Utf8JsonWriter writer)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("type", "int");
+        writer.WriteString("value", Value.ToString(CultureInfo.InvariantCulture));
+        writer.WriteEndObject();
+    }
+}
+
+internal sealed partial class StoredDoubleValue
+{
+    internal override void WriteCanonical(Utf8JsonWriter writer)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("type", "double");
+        writer.WritePropertyName("value");
+        StoredAttributeValue.WriteEcmaScriptNumber(writer, Value);
+        writer.WriteEndObject();
+    }
+}
+
+internal sealed partial class StoredBytesValue
+{
+    internal override void WriteCanonical(Utf8JsonWriter writer)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("base64", Convert.ToBase64String(Base64.Span));
+        writer.WriteString("type", "bytes");
+        writer.WriteEndObject();
+    }
+}
+
+internal sealed partial class StoredKeyValueListValue
+{
+    internal override void WriteCanonical(Utf8JsonWriter writer)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("type", "kvlist");
+        writer.WriteStartObject("values");
+        foreach (var (key, nested) in Values.OrderBy(static item => item.Key, StringComparer.Ordinal))
+        {
+            writer.WritePropertyName(key);
+            StoredAttributeValue.WriteCanonical(writer, nested);
         }
+        writer.WriteEndObject();
+        writer.WriteEndObject();
     }
 }

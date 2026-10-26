@@ -11,9 +11,9 @@
 
   <PropertyGroup Label="Platform">
     <!-- One .NET servicing line for every runtime package, including the transitive
-         System.Security.Cryptography pins (10.0.13 carries the fixes for the advisories of 2026-10-13). -->
+         System.Security.Cryptography pins (10.0.14 includes the out-of-band security fixes of 2026-10-25). -->
     <!-- renovate: datasource=nuget depName=Microsoft.AspNetCore.OpenApi -->
-    <DotNetRuntimeVersion>10.0.13</DotNetRuntimeVersion>
+    <DotNetRuntimeVersion>10.0.14</DotNetRuntimeVersion>
     <!-- renovate: datasource=nuget depName=Microsoft.Extensions.Http.Resilience -->
     <MicrosoftExtensionsVersion>10.11.0</MicrosoftExtensionsVersion>
     <!-- Transitive-only pin. Microsoft.AspNetCore.OpenApi 10.0.13 declares Microsoft.OpenApi

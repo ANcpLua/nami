@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 namespace Nami.Api.Contracts.OTel.Metrics;
 
 [JsonConverter(typeof(MetricNumberValueJsonConverter))]
-public union MetricNumberValue(Nami.Api.Contracts.Common.AttributeIntValue, Nami.Api.Contracts.Common.AttributeDoubleValue);
+public readonly union MetricNumberValue(Nami.Api.Contracts.Common.AttributeIntValue, Nami.Api.Contracts.Common.AttributeDoubleValue);
 
 public sealed class MetricNumberValueJsonConverter : JsonConverter<MetricNumberValue>
 {
@@ -27,22 +27,18 @@ public sealed class MetricNumberValueJsonConverter : JsonConverter<MetricNumberV
 
     public override void Write(Utf8JsonWriter writer, MetricNumberValue value, JsonSerializerOptions options)
     {
-        switch (value.Value)
+        System.Text.Json.Serialization.Metadata.JsonTypeInfo typeInfo = value switch
         {
-            case Nami.Api.Contracts.Common.AttributeIntValue typed:
-                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<Nami.Api.Contracts.Common.AttributeIntValue>());
-                return;
-            case Nami.Api.Contracts.Common.AttributeDoubleValue typed:
-                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<Nami.Api.Contracts.Common.AttributeDoubleValue>());
-                return;
-            default:
-                throw new InvalidOperationException("An empty MetricNumberValue cannot be serialized.");
-        }
+            Nami.Api.Contracts.Common.AttributeIntValue => options.GetTypeInfo<Nami.Api.Contracts.Common.AttributeIntValue>(),
+            Nami.Api.Contracts.Common.AttributeDoubleValue => options.GetTypeInfo<Nami.Api.Contracts.Common.AttributeDoubleValue>(),
+            null => throw new InvalidOperationException("An empty MetricNumberValue cannot be serialized.")
+        };
+        JsonSerializer.Serialize(writer, value.Value, typeInfo);
     }
 }
 
 [JsonConverter(typeof(MetricPointDataJsonConverter))]
-public union MetricPointData(MetricNumberPointData, MetricHistogramPointData, MetricExponentialHistogramPointData, MetricSummaryPointData);
+public readonly union MetricPointData(MetricNumberPointData, MetricHistogramPointData, MetricExponentialHistogramPointData, MetricSummaryPointData);
 
 public sealed class MetricPointDataJsonConverter : JsonConverter<MetricPointData>
 {
@@ -62,28 +58,21 @@ public sealed class MetricPointDataJsonConverter : JsonConverter<MetricPointData
 
     public override void Write(Utf8JsonWriter writer, MetricPointData value, JsonSerializerOptions options)
     {
-        switch (value.Value)
+        System.Text.Json.Serialization.Metadata.JsonTypeInfo typeInfo = value switch
         {
-            case MetricNumberPointData typed:
-                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<MetricNumberPointData>());
-                return;
-            case MetricHistogramPointData typed:
-                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<MetricHistogramPointData>());
-                return;
-            case MetricExponentialHistogramPointData typed:
-                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<MetricExponentialHistogramPointData>());
-                return;
-            case MetricSummaryPointData typed:
-                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<MetricSummaryPointData>());
-                return;
-            default:
-                throw new InvalidOperationException("An empty MetricPointData cannot be serialized.");
-        }
+            MetricNumberPointData => options.GetTypeInfo<MetricNumberPointData>(),
+            MetricHistogramPointData => options.GetTypeInfo<MetricHistogramPointData>(),
+            MetricExponentialHistogramPointData => options.GetTypeInfo<MetricExponentialHistogramPointData>(),
+            MetricSummaryPointData => options.GetTypeInfo<MetricSummaryPointData>(),
+            null => throw new InvalidOperationException("An empty MetricPointData cannot be serialized.")
+        };
+        JsonSerializer.Serialize(writer, value.Value, typeInfo);
     }
 }
 
 public sealed class MetricExemplar
 {
+    public const ulong TimeUnixNanoMinimum = 0;
     [JsonConverter(typeof(global::Nami.Api.Contracts.UInt64StringConverter))]
     [JsonPropertyName("time_unix_nano")]
     public required ulong TimeUnixNano { get; init; }
@@ -110,6 +99,7 @@ public sealed class MetricNumberPointData
 
 public sealed class MetricHistogramPointData
 {
+    public const ulong CountMinimum = 0;
     [JsonPropertyName("kind")]
     public string Kind => "histogram";
     [JsonConverter(typeof(global::Nami.Api.Contracts.UInt64StringConverter))]
@@ -147,6 +137,8 @@ public sealed class MetricExponentialBuckets
 
 public sealed class MetricExponentialHistogramPointData
 {
+    public const ulong CountMinimum = 0;
+    public const ulong ZeroCountMinimum = 0;
     [JsonPropertyName("kind")]
     public string Kind => "exponential_histogram";
     [JsonConverter(typeof(global::Nami.Api.Contracts.UInt64StringConverter))]
@@ -194,6 +186,7 @@ public sealed class MetricQuantileValue
 
 public sealed class MetricSummaryPointData
 {
+    public const ulong CountMinimum = 0;
     [JsonPropertyName("kind")]
     public string Kind => "summary";
     [JsonConverter(typeof(global::Nami.Api.Contracts.UInt64StringConverter))]

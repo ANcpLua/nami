@@ -1,6 +1,3 @@
-using System;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Nami.ApiKeys;
@@ -25,10 +22,7 @@ internal static class AuthenticatedProject
         if (context.Items.TryGetValue(s_httpKey, out var value) && value is string projectId)
             return projectId;
 
-        if (context.RequestServices.GetService<IOptions<OtlpApiKeyOptions>>()?.Value.IsApiKeyMode == true)
-            throw new InvalidOperationException("Authenticated project scope is missing.");
-
-        return null;
+        return context.RequestServices.GetService<IOptions<OtlpApiKeyOptions>>()?.Value.IsApiKeyMode == true ? throw new InvalidOperationException("Authenticated project scope is missing.") : null;
     }
 
     public static void Set(ServerCallContext context, string projectId)
@@ -41,9 +35,6 @@ internal static class AuthenticatedProject
         if (context.UserState.TryGetValue(s_grpcKey, out var value) && value is string projectId)
             return projectId;
 
-        if (options?.IsApiKeyMode == true)
-            throw new InvalidOperationException("Authenticated project scope is missing.");
-
-        return null;
+        return options?.IsApiKeyMode == true ? throw new InvalidOperationException("Authenticated project scope is missing.") : null;
     }
 }

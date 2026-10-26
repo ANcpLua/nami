@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -111,17 +106,16 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         var columns = new List<DuckDbColumnInfo>();
         var ordinal = 0;
 
-        foreach (var prop in GetPublicMappedProperties(typeSymbol))
+        foreach (var columnInfo in GetPublicMappedProperties(typeSymbol)
+                     .Select(prop => ExtractColumnInfo(prop, ordinal, columnAttributeType)))
         {
-            var columnInfo = ExtractColumnInfo(prop, ordinal, columnAttributeType);
-            if (columnInfo is not null)
-            {
-                columns.Add(columnInfo.Value);
-                // Reader ordinals follow SelectColumnList, which includes server-generated columns
-                // excluded from INSERT. Advancing only for insert columns aliases every subsequent
-                // generated column onto the preceding ordinal.
-                ordinal++;
-            }
+            if (columnInfo is null)
+                continue;
+            columns.Add(columnInfo.Value);
+            // Reader ordinals follow SelectColumnList, which includes server-generated columns
+            // excluded from INSERT. Advancing only for insert columns aliases every subsequent
+            // generated column onto the preceding ordinal.
+            ordinal++;
         }
 
         return new DuckDbTableInfo(
@@ -195,7 +189,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         string tableName,
         string parameterSet,
         string propertyName,
-        IReadOnlyDictionary<string, DuckDbColumnInfo> columnsByProperty)
+        Dictionary<string, DuckDbColumnInfo> columnsByProperty)
     {
         if (columnsByProperty.TryGetValue(propertyName, out var column))
             return column;
@@ -237,7 +231,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
     private static string ResolveIndexColumn(
         string tableName,
         string configuredColumn,
-        IReadOnlyDictionary<string, DuckDbColumnInfo> columnsByProperty)
+        Dictionary<string, DuckDbColumnInfo> columnsByProperty)
     {
         if (columnsByProperty.TryGetValue(configuredColumn, out var propertyColumn))
             return propertyColumn.ColumnName;
@@ -362,16 +356,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
 
     private static AttributeData? FindAttribute(ISymbol symbol, INamedTypeSymbol? attributeType)
     {
-        if (attributeType is null)
-            return null;
-
-        foreach (var attribute in symbol.GetAttributes())
-        {
-            if (attribute.AttributeClass.IsEqualTo(attributeType))
-                return attribute;
-        }
-
-        return null;
+        return attributeType is null ? null : symbol.GetAttributes().FirstOrDefault(attribute => attribute.AttributeClass.IsEqualTo(attributeType));
     }
 
     private static string ToSnakeCase(string name)

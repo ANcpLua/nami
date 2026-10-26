@@ -1,6 +1,7 @@
 # Nami contracts
 
-The TypeSpec sources define Nami's six read-only tool inputs and results, the health report, the private engine protocol,
+The TypeSpec sources define Nami's six read-only tool inputs and results, the health report, the private engine
+protocol,
 and the OpenTelemetry projections used by ingestion and storage. No REST analysis route or
 write-tool contract is emitted. The only HTTP route described here is `/health`.
 
@@ -16,8 +17,8 @@ compiles TypeSpec with warnings as errors, and emits these committed artifacts:
 
 - `../internal/nami.contracts/Nami/`: C# models, source-generated serializers, portable validation
   schemas, and the semantic contract revision.
-- `../src/nami.mcp/src/contracts/generated/`: TypeScript model types (`api.ts`), JSON types
-  (`json.ts`) and generated naming conversions (`serialization.ts`), the normalized schemas consumed
+- `../src/nami.mcp/src/contracts/generated/`: TypeScript model types (`api.ts`), JSON types (`json.ts`) and generated
+  naming conversions (`serialization.ts`), the normalized schemas consumed
   by MCP, tool catalog, shared protocol limits, configuration names and contract revision.
 - `json-schema/<tool>.input.json` and `<tool>.result.json`: the twelve self-contained wire schemas
   consumed by the MCP host and by downstream type generators.

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Nami.Collector.Storage;
 
 /// <summary>
@@ -14,28 +12,23 @@ namespace Nami.Collector.Storage;
                      JsonNumberHandling.AllowNamedFloatingPointLiterals,
     AllowOutOfOrderMetadataProperties = true,
     WriteIndented = false)]
-[JsonSerializable(typeof(TelemetrySnapshot))]
 [JsonSerializable(typeof(List<SpanEventJson>), TypeInfoPropertyName = "SpanEventJsonList")]
 [JsonSerializable(typeof(List<SpanLinkJson>), TypeInfoPropertyName = "SpanLinkJsonList")]
-[JsonSerializable(typeof(List<ResourceEntityRefIngestionRecord>),
-    TypeInfoPropertyName = "ResourceEntityRefIngestionRecordList")]
-[JsonSerializable(typeof(IReadOnlyList<ResourceEntityRefIngestionRecord>),
-    TypeInfoPropertyName = "ResourceEntityRefIngestionRecordReadOnlyList")]
+[JsonSerializable(typeof(List<StoredResourceEntityRef>),
+    TypeInfoPropertyName = "StoredResourceEntityRefList")]
+[JsonSerializable(typeof(IReadOnlyList<StoredResourceEntityRef>),
+    TypeInfoPropertyName = "StoredResourceEntityRefReadOnlyList")]
 [JsonSerializable(typeof(StoredAttributeValue))]
-[JsonSerializable(typeof(StoredObjectValue))]
-[JsonSerializable(typeof(StoredIntValue))]
-[JsonSerializable(typeof(StoredDoubleValue))]
-[JsonSerializable(typeof(StoredBytesValue))]
-[JsonSerializable(typeof(StoredKeyValueListValue))]
-[JsonSerializable(typeof(StoredMetricPointData))]
 [JsonSerializable(typeof(IReadOnlyList<StoredExemplar>), TypeInfoPropertyName = "StoredExemplars")]
 [JsonSerializable(typeof(IReadOnlyList<StoredAttribute>), TypeInfoPropertyName = "StoredAttributes")]
-[JsonSerializable(typeof(HistoricalMetricProjection))]
 [JsonSerializable(typeof(IReadOnlyList<string>), TypeInfoPropertyName = "IReadOnlyListString")]
 [JsonSerializable(typeof(IReadOnlyList<double>), TypeInfoPropertyName = "Doubles")]
 [JsonSerializable(typeof(IReadOnlyList<ulong>), TypeInfoPropertyName = "Counts")]
-internal partial class StorageJsonSerializerContext : JsonSerializerContext
+internal partial class StorageJsonSerializerContext
 {
     internal static string? SerializeResourceEntityRefs(IReadOnlyList<ResourceEntityRefIngestionRecord> values) =>
-        values.Count == 0 ? null : JsonSerializer.Serialize(values, Default.ResourceEntityRefIngestionRecordReadOnlyList);
+        values.Count is 0
+            ? null
+            : JsonSerializer.Serialize(values.Select(IngestionMappings.ToStored).ToArray(),
+                Default.StoredResourceEntityRefReadOnlyList);
 }

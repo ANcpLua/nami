@@ -10,6 +10,8 @@ namespace Nami.Api.Contracts.OTel.Resource;
 
 public sealed class Resource
 {
+    public const long DroppedAttributesCountMinimum = 0;
+    public const long DroppedAttributesCountMaximum = 9007199254740991;
     [JsonPropertyName("service_name")]
     public required string ServiceName { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

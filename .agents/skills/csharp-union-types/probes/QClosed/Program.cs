@@ -35,6 +35,9 @@ public sealed record MyMid : Mid;
 #if DERIVE_CLOSED
 public sealed record Foreign : Transportation;      // expect CS9382
 #endif
+#if DERIVE_CLOSED_MID
+public sealed record ForeignBranch : ClosedBranch;  // expect CS9382
+#endif
 #if ABSTRACT_CLOSED
 public abstract closed record Bad;                  // expect CS9384
 #endif

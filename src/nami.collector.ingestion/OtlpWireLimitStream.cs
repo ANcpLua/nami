@@ -1,8 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Nami.Collector.Ingestion;
 
 /// <summary>
@@ -39,8 +34,7 @@ internal sealed class OtlpWireLimitStream(Stream inner, int limit) : Stream
     private int Count(int count)
     {
         _read += count;
-        if (_read > limit) throw new OtlpPayloadTooLargeException();
-        return count;
+        return _read > limit ? throw new OtlpPayloadTooLargeException() : count;
     }
 
     // Kestrel owns the underlying request body; disposing this wrapper must leave it open.

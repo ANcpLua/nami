@@ -1,10 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
-using ANcpLua.Roslyn.Utilities;
 
 namespace Nami.Collector.Storage.Generators;
 
@@ -197,5 +191,5 @@ internal static class DuckDbSchemaEmitter
     private static string Bool(bool value) => value ? "true" : "false";
 
     private static string Escape(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+        value.Replace("\\", @"\\").Replace("\"", "\\\"");
 }

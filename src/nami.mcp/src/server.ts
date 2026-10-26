@@ -1,23 +1,33 @@
+import { validateToolCall, type ToolName, type ValidatedToolCall } from "./contracts/generated/tool-contracts.js";
 import { McpServer, fromJsonSchema, type JsonSchemaType, type CallToolResult, type ServerContext, type StandardSchemaWithJSON } from "@modelcontextprotocol/server";
 import type { ContractDefinitions } from "./contracts/generated/definitions.js";
 import schemas from "./contracts/generated/contract-schemas.json" with { type: "json" };
 import { CONTRACT_REVISION, PRODUCT_VERSION, TOOLS } from "./contracts/generated/manifest.js";
 import { EngineError, type Engine } from "./engine.js";
 
-// qyl's generated Standard Schema and tool-call frame, without its unrelated tools or stores.
+// Raw arguments remain unknown until the generated schema accepts them.
 const rejected = new WeakSet<object>();
-function inputSchema<T>(document: JsonSchemaType): StandardSchemaWithJSON<T, T> {
+const accepted = new WeakMap<object, ValidatedToolCall>();
+function inputSchema<T>(name: ToolName, document: JsonSchemaType): StandardSchemaWithJSON<T, T> {
   const schema = fromJsonSchema<T>(document);
   return { ...schema, "~standard": { ...schema["~standard"], async validate(value) {
     const result = await schema["~standard"].validate(value);
     if (typeof value === "object" && value !== null) {
-      if (result.issues) rejected.add(value); else rejected.delete(value);
+      if (result.issues) { rejected.add(value); accepted.delete(value); }
+      else {
+        rejected.delete(value);
+        const call = validateToolCall(name, result.value, () => true);
+        if (call) {
+          accepted.set(value, call);
+          if (typeof result.value === "object" && result.value !== null) accepted.set(result.value, call);
+        }
+      }
     }
     return result;
   } } };
 }
 const definitions = TOOLS.map((tool) => ({ ...tool,
-  inputSchema: inputSchema<ContractDefinitions[typeof tool.input]>(schemas[tool.input] as JsonSchemaType),
+  inputSchema: inputSchema<ContractDefinitions[typeof tool.input]>(tool.name, schemas[tool.input] as JsonSchemaType),
   outputSchema: fromJsonSchema<ContractDefinitions[typeof tool.output]>(schemas[tool.output] as JsonSchemaType) }));
 
 export function createServer(engine: Engine, credential: string | null = null): McpServer {
@@ -32,8 +42,10 @@ export function createServer(engine: Engine, credential: string | null = null): 
     let data: Record<string, unknown>;
     let error: boolean;
     try {
-      const reply = await engine.request("call", name, input, credential, context.mcpReq.signal,
-        text("traceparent"), text("tracestate"));
+      const call = isRecord(input) ? accepted.get(input) : undefined;
+      const reply = call
+        ? await engine.call(call, credential, context.mcpReq.signal, text("traceparent"), text("tracestate"))
+        : await engine.request("call", name, input, credential, context.mcpReq.signal, text("traceparent"), text("tracestate"));
       if (!isRecord(reply.result)) throw new Error("Engine returned a non-object tool result.");
       data = reply.result; error = reply.isError;
     } catch (failure) {

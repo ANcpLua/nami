@@ -1,8 +1,4 @@
-using System;
-using System.IO;
 using System.Text.Json;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nami.Tests.Infrastructure;
 
 namespace Nami.IntegrationTests;
@@ -12,7 +8,10 @@ namespace Nami.IntegrationTests;
 public sealed class ContractStatusTests(TestContext context)
 {
     [TestCleanup]
-    public void Cleanup() => InspectionFixture.Cleanup(context);
+    public void Cleanup()
+    {
+        InspectionFixture.Cleanup(context);
+    }
 
     private async Task<(JsonDocument Data, string Root, string State)> RunAsync(string scenario)
     {
@@ -38,7 +37,8 @@ public sealed class ContractStatusTests(TestContext context)
     [DataRow("docs", "GENERATION_REQUIRED", 1, "UNCHANGED")]
     [DataRow("metadata", "CURRENT", 0, "UNCHANGED")]
     [DataRow("untracked", "CURRENT", 0, "UNAVAILABLE")]
-    public async Task ContractStatus_ReportsChangesAndRestoresOutputs(string scenario, string status, int exitCode, string wire)
+    public async Task ContractStatus_ReportsChangesAndRestoresOutputs(string scenario, string status, int exitCode,
+        string wire)
     {
         var (data, _, _) = await RunAsync(scenario);
         using (data)
@@ -51,10 +51,16 @@ public sealed class ContractStatusTests(TestContext context)
             Assert.AreEqual("NOT_ASSESSED", report.GetProperty("wire").GetProperty("quality").GetString());
             Assert.IsTrue(data.RootElement.GetProperty("restored").GetBoolean());
             Assert.AreEqual(2, data.RootElement.GetProperty("calls").GetInt32());
-            if (scenario == "add")
-                Assert.Contains("/Widget/properties/count", report.GetProperty("wire").GetProperty("changes").GetRawText());
-            if (scenario == "remove")
-                Assert.Contains("original.cs", report.GetProperty("fileChanges").GetRawText());
+            switch (scenario)
+            {
+                case "add":
+                    {
+                        Assert.Contains("/Widget/properties/count",
+                            report.GetProperty("wire").GetProperty("changes").GetRawText());
+                    }
+                    break;
+                case "remove": Assert.Contains("original.cs", report.GetProperty("fileChanges").GetRawText()); break;
+            }
         }
     }
 

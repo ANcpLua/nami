@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 
 namespace Nami.Collector.Ingestion;
@@ -30,5 +29,5 @@ internal static class NamiCollectorMetrics
         new KeyValuePair<string, object?>(ErrorAttributes.Type, category));
 
     internal static void MissingServiceName() => s_missingService.Add(1);
-    private static string Namespace(string key) => key.IndexOf('.') is var i && i >= 0 ? key[..i] : key;
+    private static string Namespace(string key) => key.IndexOf('.', StringComparison.Ordinal) is var i && i >= 0 ? key[..i] : key;
 }

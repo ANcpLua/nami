@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-
 namespace Nami.Collector.Ingestion;
 
 /// <summary>
@@ -61,8 +56,8 @@ internal static class OtlpJsonIdNormalizer
 
                 case JsonTokenType.String:
                     var value = ReadString(ref reader);
-                    var expectedBytes = pendingProperty is { } property
-                        ? ExpectedIdByteLength(path, property)
+                    var expectedBytes = pendingProperty is not null
+                        ? ExpectedIdByteLength(path, pendingProperty)
                         : 0;
                     if (expectedBytes > 0)
                         WriteIdAsBase64(writer, value, expectedBytes, pendingProperty!);
@@ -104,6 +99,10 @@ internal static class OtlpJsonIdNormalizer
                 case JsonTokenType.EndArray:
                     writer.WriteEndArray();
                     PopContainerPath(path, containerSegments);
+                    break;
+                case JsonTokenType.None:
+                case JsonTokenType.Comment:
+                default:
                     break;
             }
 
@@ -183,7 +182,9 @@ internal static class OtlpJsonIdNormalizer
     }
 
     private static int ReadHex(ReadOnlySpan<byte> utf8Hex) =>
-        int.Parse(utf8Hex, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
+        int.TryParse(utf8Hex, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : throw new FormatException("Expected four hexadecimal digits in a JSON Unicode escape.");
 
     private static void PushContainerPath(
         List<string> path,
@@ -215,13 +216,10 @@ internal static class OtlpJsonIdNormalizer
                 return SpanIdBytes;
         }
 
-        if (IsTraceLinkPath(path) || IsLogRecordPath(path) || IsMetricExemplarPath(path))
-        {
-            if (IsName(propertyName, "traceId", "trace_id")) return TraceIdBytes;
-            if (IsName(propertyName, "spanId", "span_id")) return SpanIdBytes;
-        }
-
-        return 0;
+        if (!(IsTraceLinkPath(path) || IsLogRecordPath(path) || IsMetricExemplarPath(path)))
+            return 0;
+        if (IsName(propertyName, "traceId", "trace_id")) return TraceIdBytes;
+        return IsName(propertyName, "spanId", "span_id") ? SpanIdBytes : 0;
     }
 
     private static bool IsTraceSpanPath(IReadOnlyList<string> path) =>

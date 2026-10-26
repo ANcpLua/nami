@@ -5,13 +5,12 @@ namespace Nami.Tests.Infrastructure;
 
 internal static class OtlpData
 {
-
     internal static JsonObject Attribute(string key, string value)
     {
         return new JsonObject { ["key"] = key, ["value"] = new JsonObject { ["stringValue"] = value } };
     }
 
-    internal static JsonObject Resource(string? service, string project)
+    private static JsonObject Resource(string? service, string project)
     {
         var attrs = new JsonArray(Attribute("nami.project.id", project));
         if (service is not null) attrs.Add((JsonNode)Attribute("service.name", service));

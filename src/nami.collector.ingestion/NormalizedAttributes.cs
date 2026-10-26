@@ -1,42 +1,76 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Nami.Api.Contracts.OTel.Metrics;
-using Attribute = Nami.Api.Contracts.Common.Attribute;
+using System.Collections;
+using Nami.Collector.Ingestion.Models;
+using Attribute = Nami.Collector.Ingestion.Models.Attribute;
 
 namespace Nami.Collector.Ingestion;
 
-/// <summary>Normalization provenance, separate from producer attributes and their values.</summary>
-internal sealed record AttributeRename(string OriginalKey, string? CanonicalKey);
-
-internal sealed class NormalizedAttributes() : Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal)
+internal sealed partial record NormalizedAttributes : IReadOnlyDictionary<string, OtlpAttributeValue>
 {
-    private readonly HashSet<AttributeRename> _renames = [];
-
-    internal static void RecordRename(IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
-        string original, string canonical)
+    public NormalizedAttributes()
     {
-        if (attributes is not NormalizedAttributes target) return;
-        if (!string.Equals(original, canonical, StringComparison.Ordinal))
-            target._renames.Add(new AttributeRename(original, canonical));
-        else if (AttributeStability.Of(original) == Stability.Deprecated)
-            target._renames.Add(new AttributeRename(original, null));
+        Values = new Dictionary<string, OtlpAttributeValue>(StringComparer.Ordinal);
+        Renames = [];
     }
 
-    internal static IReadOnlyList<AttributeRename> Collect(
-        IEnumerable<IReadOnlyDictionary<string, OtlpAttributeValue>> attributes) =>
-        attributes.OfType<NormalizedAttributes>().SelectMany(static values => values._renames)
-            .Distinct().OrderBy(static rename => rename.OriginalKey, StringComparer.Ordinal)
+    public OtlpAttributeValue this[string key] { get => Values[key]; set => Values[key] = value; }
+    public IEnumerable<string> Keys => Values.Keys;
+    IEnumerable<OtlpAttributeValue> IReadOnlyDictionary<string, OtlpAttributeValue>.Values => Values.Values;
+    public int Count => Values.Count;
+    public bool ContainsKey(string key) => Values.ContainsKey(key);
+
+    public bool TryGetValue(string key, [MaybeNullWhen(false)] out OtlpAttributeValue value) =>
+        Values.TryGetValue(key, out value);
+
+    public IEnumerator<KeyValuePair<string, OtlpAttributeValue>> GetEnumerator() => Values.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public static implicit operator NormalizedAttributes(Dictionary<string, OtlpAttributeValue> values) =>
+        new() { Values = values };
+
+    internal static void RecordRename(NormalizedAttributes attributes, string original, string canonical)
+    {
+        if (!string.Equals(original, canonical, StringComparison.Ordinal))
+            attributes.Renames.Add(new AttributeRename { OriginalKey = original, CanonicalKey = canonical });
+        else if (AttributeStability.Of(original) == Stability.Deprecated)
+            attributes.Renames.Add(new AttributeRename { OriginalKey = original, CanonicalKey = null });
+    }
+
+    internal static IReadOnlyList<AttributeRename> Collect(IEnumerable<NormalizedAttributes> attributes) =>
+        attributes.SelectMany(static values => values.Renames).Distinct()
+            .OrderBy(static rename => rename.OriginalKey, StringComparer.Ordinal)
             .ThenBy(static rename => rename.CanonicalKey, StringComparer.Ordinal).ToArray();
 }
 
-internal sealed class NormalizedContractAttributes(IReadOnlyList<AttributeRename> renames)
-    : List<Attribute>
+internal sealed partial record NormalizedContractAttributes : IReadOnlyList<Attribute>
 {
-    internal IReadOnlyList<AttributeRename> Renames { get; } = renames;
+    public NormalizedContractAttributes(IReadOnlyList<AttributeRename>? renames = null)
+    {
+        Values = [];
+        Renames = [.. renames ?? []];
+    }
+
+    public Attribute this[int index] => Values[index];
+    public int Count => Values.Count;
+    public IEnumerator<Attribute> GetEnumerator() => Values.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    public void Add(Attribute value) => Values.Add(value);
+    public static implicit operator NormalizedContractAttributes(Attribute[] values) => new() { Values = [.. values] };
 }
 
-internal sealed class NormalizedMetricExemplars : List<MetricExemplar>
+internal sealed partial record NormalizedMetricExemplars : IReadOnlyList<MetricExemplar>
 {
-    internal List<AttributeRename> Renames { get; } = [];
+    public NormalizedMetricExemplars()
+    {
+        Values = [];
+        Renames = [];
+    }
+
+    public MetricExemplar this[int index] => Values[index];
+    public int Count => Values.Count;
+    public IEnumerator<MetricExemplar> GetEnumerator() => Values.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    public void Add(MetricExemplar value) => Values.Add(value);
+
+    public static implicit operator NormalizedMetricExemplars(MetricExemplar[] values) =>
+        new() { Values = [.. values] };
 }

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Nami.Collector.Ingestion.Primitives;
 
 namespace Nami.Collector.Storage;
@@ -24,7 +20,8 @@ internal static class MetricStorageMapper
             var projectId = ProjectScope.ForIngest(record.ProjectIdHint, authenticatedProjectId);
             var attributesJson = PersistedAttributePolicy.SerializeAttributes(record.Attributes);
             var resourceJson = PersistedAttributePolicy.SerializeAttributes(record.ResourceAttributes);
-            var resourceEntityRefsJson = StorageJsonSerializerContext.SerializeResourceEntityRefs(record.ResourceEntityRefs);
+            var resourceEntityRefsJson =
+                StorageJsonSerializerContext.SerializeResourceEntityRefs(record.ResourceEntityRefs);
             var scopeAttributesJson = PersistedAttributePolicy.SerializeScopeAttributes(record.ScopeAttributes);
             var instrumentId = ComputeInstrumentId(
                 record.MetricName,
@@ -46,8 +43,8 @@ internal static class MetricStorageMapper
             {
                 AttributeRenames = NormalizedAttributes
                     .Collect([record.Attributes, record.ResourceAttributes, record.ScopeAttributes])
-                    .Concat(record.InstrumentMetadata is NormalizedContractAttributes metadata ? metadata.Renames : [])
-                    .Concat(record.Exemplars is NormalizedMetricExemplars exemplars ? exemplars.Renames : [])
+                    .Concat(record.InstrumentMetadata.Renames)
+                    .Concat(record.Exemplars.Renames)
                     .Distinct().ToArray(),
                 ProjectId = projectId,
                 SeriesId = seriesId,
@@ -98,7 +95,7 @@ internal static class MetricStorageMapper
     ///     conflicting identifying properties distinguish streams within that instrument.
     ///     https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/metrics/data-model.md#opentelemetry-protocol-data-model
     /// </summary>
-    internal static string ComputeInstrumentId(
+    private static string ComputeInstrumentId(
         string metricName,
         string? serviceName,
         string? resourceJson,
@@ -129,7 +126,7 @@ internal static class MetricStorageMapper
 
     internal static string SeriesId(MetricSeriesRow row) => ComputeSeriesId(
         row.InstrumentId ?? InstrumentId(row), row.AttributesJson,
-        (MetricKind)row.MetricKind, (MetricTemporality)row.Temporality, row.IsMonotonic != 0, row.Unit);
+        (MetricKind)row.MetricKind, (MetricTemporality)row.Temporality, row.IsMonotonic is not 0, row.Unit);
 
     private static string ComputeSeriesId(string instrumentId, string? attributesJson,
         MetricKind kind,

@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Nami.Collector.Ingestion.Configuration;
 
 namespace Nami.ApiKeys;
@@ -48,23 +45,30 @@ internal static class ProjectKeysParser
             {
                 if (string.IsNullOrWhiteSpace(project.Name) || project.Name != project.Name.Trim() ||
                     !projects.Add(project.Name) || project.Value.ValueKind != JsonValueKind.Array)
+                {
                     throw new InvalidOperationException(
                         $"{CollectorConfigurationKeys.ProjectKeys} has an invalid or duplicate project.");
+                }
 
                 var count = 0;
                 foreach (var entry in project.Value.EnumerateArray())
                 {
                     var (value, roles) = ParseCredential(entry);
                     if (!credentials.Add(value))
+                    {
                         throw new InvalidOperationException(
                             $"{CollectorConfigurationKeys.ProjectKeys} has an invalid or duplicate credential.");
+                    }
+
                     keys.Add(new ProjectApiKey(project.Name, value, roles));
                     count++;
                 }
 
                 if (count is 0)
+                {
                     throw new InvalidOperationException(
                         $"{CollectorConfigurationKeys.ProjectKeys} has a project without credentials.");
+                }
             }
 
             return keys;

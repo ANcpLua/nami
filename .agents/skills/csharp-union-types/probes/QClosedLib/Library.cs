@@ -10,6 +10,10 @@ public sealed record Helicopter(string Operator) : Transportation;
 public closed record Layer;
 public record Mid : Layer;                  // not sealed: the extension point
 
+public closed record ClosedRoot;
+public closed record ClosedBranch : ClosedRoot;
+public sealed record ClosedLeaf : ClosedBranch;
+
 public closed record Box<T>;
 public sealed record BoxA<T>(T Value) : Box<T>;
 public sealed record BoxB<T> : Box<T>;

@@ -1,12 +1,7 @@
-using System;
-using System.IO;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Nami.Collector.Storage;
 using Nami.Health;
 using Nami.Retention;
-using Nami.Collector.Storage;
 
 namespace Nami.Hosting;
 
@@ -24,7 +19,6 @@ internal static class CollectorStorageExtensions
         services.AddHostedService<RetentionService>();
         services.AddHealthChecks()
             .AddCheck<DuckDbHealthCheck>("duckdb", tags: ["db", "storage", "ready"]);
-
     }
 
     private static INamiStore CreateStore(IServiceProvider services)

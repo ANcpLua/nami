@@ -1,12 +1,7 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nami.SemanticConventions;
 using Nami.Tests.Infrastructure;
 
@@ -14,12 +9,12 @@ namespace Nami.IntegrationTests;
 
 [TestClass]
 [TestCategory("Integration")]
-public sealed class RegistryGateTests(TestContext context)
+public sealed partial class RegistryGateTests(TestContext context)
 {
-    private static readonly string[] GeneratedDirectories =
+    private static readonly string[] s_generatedDirectories =
         ["internal/nami.semconv/Generated", "crates/nami-semconv/src", "docs/semconv"];
 
-    private static readonly string[] GenerationCheckArgs = ["registry/generate.sh", "--check"];
+    private static readonly string[] s_generationCheckArgs = ["registry/generate.sh", "--check"];
     private static string Root => ProcessRunner.RepositoryRoot;
 
     private static string Weaver
@@ -50,7 +45,7 @@ public sealed class RegistryGateTests(TestContext context)
     [TestMethod]
     public async Task Catalog_MatchesResolvedRegistry()
     {
-        using var stream =
+        await using var stream =
             typeof(RegistryInfo).Assembly.GetManifestResourceStream("Nami.SemanticConventions.RegistryInventory.json");
         Assert.IsNotNull(stream);
         using var data = await JsonDocument.ParseAsync(stream, cancellationToken: context.CancellationToken);
@@ -67,9 +62,9 @@ public sealed class RegistryGateTests(TestContext context)
         var keys = resolved.RootElement.GetProperty("registry").GetProperty("attributes").EnumerateArray()
             .Select(i => catalog[i.GetInt32()].GetProperty("key").GetString()!).Order(StringComparer.Ordinal).ToArray();
         var generatedKeys = AttributeCatalog.All.Select(static a => a.Key).Order(StringComparer.Ordinal).ToArray();
-        Assert.AreEqual(keys.Length, generatedKeys.Length);
-        Assert.HasCount(0, keys.Except(generatedKeys, StringComparer.Ordinal).ToArray());
-        Assert.HasCount(0, generatedKeys.Except(keys, StringComparer.Ordinal).ToArray());
+        Assert.HasCount(keys.Length, generatedKeys);
+        Assert.IsEmpty(keys.Except(generatedKeys, StringComparer.Ordinal).ToArray());
+        Assert.IsEmpty(generatedKeys.Except(keys, StringComparer.Ordinal).ToArray());
         Assert.IsTrue(
             AttributeCatalog.All.All(static a => a.Stability != Stability.Unknown && a.SourceSchema.Length > 0));
     }
@@ -90,7 +85,7 @@ public sealed class RegistryGateTests(TestContext context)
         var before = Snapshot();
         for (var i = 0; i < 2; i++)
         {
-            var run = await ProcessRunner.RunAsync("bash", GenerationCheckArgs, Root, context.CancellationToken);
+            var run = await ProcessRunner.RunAsync("bash", s_generationCheckArgs, Root, context.CancellationToken);
             Assert.AreEqual(0, run.ExitCode, run.Output + run.Error);
         }
 
@@ -99,12 +94,11 @@ public sealed class RegistryGateTests(TestContext context)
 
     private static string[] Snapshot()
     {
-        return GeneratedDirectories
+        return [.. s_generatedDirectories
             .SelectMany(dir => Directory.GetFiles(Path.Combine(Root, dir), "*", SearchOption.AllDirectories))
             .Order(StringComparer.Ordinal)
             .Select(path =>
-                Path.GetRelativePath(Root, path) + ":" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))))
-            .ToArray();
+                Path.GetRelativePath(Root, path) + ":" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))))];
     }
 
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
@@ -115,9 +109,9 @@ public sealed class RegistryGateTests(TestContext context)
             .Where(static path => !path.Contains("/obj/", StringComparison.Ordinal) &&
                                   !path.Contains("/bin/", StringComparison.Ordinal) &&
                                   !path.EndsWith(".g.cs", StringComparison.Ordinal))
-            .Where(path => Regex.IsMatch(File.ReadAllText(path), "\\\"nami\\.[a-z]", RegexOptions.CultureInvariant))
+            .Where(path => NamiKeyLiteral().IsMatch(File.ReadAllText(path)))
             .ToArray();
-        Assert.HasCount(0, offending, string.Join(Environment.NewLine, offending));
+        Assert.IsEmpty(offending, string.Join(Environment.NewLine, offending));
     }
 
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
@@ -207,16 +201,16 @@ public sealed class RegistryGateTests(TestContext context)
             File.Copy(Path.Combine(Root, "registry", file), Path.Combine(temp, "registry", file));
         File.Copy(Path.Combine(Root, "registry/source/manifest.yaml"),
             Path.Combine(temp, "registry/source/manifest.yaml"));
-        const string changed = "1111111111111111111111111111111111111111";
+        const string Changed = "1111111111111111111111111111111111111111";
         var script = Path.Combine(temp, "registry/generate.py");
         var code = await File.ReadAllTextAsync(script, context.CancellationToken);
-        code = code.Replace("CORE_COMMIT = '" + RegistryInfo.CoreCommit + "'", "CORE_COMMIT = '" + changed + "'",
+        code = code.Replace("CORE_COMMIT = '" + RegistryInfo.CoreCommit + "'", "CORE_COMMIT = '" + Changed + "'",
             StringComparison.Ordinal);
         await File.WriteAllTextAsync(script, code, context.CancellationToken);
         var changelog = Path.Combine(temp, "registry/CHANGELOG.md");
         await File.WriteAllTextAsync(changelog,
             (await File.ReadAllTextAsync(changelog, context.CancellationToken)).Replace(RegistryInfo.CoreCommit,
-                changed, StringComparison.Ordinal), context.CancellationToken);
+                Changed, StringComparison.Ordinal), context.CancellationToken);
         var result = await ProcessRunner.RunAsync("python3", [script, "--check"], temp, context.CancellationToken);
         Assert.AreNotEqual(0, result.ExitCode);
         Assert.Contains("pin change", result.Error);
@@ -238,7 +232,7 @@ public sealed class RegistryGateTests(TestContext context)
             "-p:UseSharedCompilation=false", "-nodeReuse:false", "/bl:" + log
         ], Root, context.CancellationToken);
         Assert.AreEqual(0, result.ExitCode, result.Output + result.Error);
-        Assert.IsFalse(Regex.IsMatch(result.Output + result.Error, @"\bIL[23][0-9]{3}\b"));
+        Assert.IsFalse(TrimmingDiagnostic().IsMatch(result.Output + result.Error));
         Assert.IsTrue(File.Exists(log));
     }
 
@@ -276,11 +270,20 @@ public sealed class RegistryGateTests(TestContext context)
         var end = rust.IndexOf("];", start, StringComparison.Ordinal);
         Assert.IsGreaterThanOrEqualTo(0, start);
         Assert.IsGreaterThan(start, end);
-        var keys = Regex.Matches(rust[start..end], "\\\"([^\\\"]+)\\\"").Select(static m => m.Groups[1].Value)
+        var keys = QuotedValue().Matches(rust[start..end]).Select(static m => m.Groups[1].Value)
             .Order(StringComparer.Ordinal).ToArray();
         var expected = AttributeCatalog.All.Select(static a => a.Key).Order(StringComparer.Ordinal).ToArray();
-        Assert.AreEqual(expected.Length, keys.Length);
-        Assert.HasCount(0, expected.Except(keys, StringComparer.Ordinal).ToArray());
-        Assert.HasCount(0, keys.Except(expected, StringComparer.Ordinal).ToArray());
+        Assert.HasCount(expected.Length, keys);
+        Assert.IsEmpty(expected.Except(keys, StringComparer.Ordinal).ToArray());
+        Assert.IsEmpty(keys.Except(expected, StringComparer.Ordinal).ToArray());
     }
+
+    [GeneratedRegex("\\\"nami\\.[a-z]", RegexOptions.CultureInvariant)]
+    private static partial Regex NamiKeyLiteral();
+
+    [GeneratedRegex(@"\bIL[23][0-9]{3}\b")]
+    private static partial Regex TrimmingDiagnostic();
+
+    [GeneratedRegex("\\\"([^\\\"]+)\\\"")]
+    private static partial Regex QuotedValue();
 }

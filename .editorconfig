@@ -14,6 +14,12 @@ insert_final_newline = true
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false
 
+# Fail incomplete switch expressions, including nullable inputs and guarded cases.
+# CS8510/CS8121 and invalid union declarations are already compiler errors.
+dotnet_diagnostic.CS8509.severity = error
+dotnet_diagnostic.CS8655.severity = error
+dotnet_diagnostic.CS8846.severity = error
+
 # Style values guide explicit cleanup; the IDE diagnostic severities below control passive enforcement.
 csharp_using_directive_placement = outside_namespace
 dotnet_diagnostic.IDE0065.severity = warning

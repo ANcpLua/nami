@@ -1,9 +1,5 @@
-using System;
-using System.IO;
 using System.IO.Compression;
 using System.Net.Http.Headers;
-using System.Threading;
-using System.Threading.Tasks;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using OpenTelemetry.Proto.Collector.Logs.V1;
@@ -35,10 +31,7 @@ internal static class OtlpPayloadParser
         if (string.Equals(parsed.MediaType, ProtobufContentType, StringComparison.OrdinalIgnoreCase))
             return OtlpPayloadEncoding.Protobuf;
 
-        if (string.Equals(parsed.MediaType, JsonContentType, StringComparison.OrdinalIgnoreCase))
-            return OtlpPayloadEncoding.Json;
-
-        throw new OtlpUnsupportedMediaTypeException(contentType);
+        return string.Equals(parsed.MediaType, JsonContentType, StringComparison.OrdinalIgnoreCase) ? OtlpPayloadEncoding.Json : throw new OtlpUnsupportedMediaTypeException(contentType);
     }
 
     public static Task<ExportTraceServiceRequest> ParseTraceRequestAsync(

@@ -1,9 +1,3 @@
-using System;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nami.Collector.Storage;
 
@@ -130,8 +124,10 @@ internal sealed partial class RetentionService(
         var duration = Stopwatch.GetElapsedTime(startedAt);
         var fileAfter = store.GetStorageFileMetrics();
         if (deletedLogs + deletedSpans + deletedMetricPoints + deletedMetricSeries > 0)
+        {
             LogCycleCompleted(logger, deletedLogs, deletedSpans, deletedMetricPoints, deletedMetricSeries,
                 duration.TotalMilliseconds, fileBefore.ManagedStorageBytes, fileAfter.ManagedStorageBytes);
+        }
     }
 
     private async Task CheckpointAfterDeletionAsync(CancellationToken cancellationToken)

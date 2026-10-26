@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
-using System.Threading;
-using System.Threading.Tasks;
 using Nami.Api.Contracts;
+using Nami.Api.Contracts.Common;
+using Nami.Api.Contracts.Tools;
 using Nami.Collector.Storage;
 
 namespace Nami.Tools;
@@ -41,25 +38,32 @@ internal static class ToolDispatcher
                 return InvalidArgument(issue);
             // Relative inputs are interpreted against the captured clock, including after a restart.
             var end = snapshot.CapturedAt;
-            var start = ParseSince(Text(input, "since") ?? "-60m", end);
+            var start = ParseSince(Text(input, "since") ?? ToolReadInput.SinceDefault, end);
             var service = Text(input, "service");
             var watermarks = snapshot.Signals.Where(s => service is null || s.ServiceName == service)
                 .GroupBy(static s => s.Signal).ToDictionary(static g => g.Key,
                     static g => g.Max(s => s.WatermarkUnixNano), StringComparer.Ordinal);
             var window = new ToolWindow(start, end, service) { RequestedEnd = end, Watermarks = watermarks };
-            var maxBytes = input.TryGetProperty("max_bytes", out var budget) ? ContractJson.ReadInteger(budget) : 32768;
+            var maxBytes = input.TryGetProperty("max_bytes", out var budget)
+                ? ContractJson.ReadInteger(budget)
+                : ToolReadInput.MaxBytesDefault;
             var fields = input.TryGetProperty("fields", out var projection)
                 ? projection.EnumerateArray().Select(static f => f.GetString()!).ToArray()
                 : [];
             if (fields.Any(static field => field is "profiles" or "baggage"))
+            {
                 return Error("data_unavailable", "Profiles and baggage are not recorded signals in this collector.",
                     "fields");
+            }
+
             var result = name switch
             {
                 "sources_status" => SourcesStatusTool.Run(snapshot, window),
                 "errors_recent" => ErrorsRecentTool.Run(snapshot, window),
                 "traces_slowest" => TracesSlowestTool.Run(snapshot, window, Text(input, "operation"),
-                    input.TryGetProperty("limit", out var limit) ? ContractJson.ReadInteger(limit) : 10),
+                    input.TryGetProperty("limit", out var limit)
+                        ? ContractJson.ReadInteger(limit)
+                        : TracesSlowestInput.LimitDefault),
                 "logs_search" => LogsSearchTool.Run(snapshot, window, Text(input, "query")!),
                 "changes_recent" => ChangesRecentTool.Run(snapshot, window),
                 "traces_get" => TracesGetTool.Run(snapshot, window, Text(input, "trace_id")!),
@@ -89,27 +93,28 @@ internal static class ToolDispatcher
         }
     }
 
-    internal static ToolRunResult InvalidArgument(ContractIssue issue) =>
-        Error("invalid_argument", issue.Message, issue.Field, issue.Allowed,
+    internal static ToolRunResult InvalidArgument(ContractIssue issue)
+    {
+        return Error("invalid_argument", issue.Message, issue.Field, issue.Allowed,
             hint: issue.Hint ?? $"Constraint: {issue.Keyword}.");
+    }
 
     internal static ToolRunResult Error(string code, string message, string? field = null,
         IReadOnlyList<string>? allowed = null, string? resourceId = null, string? hint = null)
     {
         // Refusals obey the minimum valid response budget too. Echoes are bounded by their
         // encoded JSON bytes, so control characters and non-ASCII cannot bypass the limit.
-        const int maxErrorBytes = 1024;
-        var value = new JsonObject
+        const int MaxErrorBytes = 1024;
+        var value = ToolValues.Json(new ToolError
         {
-            ["code"] = BoundedEcho(code, 64), ["message"] = BoundedEcho(message, 320), ["retryable"] = false
-        };
-        if (field is not null) value["field"] = BoundedEcho(field, 128);
-        if (hint is not null) value["hint"] = BoundedEcho(hint, 128);
-        if (resourceId is not null)
-        {
-            value["resource_type"] = field == "trace_id" ? "trace" : "snapshot";
-            value["resource_id"] = BoundedEcho(resourceId, 128);
-        }
+            Code = BoundedEcho(code, 64),
+            Message = BoundedEcho(message, 320),
+            Retryable = false,
+            Field = field is null ? null : BoundedEcho(field, 128),
+            Hint = hint is null ? null : BoundedEcho(hint, 128),
+            ResourceType = resourceId is null ? null : field == "trace_id" ? "trace" : "snapshot",
+            ResourceId = resourceId is null ? null : BoundedEcho(resourceId, 128)
+        });
 
         if (allowed is not null)
         {
@@ -119,7 +124,7 @@ internal static class ToolDispatcher
             foreach (var choice in allowed)
             {
                 choices.Add((JsonNode?)JsonValue.Create(BoundedEcho(choice, 80)));
-                if (Encoding.UTF8.GetByteCount(value.ToJsonString()) <= maxErrorBytes - 48) continue;
+                if (Encoding.UTF8.GetByteCount(value.ToJsonString()) <= MaxErrorBytes - 48) continue;
                 choices.RemoveAt(choices.Count - 1);
                 omitted = true;
                 break;
@@ -129,7 +134,7 @@ internal static class ToolDispatcher
         }
 
         var output = ContractJson.Serialize("Common.ToolError", ContractJson.ToElement(value));
-        while (Encoding.UTF8.GetByteCount(output.GetRawText()) > maxErrorBytes)
+        while (Encoding.UTF8.GetByteCount(output.GetRawText()) > MaxErrorBytes)
         {
             var current = value["message"]!.GetValue<string>();
             value["message"] = BoundedEcho(current, Math.Max(3, current.Length / 2));
@@ -182,12 +187,15 @@ internal static class ToolDispatcher
             snapshot.Signals.Where(s => s.Signal == signal && window.Matches(s.ServiceName))
                 .Select(static s => s.WatermarkUnixNano).DefaultIfEmpty(0UL).Max()).ToArray();
         var watermark = watermarks.Length == 0 ? 0 : watermarks.Min();
-        var freshness = new JsonObject
+        var freshness = ToolValues.Json(new Freshness
         {
-            ["watermark"] = Timestamp(watermark),
-            ["complete"] = NamiTimeConversions.ToUnixNanoUnsigned(window.RequestedEnd) <= watermark,
-            ["examined"] = result.Examined, ["matched"] = result.Items.Count, ["returned"] = 0, ["truncated"] = false
-        };
+            Watermark = Timestamp(watermark),
+            Complete = NamiTimeConversions.ToUnixNanoUnsigned(window.RequestedEnd) <= watermark,
+            Examined = result.Examined,
+            Matched = result.Items.Count,
+            Returned = 0,
+            Truncated = false
+        });
         var envelope = new JsonObject { ["snapshot_id"] = snapshot.Id, ["freshness"] = freshness };
         var page = new JsonArray();
         if (result.Single)
@@ -210,16 +218,22 @@ internal static class ToolDispatcher
                     freshness["truncated"] = true;
                     envelope["next_cursor"] = EncodeCursor(snapshot.Id, name, i, queryHash);
                     if (spans.Count == 0)
+                    {
                         return Error("invalid_argument", "max_bytes cannot fit a span; request fewer fields.", "fields",
                             result.AllowedFields);
+                    }
+
                     break;
                 }
             }
 
             var serialized = ContractJson.Serialize(schema, ContractJson.ToElement(envelope));
             if (Encoding.UTF8.GetByteCount(serialized.GetRawText()) > maxBytes)
+            {
                 return Error("invalid_argument", "Projected trace exceeds max_bytes; request fewer fields.", "fields",
                     result.AllowedFields);
+            }
+
             return new ToolRunResult(serialized, false);
         }
 
@@ -240,12 +254,13 @@ internal static class ToolDispatcher
         }
 
         if (page.Count == 0 && offset < result.Items.Count)
+        {
             return Error("invalid_argument",
                 "max_bytes cannot fit one result item; increase it or project fewer fields.", "max_bytes");
+        }
+
         var output = ContractJson.Serialize(schema, ContractJson.ToElement(envelope));
-        if (Encoding.UTF8.GetByteCount(output.GetRawText()) > maxBytes)
-            return Error("invalid_argument", "max_bytes is smaller than the result envelope.", "max_bytes");
-        return new ToolRunResult(output, false);
+        return Encoding.UTF8.GetByteCount(output.GetRawText()) > maxBytes ? Error("invalid_argument", "max_bytes is smaller than the result envelope.", "max_bytes") : new ToolRunResult(output, false);
     }
 
     private static JsonObject Project(JsonObject item, string[] fields)
@@ -277,11 +292,10 @@ internal static class ToolDispatcher
         var encoded = cursor.Replace('-', '+').Replace('_', '/');
         var parts = Encoding.UTF8
             .GetString(Convert.FromBase64String(encoded.PadRight((encoded.Length + 3) / 4 * 4, '='))).Split('|');
-        if (parts.Length != 4) throw new FormatException("Malformed cursor.");
-        return parts;
+        return parts.Length != 4 ? throw new FormatException("Malformed cursor.") : parts;
     }
 
-    internal static string? Text(JsonElement value, string name)
+    private static string? Text(JsonElement value, string name)
     {
         return value.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() : null;
     }
@@ -299,8 +313,10 @@ internal static class ToolDispatcher
         {
             var duration = value[^1] switch
             {
-                's' => TimeSpan.FromSeconds(amount), 'm' => TimeSpan.FromMinutes(amount),
-                'h' => TimeSpan.FromHours(amount), 'd' => TimeSpan.FromDays(amount),
+                's' => TimeSpan.FromSeconds(amount),
+                'm' => TimeSpan.FromMinutes(amount),
+                'h' => TimeSpan.FromHours(amount),
+                'd' => TimeSpan.FromDays(amount),
                 _ => throw new ToolInputException("since",
                     "Relative time must use seconds (s), minutes (m), hours (h), or days (d).")
             };
@@ -321,7 +337,7 @@ internal sealed record ToolRows(
     IReadOnlyList<JsonObject> Items,
     long Examined,
     string[] Signals,
-    string[] AllowedFields,
+    IReadOnlyList<string> AllowedFields,
     bool Single = false);
 
 internal readonly record struct ToolWindow(DateTimeOffset Start, DateTimeOffset End, string? Service)
@@ -337,12 +353,11 @@ internal readonly record struct ToolWindow(DateTimeOffset Start, DateTimeOffset 
     internal bool Contains(ulong nanos, string? signal = null)
     {
         var end = NamiTimeConversions.ToUnixNanoUnsigned(End);
-        if (Watermarks is { } watermarks)
-        {
-            if (signal is null && watermarks.Count > 0) end = Math.Min(end, watermarks.Values.Max());
-            else if (signal is not null && watermarks.TryGetValue(signal, out var watermark))
-                end = Math.Min(end, watermark);
-        }
+        if (Watermarks is not { } watermarks)
+            return nanos >= NamiTimeConversions.ToUnixNanoUnsigned(Start) && nanos < end;
+        if (signal is null && watermarks.Count > 0) end = Math.Min(end, watermarks.Values.Max());
+        else if (signal is not null && watermarks.TryGetValue(signal, out var watermark))
+            end = Math.Min(end, watermark);
 
         return nanos >= NamiTimeConversions.ToUnixNanoUnsigned(Start) && nanos < end;
     }

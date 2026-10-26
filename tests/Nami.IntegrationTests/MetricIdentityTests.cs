@@ -1,10 +1,9 @@
-using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Nami.Api.Contracts.Common;
-using Nami.Api.Contracts.OTel.Metrics;
 using Nami.Collector.Ingestion;
-using Nami.Collector.Ingestion.Primitives;
+using Nami.Collector.Ingestion.Models;
 using Nami.Collector.Storage;
+using AttributeDoubleValue = Nami.Api.Contracts.Common.AttributeDoubleValue;
+using AttributeIntValue = Nami.Api.Contracts.Common.AttributeIntValue;
+using MetricNumberValue = Nami.Api.Contracts.OTel.Metrics.MetricNumberValue;
 
 namespace Nami.IntegrationTests;
 
@@ -54,17 +53,29 @@ public sealed class MetricIdentityTests
             Encode(null).MeasurementId);
     }
 
-    private static MetricObservationRow Encode(MetricNumberValue? value) =>
-        MetricObservationCodec.FromIngestion(new MetricPointIngestionRecord
+    private static MetricObservationRow Encode(MetricNumberValue? value)
+    {
+        return MetricObservationCodec.FromIngestion(new MetricPointIngestionRecord
         {
             MetricName = "test.numeric_identity",
-            Kind = MetricKind.Gauge,
-            Temporality = MetricTemporality.Unspecified,
-            IsMonotonic = false,
+            Shape = new GaugeMetric
+            {
+                Data = new MetricNumberPointData
+                {
+                    Value = value?.Value switch
+                    {
+                        AttributeIntValue item => new Collector.Ingestion.Models.AttributeIntValue
+                            { Value = item.Value },
+                        AttributeDoubleValue item => new Collector.Ingestion.Models.AttributeDoubleValue
+                            { Value = item.Value },
+                        _ => null
+                    }
+                }
+            },
             ServiceName = "identity-tests",
             Attributes = new Dictionary<string, OtlpAttributeValue>(),
             ResourceAttributes = new Dictionary<string, OtlpAttributeValue>(),
-            TimeUnixNano = 1_000_000_000,
-            Data = new MetricNumberPointData { Value = value }
+            TimeUnixNano = 1_000_000_000
         }, "identity-tests", "numeric-series");
+    }
 }

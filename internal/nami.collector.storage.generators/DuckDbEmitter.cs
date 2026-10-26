@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Text;
-using ANcpLua.Roslyn.Utilities;
-
 namespace Nami.Collector.Storage.Generators;
 
 internal static class DuckDbEmitter
@@ -169,18 +163,17 @@ internal static class DuckDbEmitter
             ddl.AppendLine();
         }
 
-        if (primaryKeyColumns.Length > 0)
+        if (primaryKeyColumns.Length <= 0)
+            return ddl.Append(");").ToString();
+        ddl.Append("    PRIMARY KEY (");
+        for (var i = 0; i < primaryKeyColumns.Length; i++)
         {
-            ddl.Append("    PRIMARY KEY (");
-            for (var i = 0; i < primaryKeyColumns.Length; i++)
-            {
-                if (i > 0)
-                    ddl.Append(", ");
-                ddl.Append(SqlIdentifier.Quote(primaryKeyColumns[i].ColumnName));
-            }
-
-            ddl.AppendLine(")");
+            if (i > 0)
+                ddl.Append(", ");
+            ddl.Append(SqlIdentifier.Quote(primaryKeyColumns[i].ColumnName));
         }
+
+        ddl.AppendLine(")");
 
         return ddl.Append(");").ToString();
     }
@@ -254,7 +247,7 @@ internal static class DuckDbEmitter
     }
 
     private static string EscapeCSharpString(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+        value.Replace("\\", @"\\").Replace("\"", "\\\"");
 
     private static void EmitAddParameters(IndentedStringBuilder sb, string typeName, DuckDbColumnInfo[] columns)
     {
@@ -330,13 +323,13 @@ internal static class DuckDbEmitter
     private static string ToParameterName(string propertyName) =>
         propertyName.Length is 0
             ? propertyName
-            : char.ToLowerInvariant(propertyName[0]) + propertyName.Substring(1);
+            : char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
 
-    private static string[] BuildParameterNames(IReadOnlyList<DuckDbColumnInfo> columns)
+    private static string[] BuildParameterNames(DuckDbColumnInfo[] columns)
     {
         var occurrences = new Dictionary<string, int>(StringComparer.Ordinal);
-        var names = new string[columns.Count];
-        for (var i = 0; i < columns.Count; i++)
+        var names = new string[columns.Length];
+        for (var i = 0; i < columns.Length; i++)
         {
             var baseName = ToParameterName(columns[i].PropertyName);
             occurrences.TryGetValue(baseName, out var count);
@@ -524,6 +517,21 @@ internal static class DuckDbEmitter
 
     private static void EmitBuildMultiRowInsertSql(IndentedStringBuilder sb, DuckDbTableInfo table)
     {
+        var parameters = string.Join(", ", Enumerable.Range(1, table.Columns.Count(static column => !column.ExcludeFromInsert))
+            .Select(static ordinal => "$" + ordinal));
+        sb.AppendLine($"public const string InsertSql = \"INSERT INTO \" + QuotedTableName + \" (\" + ColumnList + \") VALUES ({parameters})\" + InsertConflictSql;");
+        sb.AppendLine("private const string InsertConflictSql =");
+        if (string.IsNullOrEmpty(table.OnConflict))
+            sb.AppendLine("    \"\";");
+        else
+        {
+            sb.AppendLine("    \" \" + \"\"\"");
+            foreach (var line in table.OnConflict!.Replace("\r\n", "\n").Split('\n').Where(static line => !string.IsNullOrWhiteSpace(line)))
+                sb.AppendLineNoIndent($"        {line.Trim()}");
+            sb.AppendLineNoIndent("        \"\"\";");
+        }
+        sb.AppendLine();
+
         sb.AppendLine("/// <summary>");
         sb.AppendLine("/// Builds a multi-row INSERT statement with positional parameters.");
         sb.AppendLine("/// Example: INSERT INTO table (col1, col2) VALUES ($1, $2), ($3, $4)");
@@ -531,6 +539,7 @@ internal static class DuckDbEmitter
         sb.AppendLine("public static string BuildMultiRowInsertSql(int rowCount)");
         sb.BeginBlock();
 
+        sb.AppendLine("if (rowCount == 1) return InsertSql;");
         sb.AppendLine("return s_insertSqlCache.GetOrAdd(rowCount, static count =>");
         sb.BeginBlock();
 
@@ -555,23 +564,7 @@ internal static class DuckDbEmitter
 
         sb.AppendLine();
 
-        if (!string.IsNullOrEmpty(table.OnConflict))
-        {
-            sb.AppendLine("// ON CONFLICT clause for upsert behavior");
-            sb.AppendLine("sb.Append(\" \").Append(\"\"\"");
-
-            // The ON CONFLICT body is runtime SQL data, re-indented to 16 spaces inside the emitted
-            // raw-string literal, so it is written verbatim independent of the C# indentation.
-            foreach (var line in table.OnConflict!.Replace("\r\n", "\n").Split('\n'))
-            {
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                sb.AppendLineNoIndent($"                {line.Trim()}");
-            }
-
-            sb.AppendLineNoIndent("                \"\"\");");
-        }
+        sb.AppendLine("sb.Append(InsertConflictSql);");
 
         sb.AppendLine();
         sb.AppendLine("return sb.ToString();");

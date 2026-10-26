@@ -15,3 +15,17 @@ import "./models/tools.tsp";
 import "./models/engine.tsp";
 import "./api/routes.tsp";
 import "./emit-config.tsp";
+
+import "./models/storage-rows.tsp";
+
+import "./models/storage-json.tsp";
+
+import "./models/ingestion.tsp";
+
+import "./models/ingestion-metrics.tsp";
+
+import "./models/configuration.tsp";
+
+import "./models/ingestion-records.tsp";
+
+import "./models/storage-persistence.tsp";

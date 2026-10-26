@@ -18,11 +18,25 @@ model SourceStatus {
   signals: SignalStatus[];
 }
 @doc("The latest receipt time for one signal, or how long it has been silent.")
-model SignalStatus {
+model SignalStatusFields {
   signal: "traces" | "metrics" | "logs";
-  kind: "active" | "silent";
+}
+model ActiveSignalStatus {
+  ...SignalStatusFields;
+  kind: "active";
+  @encodedName("application/json", "last_seen") lastSeen: Timestamp;
+}
+model SilentSignalStatus {
+  ...SignalStatusFields;
+  kind: "silent";
   @encodedName("application/json", "last_seen") lastSeen?: Timestamp;
-  @encodedName("application/json", "silent_for") silentFor?: IsoDuration;
+  @encodedName("application/json", "silent_for") silentFor: IsoDuration;
+}
+@doc("The latest receipt time for one signal, or how long it has been silent.")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "kind" })
+union SignalStatus {
+  active: ActiveSignalStatus,
+  silent: SilentSignalStatus,
 }
 
 @doc("Recent errors grouped by error type and operation, without stack traces.")

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 
 namespace Nami.Collector.Ingestion;
@@ -66,10 +62,9 @@ internal sealed class OtlpCorsMiddleware
         response.Headers.AccessControlAllowOrigin = _allowAll ? "*" : origin;
         response.Headers.AccessControlAllowHeaders = _allowedHeadersHeader;
 
-        if (!_allowAll)
-        {
-            response.Headers.AccessControlAllowCredentials = "true";
-            response.Headers.Append("Vary", "Origin");
-        }
+        if (_allowAll)
+            return;
+        response.Headers.AccessControlAllowCredentials = "true";
+        response.Headers.Append("Vary", "Origin");
     }
 }

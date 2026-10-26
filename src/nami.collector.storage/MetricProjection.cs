@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
 namespace Nami.Collector.Storage;
 
 /// <summary>Builds the disposable float64 query projection from the authoritative observation.</summary>
@@ -52,8 +47,7 @@ internal static class MetricProjection
                 {
                     StoredIntValue integer => integer.Value,
                     StoredDoubleValue floating => floating.Value,
-                    null => null,
-                    _ => throw new InvalidDataException("Unknown metric numeric representation.")
+                    null => null
                 }
             },
             StoredHistogramPointData histogram => row with
@@ -75,8 +69,7 @@ internal static class MetricProjection
             {
                 ProjectionUnavailableReason =
                 "OTLP summary quantiles cannot be losslessly reduced across observations."
-            },
-            _ => throw new InvalidDataException("Unknown canonical metric data shape.")
+            }
         };
     }
 
@@ -121,9 +114,12 @@ internal static class MetricProjection
         }
 
         if (bounds.Where((bound, index) => !double.IsFinite(bound) || (index > 0 && bound <= bounds[index - 1])).Any())
+        {
             return Unavailable(
                 "Native exponential histogram bounds cannot be represented as finite, distinct float64 bounds.");
-        if (bounds.Count == 0)
+        }
+
+        if (bounds.Count is 0)
         {
             return point.Count > 0
                 ? Unavailable("The exponential histogram contains aggregate fields but no distribution buckets.")

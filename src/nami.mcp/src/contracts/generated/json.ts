@@ -64,6 +64,10 @@ export type MetricNumberValue = (AttributeIntValue & { readonly "kind": "int" })
 
 export type MetricPointData = (MetricNumberPointData & { readonly "kind": "number" }) | (MetricHistogramPointData & { readonly "kind": "histogram" }) | (MetricExponentialHistogramPointData & { readonly "kind": "exponential_histogram" }) | (MetricSummaryPointData & { readonly "kind": "summary" });
 
+export type SignalStatus = (ActiveSignalStatus & { readonly "kind": "active" }) | (SilentSignalStatus & { readonly "kind": "silent" });
+
+export type EngineCommand = (EngineCall & { readonly "method": "call" }) | (EngineHealth & { readonly "method": "health" }) | (EngineCancel & { readonly "method": "cancel" });
+
 export interface HealthReport {
   "status": HealthStatus;
   "total_duration_ms": number;
@@ -258,12 +262,12 @@ export interface MetricHistogramPointData {
   "min"?: AttributeDouble;
   "max"?: AttributeDouble;
   "explicit_bounds": AttributeDouble[];
-  "bucket_counts": string[];
+  "bucket_counts": (string)[];
 }
 
 export interface MetricExponentialBuckets {
   "offset": number;
-  "bucket_counts": string[];
+  "bucket_counts": (string)[];
 }
 
 export interface MetricExponentialHistogramPointData {
@@ -303,16 +307,26 @@ export interface ProjectedSourceStatus {
   "signals"?: SignalStatus[];
 }
 
-export interface SignalStatus {
+export interface ActiveSignalStatus {
   "signal": "traces" | "metrics" | "logs";
-  "kind": "active" | "silent";
+  "kind": "active";
+  "last_seen": string;
+}
+
+export interface SilentSignalStatus {
+  "signal": "traces" | "metrics" | "logs";
+  "kind": "silent";
   "last_seen"?: string;
-  "silent_for"?: string;
+  "silent_for": string;
 }
 
 export interface SourceStatus {
   "service": string;
   "signals": SignalStatus[];
+}
+
+export interface SignalStatusFields {
+  "signal": "traces" | "metrics" | "logs";
 }
 
 export interface ErrorsRecentInput extends ToolReadInput {
@@ -346,6 +360,10 @@ export interface TracesGetInput extends ToolReadInput {
   "trace_id": string;
 }
 
+export interface TracesGetResult extends ToolResult {
+  "trace": ProjectedTrace;
+}
+
 export interface ProjectedTrace {
   "spans"?: Span[];
   "trace_id"?: string;
@@ -356,10 +374,6 @@ export interface ProjectedTrace {
   "end_time"?: string;
   "services"?: string[];
   "has_error"?: boolean;
-}
-
-export interface TracesGetResult extends ToolResult {
-  "trace": ProjectedTrace;
 }
 
 export interface TracesSlowestInput extends ToolReadInput {
@@ -442,11 +456,11 @@ export interface EngineRequest {
   "id": string;
   "revision": string;
   "method": "call" | "health" | "cancel";
-  "name": string | null;
-  "input": unknown;
-  "credential": string | null;
-  "traceparent": string | null;
-  "tracestate": string | null;
+  "name"?: string | null;
+  "input"?: unknown;
+  "credential"?: string | null;
+  "traceparent"?: string | null;
+  "tracestate"?: string | null;
 }
 
 export interface EngineResponse {
@@ -460,4 +474,32 @@ export interface EngineLimits {
   "max_frame_bytes": number;
   "max_pending": number;
   "workers": number;
+}
+
+export interface EngineEnvelope {
+  "id": string;
+  "revision": string;
+}
+
+export interface EngineCall {
+  "id": string;
+  "revision": string;
+  "method": "call";
+  "name": string;
+  "input": unknown;
+  "credential": string | null;
+  "traceparent": string | null;
+  "tracestate": string | null;
+}
+
+export interface EngineHealth {
+  "id": string;
+  "revision": string;
+  "method": "health";
+}
+
+export interface EngineCancel {
+  "id": string;
+  "revision": string;
+  "method": "cancel";
 }

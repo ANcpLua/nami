@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace Nami.Collector.Ingestion;
 
 internal static class OtlpConstants

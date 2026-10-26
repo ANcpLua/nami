@@ -1,6 +1,6 @@
-# Union reference — .NET 11 RC2
+# Union reference — .NET 11 RC3
 
-Baseline: SDK `11.0.100-rc.2.26504.105`. See [verification.md](verification.md) for source and reproducible checks. Recheck implementation-dependent behavior when changing SDKs.
+Baseline: SDK `11.0.100-rc.3.26522.148`. See [verification.md](verification.md) for source and reproducible checks. Recheck implementation-dependent behavior when changing SDKs. RC3's [release notes](https://github.com/dotnet/core/blob/main/release-notes/11.0/preview/rc3/11.0.0-rc.3.md) list security fixes and no union-language changes.
 
 ## Declaration and conversion
 
@@ -42,7 +42,7 @@ does not imply deep immutability of arbitrary payloads or allocation-free generi
 | List pattern | Wrapper count/indexing members; a list case alone is insufficient |
 | `var x`, `_` | Wrapper |
 
-`u is { }` does not check whether a struct union contains a value. `not null and var x` still binds the wrapper. On RC2, type patterns inspect compatible case types; interfaces on the wrapper are not automatically interfaces of its contents. `u is U` normally produces `CS8121`.
+`u is { }` does not check whether a struct union contains a value. `not null and var x` still binds the wrapper. On RC3, type patterns inspect compatible case types; interfaces on the wrapper are not automatically interfaces of its contents. `u is U` normally produces `CS8121`.
 
 ## Completeness and null
 
@@ -69,6 +69,19 @@ A record-class provider can recurse accidentally through its synthesized copy co
 ## Closed hierarchies and JSON
 
 `closed` is implicitly abstract and restricts direct subclasses to the assembly. Do not add `abstract` as well. It does not automatically seal descendants; seal concrete cases when external extension is unwanted. Closing an existing storage hierarchy may preserve behavior with less disruption than converting it to a struct union.
+
+For multiple levels, mark each intermediate node `closed` if its descendants must
+remain known to exhaustive matching. A switch expression can then cover the concrete
+leaves. A normal nonsealed intermediate node stays open: another assembly may derive
+from it even though the root is closed. Matching that open branch covers its unknown
+future descendants, not a fixed set of leaves.
+
+[closed-hierarchies.cs](../examples/closed-hierarchies.cs) demonstrates a closed
+`GateState` root, a closed `GateMoving` branch, sealed leaves and explicit null rejection.
+The verifier also removes a leaf arm to require `CS8509`, accepts external derivation
+through an open branch, and rejects direct external derivation from a closed intermediate
+node with `CS9382`. These are source-level checks on the pinned compiler, not a promise
+that an already compiled consumer understands future library cases.
 
 Bare union JSON adds no discriminator. Two empty cases can both serialize to `{}`, making reconstruction impossible without another tag. Structural classification can also be ambiguous for overlapping property sets. Unknown fields must not downgrade malformed input into another valid case.
 

@@ -13,6 +13,11 @@ await mkdir(dirname(schemaFile), { recursive: true });
 await writeFile(schemaFile, JSON.stringify(original));
 await writeFile(codeFile, "original source\n");
 if (scenario === "metadata") await writeFile(join(dirname(codeFile), ".DS_Store"), "finder metadata");
+const consumerFiles = ["src/nami.collector.ingestion/Generated/Fixture.g.cs", "src/nami.collector.storage/Generated/Fixture.g.cs", "contracts/generated/Fixture.json"];
+for (const path of consumerFiles) {
+  await mkdir(dirname(join(root,path)), {recursive:true});
+  await writeFile(join(root,path), "original consumer output\n");
+}
 let calls = 0;
 const report = await verifyContracts({ root, state,
   mode: scenario === "generate" ? "generate" : "verify",
@@ -22,6 +27,7 @@ const report = await verifyContracts({ root, state,
     calls++;
     if (scenario === "failed") {
       await rm(codeFile);
+      for (const path of consumerFiles) await rm(join(root,path));
       throw Object.assign(new Error("Intentional fixture generation failure"), { exitCode: 17 });
     }
     const next = structuredClone(original);
@@ -42,5 +48,6 @@ const report = await verifyContracts({ root, state,
   } });
 const restored = await readFile(schemaFile, "utf8") === JSON.stringify(original)
   && await readFile(codeFile, "utf8").catch(() => null) === "original source\n"
-  && await readFile(extraFile, "utf8").catch(() => null) === null;
+  && await readFile(extraFile, "utf8").catch(() => null) === null
+  && (await Promise.all(consumerFiles.map(path => readFile(join(root,path), "utf8").catch(() => null)))).every(text => text === "original consumer output\n");
 console.log(JSON.stringify({ report, restored, calls }));

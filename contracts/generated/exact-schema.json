@@ -1,0 +1,146 @@
+{
+  "scalars": {
+    "Common.AttributeInt64": {
+      "kind": "int64"
+    },
+    "Common.UnixNanos": {
+      "kind": "uint64",
+      "minimum": "0"
+    },
+    "Common.DurationNs": {
+      "kind": "uint64",
+      "minimum": "0"
+    },
+    "OTel.Metrics.MetricCount": {
+      "kind": "uint64",
+      "minimum": "0"
+    },
+    "Nami.Models.Storage.Json.HistogramCount": {
+      "kind": "uint64"
+    }
+  },
+  "properties": {
+    "Common.AttributeIntValue": {
+      "value": {
+        "kind": "int64"
+      }
+    },
+    "OTel.Traces.Span": {
+      "start_time_unix_nano": {
+        "kind": "uint64",
+        "minimum": "0"
+      },
+      "end_time_unix_nano": {
+        "kind": "uint64",
+        "minimum": "0"
+      }
+    },
+    "OTel.Traces.SpanEvent": {
+      "time_unix_nano": {
+        "kind": "uint64",
+        "minimum": "0"
+      }
+    },
+    "OTel.Traces.TraceSummary": {
+      "duration_ns": {
+        "kind": "uint64",
+        "minimum": "0"
+      }
+    },
+    "OTel.Logs.LogRecord": {
+      "time_unix_nano": {
+        "kind": "uint64",
+        "minimum": "0"
+      },
+      "observed_time_unix_nano": {
+        "kind": "uint64",
+        "minimum": "0"
+      }
+    },
+    "OTel.Metrics.MetricExemplar": {
+      "time_unix_nano": {
+        "kind": "uint64",
+        "minimum": "0"
+      }
+    },
+    "OTel.Metrics.MetricHistogramPointData": {
+      "count": {
+        "kind": "uint64",
+        "minimum": "0"
+      }
+    },
+    "OTel.Metrics.MetricExponentialHistogramPointData": {
+      "count": {
+        "kind": "uint64",
+        "minimum": "0"
+      },
+      "zero_count": {
+        "kind": "uint64",
+        "minimum": "0"
+      }
+    },
+    "OTel.Metrics.MetricSummaryPointData": {
+      "count": {
+        "kind": "uint64",
+        "minimum": "0"
+      }
+    },
+    "Tools.ProjectedTrace": {
+      "duration_ns": {
+        "kind": "uint64",
+        "minimum": "0"
+      }
+    },
+    "Nami.Models.Storage.Json.StoredIntValue": {
+      "value": {
+        "kind": "int64"
+      }
+    },
+    "Nami.Models.Storage.Json.StoredHistogramPointData": {
+      "count": {
+        "kind": "uint64"
+      }
+    },
+    "Nami.Models.Storage.Json.StoredExponentialHistogramPointData": {
+      "count": {
+        "kind": "uint64"
+      },
+      "zero_count": {
+        "kind": "uint64"
+      }
+    },
+    "Nami.Models.Storage.Json.StoredSummaryPointData": {
+      "count": {
+        "kind": "uint64"
+      }
+    },
+    "Nami.Models.Storage.Json.StoredExemplar": {
+      "time_unix_nano": {
+        "kind": "uint64"
+      }
+    },
+    "Nami.Models.Ingestion.Metrics.AttributeIntValue": {
+      "value": {
+        "kind": "int64"
+      }
+    },
+    "Nami.Models.Ingestion.Metrics.MetricHistogramPointData": {
+      "count": {
+        "kind": "uint64"
+      }
+    },
+    "Nami.Models.Ingestion.Metrics.MetricExponentialHistogramPointData": {
+      "count": {
+        "kind": "uint64"
+      },
+      "zero_count": {
+        "kind": "uint64"
+      }
+    },
+    "Nami.Models.Ingestion.Metrics.MetricSummaryPointData": {
+      "count": {
+        "kind": "uint64"
+      }
+    }
+  }
+}

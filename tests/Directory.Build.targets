@@ -1,0 +1,10 @@
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)../Directory.Build.targets"/>
+  <Import Project="$(MSBuildThisFileDirectory)GeneratedFixtures.targets"/>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'Nami.Tests' Or '$(MSBuildProjectName)' == 'Nami.IntegrationTests'">
+    <Reference Include="Microsoft.Build" HintPath="$(MSBuildBinPath)/Microsoft.Build.dll" Private="true"/>
+    <Reference Include="Microsoft.Build.Framework" HintPath="$(MSBuildBinPath)/Microsoft.Build.Framework.dll" Private="true"/>
+    <Reference Include="Microsoft.Build.Utilities.Core" HintPath="$(MSBuildBinPath)/Microsoft.Build.Utilities.Core.dll" Private="true"/>
+    <Reference Include="Microsoft.NET.StringTools" HintPath="$(MSBuildBinPath)/Microsoft.NET.StringTools.dll" Private="true"/>
+  </ItemGroup>
+</Project>

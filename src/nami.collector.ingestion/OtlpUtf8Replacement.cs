@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using System.Text.Unicode;
 using Google.Protobuf.Reflection;
 
@@ -71,7 +67,7 @@ internal static class OtlpUtf8Replacement
                 return false;
 
             var fieldNumber = tag >> 3;
-            if (fieldNumber is 0 || fieldNumber > int.MaxValue)
+            if (fieldNumber is 0 or > int.MaxValue)
                 return false;
 
             switch ((int)(tag & 7))
@@ -110,21 +106,21 @@ internal static class OtlpUtf8Replacement
                     position += (int)length;
 
                     var field = descriptor.FindFieldByNumber((int)fieldNumber);
-                    if (field is { FieldType: FieldType.String } && !Utf8.IsValid(body))
+                    switch (field)
                     {
-                        var replacement = plan.Replacement(body);
-                        sink.Copy(message[fieldStart..tagEnd]);
-                        sink.Varint((ulong)replacement.Length);
-                        sink.Copy(replacement);
-                    }
-                    else if (field is { FieldType: FieldType.Message })
-                    {
-                        if (!RewriteNested(body, field.MessageType, depth, plan, ref sink, message[fieldStart..tagEnd]))
-                            return false;
-                    }
-                    else
-                    {
-                        sink.Copy(message[fieldStart..position]);
+                        case { FieldType: FieldType.String } when !Utf8.IsValid(body):
+                            var replacement = plan.Replacement(body);
+                            sink.Copy(message[fieldStart..tagEnd]);
+                            sink.Varint((ulong)replacement.Length);
+                            sink.Copy(replacement);
+                            break;
+                        case { FieldType: FieldType.Message }:
+                            if (!RewriteNested(body, field.MessageType, depth, plan, ref sink, message[fieldStart..tagEnd]))
+                                return false;
+                            break;
+                        default:
+                            sink.Copy(message[fieldStart..position]);
+                            break;
                     }
 
                     break;

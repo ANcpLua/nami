@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-10-26 — multi-level closed hierarchies
+
+- Added a visible closed-hierarchy section and a self-contained example with a closed intermediate node and sealed leaves.
+- Added runtime leaf/null checks and compiler checks for a missing leaf, an open external extension point and a closed intermediate boundary.
+- Synchronized from the current Nami skill, retaining its RC3 pin and local verification workflow.
+
+## 2026-10-25 — .NET 11 RC3 security update
+
+- Updated the pinned SDK and verification runner to `11.0.100-rc.3.26522.148`.
+- Revalidated the existing union examples, functional composition, compiler diagnostics, JSON behavior and polyfill boundaries on RC3.
+- Retained the existing example and polyfill implementations; the RC3 release notes list no union-language changes.
+
 ## 2026-10-24 — functional result composition
 
 - Added pure Map/Bind/Match composition with explicit error values and an invariant-culture pipeline.

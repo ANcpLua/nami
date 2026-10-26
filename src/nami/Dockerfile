@@ -5,13 +5,13 @@ RUN bun install --frozen-lockfile
 COPY src/nami.mcp/ ./
 RUN bun run build
 
-FROM mcr.microsoft.com/dotnet/sdk:11.0.100-rc.2 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0.100-rc.3 AS build
 WORKDIR /source
 RUN apt-get update && apt-get install -y --no-install-recommends clang zlib1g-dev && rm -rf /var/lib/apt/lists/*
 COPY . .
 RUN dotnet publish src/nami/nami.csproj -c Release -o /app -maxcpucount:2 -nodeReuse:false -p:UseSharedCompilation=false
 
-FROM mcr.microsoft.com/dotnet/runtime-deps:11.0.0-rc.2
+FROM mcr.microsoft.com/dotnet/runtime-deps:11.0.0-rc.3
 WORKDIR /app
 COPY --from=build /app .
 COPY --from=mcp /usr/local/bin/bun /usr/local/bin/bun

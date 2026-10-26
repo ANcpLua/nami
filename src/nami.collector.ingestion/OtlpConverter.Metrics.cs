@@ -1,15 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Nami.Collector.Ingestion.Primitives;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
-using CommonContract = Nami.Api.Contracts.Common;
-using MetricContract = Nami.Api.Contracts.OTel.Metrics;
+using CommonContract = Nami.Collector.Ingestion.Models;
 using ProtoExemplar = OpenTelemetry.Proto.Metrics.V1.Exemplar;
 using ProtoMetric = OpenTelemetry.Proto.Metrics.V1.Metric;
 using ProtoNumberDataPoint = OpenTelemetry.Proto.Metrics.V1.NumberDataPoint;
@@ -24,12 +19,6 @@ internal static partial class OtlpConverter
         var points = new List<MetricPointIngestionRecord>();
         var reasons = new SortedSet<string>(StringComparer.Ordinal);
         long rejected = 0;
-
-        void Reject(long count, InvalidDataException error)
-        {
-            rejected += count;
-            reasons.Add(error.Message);
-        }
 
         foreach (var resourceMetrics in request.ResourceMetrics)
         {
@@ -50,7 +39,7 @@ internal static partial class OtlpConverter
             var projectId = ExtractProjectIdHintFromProto(resourceMetrics.Resource);
             foreach (var scopeMetrics in resourceMetrics.ScopeMetrics)
             {
-                Dictionary<string, OtlpAttributeValue> scopeAttributes;
+                NormalizedAttributes scopeAttributes;
                 string scopeIdentity;
                 try
                 {
@@ -88,6 +77,38 @@ internal static partial class OtlpConverter
                         continue;
                     }
 
+                    switch (metric.DataCase)
+                    {
+                        case ProtoMetric.DataOneofCase.Gauge:
+                            AddPoints(metric.Gauge.DataPoints, point => CreateNumberPoint(stream, point,
+                                MetricKind.Gauge, MetricTemporality.Unspecified, false));
+                            break;
+                        case ProtoMetric.DataOneofCase.Sum:
+                            AddPoints(metric.Sum.DataPoints, point => CreateNumberPoint(stream, point, MetricKind.Sum,
+                                ConvertTemporality(metric.Sum.AggregationTemporality), metric.Sum.IsMonotonic));
+                            break;
+                        case ProtoMetric.DataOneofCase.Histogram:
+                            AddPoints(metric.Histogram.DataPoints, point => CreateHistogramPoint(stream, point,
+                                ConvertTemporality(metric.Histogram.AggregationTemporality)));
+                            break;
+                        case ProtoMetric.DataOneofCase.ExponentialHistogram:
+                            AddPoints(metric.ExponentialHistogram.DataPoints, point => CreateExponentialHistogramPoint(
+                                stream, point,
+                                ConvertTemporality(metric.ExponentialHistogram.AggregationTemporality)));
+                            break;
+                        case ProtoMetric.DataOneofCase.Summary:
+                            AddPoints(metric.Summary.DataPoints, point => CreateSummaryPoint(stream, point));
+                            break;
+                        case ProtoMetric.DataOneofCase.None:
+                        default:
+                            Reject(CountMetricPoints(metric),
+                                new InvalidDataException(
+                                    $"OTLP metric '{metric.Name}' carries an unknown data point set."));
+                            break;
+                    }
+
+                    continue;
+
                     // A malformed point must not discard valid siblings. End time is required
                     // for every metric kind, unlike optional log event time.
                     // https://opentelemetry.io/docs/specs/otlp/#partial-success
@@ -99,69 +120,52 @@ internal static partial class OtlpConverter
                             try
                             {
                                 var record = convert(point);
-                                if (record.TimeUnixNano == 0)
+                                if (record.TimeUnixNano is 0)
+                                {
                                     throw new InvalidDataException(
                                         $"Metric '{metric.Name}' requires a nonzero time_unix_nano.");
+                                }
+
                                 points.Add(record);
                             }
                             catch (InvalidDataException error) { Reject(1, error); }
                         }
                     }
-
-                    switch (metric.DataCase)
-                    {
-                        case Metric.DataOneofCase.Gauge:
-                            AddPoints(metric.Gauge.DataPoints, point => CreateNumberPoint(stream, point,
-                                MetricKind.Gauge, MetricTemporality.Unspecified, false));
-                            break;
-                        case Metric.DataOneofCase.Sum:
-                            AddPoints(metric.Sum.DataPoints, point => CreateNumberPoint(stream, point, MetricKind.Sum,
-                                ConvertTemporality(metric.Sum.AggregationTemporality), metric.Sum.IsMonotonic));
-                            break;
-                        case Metric.DataOneofCase.Histogram:
-                            AddPoints(metric.Histogram.DataPoints, point => CreateHistogramPoint(stream, point,
-                                ConvertTemporality(metric.Histogram.AggregationTemporality)));
-                            break;
-                        case Metric.DataOneofCase.ExponentialHistogram:
-                            AddPoints(metric.ExponentialHistogram.DataPoints, point => CreateExponentialHistogramPoint(
-                                stream, point,
-                                ConvertTemporality(metric.ExponentialHistogram.AggregationTemporality)));
-                            break;
-                        case Metric.DataOneofCase.Summary:
-                            AddPoints(metric.Summary.DataPoints, point => CreateSummaryPoint(stream, point));
-                            break;
-                        default:
-                            Reject(CountMetricPoints(metric),
-                                new InvalidDataException(
-                                    $"OTLP metric '{metric.Name}' carries an unknown data point set."));
-                            break;
-                    }
                 }
             }
         }
 
-        return new MetricIngestionBatch(points, rejected, reasons.Count == 0 ? null : string.Join("; ", reasons));
+        return new MetricIngestionBatch(points, rejected, reasons.Count is 0 ? null : string.Join("; ", reasons));
+
+        void Reject(long count, InvalidDataException error)
+        {
+            rejected += count;
+            reasons.Add(error.Message);
+        }
     }
 
     private static long CountMetricPoints(ProtoMetric metric) => metric.DataCase switch
     {
-        Metric.DataOneofCase.Gauge => metric.Gauge.DataPoints.Count,
-        Metric.DataOneofCase.Sum => metric.Sum.DataPoints.Count,
-        Metric.DataOneofCase.Histogram => metric.Histogram.DataPoints.Count,
-        Metric.DataOneofCase.ExponentialHistogram => metric.ExponentialHistogram.DataPoints.Count,
-        Metric.DataOneofCase.Summary => metric.Summary.DataPoints.Count,
+        ProtoMetric.DataOneofCase.Gauge => metric.Gauge.DataPoints.Count,
+        ProtoMetric.DataOneofCase.Sum => metric.Sum.DataPoints.Count,
+        ProtoMetric.DataOneofCase.Histogram => metric.Histogram.DataPoints.Count,
+        ProtoMetric.DataOneofCase.ExponentialHistogram => metric.ExponentialHistogram.DataPoints.Count,
+        ProtoMetric.DataOneofCase.Summary => metric.Summary.DataPoints.Count,
         _ => 0
     };
 
     private static MetricPointIngestionRecord CreateHistogramPoint(MetricStreamMetadata stream,
         HistogramDataPoint point, MetricTemporality temporality)
     {
-        if (point.BucketCounts.Count != 0 && point.ExplicitBounds.Count + 1 != point.BucketCounts.Count)
+        if (point.BucketCounts.Count is not 0 && point.ExplicitBounds.Count + 1 != point.BucketCounts.Count)
+        {
             throw new InvalidDataException(
                 $"OTLP histogram '{stream.MetricName}' must carry one more count than explicit bound.");
+        }
+
         ValidateAscendingBounds(stream.MetricName, point.ExplicitBounds);
         return CreateRecord(stream, point.Attributes, MetricKind.Histogram, temporality, false,
-                new MetricContract.MetricHistogramPointData
+                new CommonContract.MetricHistogramPointData
                 {
                     Count = point.Count,
                     Sum = point.HasSum ? point.Sum : null,
@@ -170,18 +174,18 @@ internal static partial class OtlpConverter
                     ExplicitBounds = point.ExplicitBounds.ToArray(),
                     BucketCounts = point.BucketCounts.ToArray()
                 }) with
-            {
-                TimeUnixNano = point.TimeUnixNano,
-                StartTimeUnixNano = NullIfZero(point.StartTimeUnixNano),
-                Flags = point.Flags,
-                Exemplars = ConvertExemplars(point.Exemplars)
-            };
+        {
+            TimeUnixNano = point.TimeUnixNano,
+            StartTimeUnixNano = NullIfZero(point.StartTimeUnixNano),
+            Flags = point.Flags,
+            Exemplars = ConvertExemplars(point.Exemplars)
+        };
     }
 
     private static MetricPointIngestionRecord CreateExponentialHistogramPoint(MetricStreamMetadata stream,
         ExponentialHistogramDataPoint point, MetricTemporality temporality) =>
         CreateRecord(stream, point.Attributes, MetricKind.ExponentialHistogram, temporality, false,
-                new MetricContract.MetricExponentialHistogramPointData
+                new CommonContract.MetricExponentialHistogramPointData
                 {
                     Count = point.Count,
                     Sum = point.HasSum ? point.Sum : null,
@@ -193,14 +197,14 @@ internal static partial class OtlpConverter
                     Positive =
                         point.Positive is null
                             ? null
-                            : new MetricContract.MetricExponentialBuckets
+                            : new CommonContract.MetricExponentialBuckets
                             {
                                 Offset = point.Positive.Offset, BucketCounts = point.Positive.BucketCounts.ToArray()
                             },
                     Negative =
                         point.Negative is null
                             ? null
-                            : new MetricContract.MetricExponentialBuckets
+                            : new CommonContract.MetricExponentialBuckets
                             {
                                 Offset = point.Negative.Offset, BucketCounts = point.Negative.BucketCounts.ToArray()
                             }
@@ -215,13 +219,13 @@ internal static partial class OtlpConverter
     private static MetricPointIngestionRecord CreateSummaryPoint(MetricStreamMetadata stream,
         SummaryDataPoint point) =>
         CreateRecord(stream, point.Attributes, MetricKind.Summary, MetricTemporality.Unspecified, false,
-                new MetricContract.MetricSummaryPointData
+                new CommonContract.MetricSummaryPointData
                 {
                     Count = point.Count,
                     Sum = point.Sum,
                     QuantileValues =
                         point.QuantileValues.Select(static value =>
-                                new MetricContract.MetricQuantileValue
+                                new CommonContract.MetricQuantileValue
                                     {
                                         Quantile = value.Quantile, Value = value.Value
                                     })
@@ -235,13 +239,13 @@ internal static partial class OtlpConverter
 
     private static MetricPointIngestionRecord CreateNumberPoint(MetricStreamMetadata stream, ProtoNumberDataPoint point,
         MetricKind kind, MetricTemporality temporality, bool monotonic) =>
-        CreateRecord(stream, point.Attributes, kind, temporality, monotonic, new MetricContract.MetricNumberPointData
+        CreateRecord(stream, point.Attributes, kind, temporality, monotonic, new CommonContract.MetricNumberPointData
             {
                 Value = point.ValueCase switch
                 {
-                    NumberDataPoint.ValueOneofCase.AsInt =>
+                    ProtoNumberDataPoint.ValueOneofCase.AsInt =>
                         new CommonContract.AttributeIntValue { Value = point.AsInt },
-                    NumberDataPoint.ValueOneofCase.AsDouble => new CommonContract.AttributeDoubleValue
+                    ProtoNumberDataPoint.ValueOneofCase.AsDouble => new CommonContract.AttributeDoubleValue
                     {
                         Value = point.AsDouble
                     },
@@ -255,23 +259,25 @@ internal static partial class OtlpConverter
                 Exemplars = ConvertExemplars(point.Exemplars)
             };
 
-    private static IReadOnlyList<MetricContract.MetricExemplar> ConvertExemplars(IEnumerable<ProtoExemplar> exemplars)
+    private static NormalizedMetricExemplars ConvertExemplars(IEnumerable<ProtoExemplar> exemplars)
     {
         var converted = new NormalizedMetricExemplars();
         foreach (var exemplar in exemplars)
         {
             var attributes = ExtractMetricAttributes(exemplar.FilteredAttributes);
             converted.Renames.AddRange(NormalizedAttributes.Collect([attributes]));
-            converted.Add(new MetricContract.MetricExemplar
+            converted.Add(new CommonContract.MetricExemplar
             {
                 TimeUnixNano = exemplar.TimeUnixNano,
                 Value = exemplar.ValueCase switch
                 {
-                    Exemplar.ValueOneofCase.AsInt => new CommonContract.AttributeIntValue { Value = exemplar.AsInt },
-                    Exemplar.ValueOneofCase.AsDouble => new CommonContract.AttributeDoubleValue
+                    ProtoExemplar.ValueOneofCase.AsInt => new CommonContract.AttributeIntValue { Value = exemplar.AsInt },
+                    ProtoExemplar.ValueOneofCase.AsDouble => new CommonContract.AttributeDoubleValue
                     {
                         Value = exemplar.AsDouble
                     },
+                    ProtoExemplar.ValueOneofCase.None =>
+                        throw new InvalidDataException("OTLP metric exemplars require a numeric value."),
                     _ => throw new InvalidDataException("OTLP metric exemplars require a numeric value.")
                 },
                 FilteredAttributes = ToContractAttributes(attributes),
@@ -291,24 +297,43 @@ internal static partial class OtlpConverter
         return Convert.ToHexStringLower(bytes.Span);
     }
 
-    private static IReadOnlyList<CommonContract.Attribute> ToContractAttributes(
-        IReadOnlyDictionary<string, OtlpAttributeValue> attributes)
+    private static NormalizedContractAttributes ToContractAttributes(
+        NormalizedAttributes attributes)
     {
         var converted = new NormalizedContractAttributes(NormalizedAttributes.Collect([attributes]));
         foreach (var pair in attributes.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
-            converted.Add(new CommonContract.Attribute { Key = pair.Key, Value = pair.Value.ToContract() });
+            converted.Add(new CommonContract.Attribute { Key = pair.Key, Value = pair.Value });
         return converted;
     }
 
     private static MetricPointIngestionRecord CreateRecord(MetricStreamMetadata stream,
         RepeatedField<KeyValue> attributes, MetricKind kind,
-        MetricTemporality temporality, bool monotonic, MetricContract.MetricPointData data) => new()
+        MetricTemporality temporality, bool monotonic, CommonContract.MetricPointData data) => new()
     {
         ProjectIdHint = stream.ProjectIdHint,
         MetricName = stream.MetricName,
-        Kind = kind,
-        Temporality = temporality,
-        IsMonotonic = monotonic,
+        Shape = (kind, data) switch
+        {
+            (MetricKind.Gauge, CommonContract.MetricNumberPointData value) => new CommonContract.GaugeMetric
+            {
+                Data = value
+            },
+            (MetricKind.Sum, CommonContract.MetricNumberPointData value) => new CommonContract.SumMetric
+            {
+                Data = value, Temporality = temporality, IsMonotonic = monotonic
+            },
+            (MetricKind.Histogram, CommonContract.MetricHistogramPointData value) => new CommonContract.HistogramMetric
+            {
+                Data = value, Temporality = temporality
+            },
+            (MetricKind.ExponentialHistogram, CommonContract.MetricExponentialHistogramPointData value) =>
+                new CommonContract.ExponentialHistogramMetric { Data = value, Temporality = temporality },
+            (MetricKind.Summary, CommonContract.MetricSummaryPointData value) => new CommonContract.SummaryMetric
+            {
+                Data = value
+            },
+            _ => throw new InvalidDataException("Metric kind and payload do not agree.")
+        },
         Unit = stream.Unit,
         Description = stream.Description,
         ServiceName = stream.ServiceName,
@@ -327,11 +352,10 @@ internal static partial class OtlpConverter
         ScopeIdentity = stream.ScopeIdentity,
         AttributesIdentity = MetricAttributeIdentity(attributes),
         InstrumentMetadata = stream.InstrumentMetadata,
-        TimeUnixNano = 0,
-        Data = data
+        TimeUnixNano = 0
     };
 
-    private static Dictionary<string, OtlpAttributeValue> ExtractMetricAttributes(
+    private static NormalizedAttributes ExtractMetricAttributes(
         RepeatedField<KeyValue> attributes)
     {
         ValidateAttributeKeys(attributes);
@@ -359,8 +383,11 @@ internal static partial class OtlpConverter
         foreach (var bound in bounds)
         {
             if (!double.IsFinite(bound) || bound <= previous)
+            {
                 throw new InvalidDataException(
                     $"OTLP histogram '{metricName}' explicit bounds must be finite and strictly ascending.");
+            }
+
             previous = bound;
         }
     }
@@ -372,7 +399,7 @@ internal static partial class OtlpConverter
         _ => MetricTemporality.Unspecified
     };
 
-    private static ulong? NullIfZero(ulong value) => value == 0 ? null : value;
+    private static ulong? NullIfZero(ulong value) => value is 0 ? null : value;
 
     private readonly record struct MetricStreamMetadata(
         string? ProjectIdHint,
@@ -381,16 +408,16 @@ internal static partial class OtlpConverter
         string? Description,
         string ServiceName,
         string? SchemaUrl,
-        Dictionary<string, OtlpAttributeValue> ResourceAttributes,
+        NormalizedAttributes ResourceAttributes,
         IReadOnlyList<ResourceEntityRefIngestionRecord> ResourceEntityRefs,
         string? ResourceSchemaUrl,
         uint ResourceDroppedAttributesCount,
         string? ScopeName,
         string? ScopeVersion,
         string? ScopeSchemaUrl,
-        IReadOnlyDictionary<string, OtlpAttributeValue> ScopeAttributes,
+        NormalizedAttributes ScopeAttributes,
         uint ScopeDroppedAttributesCount,
-        IReadOnlyList<CommonContract.Attribute> InstrumentMetadata,
+        NormalizedContractAttributes InstrumentMetadata,
         string ResourceIdentity,
         string ScopeIdentity);
 }

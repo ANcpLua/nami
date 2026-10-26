@@ -1,12 +1,8 @@
-using System.Linq;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Nami.Hosting;
 using Nami.Telemetry;
 using Nami.Tools;
 
-var builder = WebApplication.CreateSlimBuilder(args.Where(static arg => arg != "--engine").ToArray());
+var builder = WebApplication.CreateSlimBuilder([.. args.Where(static arg => arg != "--engine")]);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole(static options => options.LogToStandardErrorThreshold = LogLevel.Trace);
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
@@ -20,5 +16,11 @@ await using var app = builder.Build();
 app.UseNamiCollectorMiddleware();
 app.MapNamiCollectorEndpoints();
 await app.StartAsync();
-try { await EngineProtocol.RunAsync(app.Services, app.Lifetime.ApplicationStopping); }
-finally { await app.StopAsync(); }
+try
+{
+    await EngineProtocol.RunAsync(app.Services, app.Lifetime.ApplicationStopping);
+}
+finally
+{
+    await app.StopAsync();
+}

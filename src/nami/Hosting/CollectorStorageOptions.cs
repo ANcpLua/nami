@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Nami.Collector.Ingestion.Configuration;
 using Nami.Collector.Storage;
@@ -14,7 +13,7 @@ internal sealed class CollectorStorageOptions
     public string? MemoryLimit { get; set; }
 
     [ConfigurationKeyName(CollectorConfigurationKeys.DatabaseThreads)]
-    [ConfiguredRange(CollectorConfigurationKeys.DatabaseThreads, 1, int.MaxValue)]
+    [ConfiguredRange(Key = CollectorConfigurationKeys.DatabaseThreads, Minimum = 1, Maximum = int.MaxValue)]
     public int? Threads { get; set; }
 
     [ConfigurationKeyName(CollectorConfigurationKeys.DatabaseTempDirectory)]

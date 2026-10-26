@@ -4,6 +4,7 @@ import { dirname, join, relative } from "node:path";
 import { canonicalize } from "./canonical-schema.mjs";
 
 export const generatedDirectories = [
+  "src/nami.collector.ingestion/Generated", "src/nami.collector.storage/Generated", "contracts/generated",
   "internal/nami.contracts/Nami", "contracts/json-schema", "contracts/openapi",
   "src/nami.mcp/src/contracts/generated",
 ];

@@ -1,15 +1,7 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using Google.Protobuf;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Nami.ApiKeys;
-using Nami.Grpc;
 using Nami.Collector.Storage;
+using Nami.Grpc;
 using ExportLogsServiceResponse = OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceResponse;
 using ExportMetricsServiceResponse = OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse;
 using ExportTraceServiceResponse = OpenTelemetry.Proto.Collector.Trace.V1.ExportTraceServiceResponse;
@@ -28,10 +20,9 @@ internal static class CollectorEndpointExtensions
         otlp.MapPost("/traces", IngestOtlpTracesAsync);
         otlp.MapPost("/logs", IngestOtlpLogsAsync);
         otlp.MapPost("/metrics", IngestOtlpMetricsAsync);
-
     }
 
-    internal static Task<IResult> IngestOtlpTracesAsync(
+    private static Task<IResult> IngestOtlpTracesAsync(
         HttpContext context,
         INamiStore store,
         CancellationToken ct)
@@ -54,7 +45,7 @@ internal static class CollectorEndpointExtensions
             ct);
     }
 
-    internal static Task<IResult> IngestOtlpLogsAsync(
+    private static Task<IResult> IngestOtlpLogsAsync(
         HttpContext context,
         INamiStore store,
         TimeProvider timeProvider,
@@ -77,7 +68,7 @@ internal static class CollectorEndpointExtensions
             ct);
     }
 
-    internal static Task<IResult> IngestOtlpMetricsAsync(
+    private static Task<IResult> IngestOtlpMetricsAsync(
         HttpContext context,
         INamiStore store,
         CancellationToken ct)

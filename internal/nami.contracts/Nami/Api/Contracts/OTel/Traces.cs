@@ -10,6 +10,16 @@ namespace Nami.Api.Contracts.OTel.Traces;
 
 public sealed class Span
 {
+    public const ulong StartTimeUnixNanoMinimum = 0;
+    public const ulong EndTimeUnixNanoMinimum = 0;
+    public const long DroppedAttributesCountMinimum = 0;
+    public const long DroppedAttributesCountMaximum = 9007199254740991;
+    public const long DroppedEventsCountMinimum = 0;
+    public const long DroppedEventsCountMaximum = 9007199254740991;
+    public const long DroppedLinksCountMinimum = 0;
+    public const long DroppedLinksCountMaximum = 9007199254740991;
+    public const uint FlagsMinimum = 0;
+    public const uint FlagsMaximum = 4294967295;
     [JsonPropertyName("span_id")]
     public required string SpanId { get; init; }
     [JsonPropertyName("trace_id")]
@@ -66,6 +76,9 @@ public sealed class Span
 
 public sealed class SpanEvent
 {
+    public const ulong TimeUnixNanoMinimum = 0;
+    public const long DroppedAttributesCountMinimum = 0;
+    public const long DroppedAttributesCountMaximum = 9007199254740991;
     [JsonPropertyName("name")]
     public required string Name { get; init; }
     [JsonConverter(typeof(global::Nami.Api.Contracts.UInt64StringConverter))]
@@ -82,6 +95,10 @@ public sealed class SpanEvent
 
 public sealed class SpanLink
 {
+    public const long DroppedAttributesCountMinimum = 0;
+    public const long DroppedAttributesCountMaximum = 9007199254740991;
+    public const uint FlagsMinimum = 0;
+    public const uint FlagsMaximum = 4294967295;
     [JsonPropertyName("trace_id")]
     public required string TraceId { get; init; }
     [JsonPropertyName("span_id")]
@@ -113,6 +130,7 @@ public sealed class SpanStatus
 
 public sealed class TraceSummary
 {
+    public const ulong DurationNsMinimum = 0;
     [JsonPropertyName("trace_id")]
     public required string TraceId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -136,6 +154,7 @@ public sealed class TraceSummary
 
 public sealed class Trace
 {
+    public const ulong DurationNsMinimum = 0;
     [JsonPropertyName("trace_id")]
     public required string TraceId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

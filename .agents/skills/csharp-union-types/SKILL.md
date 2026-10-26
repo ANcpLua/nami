@@ -22,7 +22,7 @@ The skill is self-contained. For ordinary use, read only the needed local refere
 ## Establish the compiler and contract
 
 1. Inspect the owning project, `global.json`, inherited build properties and installed SDK. Do not change framework or language version without an upgrade request.
-2. On verified SDK `11.0.100-rc.2.26504.105`, unions compile with `LangVersion=15.0` or the `net11.0` default. Earlier previews required `preview`; do not apply that requirement to every .NET 11 SDK. Existing `preview` settings can remain.
+2. On verified SDK `11.0.100-rc.3.26522.148`, unions compile with `LangVersion=15.0` or the `net11.0` default. Earlier previews required `preview`; do not apply that requirement to every .NET 11 SDK. Existing `preview` settings can remain. RC3 is a security update; its release notes list no union-language changes.
    Distinguish the SDK compiler, the active language version and any separately referenced `Microsoft.CodeAnalysis.CSharp` package. An older Roslyn package or IDE language service can lack `LanguageVersion.CSharp15` even when the SDK builds C# 15 successfully. Use `#error version` temporarily to identify the compiler/language used by a build; inspect package versions separately for in-process compilation.
 3. Identify the authoritative model and serializer. For TypeSpec or another generator, edit that source and regenerate. Never edit generated C# by hand. Separate wire and persistence models only for an explicit compatibility or storage requirement.
 4. Before changing serialization, record the discriminator, null representation, numeric encoding and canonical ordering. Preserve persisted bytes and hashes unless a migration is intended.
@@ -33,12 +33,37 @@ The skill is self-contained. For ordinary use, read only the needed local refere
 - Completeness diagnostics are warnings. Verify that `CS8509`, `CS8655` and `CS8846` fail the actual project build when completeness is required. A Roslyn test forcing warnings to errors does not establish production policy.
 - Switch **statements** lack that completeness guarantee. Removing their default arm can silently omit work, including serialization.
 - `default(U)` can contain null even when all cases are non-nullable. `U?` additionally has a nullable wrapper. Do not silently map an invalid default to a normal business state.
-- Typed patterns match contents. Untyped property/positional patterns and `var` match the wrapper. `u is { }` is not a contents-presence check on a struct union; use `u is not null`. On RC2, `u is U` is not a valid general check.
+- Typed patterns match contents. Untyped property/positional patterns and `var` match the wrapper. `u is { }` is not a contents-presence check on a struct union; use `u is not null`. On RC3, `u is U` is not a valid general check.
 - A declared union is a struct with object-backed storage and boxes value-type cases. Choose custom `[Union]` storage only for a concrete requirement. `HasValue`/`TryGetValue` enable non-boxing matching but do not eliminate allocations elsewhere. Measure performance claims.
 - Use `readonly union` for immutable wrappers. Record-class cases still allocate; changing those cases to record structs merely moves their allocation to boxing in generated object storage. Custom nullable scalar cases must preserve zero/false as present values and map null/default consistently across every access member.
 - Avoid overlapping generic success/error cases unless their conversion and matching behavior is intentional. `Task<Case>` does not convert to `Task<Union>`; give generic factories the intended type explicitly.
 - For generic results, prefer distinct cases such as `Result<T>(Success<T>, Failure)` when success and error payload types could coincide. The success payload remains typed as `T`; this does not change the generated union's object-backed storage.
 - For functional composition, use immutable cases and pure callbacks with `Map` (transform success), `Bind` (compose fallible functions), and `Match` (consume either case). Preserve failure values and skip success callbacks after failure. Keep expected domain errors as `Failure`; do not catch arbitrary callback exceptions or silently normalize an invalid default. See [functional.cs](examples/functional.cs). These operators do not guarantee callback purity or allocation freedom.
+
+## Closed hierarchies
+
+Use `closed` when alternatives already share a base class or record, common state,
+behavior, or polymorphic serialization. It restricts **direct** derivation to the
+declaring assembly and is implicitly abstract; do not combine it with `abstract`,
+`sealed`, or `static`.
+
+Closure is not transitive. A normal, nonsealed child remains an extension point for
+other assemblies. Mark intermediate nodes `closed` to extend exhaustive matching
+through the hierarchy, and mark concrete leaves `sealed` when further derivation
+is unwanted:
+
+```csharp
+public closed record GateState;
+public closed record GateMoving(float Percent) : GateState;
+public sealed record GateOpening(float Percent) : GateMoving(Percent);
+public sealed record GateClosing(float Percent) : GateMoving(Percent);
+```
+
+Use a switch expression that covers the leaves, with explicit null handling when
+null can arrive. Adding a new leaf should require updating affected matches; a
+catch-all would hide it. See the compiled and executed
+[closed-hierarchy example](examples/closed-hierarchies.cs) and the
+[hierarchy reference](references/union-reference.md#closed-hierarchies-and-json).
 
 ## Serialization
 

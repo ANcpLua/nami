@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using DuckDB.NET.Data;
 using Microsoft.Extensions.Logging.Abstractions;
 using static System.Threading.Volatile;
@@ -76,9 +70,11 @@ internal sealed partial class DuckDbStore : INamiStore
 
         _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(boundedJobQueueCapacity)
         {
-            FullMode = BoundedChannelFullMode.Wait, SingleReader = true, SingleWriter = false
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = true,
+            SingleWriter = false
         });
-        _writerTask = Task.Run(WriterLoopAsync);
+        _writerTask = Task.Run(WriterLoopAsync, CancellationToken.None);
 
         // DuckDB.NET's *Async methods are synchronous-over-async: the embedded engine has no IO to
         // await, so every read blocks its calling thread for the full query. To keep that blocking
@@ -97,7 +93,9 @@ internal sealed partial class DuckDbStore : INamiStore
             var concurrency = Math.Max(1, maxConcurrentReads);
             _reads = Channel.CreateBounded<IReadJob>(new BoundedChannelOptions(readQueueCapacity)
             {
-                FullMode = BoundedChannelFullMode.Wait, SingleReader = false, SingleWriter = false
+                FullMode = BoundedChannelFullMode.Wait,
+                SingleReader = false,
+                SingleWriter = false
             });
 
             // Reader connections use the same connection string as the writer on purpose: DuckDB.NET
@@ -233,9 +231,6 @@ internal sealed partial class DuckDbStore : INamiStore
     }
 
 
-
-
-
     public Task<StorageStats> GetStorageStatsAsync(
         string projectId,
         CancellationToken ct = default)
@@ -289,8 +284,6 @@ internal sealed partial class DuckDbStore : INamiStore
             await tx.CommitAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
-
-
 
 
     private async Task<T> ExecuteReadAsync<T>(Func<DuckDBConnection, T> read, CancellationToken ct = default)
@@ -493,7 +486,7 @@ internal sealed partial class DuckDbStore : INamiStore
     // SET ... pragmas take no bound parameters, so operator-supplied values are interpolated.
     // The values are trusted config, but escape single quotes anyway so a stray quote can't break
     // the statement.
-    private static string EscapeSqlLiteral(string value) => value.Replace("'", "''");
+    private static string EscapeSqlLiteral(string value) => value.Replace("'", "''", StringComparison.Ordinal);
 
     private static bool InitializeSchema(DuckDBConnection con)
     {
@@ -501,7 +494,7 @@ internal sealed partial class DuckDbStore : INamiStore
         ExecuteSchemaSql(con, transaction, DuckDbGeneratedSchema.BootstrapDdl);
 
         var stored = ReadSchemaIdentity(con, transaction);
-        var authoritativeMismatches = FindSchemaMismatches(
+        IReadOnlyList<string> authoritativeMismatches = FindSchemaMismatches(
             con,
             transaction,
             DuckDbGeneratedSchema.AuthoritativeTables, true);
@@ -553,7 +546,6 @@ internal sealed partial class DuckDbStore : INamiStore
             if (authoritativeMismatches.Contains(LogStorageRow.TableName, StringComparer.Ordinal))
                 ExecuteSchemaSql(con, transaction, "DROP SEQUENCE IF EXISTS logs_ingest_sequence");
             CreateSchema(con, transaction, DuckDbGeneratedSchema.AuthoritativeDdl);
-            CreateSchema(con, transaction, DuckDbGeneratedSchema.DerivedDdl);
         }
         else
         {
@@ -568,9 +560,9 @@ internal sealed partial class DuckDbStore : INamiStore
                 DropGeneratedTables(con, transaction, false);
             }
 
-            CreateSchema(con, transaction, DuckDbGeneratedSchema.DerivedDdl);
         }
 
+        CreateSchema(con, transaction, DuckDbGeneratedSchema.DerivedDdl);
         DropRetiredTables(con, transaction);
         WriteSchemaIdentity(con, transaction);
         transaction.Commit();
@@ -587,7 +579,7 @@ internal sealed partial class DuckDbStore : INamiStore
     // reordered column, a changed default or primary key, a required or defaulted new column) is
     // not additive and fails closed while data exists. Returns the columns to append per table, or
     // null when the difference is not additive.
-    private static IReadOnlyList<(DuckDbExpectedTable Table, DuckDbExpectedColumn[] Columns)>? PlanAdditiveRelease(
+    private static List<(DuckDbExpectedTable Table, DuckDbExpectedColumn[] Columns)>? PlanAdditiveRelease(
         DuckDBConnection con,
         DbTransaction transaction,
         IReadOnlyList<string> mismatches)
@@ -603,11 +595,8 @@ internal sealed partial class DuckDbStore : INamiStore
             var actual = ReadColumns(con, transaction, name);
             if (actual.Count > table.Columns.Length)
                 return null;
-            for (var ordinal = 0; ordinal < actual.Count; ordinal++)
-            {
-                if (!ColumnMatches(actual[ordinal], table.Columns[ordinal]))
-                    return null;
-            }
+            if (actual.Where((column, ordinal) => !ColumnMatches(column, table.Columns[ordinal])).Any())
+                return null;
 
             var appended = table.Columns[actual.Count..];
             if (appended.Any(static column =>
@@ -675,7 +664,7 @@ internal sealed partial class DuckDbStore : INamiStore
         command.ExecuteNonQuery();
     }
 
-    private static IReadOnlyList<string> FindSchemaMismatches(
+    private static List<string> FindSchemaMismatches(
         DuckDBConnection con,
         DbTransaction transaction,
         IReadOnlyList<DuckDbExpectedTable> expectedTables,
@@ -800,9 +789,8 @@ internal sealed partial class DuckDbStore : INamiStore
 
         // DuckDB lists a keyword column (e.g. saved_queries.name) as a string literal of the
         // quoted identifier, '"name"', so both quote layers come off.
-        return value.Split(',')
-            .Select(static column => column.Trim().Trim('\'').Trim('"'))
-            .ToArray();
+        return [.. value.Split(',')
+            .Select(static column => column.Trim().Trim('\'').Trim('"'))];
     }
 
     private static string NormalizeDuckDbType(string value)
@@ -818,10 +806,12 @@ internal sealed partial class DuckDbStore : INamiStore
         };
     }
 
-    internal static bool DefaultsMatch(string? actual, string? expected)
+    private static bool DefaultsMatch(string? actual, string? expected)
     {
         if (actual is null || expected is null)
             return actual is null && expected is null;
+
+        return string.Equals(Normalize(actual), Normalize(expected), StringComparison.Ordinal);
 
         // The rewrite runs before the parentheses are trimmed: trimming first cut the closing
         // parenthesis off CAST(...) so the rewrite could never match.
@@ -832,8 +822,6 @@ internal sealed partial class DuckDbStore : INamiStore
             // DuckDB reports a uuid()::varchar default as CAST(uuid() AS VARCHAR).
             .Replace("CAST(UUID()ASVARCHAR)", "UUID()::VARCHAR", StringComparison.Ordinal)
             .Trim('(', ')');
-
-        return string.Equals(Normalize(actual), Normalize(expected), StringComparison.Ordinal);
     }
 
     private static bool HasRows(
@@ -946,7 +934,7 @@ internal sealed partial class DuckDbStore : INamiStore
     }
 
     private static string QuoteIdentifier(string value) =>
-        $"\"{value.Replace("\"", "\"\"")}\"";
+        $"\"{value.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
 
     private static void VerifyPersistedPrimaryKeys(DuckDBConnection con)
     {

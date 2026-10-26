@@ -1,6 +1,5 @@
 import { compile, NodeHost, resolveCodeFix, resolveCompilerOptions, type CodeFixEdit, type Diagnostic, type TypeInfo } from "@typespec/compiler";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 import { wireNameFixId } from "@ancplua/typespec-nami-lint";
 
 const supported = (code: string, id: string) => code === "@ancplua/typespec-nami-lint/wire-name-snake-case" && id === wireNameFixId;

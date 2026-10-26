@@ -1,0 +1,8 @@
+<Project Sdk="MSTest.Sdk">
+  <ItemGroup>
+    <Reference Include="$(FixtureSupportDirectory)Nami.Tests.dll" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Content Include="$(FixtureSupportDirectory)**/*" Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Compile Include="$(FixtureSourceDirectory)*.cs" />
+  </ItemGroup>
+</Project>

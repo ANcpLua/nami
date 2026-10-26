@@ -9,4 +9,16 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
     <None Update="testconfig.json" CopyToOutputDirectory="PreserveNewest"/>
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Fixtures/CompilerProbes/**/*.cs;Fixtures/BuildEvidence/**/*.cs;Fixtures/InvocationProbe/**/*.cs"/>
+    <Compile Include="Fixtures/BuildEvidence/BuildEvidenceContract.cs" Link="Probes/BuildEvidenceContract.cs"/>
+    <GeneratedFixture Include="Fixtures/BuildEvidence/BuildEvidenceProbe.csproj.template" Name="BuildEvidenceProbe" TargetPath="fixtures/BuildEvidenceProbe/" RequiresSupport="true"/>
+    <Compile Include="Fixtures/InvocationProbe/ProbeContract.cs" Link="Probes/ProbeContract.cs"/>
+    <GeneratedFixture Include="Fixtures/InvocationProbe/InvocationProbe.csproj.template" Name="InvocationProbe" TargetPath="fixtures/InvocationProbe/" RequiresSupport="true"/>
+    <GeneratedFixture Include="Fixtures/CompilerProbes/CompilerProbes.csproj.template" Name="CompilerProbes" TargetPath="fixtures/CompilerProbes/"/>
+    <Reference Include="CompilerProbes">
+      <HintPath>$(IntermediateOutputPath)generated-fixtures/CompilerProbes/output/CompilerProbes.dll</HintPath>
+    </Reference>
+    <PackageReference Include="Grpc.Net.Client"/>
+  </ItemGroup>
 </Project>

@@ -1,39 +1,29 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using MetricKind = Nami.Collector.Ingestion.Primitives.MetricKind;
 
 namespace Nami.Collector.Storage;
-
-internal sealed record HistoricalMetricProjection(
-    double? Value,
-    ulong? HistogramCount,
-    double? HistogramSum,
-    double? HistogramMin,
-    double? HistogramMax,
-    string? BucketBoundsJson,
-    string? BucketCountsJson);
 
 internal static class MetricObservationCodec
 {
     internal static MetricObservationRow FromIngestion(MetricPointIngestionRecord point, string projectId,
         string seriesId)
     {
-        var stored = StoredRecordMapper.ToStored(point.Data);
+        var stored = IngestionMappings.ToStored(point.Data);
         var data = JsonSerializer.Serialize(stored, StorageJsonSerializerContext.Default.StoredMetricPointData);
-        var exemplars = JsonSerializer.Serialize(StoredRecordMapper.ToStored(point.Exemplars),
+        var exemplars = JsonSerializer.Serialize(point.Exemplars.Select(IngestionMappings.ToStored).ToArray(),
             StorageJsonSerializerContext.Default.StoredExemplars);
-        var metadata = JsonSerializer.Serialize(StoredRecordMapper.ToStored(point.InstrumentMetadata),
+        var metadata = JsonSerializer.Serialize(
+            point.InstrumentMetadata.OrderBy(static attribute => attribute.Key, StringComparer.Ordinal)
+                .Select(IngestionMappings.ToStored).ToArray(),
             StorageJsonSerializerContext.Default.StoredAttributes);
         var time = point.TimeUnixNano.ToString(CultureInfo.InvariantCulture);
         var start = point.StartTimeUnixNano?.ToString(CultureInfo.InvariantCulture);
-        var measuredData = (point.Flags & 1) != 0
+        var measuredData = (point.Flags & 1) is not 0
             ? "no-recorded-value"
             : stored switch
             {
                 StoredNumberPointData number => "number:" + NumericIdentity(number.Value),
                 StoredHistogramPointData or StoredExponentialHistogramPointData or StoredSummaryPointData => data,
-                _ => throw new InvalidDataException("Unknown canonical metric data shape.")
+                null => throw new InvalidDataException("Canonical metric data is null.")
             };
         return new MetricObservationRow
         {
@@ -63,8 +53,7 @@ internal static class MetricObservationCodec
                                       number.Value is >= long.MinValue and < 9_223_372_036_854_775_808d =>
             ((long)number.Value).ToString(CultureInfo.InvariantCulture),
         StoredDoubleValue number => number.Value.ToString("R", CultureInfo.InvariantCulture),
-        null => "absent",
-        _ => throw new InvalidDataException("Unknown OTLP metric numeric representation.")
+        null => "absent"
     };
 
     internal static MetricObservationRow FromHistorical(MetricPointRow point, IReadOnlyList<string> traceIds)

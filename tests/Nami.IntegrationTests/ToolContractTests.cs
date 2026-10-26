@@ -1,14 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Time.Testing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nami.Api.Contracts;
 using Nami.Collector.Storage;
 using Nami.Tests.Infrastructure;
@@ -34,7 +28,7 @@ public sealed class ToolContractTests(TestContext context)
 
     private async Task<ISnapshot> SeedAll(DuckDbStore store, FakeTimeProvider clock)
     {
-        var time = TestData.Nanos(TestData.Now.AddSeconds(-5));
+        var time = TestData.Nanos(TestData.s_now.AddSeconds(-5));
         var tracePayload = JsonNode.Parse(OtlpData.Traces(time, error: true, exceptionEvent: true))!;
         tracePayload["resourceSpans"]![0]!["resource"]!["attributes"]!.AsArray()
             .Add((JsonNode)OtlpData.Attribute("service.version", "1.0.0"));
@@ -50,7 +44,7 @@ public sealed class ToolContractTests(TestContext context)
     [TestMethod]
     public async Task SourcesStatus_NoRecords_ReportsSilentWithDuration()
     {
-        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.Now));
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
         var result = Run("sources_status", await store.ReadSnapshotAsync("default", ct: context.CancellationToken));
         Assert.IsFalse(result.IsError);
         foreach (var signal in result.Content.GetProperty("services")[0].GetProperty("signals").EnumerateArray())
@@ -71,11 +65,10 @@ public sealed class ToolContractTests(TestContext context)
     [DataRow("changes_recent", DisplayName = "Changes same snapshot")]
     public async Task AnyTool_SameSnapshot_ByteIdentical(string name)
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
         var snapshot = await SeedAll(store, clock);
-        var args = name == "traces_get" ? "{\"trace_id\":\"" + 1.ToString("x32", CultureInfo.InvariantCulture) + "\"}" :
-            name == "logs_search" ? "{\"query\":\"accepted\"}" : "{}";
+        var args = name switch { "traces_get" => "{\"trace_id\":\"" + 1.ToString("x32", CultureInfo.InvariantCulture) + "\"}", "logs_search" => "{\"query\":\"accepted\"}", _ => "{}" };
         var first = Run(name, snapshot, args);
         var second = Run(name, snapshot, args);
         Assert.IsFalse(first.IsError);
@@ -94,11 +87,10 @@ public sealed class ToolContractTests(TestContext context)
         var path = Path.Combine(
             context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
             "restart.duckdb");
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         string id;
         string before;
-        var args = name == "traces_get" ? "{\"trace_id\":\"" + 1.ToString("x32", CultureInfo.InvariantCulture) + "\"}" :
-            name == "logs_search" ? "{\"query\":\"accepted\"}" : "{}";
+        var args = name switch { "traces_get" => "{\"trace_id\":\"" + 1.ToString("x32", CultureInfo.InvariantCulture) + "\"}", "logs_search" => "{\"query\":\"accepted\"}", _ => "{}" };
         await using (var store = new DuckDbStore(path, timeProvider: clock))
         {
             var snapshot = await SeedAll(store, clock);
@@ -122,7 +114,7 @@ public sealed class ToolContractTests(TestContext context)
     [DataRow("changes_recent", "to", "changes", DisplayName = "Project changes")]
     public async Task Fields_EachTool_ProjectsDeclaredMembers(string name, string field, string member)
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
         var snapshot = await SeedAll(store, clock);
         var args = new JsonObject { ["fields"] = new JsonArray(field) };
@@ -137,7 +129,7 @@ public sealed class ToolContractTests(TestContext context)
     [TestMethod]
     public async Task Fields_Unknown_RefusedNamingAllowed()
     {
-        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.Now));
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var result = Run("sources_status", snapshot, "{\"fields\":[\"does_not_exist\"]}");
         Assert.IsTrue(result.IsError);
@@ -151,7 +143,7 @@ public sealed class ToolContractTests(TestContext context)
     [DataRow("baggage", DisplayName = "Baggage unavailable")]
     public async Task ProfilesOrBaggage_ReturnsDataUnavailable(string field)
     {
-        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.Now));
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
         var result = Run("sources_status", await store.ReadSnapshotAsync("default", ct: context.CancellationToken),
             new JsonObject { ["fields"] = new JsonArray(field) }.ToJsonString());
         Assert.IsTrue(result.IsError);
@@ -166,10 +158,10 @@ public sealed class ToolContractTests(TestContext context)
     public async Task LogsSearch_QuotesBackslashesNonAscii_MatchLiterally(string scenario)
     {
         var query = scenario switch { "quote" => "\"", "backslash" => "\\", "unicode" => "ü", _ => ".*" };
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
         await TestData.SeedLogs(store,
-            OtlpData.Logs(TestData.Nanos(TestData.Now.AddSeconds(-2)), "prefix " + query + " suffix"), clock,
+            OtlpData.Logs(TestData.Nanos(TestData.s_now.AddSeconds(-2)), "prefix " + query + " suffix"), clock,
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var result = Run("logs_search", snapshot, new JsonObject { ["query"] = query }.ToJsonString());
@@ -183,7 +175,7 @@ public sealed class ToolContractTests(TestContext context)
     [TestMethod]
     public async Task Exception_LogEventAndSpanEvent_GroupTogether()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
         var snapshot = await SeedAll(store, clock);
         var result = Run("errors_recent", snapshot);
@@ -197,9 +189,9 @@ public sealed class ToolContractTests(TestContext context)
     [TestMethod]
     public async Task Window_WithinWatermark_EmptyIsComplete()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedLogs(store, OtlpData.Logs(TestData.Nanos(TestData.Now.AddSeconds(-2)), "one"), clock,
+        await TestData.SeedLogs(store, OtlpData.Logs(TestData.Nanos(TestData.s_now.AddSeconds(-2)), "one"), clock,
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var result = Run("logs_search", snapshot, "{\"query\":\"absent\"}");
@@ -212,15 +204,15 @@ public sealed class ToolContractTests(TestContext context)
     [TestMethod]
     public async Task Since_Boundaries_HalfOpenAgainstWatermark()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        var start = TestData.Now.AddMinutes(-15);
+        var start = TestData.s_now.AddMinutes(-15);
         await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(start), offset: 0), context.CancellationToken);
         await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(start) - 1, offset: 1),
             context.CancellationToken);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.Now), offset: 2),
+        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now), offset: 2),
             context.CancellationToken);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.Now) + 1, offset: 3),
+        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now) + 1, offset: 3),
             context.CancellationToken);
         var result = Run("traces_slowest", await store.ReadSnapshotAsync("default", ct: context.CancellationToken),
             "{\"since\":\"-15m\"}");
@@ -233,7 +225,7 @@ public sealed class ToolContractTests(TestContext context)
     [DataRow(262145, DisplayName = "Above maximum budget")]
     public async Task ToolError_EachRefusalClass_HasOneShape(int budget)
     {
-        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.Now));
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
         var result = Run("sources_status", await store.ReadSnapshotAsync("default", ct: context.CancellationToken),
             new JsonObject { ["max_bytes"] = budget }.ToJsonString());
         Assert.IsTrue(result.IsError);
@@ -246,23 +238,23 @@ public sealed class ToolContractTests(TestContext context)
     [Timeout(600000, CooperativeCancellation = true)]
     public async Task ErrorsRecent_FiveHundredThousandSpans_UnderMaxBytes()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", 2, timeProvider: clock);
-        const int batchSize = 5000;
-        const int total = 500000;
-        for (var offset = 0; offset < total; offset += batchSize)
+        const int BatchSize = 5000;
+        const int Total = 500000;
+        for (var offset = 0; offset < Total; offset += BatchSize)
         {
             var attrs = new JsonArray(OtlpData.Attribute("error.type",
-                "Failure-" + (offset / batchSize).ToString("D3", CultureInfo.InvariantCulture)));
+                "Failure-" + (offset / BatchSize).ToString("D3", CultureInfo.InvariantCulture)));
             await TestData.SeedTraces(store,
-                OtlpData.Traces(TestData.Nanos(TestData.Now.AddSeconds(-2)), batchSize, offset, attributes: attrs,
+                OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-2)), BatchSize, offset, attributes: attrs,
                     error: true), context.CancellationToken);
-            if ((offset + batchSize) % 100000 == 0)
-                context.WriteLine($"Accepted {offset + batchSize} OTLP spans for the byte-budget proof.");
+            if ((offset + BatchSize) % 100000 == 0)
+                context.WriteLine($"Accepted {offset + BatchSize} OTLP spans for the byte-budget proof.");
         }
 
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
-        Assert.HasCount(total, snapshot.Spans);
+        Assert.HasCount(Total, snapshot.Spans);
         var result = Run("errors_recent", snapshot, "{\"max_bytes\":4096}");
         Assert.IsFalse(result.IsError);
         Assert.IsLessThanOrEqualTo(4096, Encoding.UTF8.GetByteCount(result.Content.GetRawText()));
@@ -275,7 +267,7 @@ public sealed class ToolContractTests(TestContext context)
             foreach (var item in result.Content.GetProperty("groups").EnumerateArray())
             {
                 Assert.IsTrue(all.Add(item.GetProperty("error_type").GetString()!));
-                Assert.AreEqual(batchSize, item.GetProperty("count").GetInt32());
+                Assert.AreEqual(BatchSize, item.GetProperty("count").GetInt32());
             }
 
             if (!result.Content.TryGetProperty("next_cursor", out var next)) break;
@@ -284,6 +276,6 @@ public sealed class ToolContractTests(TestContext context)
             Assert.IsFalse(result.IsError);
         }
 
-        Assert.HasCount(total / batchSize, all);
+        Assert.HasCount(Total / BatchSize, all);
     }
 }

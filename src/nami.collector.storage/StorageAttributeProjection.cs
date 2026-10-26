@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Nami.Collector.Storage;
 
 internal static class StorageAttributeProjection
@@ -21,11 +19,14 @@ internal static class StorageAttributeProjection
             attributes.GetInt64(CollectorSemanticAttributeCatalog.GenAiReasoningTokens));
     }
 
-    private static string? GetString(this IReadOnlyDictionary<string, OtlpAttributeValue> attributes, string? key) =>
-        key is null ? null : attributes.GetValueOrDefault(key)?.AsString();
+    extension(IReadOnlyDictionary<string, OtlpAttributeValue> attributes)
+    {
+        private string? GetString(string? key) =>
+            key is null ? null : attributes.GetValueOrDefault(key)?.AsString();
 
-    private static long? GetInt64(this IReadOnlyDictionary<string, OtlpAttributeValue> attributes, string? key) =>
-        key is null ? null : attributes.GetValueOrDefault(key)?.AsInt64();
+        private long? GetInt64(string? key) =>
+            key is null ? null : attributes.GetValueOrDefault(key)?.AsInt64();
+    }
 }
 
 internal readonly record struct SpanHotAttributeProjection(

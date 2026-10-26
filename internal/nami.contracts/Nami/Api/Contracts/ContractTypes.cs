@@ -36,6 +36,11 @@ public static class ContractTypes
         _ when type == typeof(global::Nami.Api.Contracts.Common.ToolError) => "Common.ToolError",
         _ when type == typeof(global::Nami.Api.Contracts.Common.ToolReadInput) => "Common.ToolReadInput",
         _ when type == typeof(global::Nami.Api.Contracts.Common.ToolResult) => "Common.ToolResult",
+        _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineCall) => "Engine.EngineCall",
+        _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineCancel) => "Engine.EngineCancel",
+        _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineCommand) => "Engine.EngineCommand",
+        _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineEnvelope) => "Engine.EngineEnvelope",
+        _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineHealth) => "Engine.EngineHealth",
         _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineLimits) => "Engine.EngineLimits",
         _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineRequest) => "Engine.EngineRequest",
         _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineResponse) => "Engine.EngineResponse",
@@ -62,6 +67,7 @@ public static class ContractTypes
         _ when type == typeof(global::Nami.Api.Contracts.OTel.Traces.SpanStatus) => "OTel.Traces.SpanStatus",
         _ when type == typeof(global::Nami.Api.Contracts.OTel.Traces.Trace) => "OTel.Traces.Trace",
         _ when type == typeof(global::Nami.Api.Contracts.OTel.Traces.TraceSummary) => "OTel.Traces.TraceSummary",
+        _ when type == typeof(global::Nami.Api.Contracts.Tools.ActiveSignalStatus) => "Tools.ActiveSignalStatus",
         _ when type == typeof(global::Nami.Api.Contracts.Tools.Change) => "Tools.Change",
         _ when type == typeof(global::Nami.Api.Contracts.Tools.ChangesRecentInput) => "Tools.ChangesRecentInput",
         _ when type == typeof(global::Nami.Api.Contracts.Tools.ChangesRecentResult) => "Tools.ChangesRecentResult",
@@ -78,6 +84,8 @@ public static class ContractTypes
         _ when type == typeof(global::Nami.Api.Contracts.Tools.ProjectedSourceStatus) => "Tools.ProjectedSourceStatus",
         _ when type == typeof(global::Nami.Api.Contracts.Tools.ProjectedTrace) => "Tools.ProjectedTrace",
         _ when type == typeof(global::Nami.Api.Contracts.Tools.SignalStatus) => "Tools.SignalStatus",
+        _ when type == typeof(global::Nami.Api.Contracts.Tools.SignalStatusFields) => "Tools.SignalStatusFields",
+        _ when type == typeof(global::Nami.Api.Contracts.Tools.SilentSignalStatus) => "Tools.SilentSignalStatus",
         _ when type == typeof(global::Nami.Api.Contracts.Tools.SlowTrace) => "Tools.SlowTrace",
         _ when type == typeof(global::Nami.Api.Contracts.Tools.SourcesStatusInput) => "Tools.SourcesStatusInput",
         _ when type == typeof(global::Nami.Api.Contracts.Tools.SourcesStatusResult) => "Tools.SourcesStatusResult",
@@ -104,6 +112,11 @@ public static class ContractTypes
         "Common.ToolError" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Common.ToolError))!,
         "Common.ToolReadInput" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Common.ToolReadInput))!,
         "Common.ToolResult" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Common.ToolResult))!,
+        "Engine.EngineCall" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineCall))!,
+        "Engine.EngineCancel" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineCancel))!,
+        "Engine.EngineCommand" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineCommand))!,
+        "Engine.EngineEnvelope" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineEnvelope))!,
+        "Engine.EngineHealth" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineHealth))!,
         "Engine.EngineLimits" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineLimits))!,
         "Engine.EngineRequest" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineRequest))!,
         "Engine.EngineResponse" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineResponse))!,
@@ -130,6 +143,7 @@ public static class ContractTypes
         "OTel.Traces.SpanStatus" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.OTel.Traces.SpanStatus))!,
         "OTel.Traces.Trace" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.OTel.Traces.Trace))!,
         "OTel.Traces.TraceSummary" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.OTel.Traces.TraceSummary))!,
+        "Tools.ActiveSignalStatus" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Tools.ActiveSignalStatus))!,
         "Tools.Change" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Tools.Change))!,
         "Tools.ChangesRecentInput" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Tools.ChangesRecentInput))!,
         "Tools.ChangesRecentResult" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Tools.ChangesRecentResult))!,
@@ -146,6 +160,8 @@ public static class ContractTypes
         "Tools.ProjectedSourceStatus" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Tools.ProjectedSourceStatus))!,
         "Tools.ProjectedTrace" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Tools.ProjectedTrace))!,
         "Tools.SignalStatus" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Tools.SignalStatus))!,
+        "Tools.SignalStatusFields" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Tools.SignalStatusFields))!,
+        "Tools.SilentSignalStatus" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Tools.SilentSignalStatus))!,
         "Tools.SlowTrace" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Tools.SlowTrace))!,
         "Tools.SourcesStatusInput" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Tools.SourcesStatusInput))!,
         "Tools.SourcesStatusResult" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Tools.SourcesStatusResult))!,
@@ -174,6 +190,11 @@ public static class ContractTypes
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Common.ToolError))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Common.ToolReadInput))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Common.ToolResult))]
+[JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineCall))]
+[JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineCancel))]
+[JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineCommand))]
+[JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineEnvelope))]
+[JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineHealth))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineLimits))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineRequest))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineResponse))]
@@ -200,6 +221,7 @@ public static class ContractTypes
 [JsonSerializable(typeof(global::Nami.Api.Contracts.OTel.Traces.SpanStatus))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.OTel.Traces.Trace))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.OTel.Traces.TraceSummary))]
+[JsonSerializable(typeof(global::Nami.Api.Contracts.Tools.ActiveSignalStatus))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Tools.Change))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Tools.ChangesRecentInput))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Tools.ChangesRecentResult))]
@@ -216,6 +238,8 @@ public static class ContractTypes
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Tools.ProjectedSourceStatus))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Tools.ProjectedTrace))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Tools.SignalStatus))]
+[JsonSerializable(typeof(global::Nami.Api.Contracts.Tools.SignalStatusFields))]
+[JsonSerializable(typeof(global::Nami.Api.Contracts.Tools.SilentSignalStatus))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Tools.SlowTrace))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Tools.SourcesStatusInput))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Tools.SourcesStatusResult))]

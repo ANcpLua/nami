@@ -1,7 +1,7 @@
 // =============================================================================
 // OpenTelemetry JSON projection enumerations
 // =============================================================================
-// Closed numeric enums from the OpenTelemetry protocol data model. Semantic-convention vocabulary is owned by Nami.Telemetry.SemanticConventions.
+// Closed numeric enums from the OpenTelemetry protocol data model. Semantic-convention vocabulary is owned by Nami.SemanticConventions.
 // =============================================================================
 
 namespace Nami.Api.Contracts.OTel.Enums;

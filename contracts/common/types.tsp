@@ -1,8 +1,9 @@
+import "./values.tsp";
 // =============================================================================
 // nami common types and scalars
 // =============================================================================
 // Foundational types used across nami API contracts and OTel-compatible models.
-// Telemetry wire projections carry producer values; Nami.Telemetry.SemanticConventions owns registry vocabulary and semantic validation.
+// Telemetry wire projections carry producer values; Nami.SemanticConventions owns registry vocabulary and semantic validation.
 // =============================================================================
 
 import "@typespec/openapi";
@@ -70,7 +71,7 @@ scalar Timestamp extends string;
 @doc("Unsigned Unix timestamp in nanoseconds since epoch, encoded as a decimal string")
 @minValue(0)
 @encode(string)
-scalar UnixNanos extends uint64;
+scalar UnixNanos extends Nami.Models.Values.UnixNanos;
 
 @doc("Duration in nanoseconds, encoded as a decimal string")
 @minValue(0)
@@ -234,7 +235,7 @@ model AttributeBytesValue {
 
 @doc("An OTLP signed 64-bit attribute integer encoded without JavaScript precision loss.")
 @encode(string)
-scalar AttributeInt64 extends int64;
+scalar AttributeInt64 extends Nami.Models.Values.AttributeInt64;
 
 @doc("An OTLP attribute double encoded as a JSON number when finite or a canonical named string when non-finite.")
 union AttributeDouble {

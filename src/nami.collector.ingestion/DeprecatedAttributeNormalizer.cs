@@ -1,5 +1,3 @@
-using System;
-
 namespace Nami.Collector.Ingestion;
 
 internal static class DeprecatedAttributeNormalizer

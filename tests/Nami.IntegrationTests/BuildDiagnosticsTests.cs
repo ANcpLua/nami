@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Text.Json.Nodes;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nami.Tests.Infrastructure;
 
 namespace Nami.IntegrationTests;
@@ -20,7 +14,10 @@ public sealed class BuildDiagnosticsTests(TestContext context)
     private string Temporary => InspectionFixture.Temporary(context);
 
     [TestCleanup]
-    public void Cleanup() => InspectionFixture.Cleanup(context);
+    public void Cleanup()
+    {
+        InspectionFixture.Cleanup(context);
+    }
 
     private async Task<ProcessResult> ReportAsync(string? report = ValidReport, string log = "", int exitCode = 0)
     {
@@ -235,10 +232,11 @@ public sealed class BuildDiagnosticsTests(TestContext context)
         if (!OperatingSystem.IsWindows())
             File.SetUnixFileMode(dotnet, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         return await ProcessRunner.RunAsync("python3",
-        [
-            Path.Combine(ProcessRunner.RepositoryRoot, "eng/scripts/run_tests.py"), "--root", root, "--dotnet", dotnet,
-            "--suite", "Unit", "--no-build"
-        ], Temporary, context.CancellationToken,
+            [
+                Path.Combine(ProcessRunner.RepositoryRoot, "eng/scripts/run_tests.py"), "--root", root, "--dotnet",
+                dotnet,
+                "--suite", "Unit", "--no-build"
+            ], Temporary, context.CancellationToken,
             new Dictionary<string, string?> { ["NAMI_DIAGNOSTICS_HOME"] = Path.Combine(Temporary, "diagnostics") });
     }
 

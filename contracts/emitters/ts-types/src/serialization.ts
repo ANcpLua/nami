@@ -1,25 +1,40 @@
-import type { Model, Program, Type, Union } from "@typespec/compiler";
+import { effectiveEncoding, resolveProperty } from "../../csharp/dist/semantics.js";
+import { getMinValueAsNumeric, getMaxValueAsNumeric } from "@typespec/compiler";
+import type { Model, ModelProperty, Program, Type, Union } from "@typespec/compiler";
 import { getDiscriminatedUnion, isArrayModelType, isRecordModelType, resolveEncodedName, walkPropertiesInherited } from "@typespec/compiler";
 import { isBody, isBodyRoot, isMetadata } from "@typespec/http";
 
 /** Keep language names and encoded names separate, including recursive union/map/array members. */
 export function renderSerialization(program: Program, types: Map<string, Model | Union>, nameOf: (program: Program, type: Type) => string): string {
   const names = new Map<Type, string>([...types].map(([name, type]) => [type, name]));
-  const shape = (type: Type, root = false): string => {
+  const shape = (type: Type, root = false, property?: ModelProperty): string => {
+    const metadata = property ? resolveProperty(program, property) : undefined;
+    if (type.kind === "Scalar" && (metadata?.encoding ?? effectiveEncoding(program, type))?.type.name === "string") {
+      let scalar = type;
+      while (scalar.baseScalar && !/^(u?int)(8|16|32|64)$/u.test(scalar.name)) scalar = scalar.baseScalar;
+      if (/^(u?int)(8|16|32|64)$/u.test(scalar.name)) {
+        let min = metadata?.minimum, max = metadata?.maximum;
+        for (let current: typeof type | undefined = type; current; current = current.baseScalar) {
+          min ??= getMinValueAsNumeric(program,current)?.toString();
+          max ??= getMaxValueAsNumeric(program,current)?.toString();
+        }
+        return `{ decimal: true${min === undefined ? "" : `, minimum: ${JSON.stringify(min)}`}${max === undefined ? "" : `, maximum: ${JSON.stringify(max)}`} }`;
+      }
+    }
     const name = names.get(type);
-    if (name && !root) return `() => ${name}Shape`;
+    if (name && !root && !metadata?.encoding) return `() => ${name}Shape`;
     if (type.kind === "Model") {
-      if (isArrayModelType(type)) return `{ array: ${shape(type.indexer!.value)} }`;
-      if (isRecordModelType(type)) return `{ record: ${shape(type.indexer!.value)} }`;
+      if (isArrayModelType(type)) return `{ array: ${shape(type.indexer!.value, false, property)} }`;
+      if (isRecordModelType(type)) return `{ record: ${shape(type.indexer!.value, false, property)} }`;
       const fields = [...walkPropertiesInherited(type)]
         .filter(prop => !isMetadata(program, prop) && !isBody(program, prop) && !isBodyRoot(program, prop))
-        .map(prop => `[${JSON.stringify(prop.name)}, ${JSON.stringify(resolveEncodedName(program, prop, "application/json"))}, ${shape(prop.type)}]`);
+        .map(prop => `[${JSON.stringify(prop.name)}, ${JSON.stringify(resolveEncodedName(program, prop, "application/json"))}, ${shape(prop.type, false, prop)}]`);
       return `{ fields: [${fields.join(", ")}] }`;
     }
     if (type.kind === "Union") {
       const [tagged] = getDiscriminatedUnion(program, type);
-      if (tagged) return `{ tag: ${JSON.stringify(tagged.options.discriminatorPropertyName)}, cases: { ${[...type.variants].map(([key, variant]) => `${JSON.stringify(key)}: ${shape(variant.type)}`).join(", ")} } }`;
-      return `{ union: [${[...type.variants.values()].map(variant => shape(variant.type)).join(", ")}] }`;
+      if (tagged) return `{ tag: ${JSON.stringify(tagged.options.discriminatorPropertyName)}, cases: { ${[...type.variants].map(([key, variant]) => `${JSON.stringify(key)}: ${shape(variant.type, false, property)}`).join(", ")} } }`;
+      return `{ union: [${[...type.variants.values()].map(variant => shape(variant.type, false, property)).join(", ")}] }`;
     }
     if (type.kind === "Tuple") return `{ tuple: [${type.values.map(value => shape(value)).join(", ")}] }`;
     if (["String", "Number", "Boolean"].includes(type.kind)) return `{ literal: ${JSON.stringify((type as { value: unknown }).value)} }`;
@@ -32,6 +47,7 @@ import type * as Model from "./api.js";
 import type * as Json from "./json.js";
 
 type Shape = "string" | "number" | "boolean" | "unknown" | (() => Shape)
+  | { decimal: true; minimum?: string; maximum?: string }
   | { literal: unknown } | { array: Shape } | { tuple: Shape[] } | { record: Shape }
   | { fields: [string, string, Shape][] } | { union: Shape[] } | { tag: string; cases: Record<string, Shape> };
 type ObjectValue = Record<string, unknown>;
@@ -39,6 +55,7 @@ const object = (value: unknown): value is ObjectValue => typeof value === "objec
 function matches(value: unknown, shape: Shape, encode: boolean): boolean {
   if (typeof shape === "function") return matches(value, shape(), encode);
   if (typeof shape === "string") return shape === "unknown" || typeof value === shape;
+  if ("decimal" in shape) return typeof value === "string";
   if ("literal" in shape) return value === shape.literal;
   if ("union" in shape) return shape.union.some(variant => matches(value, variant, encode));
   if ("array" in shape || "tuple" in shape) return Array.isArray(value);
@@ -49,10 +66,16 @@ function matches(value: unknown, shape: Shape, encode: boolean): boolean {
     return !("literal" in (typeof child === "object" ? child : {})) || matches(value[key], child, encode);
   });
 }
-/** Naming conversion only. Validate untrusted input against its generated schema before decoding. */
+/** Structural and exact-value conversion. Full message validation remains at the boundary. */
 function convert(value: unknown, shape: Shape, encode: boolean): unknown {
   if (typeof shape === "function") return convert(value, shape(), encode);
   if (typeof shape === "string" || "literal" in shape || value === null) return value;
+  if ("decimal" in shape) {
+    if (typeof value !== "string" || !/^(?:0|-?[1-9][0-9]*)$/.test(value)) throw new TypeError("Expected canonical integer decimal text.");
+    const integer = BigInt(value);
+    if ((shape.minimum !== undefined && integer < BigInt(shape.minimum)) || (shape.maximum !== undefined && integer > BigInt(shape.maximum))) throw new RangeError("Encoded integer is outside its declared range.");
+    return value;
+  }
   if ("union" in shape) {
     const variant = shape.union.find(candidate => matches(value, candidate, encode));
     if (!variant) throw new TypeError("No matching serialized union variant.");

@@ -1,10 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Nami.Tests.Infrastructure;
 
 internal sealed record ProcessResult(int ExitCode, string Output, string Error);
@@ -16,8 +9,11 @@ internal static class ProcessRunner
         get
         {
             for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+            {
                 if (File.Exists(Path.Combine(dir.FullName, "nami.slnx")))
                     return dir.FullName;
+            }
+
             throw new DirectoryNotFoundException("Cannot locate nami.slnx above the test executable.");
         }
     }
@@ -33,25 +29,12 @@ internal static class ProcessRunner
         };
         foreach (var arg in args) start.ArgumentList.Add(arg);
         if (environment is not null)
+        {
             foreach (var pair in environment)
                 start.Environment[pair.Key] = pair.Value;
-        using var process = Process.Start(start) ?? throw new InvalidOperationException("Process did not start.");
-        var output = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var error = process.StandardError.ReadToEndAsync(cancellationToken);
-        try
-        {
-            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-        }
-        finally
-        {
-            if (!process.HasExited)
-            {
-                process.Kill(true);
-                await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
-            }
         }
 
-        return new ProcessResult(process.ExitCode, await output.ConfigureAwait(false),
-            await error.ConfigureAwait(false));
+        var result = await ChildProcess.RunAsync(start, file, cancellationToken).ConfigureAwait(false);
+        return new ProcessResult(result.ExitCode, result.Output, result.Error);
     }
 }

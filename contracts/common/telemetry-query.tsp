@@ -41,7 +41,7 @@ model ToolReadInput {
   service?: string;
 
   @doc("Inclusive window start; defaults to one hour before the snapshot's observation time.")
-  since?: TimeSpec;
+  since?: TimeSpec = "-60m";
 
   @doc("Requested fields. Unknown fields are refused with the allowed field names.")
   @maxItems(128)

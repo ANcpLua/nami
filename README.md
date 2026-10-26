@@ -148,7 +148,7 @@ ingest lag; it never means "no errors". A window that ends past the watermark is
 
 ## Build
 
-`mise install` installs the pinned toolchain: the .NET SDK `11.0.100-rc.2.26504.105` (.NET 11 RC2,
+`mise install` installs the pinned toolchain: the .NET SDK `11.0.100-rc.3.26522.148` (.NET 11 RC3,
 pinned in `global.json` too), Weaver `0.28.0`, Rust `1.99.0`, Bun and Node. The build is Fallout, and
 `./eng/build.sh --help` lists every target.
 

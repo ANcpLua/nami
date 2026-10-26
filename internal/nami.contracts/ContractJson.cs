@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -44,10 +41,7 @@ public static class ContractJson
         return (int)value.GetDecimal();
     }
 
-    public static JsonElement Schema(string name)
-    {
-        return s_schemas.RootElement.GetProperty(name);
-    }
+    private static JsonElement Schema(string name) => s_schemas.RootElement.GetProperty(name);
 
     public static ContractIssue? Validate(string name, JsonElement value)
     {
@@ -55,7 +49,7 @@ public static class ContractJson
         return Check(schema, value, schema, "");
     }
 
-    public static void Require(string name, JsonElement value)
+    private static void Require(string name, JsonElement value)
     {
         if (Validate(name, value) is { } issue)
             throw new JsonException($"{issue.Field}: {issue.Message}", issue.Field, null, null);
@@ -104,8 +98,8 @@ public static class ContractJson
     private static ContractIssue? Check(JsonElement schema, JsonElement value, JsonElement root, string path,
         bool allowUnset = false)
     {
-        if (schema.ValueKind == JsonValueKind.True) return null;
-        if (schema.ValueKind == JsonValueKind.False) return new ContractIssue(path, "false", "is not allowed");
+        if (schema.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            return schema.ValueKind is JsonValueKind.True ? null : new ContractIssue(path, "false", "is not allowed");
         if (schema.TryGetProperty("$ref", out var reference))
         {
             var name = reference.GetString()!["#/$defs/".Length..];
@@ -115,9 +109,12 @@ public static class ContractJson
 
         if (schema.TryGetProperty("enum", out var choices) &&
             !choices.EnumerateArray().Any(choice => JsonElement.DeepEquals(choice, value)))
+        {
             return new ContractIssue(path, "enum",
                 "must be one of: " + string.Join(", ", choices.EnumerateArray().Select(Text)),
-                choices.EnumerateArray().Select(Text).ToArray());
+                [.. choices.EnumerateArray().Select(Text)]);
+        }
+
         if (schema.TryGetProperty("const", out var constant) && !JsonElement.DeepEquals(constant, value))
             return new ContractIssue(path, "const", "must be " + Text(constant), [Text(constant)]);
         if (schema.TryGetProperty("type", out var type) && !Takes(type, value))
@@ -125,8 +122,10 @@ public static class ContractJson
         if (schema.TryGetProperty("allOf", out var all))
         {
             foreach (var branch in all.EnumerateArray())
+            {
                 if (Check(branch, value, root, path, allowUnset) is { } issue)
                     return issue;
+            }
         }
 
         foreach (var keyword in new[] { "anyOf", "oneOf" })
@@ -144,8 +143,11 @@ public static class ContractJson
                 if (value.ValueKind == JsonValueKind.Object)
                 {
                     foreach (var outcome in objectForms)
+                    {
                         if (HasMatchingTag(outcome.Schema, value))
                             return outcome.Issue;
+                    }
+
                     var discriminatorFields = objectForms.Length > 1
                         ? objectForms[0].Schema.GetProperty("properties").EnumerateObject()
                             .Where(property => objectForms.All(form =>
@@ -158,15 +160,13 @@ public static class ContractJson
                             .SelectMany(form =>
                                 form.Schema.GetProperty("properties").EnumerateObject()
                                     .Select(property => property.Name)).Distinct(StringComparer.Ordinal).ToArray();
-                        foreach (var member in value.EnumerateObject())
+                        foreach (var member in value.EnumerateObject()
+                                     .Where(member => !accepted.Contains(member.Name, StringComparer.Ordinal)))
                         {
-                            if (!accepted.Contains(member.Name, StringComparer.Ordinal))
-                            {
-                                var field = Child(path, member.Name);
-                                return new ContractIssue(field, "additionalProperties",
-                                    "is not accepted here; accepted: " + string.Join(", ", accepted), accepted,
-                                    $"Replace {field} with one of the accepted arguments or drop it.");
-                            }
+                            var field = Child(path, member.Name);
+                            return new ContractIssue(field, "additionalProperties",
+                                "is not accepted here; accepted: " + string.Join(", ", accepted), accepted,
+                                $"Replace {field} with one of the accepted arguments or drop it.");
                         }
                     }
 
@@ -213,16 +213,17 @@ public static class ContractJson
                 if (properties.ValueKind == JsonValueKind.Object &&
                     properties.TryGetProperty(member.Name, out _)) continue;
                 var field = Child(path, member.Name);
-                if (additional.ValueKind == JsonValueKind.False)
+                switch (additional.ValueKind)
                 {
-                    var names = properties.EnumerateObject().Select(property => property.Name).ToArray();
-                    return new ContractIssue(field, "additionalProperties",
-                        "is not accepted here; accepted: " + string.Join(", ", names), names,
-                        $"Replace {field} with one of the accepted arguments or drop it.");
+                    case JsonValueKind.False:
+                        var names = properties.EnumerateObject().Select(property => property.Name).ToArray();
+                        return new ContractIssue(field, "additionalProperties",
+                            "is not accepted here; accepted: " + string.Join(", ", names), names,
+                            $"Replace {field} with one of the accepted arguments or drop it.");
+                    case JsonValueKind.Object when
+                        Check(additional, member.Value, root, field, allowUnset) is { } invalid:
+                        return invalid;
                 }
-
-                if (additional.ValueKind == JsonValueKind.Object &&
-                    Check(additional, member.Value, root, field, allowUnset) is { } invalid) return invalid;
             }
 
             var required = schema.TryGetProperty("required", out var namesRequired)
@@ -253,8 +254,10 @@ public static class ContractJson
             {
                 var index = 0;
                 foreach (var item in value.EnumerateArray())
+                {
                     if (Check(items, item, root, $"{path}[{index++}]", allowUnset) is { } invalid)
                         return invalid;
+                }
             }
         }
 
@@ -272,29 +275,29 @@ public static class ContractJson
             }
         }
 
-        if (value.ValueKind == JsonValueKind.Number)
+        if (value.ValueKind != JsonValueKind.Number)
+            return null;
+        var number = value.GetDouble();
+        foreach (var keyword in new[] { "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum" })
         {
-            var number = value.GetDouble();
-            foreach (var keyword in new[] { "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum" })
+            if (!schema.TryGetProperty(keyword, out var bound)) continue;
+            var limit = bound.GetDouble();
+            if (!(keyword switch
             {
-                if (!schema.TryGetProperty(keyword, out var bound)) continue;
-                var limit = bound.GetDouble();
-                if (keyword switch
-                    {
-                        "minimum" => number < limit, "maximum" => number > limit,
-                        "exclusiveMinimum" => number <= limit, _ => number >= limit
-                    })
-                {
-                    var low = schema.TryGetProperty("minimum", out var minimum) ? minimum.GetRawText() : null;
-                    var high = schema.TryGetProperty("maximum", out var maximum) ? maximum.GetRawText() : null;
-                    var range = low is not null && high is not null ? $"from {low} to {high}" :
-                        low is not null ? $"of at least {low}" : $"of at most {high}";
-                    var hint = path.Contains('.') ? $"Correct {path}." :
-                        schema.TryGetProperty("default", out var fallback) ? $"Omit {path} for {fallback}." :
-                        $"Omit {path} for the tool's default.";
-                    return new ContractIssue(path, keyword, $"Use {path} {range}.", Hint: hint);
-                }
-            }
+                "minimum" => number < limit,
+                "maximum" => number > limit,
+                "exclusiveMinimum" => number <= limit,
+                _ => number >= limit
+            }))
+                continue;
+            var low = schema.TryGetProperty("minimum", out var minimum) ? minimum.GetRawText() : null;
+            var high = schema.TryGetProperty("maximum", out var maximum) ? maximum.GetRawText() : null;
+            var range = low is not null && high is not null ? $"from {low} to {high}" :
+                low is not null ? $"of at least {low}" : $"of at most {high}";
+            var hint = path.Contains('.') ? $"Correct {path}." :
+                schema.TryGetProperty("default", out var fallback) ? $"Omit {path} for {fallback}." :
+                $"Omit {path} for the tool's default.";
+            return new ContractIssue(path, keyword, $"Use {path} {range}.", Hint: hint);
         }
 
         return null;
@@ -308,11 +311,6 @@ public static class ContractJson
         if (count >= (low ?? 0) && count <= (high ?? int.MaxValue)) return null;
         var singular = unit == "items" ? "item" : "character";
 
-        string Count(int number)
-        {
-            return $"{number} {(number == 1 ? singular : unit)}";
-        }
-
         var range = (low, high) switch
         {
             ({ } first, { } last) when first == last => $"exactly {Count(last)}",
@@ -322,6 +320,11 @@ public static class ContractJson
         };
         return new ContractIssue(path, count < low ? min : max,
             $"Use {path} {(unit == "items" ? "with" : "of")} {range}.");
+
+        string Count(int number)
+        {
+            return $"{number} {(number == 1 ? singular : unit)}";
+        }
     }
 
     private static IEnumerable<string> Labels(JsonElement schema, JsonElement root)
@@ -332,9 +335,7 @@ public static class ContractJson
         if (schema.TryGetProperty("properties", out var properties))
             return ["{" + string.Join(", ", properties.EnumerateObject().Select(property => property.Name)) + "}"];
         if (schema.TryGetProperty("type", out var type)) return Types(type);
-        if (schema.TryGetProperty("anyOf", out var branches))
-            return branches.EnumerateArray().SelectMany(branch => Labels(branch, root));
-        return [];
+        return schema.TryGetProperty("anyOf", out var branches) ? branches.EnumerateArray().SelectMany(branch => Labels(branch, root)) : [];
     }
 
     private static IEnumerable<string> Types(JsonElement type)
@@ -381,17 +382,16 @@ public static class ContractJson
 
         if (!nonzero) return true;
         var exponent = 0L;
-        if (exponentIndex >= 0)
-        {
-            var digits = text[(exponentIndex + 1)..];
-            var negative = digits[0] == '-';
-            if (digits[0] is '+' or '-') digits = digits[1..];
-            // Only the comparison with a token-length-sized fraction matters.
-            // Saturation avoids overflow on an otherwise valid, very large exponent.
-            foreach (var digit in digits)
-                exponent = Math.Min(int.MaxValue, exponent * 10 + digit - '0');
-            if (negative) exponent = -exponent;
-        }
+        if (!(exponentIndex >= 0))
+            return exponent >= (long)fractionalDigits - trailingZeros;
+        var digits = text[(exponentIndex + 1)..];
+        var negative = digits[0] == '-';
+        if (digits[0] is '+' or '-') digits = digits[1..];
+        // Only the comparison with a token-length-sized fraction matters.
+        // Saturation avoids overflow on an otherwise valid, very large exponent.
+        foreach (var digit in digits)
+            exponent = Math.Min(int.MaxValue, exponent * 10 + digit - '0');
+        if (negative) exponent = -exponent;
 
         return exponent >= (long)fractionalDigits - trailingZeros;
     }

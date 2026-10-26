@@ -1,5 +1,3 @@
-using System;
-using System.Text;
 using System.Text.RegularExpressions;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
 
@@ -20,6 +18,27 @@ internal static class ExceptionTextSanitizer
     private const string Replacement = "[REDACTED]";
     private const string FailureReplacement = "[SANITIZATION_FAILED]";
     private static readonly UTF8Encoding s_strictUtf8 = new(false, true);
+
+    private static readonly Regex s_embeddedUrls = new("""(?:[a-z][a-z0-9+.-]*://|//)[^\s<>"'\x60]+""",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking,
+        Regex.InfiniteMatchTimeout);
+
+    private static readonly Regex s_credentialAssignments = new(
+        """\b(?:authorization|proxy[-_ ]?authorization|x[-_]?otlp[-_]?api[-_]?key|x[-_]?api[-_]?key|api[-_ ]?key|access[-_ ]?key(?:[-_ ]?id)?|account[-_ ]?key|shared[-_ ]?access[-_ ]?(?:key|signature)|client[-_ ]?secret|secret(?:[-_ ]?key)?|private[-_ ]?key|password|passwd|pwd|user(?:[-_ ]?(?:id|name))?|uid|token|access[-_ ]?token|refresh[-_ ]?token|auth[-_ ]?token|bearer[-_ ]?token|session[-_ ]?(?:token|key)|id[-_ ]?token)\b["']?[ \t]*(?<separator>[:=])[ \t]*(?:(?:Bearer|Basic)[ \t]+)?""",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking,
+        Regex.InfiniteMatchTimeout);
+
+    private static readonly Regex s_authorizationValues = new(
+        """(?<scheme>\b(?:Bearer|Basic)[ \t]+)[A-Za-z0-9._~+/=-]+""",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking,
+        Regex.InfiniteMatchTimeout);
+
+    private static readonly Regex s_jwtCandidates = new("""\b[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*""",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
+
+    private static readonly Regex s_knownApiTokens = new(
+        """\b(?:sk-(?:proj-)?[A-Za-z0-9_-]{16,}|sk_(?:live|test)_[A-Za-z0-9]{16,}|gh[pousr]_[A-Za-z0-9_]{16,}|github_pat_[A-Za-z0-9_]{16,}|npm_[A-Za-z0-9]{16,}|xox[baprs]-[A-Za-z0-9-]{16,})\b""",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
 
     internal static string Sanitize(string key, ProtoAnyValue? value)
     {
@@ -65,7 +84,7 @@ internal static class ExceptionTextSanitizer
     {
         var networkPath = match.Value.StartsWith("//", StringComparison.Ordinal);
         var candidate = networkPath ? "http:" + match.Value : match.Value;
-        if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri) || (uri.Host.Length == 0 && !uri.IsFile))
+        if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri) || (uri.Host.Length is 0 && !uri.IsFile))
         {
             // A '//' text that is no URL, such as the XPath step //button[text()='Submit'], has no user
             // information, query or fragment to remove; only a scheme URL or such a part fails closed.
@@ -74,7 +93,7 @@ internal static class ExceptionTextSanitizer
             throw new UriFormatException("An exception attribute contains an invalid URL.");
         }
 
-        if (uri.UserInfo.Length == 0 && uri.Query.Length == 0 && uri.Fragment.Length == 0)
+        if (uri.UserInfo.Length is 0 && uri.Query.Length is 0 && uri.Fragment.Length is 0)
             return match.Value;
 
         // Match the existing diagnostic URL policy: retain the destination/path,
@@ -123,13 +142,9 @@ internal static class ExceptionTextSanitizer
                 }
 
                 if (text[index] != closing) continue;
-                if (index + 1 < text.Length && text[index + 1] == closing)
-                {
-                    index++;
-                    continue;
-                }
-
-                return index + 1;
+                if (!(index + 1 < text.Length && text[index + 1] == closing))
+                    return index + 1;
+                index++;
             }
 
             // An unterminated quoted credential cannot safely expose its remainder.
@@ -146,7 +161,7 @@ internal static class ExceptionTextSanitizer
 
     private static string RedactJwt(Match match)
     {
-        var header = match.Value.AsSpan(0, match.Value.IndexOf('.'));
+        var header = match.Value.AsSpan(0, match.Value.IndexOf('.', StringComparison.Ordinal));
         if (header.Length > 4096) return Replacement;
         // Namespace-qualified stack frames also contain dots. Recognize a JWT by its
         // JSON JOSE header rather than erasing ordinary type and method names.
@@ -172,33 +187,15 @@ internal static class ExceptionTextSanitizer
     {
         if (s_strictUtf8.GetByteCount(text) <= MaxPersistedUtf8Bytes) return text;
         const string Marker = "…";
-        var budget = MaxPersistedUtf8Bytes - 3;
+        const int Budget = MaxPersistedUtf8Bytes - 3;
         var characters = 0;
         var bytes = 0;
-        foreach (var rune in text.EnumerateRunes())
+        foreach (var rune in text.EnumerateRunes().TakeWhile(rune => bytes + rune.Utf8SequenceLength <= Budget))
         {
-            if (bytes + rune.Utf8SequenceLength > budget) break;
             bytes += rune.Utf8SequenceLength;
             characters += rune.Utf16SequenceLength;
         }
 
         return text[..characters] + Marker;
     }
-
-    private static readonly Regex s_embeddedUrls = new("""(?:[a-z][a-z0-9+.-]*://|//)[^\s<>"'\x60]+""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
-
-    private static readonly Regex s_credentialAssignments = new(
-        """\b(?:authorization|proxy[-_ ]?authorization|x[-_]?otlp[-_]?api[-_]?key|x[-_]?api[-_]?key|api[-_ ]?key|access[-_ ]?key(?:[-_ ]?id)?|account[-_ ]?key|shared[-_ ]?access[-_ ]?(?:key|signature)|client[-_ ]?secret|secret(?:[-_ ]?key)?|private[-_ ]?key|password|passwd|pwd|user(?:[-_ ]?(?:id|name))?|uid|token|access[-_ ]?token|refresh[-_ ]?token|auth[-_ ]?token|bearer[-_ ]?token|session[-_ ]?(?:token|key)|id[-_ ]?token)\b["']?[ \t]*(?<separator>[:=])[ \t]*(?:(?:Bearer|Basic)[ \t]+)?""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
-
-    private static readonly Regex s_authorizationValues = new("""(?<scheme>\b(?:Bearer|Basic)[ \t]+)[A-Za-z0-9._~+/=-]+""",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
-
-    private static readonly Regex s_jwtCandidates = new("""\b[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*""",
-        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
-
-    private static readonly Regex s_knownApiTokens = new(
-        """\b(?:sk-(?:proj-)?[A-Za-z0-9_-]{16,}|sk_(?:live|test)_[A-Za-z0-9]{16,}|gh[pousr]_[A-Za-z0-9_]{16,}|github_pat_[A-Za-z0-9_]{16,}|npm_[A-Za-z0-9]{16,}|xox[baprs]-[A-Za-z0-9-]{16,})\b""",
-        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
 }

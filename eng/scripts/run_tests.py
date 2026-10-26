@@ -10,7 +10,6 @@ import shlex
 import shutil
 import subprocess
 import sys
-import tempfile
 import threading
 import xml.etree.ElementTree as ET
 from collections import Counter
@@ -18,6 +17,12 @@ from pathlib import Path
 from diagnostics import begin, state_root
 from toolchain import resolve
 from inspect_code import sources
+from artifact_lifetime import store_for
+
+
+def inherited_lease():
+    descriptor = os.environ.get("NAMI_ARTIFACT_LEASE_FD")
+    return {"pass_fds": (int(descriptor),)} if descriptor and os.name != "nt" else {}
 
 
 class HarnessError(Exception):
@@ -31,6 +36,14 @@ def finish(summary, code):
 
 
 def test_status(directory):
+    summary_path = directory / "summary.json"
+    if summary_path.is_file():
+        summary = json.loads(summary_path.read_text())
+        if summary.get("status") != "RUNNING":
+            completed = sum(suite.get("total", 0) for suite in summary.get("suites", []))
+            return f"completed={completed} status={summary.get('status', 'unknown')}"
+        if summary.get("directory"):
+            directory = Path(summary["directory"])
     started, ended = Counter(), Counter()
     for path in directory.rglob("*.diag"):
         for line in path.read_text(errors="replace").splitlines():
@@ -46,7 +59,7 @@ def execute(command, log, root, progress=None):
     with log.open("w", encoding="utf-8") as output:
         output.write("$ " + shlex.join(map(str, command)) + "\n")
         with subprocess.Popen(command, cwd=root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                              text=True, encoding="utf-8", errors="replace") as process:
+                              text=True, encoding="utf-8", errors="replace", **inherited_lease()) as process:
             lines = queue.Queue()
             def read_output():
                 try:
@@ -77,7 +90,7 @@ def project_state(dotnet, project, configuration, directory, root):
     command = [dotnet, "msbuild", str(project), "-nologo", f"-p:Configuration={configuration}",
                "-getProperty:IsTestingPlatformApplication,TargetPath,ProjectAssetsFile,MSBuildProjectExtensionsPath",
                f"-bl:{directory}/evaluation-{{}}.binlog"]
-    result = subprocess.run(command, cwd=root, text=True, capture_output=True)
+    result = subprocess.run(command, cwd=root, text=True, capture_output=True, **inherited_lease())
     (directory / "evaluation.log").write_text(result.stdout + result.stderr)
     if result.returncode:
         raise HarnessError(f"Project evaluation failed ({result.returncode}); see {directory / 'evaluation.log'}")
@@ -149,6 +162,8 @@ def main():
     parser.add_argument("--no-build", action="store_true")
     parser.add_argument("--no-restore", action="store_true")
     parser.add_argument("--filter")
+    parser.add_argument("--retain-failure-minutes", type=int, default=0, choices=range(0, 121),
+                        metavar="0..120", help="Opt in to bounded failure evidence; default 0 (delete), maximum 120 minutes.")
     parser.add_argument("--test-modules", help="Use built MSTest modules without evaluating projects; select a matching --suite.")
     parser.add_argument("--status", type=Path, help="Show running/completed cases from a previous or active run's MTP diagnostic logs.")
     args = parser.parse_args()
@@ -175,16 +190,23 @@ def main():
     base = state_root(root) / "tests"
     base.mkdir(parents=True, exist_ok=True)
     parent = Path(os.environ.get("NAMI_TEST_RUN_DIR", "/__no_test_run__"))
-    nested = parent.is_relative_to(base) and parent.is_dir()
-    if nested:
-        (parent / "nested").mkdir(exist_ok=True)
-        run = Path(tempfile.mkdtemp(prefix="run.", dir=parent / "nested"))
-    else:
-        run = begin(root, "tests")
+    nested = parent.is_dir() and parent.is_relative_to(state_root(root) / "fixture-runs")
+    owner = store_for(root)
+    owner.sweep()
+    owned_run = owner.begin()
+    run = owned_run.directory
+    if not nested:
+        begin(root, "tests")
     os.environ["NAMI_TEST_RUN_DIR"] = str(run)
-    summary = {"configuration": args.configuration, "requested": selected, "filtered": bool(args.filter), "suites": []}
+    os.environ["NAMI_FIXTURE_WORK_ROOT"] = str(owned_run.workspaces)
+    if os.name != "nt":
+        os.environ["NAMI_ARTIFACT_LEASE_FD"] = str(owned_run.lease.fileno())
+    summary = {"status": "RUNNING", "directory": str(run), "configuration": args.configuration,
+               "requested": selected, "filtered": bool(args.filter), "suites": []}
     if (root / ".git").exists():
         summary["context"] = {"source": sources(root)}
+    if not nested:
+        (base / "current/summary.json").write_text(json.dumps(summary, indent=2))
     print(f"TEST RUN: suites={','.join(selected)} configuration={args.configuration}\nResults: current tests (mise diagnostics)", flush=True)
     try:
         if not args.no_build and not args.test_modules:
@@ -278,9 +300,20 @@ def main():
         return finish(summary, 10)
     finally:
         (run / "summary.json").write_text(json.dumps(summary, indent=2))
-        print("Summary: current tests; discover with mise diagnostics", flush=True)
-        if nested:
-            shutil.rmtree(run)
+        try:
+            retained = owned_run.finish(summary.get("exitCode") == 0,
+                                        retain_minutes=args.retain_failure_minutes)
+            summary["evidence"] = {key: retained[key] for key in ("id", "state", "expires")}
+            if retained["state"] == "failed" and args.retain_failure_minutes:
+                print(f"Failure evidence: {owned_run.root / 'evidence.zip'}; expires at Unix time {retained['expires']:.0f} or next boot", flush=True)
+        except (OSError, ValueError) as error:
+            print(f"TEST EVIDENCE FAILED: {error}", file=sys.stderr)
+            # A successful test process cannot hide a failed lifecycle operation.
+            raise
+        finally:
+            if not nested:
+                (base / "current/summary.json").write_text(json.dumps(summary, indent=2))
+            print("Summary: current tests; discover with mise diagnostics", flush=True)
 
 
 if __name__ == "__main__":

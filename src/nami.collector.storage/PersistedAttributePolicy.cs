@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
 namespace Nami.Collector.Storage;
 
 internal static class PersistedAttributePolicy
@@ -46,12 +41,12 @@ internal static class PersistedAttributePolicy
             foreach (var (key, value) in persisted)
             {
                 writer.WritePropertyName(key);
-                if (key == CollectorSemanticAttributeCatalog.GenAiOperationName)
-                    writer.WriteStringValue(projection.GenAiOperationName);
-                else if (key == CollectorSemanticAttributeCatalog.GenAiOutputType)
-                    writer.WriteStringValue(projection.GenAiOutputType);
-                else
-                    WriteValue(writer, value);
+                switch (key)
+                {
+                    case CollectorSemanticAttributeCatalog.GenAiOperationName: writer.WriteStringValue(projection.GenAiOperationName); break;
+                    case CollectorSemanticAttributeCatalog.GenAiOutputType: writer.WriteStringValue(projection.GenAiOutputType); break;
+                    default: WriteValue(writer, value); break;
+                }
             }
 
             writer.WriteEndObject();

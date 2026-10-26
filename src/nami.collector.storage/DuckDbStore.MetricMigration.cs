@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.IO;
 using DuckDB.NET.Data;
 
 namespace Nami.Collector.Storage;
@@ -69,16 +67,15 @@ internal sealed partial class DuckDbStore
             {
                 using var insert = connection.CreateCommand();
                 insert.Transaction = transaction;
-                insert.CommandText = MetricObservationRow.BuildMultiRowInsertSql(1);
+                insert.CommandText = MetricObservationRow.InsertSql;
                 MetricObservationRow.AddParameters(insert, row);
                 insert.ExecuteNonQuery();
             }
 
-            if (batch.Count < 1000)
-            {
-                transaction.Commit();
-                return true;
-            }
+            if (batch.Count >= 1000)
+                continue;
+            transaction.Commit();
+            return true;
         }
     }
 }

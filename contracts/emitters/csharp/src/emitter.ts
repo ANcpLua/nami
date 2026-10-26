@@ -1,15 +1,22 @@
+import { outputFiles } from "./semantics.js";
+import { relative, resolve } from "node:path";
+import { emitExactSchema } from "./exact-schema.js";
+import { emitAttributeProjection, emitStorageAttributeProjection } from "./attribute-projection.js";
+import { emitProjections } from "./projections.js";
+import { emitToolMetadata } from "./tool-metadata.js";
+import { emitOutputs, outputFor } from "./outputs.js";
+import { admitsNull, effectiveEncoding, nonNullType, allocateNames, languageName, resolveProperty, numericBound as preciseBound } from "./semantics.js";
 import type { EmitContext, Enum, EnumMember, Model, ModelProperty, Program, Scalar, Type, Union } from "@typespec/compiler";
 import {
   emitFile,
   getDiscriminatedUnion,
   getNamespaceFullName,
-  getEncode,
   getFriendlyName,
   getMaxLength,
-  getMaxValue,
+  getMaxValueAsNumeric,
   getMediaTypeHint,
   getMinLength,
-  getMinValue,
+  getMinValueAsNumeric,
   getPattern,
   isArrayModelType,
   isRecordModelType,
@@ -42,11 +49,16 @@ export async function $onEmit(context: EmitContext): Promise<void> {
   if (program.compilerOptions.noEmit) return;
 
   const buckets = new Map<string, Bucket>();
-  const emittedNames = new Set<string>();
+  const emittedNames = new Set<Type>();
+  const candidates: {type: Type; scope: string; name: string}[] = [];
+  navigateProgram(program, { model(model) {
+    if (model.name && !isInTypeSpec(model) && !outputFor(program, model)) candidates.push({type:model, scope:resolveNamespace(program,model) ?? "", name:instantiationName(program,model)});
+  } });
+  allocateNames(program, candidates);
 
   navigateProgram(program, {
     model: (m) => {
-      if (isInTypeSpec(m)) return;
+      if (isInTypeSpec(m) || outputFor(program, m)) return;
       if (!m.name) return;
       const ns = resolveNamespace(program, m);
       if (!ns) return;
@@ -58,27 +70,26 @@ export async function $onEmit(context: EmitContext): Promise<void> {
       // Template instantiations share the base name (`CursorPage`); use the instantiated
       // form `CursorPageTrace` so each instantiation produces a distinct type. Template
       // DEFINITIONS are not navigated, so this only fires on concrete instantiations.
-      const emittedName = instantiationName(m);
-      const key = `${ns}.${emittedName}`;
-      if (emittedNames.has(key)) return;
-      emittedNames.add(key);
+      const emittedName = instantiationName(program, m);
+      if (emittedNames.has(m)) return;
+      emittedNames.add(m);
       getBucket(buckets, ns).models.push([m, emittedName]);
     },
     enum: (e) => {
-      if (isInTypeSpec(e)) return;
+      if (isInTypeSpec(e) || outputFor(program, e)) return;
       const ns = resolveNamespace(program, e);
       if (!ns) return;
       getBucket(buckets, ns).enums.push(e);
     },
     union: (u) => {
-      if (isInTypeSpec(u) || !u.name) return;
+      if (isInTypeSpec(u) || outputFor(program, u) || !u.name) return;
       if (!hasCsharpPolymorphic(program, u) && !isDiscriminatedUnion(program, u) && !mixedUnionShape(program, u)) return;
       const ns = resolveNamespace(program, u);
       if (!ns) return;
       getBucket(buckets, ns).unions.push(u);
     },
     scalar: (s) => {
-      if (isInTypeSpec(s) || !s.name || !hasCsharpBrand(program, s)) return;
+      if (isInTypeSpec(s) || outputFor(program, s) || !s.name || !hasCsharpBrand(program, s)) return;
       const ns = resolveNamespace(program, s);
       if (!ns) return;
       getBucket(buckets, ns).scalars.push(s);
@@ -86,18 +97,10 @@ export async function $onEmit(context: EmitContext): Promise<void> {
   });
 
   const unions = [...buckets.values()].flatMap((bucket) => bucket.unions);
-  const requestBodies = requestBodyModels(program);
-  // MCP inputs have no HTTP request body. They receive the same generated constraints.
-  for (const bucket of buckets.values()) {
-    for (const [model, name] of bucket.models) {
-      if (bucket.namespace === "Nami.Api.Contracts.Tools" && name.endsWith("Input")) requestBodies.add(model);
-    }
-  }
-  const requestModels = nestedModels(requestBodies);
   const routes = routeParameters(program);
   for (const [ns, bucket] of buckets) {
     const path = `${context.emitterOutputDir}/${ns.replace(/\./g, "/")}.cs`;
-    const content = renderBucket(program, bucket, unions, requestModels);
+    const content = renderBucket(program, bucket, unions);
     await emitFile(program, { path, content: ns === routes.namespace ? `${content}\n${routes.content}` : content });
   }
   const entries: Array<[string, string]> = [];
@@ -121,6 +124,13 @@ export async function $onEmit(context: EmitContext): Promise<void> {
     .flatMap(response => response.responses).map(response => response.body)
     .filter(body => body?.bodyKind === "single" && body.type.kind === "Model" && isArrayModelType(body.type))
     .map(body => `${mapType(program, (body!.type as Model).indexer!.value)}[]`));
+  await emitOutputs(program);
+  await emitProjections(program);
+  await emitAttributeProjection(program);
+  await emitStorageAttributeProjection(program);
+  await emitToolMetadata(program, context.emitterOutputDir);
+  await emitExactSchema(program);
+  await emitFile(program,{path:`${program.projectRoot}/generated/consumer-files.json`, content:JSON.stringify(outputFiles(program).map(path=>relative(resolve(program.projectRoot,".."),path).replaceAll("\\", "/")).sort(),null,2)+"\n"});
   const generated = `// <auto-generated/>\n#nullable enable\nusing System.Text.Json;\nusing System.Text.Json.Serialization;\nusing System.Text.Json.Serialization.Metadata;\nnamespace Nami.Api.Contracts;\n\npublic static class ContractTypes\n{\n    public static IJsonTypeInfoResolver Resolver => GeneratedContractJsonContext.Default;\n    public static IReadOnlyList<string> Tools { get; } = [${analysis.map(([, name]) => JSON.stringify(name.slice("Tools.".length, -"Input".length).replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase())).join(", ")}];\n    public static JsonTypeInfo<T> TypeInfo<T>() => GeneratedContractJsonContext.Default.Options.GetTypeInfo<T>();\n    public static (string Input, string Output) Analysis(string operation) => operation switch\n    {\n${analysisCases}\n        _ => throw new ArgumentException($"No generated analysis contract for {operation}.", nameof(operation))\n    };\n    public static string NameOf(Type type) => type switch\n    {\n${entries.map(([type, name]) => `        _ when type == typeof(global::${type}) => ${JSON.stringify(name)},`).join("\n")}\n        _ => throw new ArgumentException($"No generated contract for {type}.", nameof(type))\n    };\n    public static JsonTypeInfo TypeInfo(string name) => name switch\n    {\n${entries.map(([type, name]) => {
     return `        ${JSON.stringify(name)} => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::${type}))!,`;
   }).join("\n")}\n        _ => throw new ArgumentException($"No generated serializer for {name}.", nameof(name))\n    };\n}\n\n[JsonSourceGenerationOptions(AllowOutOfOrderMetadataProperties = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow)]\n[JsonSerializable(typeof(JsonElement))]\n${entries.map(([type]) => `[JsonSerializable(typeof(global::${type}))]`).join("\n")}\n${[...arrayBodies].map(type => `[JsonSerializable(typeof(global::${type}))]`).join("\n")}\ninternal partial class GeneratedContractJsonContext : JsonSerializerContext;\n`;
@@ -140,7 +150,7 @@ function routeParameters(program: Program): { namespace: string | undefined; con
     for (const parameter of operation.parameters.parameters) {
       if (parameter.type !== "path" && parameter.type !== "query") continue;
       const property = parameter.param;
-      const range = numericRange(program, property, mapType(program, property.type), true);
+      const range = numericRange(program, property, mapType(program, property.type));
       if (range !== undefined) {
         const fallback = property.defaultValue?.valueKind === "NumericValue" ? property.defaultValue.value.toString() : "null";
         numbers.push(`        ("${operation.verb.toUpperCase()}", "${escapeCsharpString(operation.path)}", "${escapeCsharpString(parameter.name)}", new(${fallback}, ${range.minimum ?? "null"}, ${range.maximum ?? "null"})),`);
@@ -169,30 +179,9 @@ function routeParameters(program: Program): { namespace: string | undefined; con
   };
 }
 
-/** The models an HTTP operation takes as its request body. */
-function requestBodyModels(program: Program): Set<Model> {
-  const [services] = getAllHttpServices(program);
-  return new Set(services.flatMap((service) => service.operations)
-    .map((operation) => operation.parameters.body?.type)
-    .filter((type): type is Model => type?.kind === "Model"));
-}
-
-/** The models a request body holds at any depth, in its unions and arrays and itself included. */
-function nestedModels(bodies: Set<Model>): Set<Model> {
-  const found = new Set<Model>();
-  const visit = (type: Type): void => {
-    if (type.kind === "Union") for (const variant of type.variants.values()) visit(variant.type);
-    if (type.kind !== "Model") return;
-    if (isArrayModelType(type) || isRecordModelType(type)) return visit(type.indexer!.value);
-    if (found.has(type)) return;
-    found.add(type);
-    for (const property of inheritedProperties(type)) visit(property.type);
-  };
-  for (const body of bodies) visit(body);
-  return found;
-}
-
-function instantiationName(model: Model): string {
+function instantiationName(program: Program, model: Model): string {
+  const allocated = languageName(program, model, "");
+  if (allocated) return allocated;
   if (!model.templateMapper?.args.length) return model.name;
   const parts = [model.name];
   for (const arg of model.templateMapper.args) {
@@ -233,7 +222,7 @@ function resolveNamespace(program: Program, type: Model | Enum | Scalar | Union)
   return undefined;
 }
 
-function renderBucket(program: Program, bucket: Bucket, unions: Union[], requestModels: Set<Model>): string {
+function renderBucket(program: Program, bucket: Bucket, unions: Union[]): string {
   const out: string[] = [HEADER];
   out.push(`namespace ${bucket.namespace};\n`);
   for (const scalar of bucket.scalars) out.push(renderBrandedScalar(scalar));
@@ -244,7 +233,7 @@ function renderBucket(program: Program, bucket: Bucket, unions: Union[], request
   }
   const internalBases = polymorphicBaseModels(bucket.unions);
   for (const [m, name] of bucket.models) {
-    if (!internalBases.has(m)) out.push(renderModel(program, m, name, unions, requestModels.has(m)));
+    if (!internalBases.has(m)) out.push(renderModel(program, m, name, unions));
   }
   for (const e of bucket.enums) out.push(renderEnum(program, e));
   return out.join("\n");
@@ -326,7 +315,7 @@ function taggedUnionInfo(program: Program, union: Union): { property: string; ta
   };
 }
 
-function renderModel(program: Program, model: Model, emittedName: string, unions: Union[], requestModel: boolean): string {
+function renderModel(program: Program, model: Model, emittedName: string, unions: Union[]): string {
   const keyword = "public sealed class";
   const memberships = unions.filter((candidate) =>
     !mixedUnionShape(program, candidate) &&
@@ -338,7 +327,8 @@ function renderModel(program: Program, model: Model, emittedName: string, unions
   const props: string[] = [];
   for (const prop of inheritedProperties(model)) {
     if (isHttpMetadata(program, prop)) continue;
-    const jsonName = escapeCsharpString(resolveEncodedName(program, prop, "application/json"));
+    const semantics = resolveProperty(program, prop);
+    const jsonName = escapeCsharpString(semantics.jsonName);
     if (discriminators.has(jsonName)) {
       const membership = memberships.find((union) => taggedUnionInfo(program, union)?.property === jsonName)!;
       const tag = taggedUnionInfo(program, membership)!.tagOf(model);
@@ -347,10 +337,16 @@ function renderModel(program: Program, model: Model, emittedName: string, unions
     }
     const type = mapType(program, prop.type);
     const name = pascal(prop.name);
-    constants.push(...renderConstants(program, prop, type.replace(/\?$/, ""), name, requestModel));
+    constants.push(...renderConstants(program, prop, type.replace(/\?$/, ""), name));
     const numberHandling = renderNumberHandling(program, prop);
     if (prop.optional && type.endsWith("?")) {
-      props.push(`    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]\n    [JsonConverter(typeof(global::Nami.Api.Contracts.OptionalValueConverter<${type}>))]\n    [JsonPropertyName("${jsonName}")]\n    public global::Nami.Api.Contracts.OptionalValue<${type}> ${name} { get; init; }`);
+      const inner = type.slice(0, -1);
+      const converter = numberHandling.match(/JsonConverter\(typeof\((.+)\)\)/u)?.[1] ?? (inner === "double" && hasNamedFloatingPointValues(prop.type) ? "global::Nami.Api.Contracts.NamedDoubleConverter" : undefined);
+      const valueConverter = converter && ["long", "ulong", "int", "uint", "short", "ushort", "byte", "sbyte"].includes(inner)
+        ? `global::Nami.Api.Contracts.OptionalNullableValueConverter<${inner}, ${converter}>`
+        : converter ? `global::Nami.Api.Contracts.OptionalConvertedValueConverter<${type}, ${converter}>`
+        : `global::Nami.Api.Contracts.OptionalValueConverter<${type}>`;
+      props.push(`    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]\n    [JsonConverter(typeof(${valueConverter}))]\n    [JsonPropertyName("${jsonName}")]\n    public global::Nami.Api.Contracts.OptionalValue<${type}> ${name} { get; init; }`);
     } else if (prop.optional) {
       const optionalType = `${type}?`;
       const ignoreNull = "    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]\n";
@@ -372,33 +368,24 @@ const NUMERIC_CS_TYPES = new Set(["sbyte", "byte", "short", "ushort", "int", "ui
 /**
  * A property's declared default and its declared numeric range become constants beside it, so a
  * consumer applies the contract's defaults and bounds from these generated values instead of
- * restating them. A range is the property's own, or for a property with a default or of a model a
- * request body holds its scalar's.
+ * restating them. Numeric bounds use the property's effective constraints, including its scalar.
  */
-function renderConstants(program: Program, property: ModelProperty, type: string, name: string, requestModel: boolean): string[] {
+function renderConstants(program: Program, property: ModelProperty, type: string, name: string): string[] {
   const lines: string[] = [];
   const fallback = defaultLiteral(property, type);
   if (fallback !== undefined) lines.push(`    public const ${type} ${name}Default = ${fallback};`);
-  const range = numericRange(program, property, type, requestModel || fallback !== undefined);
+  const range = numericRange(program, property, type);
   if (range?.minimum !== undefined) lines.push(`    public const ${type} ${name}Minimum = ${numericLiteral(String(range.minimum), type)};`);
   if (range?.maximum !== undefined) lines.push(`    public const ${type} ${name}Maximum = ${numericLiteral(String(range.maximum), type)};`);
   return lines;
 }
 
-/** A numeric property's declared bounds, a scalar's included where `scalar`; undefined when it has none. */
-function numericRange(program: Program, property: ModelProperty, type: string, scalar: boolean): { minimum?: number; maximum?: number } | undefined {
+/** Effective numeric bounds, including scalar constraints; undefined when neither bound is declared. */
+function numericRange(program: Program, property: ModelProperty, type: string): { minimum?: string; maximum?: string } | undefined {
   if (!NUMERIC_CS_TYPES.has(type)) return undefined;
-  const minimum = numericBound(program, property, getMinValue, scalar);
-  const maximum = numericBound(program, property, getMaxValue, scalar);
+  const minimum = preciseBound(program, property, getMinValueAsNumeric);
+  const maximum = preciseBound(program, property, getMaxValueAsNumeric);
   return minimum === undefined && maximum === undefined ? undefined : { minimum, maximum };
-}
-
-function scalarBound(program: Program, scalar: Scalar, read: (program: Program, target: Type) => number | undefined): number | undefined {
-  for (let current: Scalar | undefined = scalar; current; current = current.baseScalar) {
-    const bound = read(program, current);
-    if (bound !== undefined) return bound;
-  }
-  return undefined;
 }
 
 /**
@@ -452,7 +439,37 @@ function numericLiteral(text: string, type: string): string {
   return type === "float" ? `${text}f` : type === "decimal" ? `${text}m` : text;
 }
 
+function encodedValueConverter(program: Program, type: Type): string | undefined {
+  if (isNamedFloatingPointUnion(type)) return "global::Nami.Api.Contracts.NamedDoubleConverter";
+  const inner = nonNullType(type);
+  if (inner !== type) {
+    const converter = encodedValueConverter(program, inner);
+    if (!converter) return undefined;
+    const cs = mapType(program, inner);
+    const wrapper = ["long", "ulong", "int", "uint", "short", "ushort", "byte", "sbyte", "double", "float", "decimal", "bool"].includes(cs)
+      ? "NullableEncodedValueConverter" : "NullableEncodedReferenceConverter";
+    return `global::Nami.Api.Contracts.${wrapper}<${cs}, ${converter}>`;
+  }
+  if (type.kind === "Scalar") {
+    if (effectiveEncoding(program,type)?.type.name !== "string") return undefined;
+    const cs = mapType(program,type);
+    return cs === "long" ? "global::Nami.Api.Contracts.Int64StringConverter"
+      : cs === "ulong" ? "global::Nami.Api.Contracts.UInt64StringConverter" : undefined;
+  }
+  if (type.kind === "Model" && type.indexer && (isArrayModelType(type) || isRecordModelType(type))) {
+    const child = encodedValueConverter(program,type.indexer.value);
+    if (!child) return undefined;
+    return `global::Nami.Api.Contracts.${isArrayModelType(type) ? "EncodedListConverter" : "EncodedMapConverter"}<${mapType(program,type.indexer.value)}, ${child}>`;
+  }
+  return undefined;
+}
+
 function renderNumberHandling(program: Program, property: ModelProperty): string {
+  const type = nonNullType(property.type);
+  const composite = type.kind === "Model" && !!type.indexer &&
+    (isRecordModelType(type) || (isArrayModelType(type) && (admitsNull(property.type) || type.indexer.value.kind === "Model" || (type.indexer.value.kind === "Union" && !isNamedFloatingPointUnion(type.indexer.value)))));
+  const codec = composite ? encodedValueConverter(program,property.type) : undefined;
+  if (codec) return `    [JsonConverter(typeof(${codec}))]\n`;
   if (isStringEncodedNumber(program, property)) {
     const type = mapType(program, property.type).replace(/\?$/u, "");
     if (type === "long" || type === "ulong") return `    [JsonConverter(typeof(global::Nami.Api.Contracts.${type === "long" ? "Int64" : "UInt64"}StringConverter))]\n`;
@@ -481,33 +498,7 @@ function hasNamedFloatingPointValues(type: Type): boolean {
 }
 
 function isStringEncodedNumber(program: Program, property: ModelProperty): boolean {
-  const direct = getEncode(program, property);
-  if (direct?.type.name === "string") return isNumericType(property.type);
-  return hasStringEncodedNumericScalar(program, property.type);
-}
-
-function hasStringEncodedNumericScalar(program: Program, type: Type): boolean {
-  if (type.kind === "Scalar") {
-    const scalar = type as Scalar;
-    if (getEncode(program, scalar)?.type.name === "string") return isNumericScalar(scalar);
-    return scalar.baseScalar ? hasStringEncodedNumericScalar(program, scalar.baseScalar) : false;
-  }
-  if (type.kind === "Model" && isArrayModelType(type)) {
-    return hasStringEncodedNumericScalar(program, type.indexer!.value);
-  }
-  return false;
-}
-
-function isNumericType(type: Type): boolean {
-  if (type.kind === "Scalar") return isNumericScalar(type as Scalar);
-  return type.kind === "Model" && isArrayModelType(type) && isNumericType(type.indexer!.value);
-}
-
-function isNumericScalar(scalar: Scalar): boolean {
-  if (["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "decimal", "decimal128"].includes(scalar.name)) {
-    return true;
-  }
-  return scalar.baseScalar ? isNumericScalar(scalar.baseScalar) : false;
+  return resolveProperty(program, property).encoding?.type.name === "string";
 }
 
 function renderPolymorphicUnion(program: Program, union: Union): string {
@@ -528,8 +519,9 @@ function renderPolymorphicUnion(program: Program, union: Union): string {
   const tagRead = tagged
     ? `        if (!root.TryGetProperty("${escapeCsharpString(tagged.property)}", out var tagProperty) || tagProperty.ValueKind != JsonValueKind.String) throw new JsonException("${name} requires ${escapeCsharpString(tagged.property)}.");\n        var tag = tagProperty.GetString();\n`
     : "";
-  const writes = variants.map(model => `            case ${caseType(model)} typed:\n                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<${caseType(model)}>());\n                return;`).join("\n");
-  return `[JsonConverter(typeof(${converter}))]\npublic union ${name}(${variants.map(caseType).join(", ")});\n\npublic sealed class ${converter} : JsonConverter<${name}>\n{\n    public override ${name} Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)\n    {\n        using var document = JsonDocument.ParseValue(ref reader);\n        var root = document.RootElement;\n        if (root.ValueKind != JsonValueKind.Object) throw new JsonException("${name} must be a JSON object.");\n${tagRead}${reads}\n        throw new JsonException("Unknown ${name} case.");\n    }\n\n    public override void Write(Utf8JsonWriter writer, ${name} value, JsonSerializerOptions options)\n    {\n        switch (value.Value)\n        {\n${writes}\n            default:\n                throw new InvalidOperationException("An empty ${name} cannot be serialized.");\n        }\n    }\n}\n`;
+  const writes = variants.map(model => `            ${caseType(model)} => options.GetTypeInfo<${caseType(model)}>(),`).join("\n");
+  return `[JsonConverter(typeof(${converter}))]\npublic readonly union ${name}(${variants.map(caseType).join(", ")});\n\npublic sealed class ${converter} : JsonConverter<${name}>\n{\n    public override ${name} Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)\n    {\n        using var document = JsonDocument.ParseValue(ref reader);\n        var root = document.RootElement;\n        if (root.ValueKind != JsonValueKind.Object) throw new JsonException("${name} must be a JSON object.");\n${tagRead}${reads}\n        throw new JsonException("Unknown ${name} case.");\n    }\n\n    public override void Write(Utf8JsonWriter writer, ${name} value, JsonSerializerOptions options)\n    {\n        System.Text.Json.Serialization.Metadata.JsonTypeInfo typeInfo = value switch\n        {\n${writes}\n            null => throw new InvalidOperationException("An empty ${name} cannot be serialized.")\n        };\n        JsonSerializer.Serialize(writer, value.Value, typeInfo);\n    }\n}\n`;
+
 }
 
 function localOrQualifiedType(program: Program, owner: Model | Union, type: Model | Union): string {
@@ -538,7 +530,7 @@ function localOrQualifiedType(program: Program, owner: Model | Union, type: Mode
 }
 
 /**
- * A union of bare JSON primitives plus one tagged object member becomes an abstract class with
+ * A union of bare JSON primitives plus one tagged object member becomes a closed class with
  * one sealed case per primitive kind and one wrapping the object member, plus a converter that
  * dispatches on the JSON token kind. The object member keeps its own discriminator converter.
  */
@@ -661,7 +653,7 @@ function renderStableString(
 
     private static void WriteStable(Utf8JsonWriter writer, ${name}? value)
     {
-        switch (value)
+        switch ((object?)value)
         {
             case null:
                 writer.WriteNullValue();
@@ -670,6 +662,8 @@ ${primitiveCases.join("\n")}
             case ${name}.${cases.objectCase} typed:
                 WriteStableObject(writer, typed.Value);
                 return;
+            default:
+                throw new InvalidOperationException("Unknown canonical attribute value case.");
         }
     }
 

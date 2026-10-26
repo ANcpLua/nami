@@ -61,7 +61,7 @@ if (stdio) {
     if (url.pathname !== "/mcp") return new Response(null, { status: 404 });
     const access = credential(request);
     if (access instanceof Response) return access;
-    // qyl's stateless factory: both modern discovery and legacy initialize use the official SDK.
+    // Stateless factory: both modern discovery and legacy initialize use the official SDK.
     return createMcpHandler(() => createServer(engine, access), { onerror: report }).fetch(request);
   } });
   closeTransport = async () => { await server.stop(true); };

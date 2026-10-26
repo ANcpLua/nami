@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using DuckDB.NET.Data;
 
 namespace Nami.Collector.Storage;
@@ -182,13 +176,15 @@ internal sealed partial class DuckDbStore
                             ResourceDroppedAttributesCount = existing.ResourceDroppedAttributesCount
                         };
                         if (comparable != existing)
+                        {
                             throw new InvalidDataException(
                                 $"Metric identity collision while migrating '{previous.SeriesId}'.");
+                        }
                     }
                 }
 
                 command.Parameters.Clear();
-                command.CommandText = MetricSeriesRow.BuildMultiRowInsertSql(1);
+                command.CommandText = MetricSeriesRow.InsertSql;
                 MetricSeriesRow.AddParameters(command, migrated);
                 command.ExecuteNonQuery();
 
@@ -199,6 +195,8 @@ internal sealed partial class DuckDbStore
                 command.CommandText = "DELETE FROM metric_series WHERE project_id = $1 AND series_id = $2";
                 AddParameters(command, previous.ProjectId, previous.SeriesId);
                 command.ExecuteNonQuery();
+
+                continue;
 
                 void MoveMetricRows(string table, string columns)
                 {

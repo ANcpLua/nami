@@ -639,7 +639,8 @@
           },
           "since": {
             "$ref": "#/components/schemas/Common.TimeSpec",
-            "description": "Inclusive window start; defaults to one hour before the snapshot's observation time."
+            "description": "Inclusive window start; defaults to one hour before the snapshot's observation time.",
+            "default": "-60m"
           },
           "fields": {
             "type": "array",
@@ -750,6 +751,160 @@
         "maxLength": 256,
         "description": "User identifier (pseudonymized for privacy)"
       },
+      "Engine.EngineCall": {
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "method",
+          "name",
+          "input",
+          "credential",
+          "traceparent",
+          "tracestate"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "call"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "input": {},
+          "credential": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "traceparent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tracestate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        }
+      },
+      "Engine.EngineCancel": {
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "method"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "cancel"
+            ]
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        }
+      },
+      "Engine.EngineCommand": {
+        "type": "object",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/Engine.EngineCall"
+          },
+          {
+            "$ref": "#/components/schemas/Engine.EngineHealth"
+          },
+          {
+            "$ref": "#/components/schemas/Engine.EngineCancel"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "method",
+          "mapping": {
+            "call": "#/components/schemas/Engine.EngineCall",
+            "health": "#/components/schemas/Engine.EngineHealth",
+            "cancel": "#/components/schemas/Engine.EngineCancel"
+          }
+        }
+      },
+      "Engine.EngineEnvelope": {
+        "type": "object",
+        "required": [
+          "id",
+          "revision"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        }
+      },
+      "Engine.EngineHealth": {
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "method"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "health"
+            ]
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        }
+      },
       "Engine.EngineLimits": {
         "type": "object",
         "required": [
@@ -784,12 +939,7 @@
         "required": [
           "id",
           "revision",
-          "method",
-          "name",
-          "input",
-          "credential",
-          "traceparent",
-          "tracestate"
+          "method"
         ],
         "properties": {
           "id": {
@@ -1648,6 +1798,36 @@
         },
         "description": "Trace summary without the full span collection"
       },
+      "Tools.ActiveSignalStatus": {
+        "type": "object",
+        "required": [
+          "signal",
+          "kind",
+          "last_seen"
+        ],
+        "properties": {
+          "signal": {
+            "type": "string",
+            "enum": [
+              "traces",
+              "metrics",
+              "logs"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "active"
+            ]
+          },
+          "last_seen": {
+            "$ref": "#/components/schemas/Common.Timestamp"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        }
+      },
       "Tools.Change": {
         "type": "object",
         "required": [
@@ -2075,9 +2255,49 @@
       },
       "Tools.SignalStatus": {
         "type": "object",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/Tools.ActiveSignalStatus"
+          },
+          {
+            "$ref": "#/components/schemas/Tools.SilentSignalStatus"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "active": "#/components/schemas/Tools.ActiveSignalStatus",
+            "silent": "#/components/schemas/Tools.SilentSignalStatus"
+          }
+        },
+        "description": "The latest receipt time for one signal, or how long it has been silent."
+      },
+      "Tools.SignalStatusFields": {
+        "type": "object",
+        "required": [
+          "signal"
+        ],
+        "properties": {
+          "signal": {
+            "type": "string",
+            "enum": [
+              "traces",
+              "metrics",
+              "logs"
+            ]
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "The latest receipt time for one signal, or how long it has been silent."
+      },
+      "Tools.SilentSignalStatus": {
+        "type": "object",
         "required": [
           "signal",
-          "kind"
+          "kind",
+          "silent_for"
         ],
         "properties": {
           "signal": {
@@ -2091,7 +2311,6 @@
           "kind": {
             "type": "string",
             "enum": [
-              "active",
               "silent"
             ]
           },
@@ -2104,8 +2323,7 @@
         },
         "unevaluatedProperties": {
           "not": {}
-        },
-        "description": "The latest receipt time for one signal, or how long it has been silent."
+        }
       },
       "Tools.SlowTrace": {
         "type": "object",

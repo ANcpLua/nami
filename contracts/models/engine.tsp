@@ -7,11 +7,11 @@ model EngineRequest {
   id: string;
   revision: string;
   method: "call" | "health" | "cancel";
-  name: string | null;
-  input: unknown;
-  credential: string | null;
-  traceparent: string | null;
-  tracestate: string | null;
+  name?: string | null;
+  input?: unknown;
+  credential?: string | null;
+  traceparent?: string | null;
+  tracestate?: string | null;
 }
 
 @doc("One complete private response. A tool refusal is an explicit error value, never a lost reply.")
@@ -29,3 +29,18 @@ model EngineLimits {
   @encodedName("application/json", "max_pending") maxPending: int32 = 32;
   workers: int32 = 2;
 }
+
+model EngineEnvelope { id: string; revision: string; }
+model EngineCall {
+  ...EngineEnvelope;
+  method: "call";
+  name: string;
+  input: unknown;
+  credential: string | null;
+  traceparent: string | null;
+  tracestate: string | null;
+}
+model EngineHealth { ...EngineEnvelope; method: "health"; }
+model EngineCancel { ...EngineEnvelope; method: "cancel"; }
+@discriminated(#{envelope: "none", discriminatorPropertyName: "method"})
+union EngineCommand { call: EngineCall, health: EngineHealth, cancel: EngineCancel }

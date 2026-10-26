@@ -24,3 +24,11 @@ test("encoded 64-bit endpoints survive without conversion to Number", () => {
   assert(unsigned.test("18446744073709551615"));
   assert(!unsigned.test("18446744073709551616"));
 });
+
+test("encoded intervals accept exact compiler Numeric strings beyond Number precision", () => {
+  const pattern = new RegExp(encodedIntegerPattern({format:"uint64",minimum:"18446744073709551614",maximum:"18446744073709551615"},"exact"),"u");
+  assert(pattern.test("18446744073709551614"));
+  assert(pattern.test("18446744073709551615"));
+  assert(!pattern.test("18446744073709551613"));
+  assert(!pattern.test("18446744073709551616"));
+});

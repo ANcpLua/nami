@@ -56,7 +56,7 @@ public closed class AttributeValue
 
     private static void WriteStable(Utf8JsonWriter writer, AttributeValue? value)
     {
-        switch (value)
+        switch ((object?)value)
         {
             case null:
                 writer.WriteNullValue();
@@ -75,6 +75,8 @@ public closed class AttributeValue
             case AttributeValue.ObjectValue typed:
                 WriteStableObject(writer, typed.Value);
                 return;
+            default:
+                throw new InvalidOperationException("Unknown canonical attribute value case.");
         }
     }
 
@@ -223,7 +225,7 @@ public sealed class AttributeValueJsonConverter : JsonConverter<AttributeValue>
 }
 
 [JsonConverter(typeof(AttributeObjectValueJsonConverter))]
-public union AttributeObjectValue(AttributeIntValue, AttributeDoubleValue, AttributeBytesValue, AttributeKeyValueListValue);
+public readonly union AttributeObjectValue(AttributeIntValue, AttributeDoubleValue, AttributeBytesValue, AttributeKeyValueListValue);
 
 public sealed class AttributeObjectValueJsonConverter : JsonConverter<AttributeObjectValue>
 {
@@ -243,23 +245,15 @@ public sealed class AttributeObjectValueJsonConverter : JsonConverter<AttributeO
 
     public override void Write(Utf8JsonWriter writer, AttributeObjectValue value, JsonSerializerOptions options)
     {
-        switch (value.Value)
+        System.Text.Json.Serialization.Metadata.JsonTypeInfo typeInfo = value switch
         {
-            case AttributeIntValue typed:
-                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<AttributeIntValue>());
-                return;
-            case AttributeDoubleValue typed:
-                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<AttributeDoubleValue>());
-                return;
-            case AttributeBytesValue typed:
-                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<AttributeBytesValue>());
-                return;
-            case AttributeKeyValueListValue typed:
-                JsonSerializer.Serialize(writer, typed, options.GetTypeInfo<AttributeKeyValueListValue>());
-                return;
-            default:
-                throw new InvalidOperationException("An empty AttributeObjectValue cannot be serialized.");
-        }
+            AttributeIntValue => options.GetTypeInfo<AttributeIntValue>(),
+            AttributeDoubleValue => options.GetTypeInfo<AttributeDoubleValue>(),
+            AttributeBytesValue => options.GetTypeInfo<AttributeBytesValue>(),
+            AttributeKeyValueListValue => options.GetTypeInfo<AttributeKeyValueListValue>(),
+            null => throw new InvalidOperationException("An empty AttributeObjectValue cannot be serialized.")
+        };
+        JsonSerializer.Serialize(writer, value.Value, typeInfo);
     }
 }
 
@@ -331,6 +325,8 @@ public sealed class EntityRef
 
 public sealed class InstrumentationScope
 {
+    public const long DroppedAttributesCountMinimum = 0;
+    public const long DroppedAttributesCountMaximum = 9007199254740991;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("name")]
     public string? ScopeName { get; init; }
@@ -376,6 +372,12 @@ public sealed class ToolError
 
 public sealed class Freshness
 {
+    public const long ExaminedMinimum = 0;
+    public const long ExaminedMaximum = 9007199254740991;
+    public const long MatchedMinimum = 0;
+    public const long MatchedMaximum = 9007199254740991;
+    public const long ReturnedMinimum = 0;
+    public const long ReturnedMaximum = 9007199254740991;
     [JsonPropertyName("watermark")]
     public required string Watermark { get; init; }
     [JsonPropertyName("complete")]
@@ -398,6 +400,7 @@ public sealed class Freshness
 
 public sealed class ToolReadInput
 {
+    public const string SinceDefault = "-60m";
     public const int MaxBytesDefault = 32768;
     public const int MaxBytesMinimum = 1024;
     public const int MaxBytesMaximum = 262144;

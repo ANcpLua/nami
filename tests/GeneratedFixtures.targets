@@ -1,0 +1,67 @@
+<Project>
+  <PropertyGroup>
+    <_FixtureRepositoryRoot>$(MSBuildThisFileDirectory)</_FixtureRepositoryRoot>
+    <_FixtureRepositoryRoot>$([MSBuild]::NormalizeDirectory('$(_FixtureRepositoryRoot)'))</_FixtureRepositoryRoot>
+  </PropertyGroup>
+
+  <Target Name="GenerateFixtureProjects" Condition="'@(GeneratedFixture)' != ''">
+    <ItemGroup>
+      <_FixtureSupportReference Include="@(_ResolvedProjectReferencePaths)" Condition="'%(_ResolvedProjectReferencePaths.Filename)' == 'Nami.Tests'" />
+      <_GeneratedFixture Include="@(GeneratedFixture)">
+        <ProjectDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'generated-fixtures', '%(GeneratedFixture.Name)'))</ProjectDirectory>
+        <SourceDirectory>%(GeneratedFixture.RootDir)%(GeneratedFixture.Directory)</SourceDirectory>
+      </_GeneratedFixture>
+      <_GeneratedFixture Update="@(_GeneratedFixture)">
+        <ProjectPath>%(_GeneratedFixture.ProjectDirectory)%(_GeneratedFixture.Name).csproj</ProjectPath>
+        <OutputDirectory>%(_GeneratedFixture.ProjectDirectory)output/</OutputDirectory>
+      </_GeneratedFixture>
+    </ItemGroup>
+    <PropertyGroup>
+      <_FixtureSupportDirectory>@(_FixtureSupportReference->'%(RootDir)%(Directory)')</_FixtureSupportDirectory>
+    </PropertyGroup>
+    <Error Condition="'@(_GeneratedFixture->WithMetadataValue('RequiresSupport', 'true'))' != '' and '$(_FixtureSupportDirectory)' == ''"
+           Text="The support project must be resolved before materializing this fixture." />
+    <MakeDir Directories="%(_GeneratedFixture.ProjectDirectory)" />
+    <Copy SourceFiles="%(_GeneratedFixture.FullPath)" DestinationFiles="%(_GeneratedFixture.ProjectPath)" SkipUnchangedFiles="true" />
+    <WriteLinesToFile File="%(_GeneratedFixture.ProjectDirectory)Directory.Build.props"
+                      Lines="&lt;Project&gt;&lt;PropertyGroup&gt;&lt;FixtureRepositoryRoot&gt;$(_FixtureRepositoryRoot)&lt;/FixtureRepositoryRoot&gt;&lt;FixtureSupportDirectory&gt;$(_FixtureSupportDirectory)&lt;/FixtureSupportDirectory&gt;&lt;FixtureSourceDirectory&gt;%(_GeneratedFixture.SourceDirectory)&lt;/FixtureSourceDirectory&gt;&lt;/PropertyGroup&gt;&lt;Import Project=&quot;$(_FixtureRepositoryRoot)Directory.Build.props&quot; /&gt;&lt;PropertyGroup&gt;&lt;UseArtifactsOutput&gt;false&lt;/UseArtifactsOutput&gt;&lt;BaseIntermediateOutputPath&gt;%(_GeneratedFixture.ProjectDirectory)obj/&lt;/BaseIntermediateOutputPath&gt;&lt;MSBuildProjectExtensionsPath&gt;%(_GeneratedFixture.ProjectDirectory)obj/&lt;/MSBuildProjectExtensionsPath&gt;&lt;OutputPath&gt;%(_GeneratedFixture.OutputDirectory)&lt;/OutputPath&gt;&lt;AppendTargetFrameworkToOutputPath&gt;false&lt;/AppendTargetFrameworkToOutputPath&gt;&lt;AppendRuntimeIdentifierToOutputPath&gt;false&lt;/AppendRuntimeIdentifierToOutputPath&gt;&lt;/PropertyGroup&gt;&lt;/Project&gt;"
+                      Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="%(_GeneratedFixture.ProjectDirectory)Directory.Packages.props"
+                      Lines="&lt;Project&gt;&lt;Import Project=&quot;$(_FixtureRepositoryRoot)Directory.Packages.props&quot; /&gt;&lt;/Project&gt;"
+                      Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="%(_GeneratedFixture.ProjectDirectory)Directory.Build.targets" Lines="&lt;Project /&gt;"
+                      Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <FileWrites Include="%(_GeneratedFixture.ProjectPath);%(_GeneratedFixture.ProjectDirectory)Directory.Build.props;%(_GeneratedFixture.ProjectDirectory)Directory.Build.targets;%(_GeneratedFixture.ProjectDirectory)Directory.Packages.props" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="BuildGeneratedFixtures"
+          BeforeTargets="ResolveAssemblyReferences;_GetCopyToOutputDirectoryItemsFromThisProject;GetCopyToPublishDirectoryItems"
+          DependsOnTargets="GenerateFixtureProjects"
+          Condition="'@(GeneratedFixture)' != '' and '$(DesignTimeBuild)' != 'true'">
+    <MSBuild Projects="%(_GeneratedFixture.ProjectPath)" Targets="Restore"
+             Properties="Configuration=$(Configuration);ShouldUnsetParentConfigurationAndPlatform=false;_NamiFixtureRestore=true"
+             RemoveProperties="BuildingSolutionFile;CurrentSolutionConfigurationContents;TargetFramework;RuntimeIdentifier;SelfContained;PublishAot;OutputPath;BaseOutputPath;IntermediateOutputPath;BaseIntermediateOutputPath;ArtifactsPath;UseArtifactsOutput;$(_GlobalPropertiesToRemoveFromProjectReferences);$(_JetBrainsProjectReferenceGlobalPropertiesToRemove)"
+             BuildInParallel="false" />
+    <MSBuild Projects="%(_GeneratedFixture.ProjectPath)" Targets="Build"
+             Properties="Configuration=$(Configuration);ShouldUnsetParentConfigurationAndPlatform=false;BuildProjectReferences=true;BuildingInsideVisualStudio=false"
+             RemoveProperties="BuildingSolutionFile;CurrentSolutionConfigurationContents;TargetFramework;RuntimeIdentifier;SelfContained;PublishAot;OutputPath;BaseOutputPath;IntermediateOutputPath;BaseIntermediateOutputPath;ArtifactsPath;UseArtifactsOutput;$(_GlobalPropertiesToRemoveFromProjectReferences);$(_JetBrainsProjectReferenceGlobalPropertiesToRemove)"
+             BuildInParallel="false" />
+    <ItemGroup>
+      <_GeneratedFixturePayload Include="%(_GeneratedFixture.OutputDirectory)**/*">
+        <FixtureTargetPath>%(_GeneratedFixture.TargetPath)</FixtureTargetPath>
+      </_GeneratedFixturePayload>
+      <ContentWithTargetPath Include="@(_GeneratedFixturePayload)">
+        <TargetPath>%(_GeneratedFixturePayload.FixtureTargetPath)%(_GeneratedFixturePayload.RecursiveDir)%(_GeneratedFixturePayload.Filename)%(_GeneratedFixturePayload.Extension)</TargetPath>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ContentWithTargetPath>
+      <FileWrites Include="%(_GeneratedFixture.ProjectDirectory)**/*" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CleanGeneratedFixtures" AfterTargets="Clean" Condition="'@(GeneratedFixture)' != ''">
+    <RemoveDir Directories="$(IntermediateOutputPath)generated-fixtures" />
+  </Target>
+</Project>

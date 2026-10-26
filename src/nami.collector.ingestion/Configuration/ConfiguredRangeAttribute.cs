@@ -1,4 +1,3 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace Nami.Collector.Ingestion.Configuration;
@@ -8,13 +7,13 @@ namespace Nami.Collector.Ingestion.Configuration;
 ///     value it held, so a host that refuses to start says which setting to fix and why.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
-internal sealed class ConfiguredRangeAttribute(string key, long minimum, long maximum) : ValidationAttribute
+internal sealed class ConfiguredRangeAttribute : ValidationAttribute
 {
-    public string Key { get; } = key;
+    public required string Key { get; init; }
 
-    public long Minimum { get; } = minimum;
+    public required long Minimum { get; init; }
 
-    public long Maximum { get; } = maximum;
+    public required long Maximum { get; init; }
 
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext) =>
         value is null || (Convert.ToInt64(value, CultureInfo.InvariantCulture) is var number && number >= Minimum &&

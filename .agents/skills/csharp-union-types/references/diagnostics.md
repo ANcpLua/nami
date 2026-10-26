@@ -1,6 +1,6 @@
 # Compiler diagnostics and repairs
 
-This file is the local reference for the skill. No website or external repository is needed to use it. The examples and observed diagnostic codes are pinned to SDK `11.0.100-rc.2.26504.105`; the verification report records the actual result.
+This file is the local reference for the skill. No website or external repository is needed to use it. The examples and observed diagnostic codes are pinned to SDK `11.0.100-rc.3.26522.148`; the verification report records the actual result.
 
 ## Switches, patterns and null
 
@@ -44,7 +44,7 @@ Use an explicit null arm whenever default contents can reach a switch. It covers
 | CS9386 | The provider has no suitable Value contract. | Expose an instance object/object? Value property with a public getter on the provider contract. | `provider_requires_value` |
 | CS9387 | A keyword union uses a member provider interface. | Remove that provider or use a custom attributed class/struct when provider-based construction is required. | `declaration_rejects_provider` |
 
-### Precise RC2 examples matter
+### Precise RC3 examples matter
 
 ```csharp
 public union Empty; // CS9370

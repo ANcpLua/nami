@@ -1,3 +1,5 @@
+import { outputFor } from "../../csharp/dist/outputs.js";
+import { allocateNames, languageName, resolveProperty } from "../../csharp/dist/semantics.js";
 import type {
   BooleanLiteral,
   DecoratorContext,
@@ -20,6 +22,7 @@ import {
   getDiscriminatedUnion,
   getEncode,
   getFriendlyName,
+  getNamespaceFullName,
   getMediaTypeHint,
   getPattern,
   isArrayModelType,
@@ -55,6 +58,10 @@ export async function $onEmit(context: EmitContext): Promise<void> {
   const program = context.program;
   if (program.compilerOptions.noEmit) return;
 
+  const candidates: {type: Type; scope: string; name: string}[] = [];
+  const add = (type: Model | Scalar | Enum | Union) => { if (type.name && selected(program,type)) candidates.push({type,scope:"typescript",name:type.kind === "Model" ? emittedModelName(program,type) : type.name}); };
+  navigateProgram(program,{model:add,scalar:add,enum:add,union:add});
+  allocateNames(program,candidates,"typescript");
   const brandBlock: string[] = [];
   const mediaTypeBlock: string[] = [];
   const modelBlock: string[] = [];
@@ -63,70 +70,71 @@ export async function $onEmit(context: EmitContext): Promise<void> {
   const serializable = new Map<string, Model | Union>();
   const enumBlock: string[] = [];
   const unionBlock: string[] = [];
-  const emittedScalars = new Set<string>();
+  const emittedScalars = new Set<Scalar>();
   const emittedMediaTypes = new Set<string>();
-  const emittedModels = new Set<string>();
-  const emittedEnums = new Set<string>();
-  const emittedUnions = new Set<string>();
+  const emittedModels = new Set<Model>();
+  const emittedEnums = new Set<Enum>();
+  const emittedUnions = new Set<Union>();
   /** JSON-schema definition name -> emitted TypeScript type, for the generated ContractDefinitions map. */
   const definitions = new Map<string, string>();
 
   navigateProgram(program, {
     scalar: (s) => {
-      if (isBuiltin(s)) return;
+      if (!selected(program, s)) return;
+      const name = languageName(program,s,s.name,"typescript");
       definitions.set(definitionName(s), program.stateMap(stateKeys.tsBrand).has(s) ? s.name : mapType(program, s));
       if (!program.stateMap(stateKeys.tsBrand).has(s)) return;
-      if (emittedScalars.has(s.name)) return;
-      emittedScalars.add(s.name);
-      brandBlock.push(`export type ${s.name} = string & { readonly __brand: "${s.name}" };\n`);
+      if (emittedScalars.has(s)) return;
+      emittedScalars.add(s);
+      brandBlock.push(`export type ${name} = string & { readonly __brand: "${name}" };\n`);
       const pattern = getPattern(program, s);
       if (pattern !== undefined) {
         // The guard and the parser come from the scalar's own @pattern, so a cast is never needed.
         brandBlock.push(
-          `const ${s.name}Pattern = new RegExp(${JSON.stringify(pattern)}, "u");\n` +
-          `export function is${s.name}(value: string): value is ${s.name} {\n  return ${s.name}Pattern.test(value);\n}\n` +
-          `export function parse${s.name}(value: string): ${s.name} {\n  if (!is${s.name}(value)) throw new TypeError(\`Not a ${s.name}: \${JSON.stringify(value)}\`);\n  return value;\n}\n`,
+          `const ${name}Pattern = new RegExp(${JSON.stringify(pattern)}, "u");\n` +
+          `export function is${name}(value: string): value is ${name} {\n  return ${name}Pattern.test(value);\n}\n` +
+          `export function parse${name}(value: string): ${name} {\n  if (!is${name}(value)) throw new TypeError(\`Not a ${name}: \${JSON.stringify(value)}\`);\n  return value;\n}\n`,
         );
       }
     },
     enum: (e) => {
-      if (isBuiltin(e)) return;
-      if (emittedEnums.has(e.name)) return;
-      emittedEnums.add(e.name);
-      enumBlock.push(renderEnum(e));
-      definitions.set(definitionName(e), e.name);
+      if (!selected(program, e)) return;
+      if (emittedEnums.has(e)) return;
+      emittedEnums.add(e);
+      enumBlock.push(renderEnum(program, e));
+      definitions.set(definitionName(e), languageName(program,e,e.name,"typescript"));
     },
     model: (m) => {
-      if (isBuiltin(m)) return;
+      if (!selected(program, m)) return;
       if (!m.name) return;
       collectMediaType(program, m, emittedMediaTypes, mediaTypeBlock);
       if (isArrayModelType(m)) return;
       if (isRecordModelType(m)) {
-        if (m.name === "Record" || emittedModels.has(m.name)) return;
-        emittedModels.add(m.name);
+        if (m.name === "Record" || emittedModels.has(m)) return;
+        emittedModels.add(m);
         modelBlock.push(renderRecordInterface(program, m));
         jsonModels.push(renderRecordInterface(program, m));
-        serializable.set(m.name, m);
+        serializable.set(emittedModelName(program,m), m);
         return;
       }
       const isExplicitEmptyModel = m.properties.size === 0 && !m.baseModel;
       if (!hasBodyProperties(program, m) && !isExplicitEmptyModel) return;
-      const name = emittedModelName(m);
-      if (emittedModels.has(name)) return;
-      emittedModels.add(name);
+      const name = emittedModelName(program,m);
+      if (emittedModels.has(m)) return;
+      emittedModels.add(m);
       modelBlock.push(renderInterface(program, m, name, false));
       jsonModels.push(renderInterface(program, m, name, true));
       serializable.set(name, m);
       definitions.set(getFriendlyName(program, m) ?? definitionName({ ...m, name }), name);
     },
     union: (u) => {
-      if (isBuiltin(u) || !u.name || u.name.endsWith("Auth")) return;
-      if (emittedUnions.has(u.name)) return;
-      emittedUnions.add(u.name);
+      if (!selected(program, u) || !u.name || u.name.endsWith("Auth")) return;
+      if (emittedUnions.has(u)) return;
+      emittedUnions.add(u);
       unionBlock.push(renderUnion(program, u));
       jsonUnions.push(renderUnion(program, u));
-      serializable.set(u.name, u);
-      definitions.set(definitionName(u), u.name);
+      serializable.set(languageName(program,u,u.name,"typescript"), u);
+      definitions.set(definitionName(u), languageName(program,u,u.name,"typescript"));
     },
   });
 
@@ -151,7 +159,8 @@ function definitionName(type: { name?: string; namespace?: { name?: string; name
     cursor = cursor.namespace as typeof cursor;
   }
   // The root is `Nami.Api.Contracts`; everything below it is the published spelling.
-  const below = parts.slice(3);
+  const root = ["Nami", "Api", "Contracts"];
+  const below = root.every((part, index) => parts[index] === part) ? parts.slice(root.length) : parts;
   return [...below, type.name!].join(".");
 }
 
@@ -182,7 +191,7 @@ function collectMediaType(
   emitted: Set<string>,
   output: string[],
 ): void {
-  const name = `${emittedModelName(model)}MediaType`;
+  const name = `${emittedModelName(program,model)}MediaType`;
   if (emitted.has(name)) return;
   const hint = getMediaTypeHint(program, model);
   if (hint === undefined) return;
@@ -202,11 +211,12 @@ function isHttpMetadata(program: Program, property: ModelProperty): boolean {
   return isMetadata(program, property) || isBody(program, property) || isBodyRoot(program, property);
 }
 
-function renderEnum(e: Enum): string {
+function renderEnum(program: Program, e: Enum): string {
+  const name = languageName(program,e,e.name,"typescript");
   const entries = [...e.members.values()]
     .map((m) => `  ${JSON.stringify(m.name)}: ${JSON.stringify(m.value ?? m.name)}`)
     .join(",\n");
-  return `export const ${e.name}Values = {\n${entries},\n} as const;\nexport type ${e.name} = typeof ${e.name}Values[keyof typeof ${e.name}Values];\n`;
+  return `export const ${name}Values = {\n${entries},\n} as const;\nexport type ${name} = typeof ${name}Values[keyof typeof ${name}Values];\n`;
 }
 
 function renderUnion(program: Program, union: Union): string {
@@ -217,7 +227,7 @@ function renderUnion(program: Program, union: Union): string {
       ? `(${value} & { readonly ${JSON.stringify(discriminated.options.discriminatorPropertyName)}: ${JSON.stringify(String(name))} })`
       : value;
   });
-  return `export type ${union.name} = ${[...new Set(variants)].join(" | ")};\n`;
+  return `export type ${languageName(program,union,union.name!,"typescript")} = ${[...new Set(variants)].join(" | ")};\n`;
 }
 
 function renderInterface(
@@ -226,11 +236,12 @@ function renderInterface(
   emittedName: string,
   wire: boolean,
 ): string {
-  const base = m.baseModel ? ` extends ${emittedModelName(m.baseModel)}` : "";
+  const base = m.baseModel ? ` extends ${emittedModelName(program,m.baseModel)}` : "";
   const lines: string[] = [`export interface ${emittedName}${base} {`];
   for (const [, prop] of m.properties) {
     if (isHttpMetadata(program, prop)) continue;
-    const t = mapType(program, prop.type);
+    const resolved = resolveProperty(program, prop);
+    const t = resolved.encoding?.type.name === "string" ? encodedType(program, prop.type) : mapType(program, prop.type);
     const q = prop.optional ? "?" : "";
     const wireName = wire ? resolveEncodedName(program, prop, "application/json") : prop.name;
     lines.push(`  ${JSON.stringify(wireName)}${q}: ${t};`);
@@ -244,8 +255,9 @@ function renderRecordInterface(
   model: Model,
 ): string {
   const value = model.indexer?.value;
+  if (model.properties.size) throw new Error(`Hybrid map ${model.name} needs an explicit object representation; fixed fields cannot be discarded.`);
   if (!value) throw new Error(`Named record '${model.name}' has no indexer value.`);
-  return `export interface ${model.name} {\n  [key: string]: ${mapType(program, value)};\n}\n`;
+  return `export interface ${emittedModelName(program,model)} {\n  [key: string]: ${mapType(program, value)};\n}\n`;
 }
 
 function hasBodyProperties(program: Program, model: Model): boolean {
@@ -257,7 +269,9 @@ function hasBodyProperties(program: Program, model: Model): boolean {
   return false;
 }
 
-function emittedModelName(model: Model): string {
+function emittedModelName(program: Program, model: Model): string {
+  const allocated = languageName(program,model,"","typescript");
+  if (allocated) return allocated;
   if (!model.templateMapper?.args.length) return model.name;
   const parts = [model.name];
   for (const arg of model.templateMapper.args) {
@@ -272,7 +286,7 @@ function mapType(program: Program, type: Type): string {
   switch (type.kind) {
     case "Scalar": {
       const s = type as Scalar;
-      if (program.stateMap(stateKeys.tsBrand).has(s)) return s.name;
+      if (program.stateMap(stateKeys.tsBrand).has(s)) return languageName(program,s,s.name,"typescript");
       if (getEncode(program, s)?.type.name === "string") return "string";
       if (["int8","int16","int32","int64","uint8","uint16","uint32","uint64","float32","float64","decimal","decimal128"].includes(s.name)) return "number";
       if (s.name === "boolean") return "boolean";
@@ -293,12 +307,12 @@ function mapType(program: Program, type: Type): string {
         return element.includes(" | ") ? `(${element})[]` : `${element}[]`;
       }
       if (isRecordModelType(type)) {
-        if (type.name && type.name !== "Record") return emittedModelName(type);
+        if (type.name && type.name !== "Record") return emittedModelName(program,type);
         return `Record<string, ${mapType(program, type.indexer!.value)}>`;
       }
-      return emittedModelName(type);
+      return emittedModelName(program,type);
     case "Enum":
-      return (type as Enum).name;
+      return languageName(program,type,(type as Enum).name,"typescript");
     case "ModelProperty":
       // TypeSpec 1.13 constraint-based member access (e.g. `P.id`): the property
       // reference stands for the referenced property's type.
@@ -309,7 +323,7 @@ function mapType(program: Program, type: Type): string {
       return typeof v === "number" ? String(v) : `"${v}"`;
     }
     case "Union":
-      if (type.name) return type.name;
+      if (type.name) return languageName(program,type,type.name,"typescript");
       return [...type.variants.values()].map((variant) => mapType(program, variant.type)).join(" | ");
     case "UnionVariant":
       return mapType(program, (type as UnionVariant).type);
@@ -337,4 +351,17 @@ function mapType(program: Program, type: Type): string {
 
 function pascal(value: string): string {
   return value.length === 0 ? value : value[0].toUpperCase() + value.slice(1);
+}
+
+function encodedType(program: Program, type: Type): string {
+  if (type.kind === "Union") return [...type.variants.values()].map(v => encodedType(program,v.type)).join(" | ");
+  if (type.kind === "Intrinsic" && type.name === "null") return "null";
+  if (type.kind === "Model" && isArrayModelType(type)) return `(${encodedType(program, type.indexer!.value)})[]`;
+  return "string";
+}
+
+function selected(program: Program, type: Model | Scalar | Union | Enum): boolean {
+  const output = outputFor(program, type);
+  if (output) return output.typescript === true;
+  return !isBuiltin(type) && !!type.namespace && getNamespaceFullName(type.namespace).startsWith("Nami.Api.Contracts");
 }

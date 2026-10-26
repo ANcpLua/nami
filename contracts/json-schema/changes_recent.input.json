@@ -12,7 +12,8 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
-      "description": "Inclusive window start; defaults to one hour before the snapshot's observation time."
+      "description": "Inclusive window start; defaults to one hour before the snapshot's observation time.",
+      "default": "-60m"
     },
     "fields": {
       "type": "array",

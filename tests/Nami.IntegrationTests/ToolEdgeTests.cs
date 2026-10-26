@@ -1,13 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Time.Testing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nami.Collector.Storage;
 using Nami.Tests.Infrastructure;
 using Nami.Tools;
@@ -19,7 +14,7 @@ namespace Nami.IntegrationTests;
 [DependsOn(typeof(IngestStoreTests), nameof(IngestStoreTests.Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
 public sealed class ToolEdgeTests(TestContext context)
 {
-    private static readonly int[] DescendingIds = [3, 2, 1];
+    private static readonly int[] s_descendingIds = [3, 2, 1];
 
     private static ToolRunResult Run(ISnapshot snapshot, string name, string json)
     {
@@ -34,7 +29,7 @@ public sealed class ToolEdgeTests(TestContext context)
     [DataRow("2026-02-30T00:00:00Z", DisplayName = "Invalid calendar date")]
     public async Task Since_FutureMalformedAndOverflow_Refused(string since)
     {
-        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.Now));
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var result = Run(snapshot, "sources_status", new JsonObject { ["since"] = since }.ToJsonString());
         Assert.IsTrue(result.IsError);
@@ -47,7 +42,7 @@ public sealed class ToolEdgeTests(TestContext context)
     [DataRow("traces_slowest", "{\"limit\":1e1}", DisplayName = "Exponent row limit")]
     public async Task ToolArguments_IntegralJsonNumbers_Accepted(string tool, string input)
     {
-        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.Now));
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
         var result = Run(await store.ReadSnapshotAsync("default", ct: context.CancellationToken), tool, input);
         Assert.IsFalse(result.IsError, result.Content.GetRawText());
         Assert.IsTrue(result.Content.TryGetProperty("freshness", out _));
@@ -58,7 +53,7 @@ public sealed class ToolEdgeTests(TestContext context)
     [DataRow(true, DisplayName = "Oversized unknown property name")]
     public async Task Refusal_LargeUnknownName_RespectsByteBudget(bool property)
     {
-        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.Now));
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
         var huge = new string('x', 100000);
         var input = new JsonObject { ["max_bytes"] = 1024 };
         if (property) input[huge] = 1;
@@ -74,10 +69,10 @@ public sealed class ToolEdgeTests(TestContext context)
     [TestMethod]
     public async Task Cursor_ExpiredSnapshot_NamesMissingResource()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store =
             new DuckDbStore(":memory:", timeProvider: clock, snapshotLifetime: TimeSpan.FromMinutes(1));
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.Now.AddSeconds(-1)), 30),
+        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 30),
             context.CancellationToken);
         var service = new NamiToolService(store);
         using var initial = JsonDocument.Parse("{\"limit\":100,\"max_bytes\":1024}");
@@ -108,7 +103,7 @@ public sealed class ToolEdgeTests(TestContext context)
     [DataRow("sources_status", "{\"fields\":{}}", "fields", DisplayName = "Wrong fields type")]
     public async Task InvalidInputs_IdentifyRepairableField(string tool, string input, string field)
     {
-        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.Now));
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
         var result = Run(await store.ReadSnapshotAsync("default", ct: context.CancellationToken), tool, input);
         Assert.IsTrue(result.IsError);
         Assert.AreEqual("invalid_argument", result.Content.GetProperty("code").GetString());
@@ -118,7 +113,7 @@ public sealed class ToolEdgeTests(TestContext context)
     [TestMethod]
     public async Task Window_BeyondWatermark_NeverComplete()
     {
-        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.Now));
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var result = Run(snapshot, "errors_recent", "{}");
         Assert.IsFalse(result.IsError);
@@ -129,9 +124,9 @@ public sealed class ToolEdgeTests(TestContext context)
     [TestMethod]
     public async Task Fields_TraceProjection_OmitsUnrequestedData()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.Now.AddSeconds(-1))),
+        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1))),
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var result = Run(snapshot, "traces_get",
@@ -150,9 +145,9 @@ public sealed class ToolEdgeTests(TestContext context)
     [TestMethod]
     public async Task Cursor_PagesCoverAllRowsWithoutDuplicates()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.Now.AddSeconds(-1)), 40),
+        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 40),
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var input = new JsonObject { ["limit"] = 100, ["max_bytes"] = 1024 };
@@ -177,9 +172,9 @@ public sealed class ToolEdgeTests(TestContext context)
     [TestMethod]
     public async Task Cursor_ChangedQueryAndMalformedValue_Refused()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.Now.AddSeconds(-1)), 30),
+        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 30),
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var first = Run(snapshot, "traces_slowest", "{\"limit\":100,\"max_bytes\":1024}");
@@ -199,24 +194,24 @@ public sealed class ToolEdgeTests(TestContext context)
     [TestMethod]
     public async Task TracesSlowest_OrdersByDurationWithStableIds()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.Now.AddSeconds(-1)), 3),
+        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 3),
             context.CancellationToken);
         var result = Run(await store.ReadSnapshotAsync("default", ct: context.CancellationToken), "traces_slowest",
             "{}");
         Assert.AreSequenceEqual(
-            DescendingIds.Select(static n => n.ToString("x32", CultureInfo.InvariantCulture)).ToArray(),
-            result.Content.GetProperty("traces").EnumerateArray()
-                .Select(static t => t.GetProperty("trace_id").GetString()).ToArray());
+            [.. s_descendingIds.Select(static n => n.ToString("x32", CultureInfo.InvariantCulture))],
+            [.. result.Content.GetProperty("traces").EnumerateArray()
+                .Select(static t => t.GetProperty("trace_id").GetString())]);
     }
 
     [TestMethod]
     public async Task TracesSlowest_OperationAndLimit_FilterBeforeRanking()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        var start = TestData.Nanos(TestData.Now.AddSeconds(-2));
+        var start = TestData.Nanos(TestData.s_now.AddSeconds(-2));
         await TestData.SeedTraces(store, OtlpData.Traces(start, 3), context.CancellationToken);
         var other = JsonNode.Parse(OtlpData.Traces(start, offset: 99, operation: "POST /other"))!;
         other["resourceSpans"]![0]!["scopeSpans"]![0]!["spans"]![0]!["endTimeUnixNano"] =
@@ -234,17 +229,8 @@ public sealed class ToolEdgeTests(TestContext context)
     [TestMethod]
     public async Task ChangesRecent_RepeatedResourceDoesNotCreateChange()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-
-        async Task AddVersion(DuckDbStore target, string version, int id)
-        {
-            var input = JsonNode.Parse(OtlpData.Traces(TestData.Nanos(TestData.Now.AddSeconds(-1)), offset: id))!;
-            input["resourceSpans"]![0]!["resource"]!["attributes"]!.AsArray()
-                .Add((JsonNode)OtlpData.Attribute("service.version", version));
-            await TestData.SeedTraces(target, input.ToJsonString(), context.CancellationToken);
-            _ = await target.ReadSnapshotAsync("default", ct: context.CancellationToken);
-        }
 
         await AddVersion(store, "1.0.0", 0);
         clock.Advance(TimeSpan.FromSeconds(2));
@@ -256,5 +242,15 @@ public sealed class ToolEdgeTests(TestContext context)
         var change = Assert.ContainsSingle(result.Content.GetProperty("changes").EnumerateArray().ToArray());
         Assert.AreEqual("1.0.0", change.GetProperty("from").GetString());
         Assert.AreEqual("2.0.0", change.GetProperty("to").GetString());
+        return;
+
+        async Task AddVersion(DuckDbStore target, string version, int id)
+        {
+            var input = JsonNode.Parse(OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), offset: id))!;
+            input["resourceSpans"]![0]!["resource"]!["attributes"]!.AsArray()
+                .Add((JsonNode)OtlpData.Attribute("service.version", version));
+            await TestData.SeedTraces(target, input.ToJsonString(), context.CancellationToken);
+            _ = await target.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        }
     }
 }

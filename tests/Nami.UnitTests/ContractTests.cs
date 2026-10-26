@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nami.Api.Contracts;
 using Nami.Api.Contracts.Common;
 using Nami.Api.Contracts.OTel.Metrics;
@@ -83,7 +80,7 @@ public sealed class ContractTests
         Assert.AreEqual(stamp,
             ContractJson.Serialize(ContractJson.Deserialize<Freshness>(json.ToJsonString())).GetProperty("watermark")
                 .GetString());
-        Assert.AreEqual(TestData.Now.AddMinutes(-15), ToolDispatcher.ParseSince("-15m", TestData.Now));
+        Assert.AreEqual(TestData.s_now.AddMinutes(-15), ToolDispatcher.ParseSince("-15m", TestData.s_now));
     }
 
     [TestMethod]

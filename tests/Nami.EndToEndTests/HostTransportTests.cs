@@ -1,21 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Threading;
-using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -32,7 +23,7 @@ namespace Nami.EndToEndTests;
 [TestCategory("EndToEnd")]
 public sealed class HostTransportTests(TestContext context)
 {
-    private static readonly string[] ToolNames =
+    private static readonly string[] s_toolNames =
         ["changes_recent", "errors_recent", "logs_search", "sources_status", "traces_get", "traces_slowest"];
 
     private static JsonElement Content(CallToolResult result)
@@ -61,44 +52,64 @@ public sealed class HostTransportTests(TestContext context)
             var time = TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2));
             var payload = signal switch
             {
-                "traces" => OtlpData.Traces(time), "logs" => OtlpData.Logs(time), _ => OtlpData.Metrics(time)
+                "traces" => OtlpData.Traces(time),
+                "logs" => OtlpData.Logs(time),
+                _ => OtlpData.Metrics(time)
             };
-            if (transport == "json")
+            switch (transport)
             {
-                using var response = await host.SendJsonAsync(signal, payload, context.CancellationToken);
-                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            }
-            else if (transport == "protobuf")
-            {
-                IMessage request = signal switch
-                {
-                    "traces" => TestData.ParseTraces(payload),
-                    "logs" => ExportLogsServiceRequest.Parser.ParseJson(TestData.ProtobufJson(payload)),
-                    _ => ExportMetricsServiceRequest.Parser.ParseJson(payload)
-                };
-                using var content = new ByteArrayContent(request.ToByteArray());
-                content.Headers.ContentType = new MediaTypeHeaderValue("application/x-protobuf");
-                using var response = await host.Http.PostAsync($"http://127.0.0.1:{host.OtlpPort}/v1/{signal}", content,
-                    context.CancellationToken);
-                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            }
-            else
-            {
-                using var channel = GrpcChannel.ForAddress($"http://127.0.0.1:{host.GrpcPort}");
-                if (signal == "traces")
-                    await ExportGrpc(channel, "TraceService", TestData.ParseTraces(payload),
-                        ExportTraceServiceResponse.Parser, context.CancellationToken);
-                else if (signal == "logs")
-                    await ExportGrpc(channel, "LogsService",
-                        ExportLogsServiceRequest.Parser.ParseJson(TestData.ProtobufJson(payload)),
-                        ExportLogsServiceResponse.Parser, context.CancellationToken);
-                else
-                    await ExportGrpc(channel, "MetricsService", ExportMetricsServiceRequest.Parser.ParseJson(payload),
-                        ExportMetricsServiceResponse.Parser, context.CancellationToken);
+                case "json":
+                    {
+                        using var response = await host.SendJsonAsync(signal, payload, context.CancellationToken);
+                        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                    }
+                    break;
+                case "protobuf":
+                    {
+                        IMessage request = signal switch
+                        {
+                            "traces" => TestData.ParseTraces(payload),
+                            "logs" => ExportLogsServiceRequest.Parser.ParseJson(TestData.ProtobufJson(payload)),
+                            _ => ExportMetricsServiceRequest.Parser.ParseJson(payload)
+                        };
+                        using var content = new ByteArrayContent(request.ToByteArray());
+                        content.Headers.ContentType = new MediaTypeHeaderValue("application/x-protobuf");
+                        using var response = await host.Http.PostAsync($"http://127.0.0.1:{host.OtlpPort}/v1/{signal}", content,
+                            context.CancellationToken);
+                        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                    }
+                    break;
+                default:
+                    {
+                        using var channel = GrpcChannel.ForAddress($"http://127.0.0.1:{host.GrpcPort}");
+                        switch (signal)
+                        {
+                            case "traces":
+                                {
+                                    await ExportGrpc(channel, "TraceService", TestData.ParseTraces(payload),
+                                        ExportTraceServiceResponse.Parser, context.CancellationToken);
+                                }
+                                break;
+                            case "logs":
+                                {
+                                    await ExportGrpc(channel, "LogsService",
+                                        ExportLogsServiceRequest.Parser.ParseJson(TestData.ProtobufJson(payload)),
+                                        ExportLogsServiceResponse.Parser, context.CancellationToken);
+                                }
+                                break;
+                            default:
+                                {
+                                    await ExportGrpc(channel, "MetricsService", ExportMetricsServiceRequest.Parser.ParseJson(payload),
+                                        ExportMetricsServiceResponse.Parser, context.CancellationToken);
+                                }
+                                break;
+                        }
+                    }
+                    break;
             }
 
             var result = await host.CallAsync("sources_status", "{}", context.CancellationToken);
-            Assert.IsFalse(result.IsError == true);
+            Assert.AreNotEqual(true, result.IsError);
             var service = Content(result).GetProperty("services").EnumerateArray()
                 .Single(static r => r.GetProperty("service").GetString() == "checkout");
             var status = service.GetProperty("signals").EnumerateArray()
@@ -108,25 +119,31 @@ public sealed class HostTransportTests(TestContext context)
 
         await using var store = new DuckDbStore(Path.Combine(dir, "nami.duckdb"));
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
-        if (signal == "traces")
+        switch (signal)
         {
-            Assert.HasCount(1, snapshot.Spans);
-            Assert.AreEqual("GET /orders", snapshot.Spans[0].Name);
-        }
-        else if (signal == "logs")
-        {
-            Assert.HasCount(1, snapshot.Logs);
-            Assert.Contains("order accepted", snapshot.Logs[0].Body!);
-        }
-        else
-        {
-            Assert.HasCount(1, snapshot.Metrics);
-            Assert.AreEqual("http.server.active_requests", snapshot.Metrics[0].MetricName);
-            var points = await store.ListMetricPointsAsync(
-                "default", snapshot.Metrics[0].MetricName, snapshot.Metrics[0].SeriesId,
-                10, context.CancellationToken);
-            using var data = JsonDocument.Parse(Assert.ContainsSingle(points).DataJson!);
-            Assert.AreEqual("1", data.RootElement.GetProperty("value").GetProperty("value").GetString());
+            case "traces":
+                {
+                    Assert.HasCount(1, snapshot.Spans);
+                    Assert.AreEqual("GET /orders", snapshot.Spans[0].Name);
+                }
+                break;
+            case "logs":
+                {
+                    Assert.HasCount(1, snapshot.Logs);
+                    Assert.Contains("order accepted", snapshot.Logs[0].Body!);
+                }
+                break;
+            default:
+                {
+                    Assert.HasCount(1, snapshot.Metrics);
+                    Assert.AreEqual("http.server.active_requests", snapshot.Metrics[0].MetricName);
+                    var points = await store.ListMetricPointsAsync(
+                        "default", snapshot.Metrics[0].MetricName, snapshot.Metrics[0].SeriesId,
+                        10, context.CancellationToken);
+                    using var data = JsonDocument.Parse(Assert.ContainsSingle(points).DataJson!);
+                    Assert.AreEqual("1", data.RootElement.GetProperty("value").GetProperty("value").GetString());
+                }
+                break;
         }
     }
 
@@ -134,12 +151,12 @@ public sealed class HostTransportTests(TestContext context)
         MessageParser<TResponse> parser, CancellationToken cancellationToken)
         where TRequest : class, IMessage<TRequest> where TResponse : class, IMessage<TResponse>
     {
-        var signal = service == "TraceService" ? "trace" : service == "LogsService" ? "logs" : "metrics";
+        var signal = service switch { "TraceService" => "trace", "LogsService" => "logs", _ => "metrics" };
         var method = new Method<TRequest, TResponse>(MethodType.Unary,
             $"opentelemetry.proto.collector.{signal}.v1.{service}", "Export",
             Marshallers.Create<TRequest>(static r => r.ToByteArray(),
                 bytes => (TRequest)request.Descriptor.Parser.ParseFrom(bytes)),
-            Marshallers.Create<TResponse>(static r => r.ToByteArray(), bytes => parser.ParseFrom(bytes)));
+            Marshallers.Create<TResponse>(static r => r.ToByteArray(), parser.ParseFrom));
         using var call = channel.CreateCallInvoker()
             .AsyncUnaryCall(method, null, new CallOptions(cancellationToken: cancellationToken), request);
         var response = await call.ResponseAsync;
@@ -154,9 +171,11 @@ public sealed class HostTransportTests(TestContext context)
             .ToArray();
         if (tools.Length != 6) throw new InvalidOperationException("Expected six generated tool schemas.");
         foreach (var tool in tools)
-        foreach (var transport in new[] { "json", "protobuf", "grpc" })
-            yield return new TestDataRow<(string Tool, string Transport)>((tool, transport))
+            foreach (var transport in new[] { "json", "protobuf", "grpc" })
+            {
+                yield return new TestDataRow<(string Tool, string Transport)>((tool, transport))
                 { DisplayName = tool + " via " + transport };
+            }
     }
 
     [TestMethod]
@@ -176,46 +195,63 @@ public sealed class HostTransportTests(TestContext context)
         var metrics = OtlpData.Metrics(time);
         foreach (var signal in new[] { "traces", "logs", "metrics" })
         {
-            var payload = signal == "traces" ? traces.ToJsonString() : signal == "logs" ? logs : metrics;
-            if (transport == "json")
+            var payload = signal switch { "traces" => traces.ToJsonString(), "logs" => logs, _ => metrics };
+            switch (transport)
             {
-                using var response = await host.SendJsonAsync(signal, payload, context.CancellationToken);
-                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            }
-            else if (transport == "protobuf")
-            {
-                IMessage request = signal switch
-                {
-                    "traces" => TestData.ParseTraces(payload),
-                    "logs" => ExportLogsServiceRequest.Parser.ParseJson(TestData.ProtobufJson(payload)),
-                    _ => ExportMetricsServiceRequest.Parser.ParseJson(payload)
-                };
-                using var content = new ByteArrayContent(request.ToByteArray());
-                content.Headers.ContentType = new MediaTypeHeaderValue("application/x-protobuf");
-                using var response = await host.Http.PostAsync($"http://127.0.0.1:{host.OtlpPort}/v1/{signal}", content,
-                    context.CancellationToken);
-                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            }
-            else
-            {
-                using var channel = GrpcChannel.ForAddress($"http://127.0.0.1:{host.GrpcPort}");
-                if (signal == "traces")
-                    await ExportGrpc(channel, "TraceService", TestData.ParseTraces(payload),
-                        ExportTraceServiceResponse.Parser, context.CancellationToken);
-                else if (signal == "logs")
-                    await ExportGrpc(channel, "LogsService",
-                        ExportLogsServiceRequest.Parser.ParseJson(TestData.ProtobufJson(payload)),
-                        ExportLogsServiceResponse.Parser, context.CancellationToken);
-                else
-                    await ExportGrpc(channel, "MetricsService", ExportMetricsServiceRequest.Parser.ParseJson(payload),
-                        ExportMetricsServiceResponse.Parser, context.CancellationToken);
+                case "json":
+                    {
+                        using var response = await host.SendJsonAsync(signal, payload, context.CancellationToken);
+                        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                    }
+                    break;
+                case "protobuf":
+                    {
+                        IMessage request = signal switch
+                        {
+                            "traces" => TestData.ParseTraces(payload),
+                            "logs" => ExportLogsServiceRequest.Parser.ParseJson(TestData.ProtobufJson(payload)),
+                            _ => ExportMetricsServiceRequest.Parser.ParseJson(payload)
+                        };
+                        using var content = new ByteArrayContent(request.ToByteArray());
+                        content.Headers.ContentType = new MediaTypeHeaderValue("application/x-protobuf");
+                        using var response = await host.Http.PostAsync($"http://127.0.0.1:{host.OtlpPort}/v1/{signal}", content,
+                            context.CancellationToken);
+                        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                    }
+                    break;
+                default:
+                    {
+                        using var channel = GrpcChannel.ForAddress($"http://127.0.0.1:{host.GrpcPort}");
+                        switch (signal)
+                        {
+                            case "traces":
+                                {
+                                    await ExportGrpc(channel, "TraceService", TestData.ParseTraces(payload),
+                                        ExportTraceServiceResponse.Parser, context.CancellationToken);
+                                }
+                                break;
+                            case "logs":
+                                {
+                                    await ExportGrpc(channel, "LogsService",
+                                        ExportLogsServiceRequest.Parser.ParseJson(TestData.ProtobufJson(payload)),
+                                        ExportLogsServiceResponse.Parser, context.CancellationToken);
+                                }
+                                break;
+                            default:
+                                {
+                                    await ExportGrpc(channel, "MetricsService", ExportMetricsServiceRequest.Parser.ParseJson(payload),
+                                        ExportMetricsServiceResponse.Parser, context.CancellationToken);
+                                }
+                                break;
+                        }
+                    }
+                    break;
             }
         }
 
-        var args = tool == "traces_get" ? "{\"trace_id\":\"" + 1.ToString("x32", CultureInfo.InvariantCulture) + "\"}" :
-            tool == "logs_search" ? "{\"query\":\"order\"}" : "{}";
+        var args = tool switch { "traces_get" => "{\"trace_id\":\"" + 1.ToString("x32", CultureInfo.InvariantCulture) + "\"}", "logs_search" => "{\"query\":\"order\"}", _ => "{}" };
         var result = await host.CallAsync(tool, args, context.CancellationToken);
-        Assert.IsFalse(result.IsError == true);
+        Assert.AreNotEqual(true, result.IsError);
         var value = Content(result);
         Assert.IsNull(ContractJson.Validate(ContractTypes.Analysis(tool).Output, value));
         if (tool == "traces_get") Assert.AreEqual(1, value.GetProperty("trace").GetProperty("span_count").GetInt32());
@@ -223,16 +259,19 @@ public sealed class HostTransportTests(TestContext context)
         {
             var member = tool switch
             {
-                "sources_status" => "services", "errors_recent" => "groups", "traces_slowest" => "traces",
-                "logs_search" => "records", _ => "changes"
+                "sources_status" => "services",
+                "errors_recent" => "groups",
+                "traces_slowest" => "traces",
+                "logs_search" => "records",
+                _ => "changes"
             };
             Assert.AreEqual(1, value.GetProperty(member).GetArrayLength());
-            if (tool == "errors_recent")
-                Assert.AreEqual(2, value.GetProperty("groups")[0].GetProperty("count").GetInt32());
-            if (tool == "logs_search")
-                Assert.AreEqual("order accepted", value.GetProperty("records")[0].GetProperty("body").GetString());
-            if (tool == "changes_recent")
-                Assert.AreEqual("1.0.0", value.GetProperty("changes")[0].GetProperty("to").GetString());
+            switch (tool)
+            {
+                case "errors_recent": Assert.AreEqual(2, value.GetProperty("groups")[0].GetProperty("count").GetInt32()); break;
+                case "logs_search": Assert.AreEqual("order accepted", value.GetProperty("records")[0].GetProperty("body").GetString()); break;
+                case "changes_recent": Assert.AreEqual("1.0.0", value.GetProperty("changes")[0].GetProperty("to").GetString()); break;
+            }
         }
     }
 
@@ -246,9 +285,10 @@ public sealed class HostTransportTests(TestContext context)
             context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
             context.CancellationToken);
         var result = await host.CallAsync("sources_status", "{}", context.CancellationToken);
-        Assert.IsFalse(result.IsError == true);
+        Assert.AreNotEqual(true, result.IsError);
         Assert.HasCount(2, result.Content);
-        using var textContent = JsonDocument.Parse(Assert.IsExactInstanceOfType<TextContentBlock>(result.Content[1]).Text);
+        using var textContent =
+            JsonDocument.Parse(Assert.IsExactInstanceOfType<TextContentBlock>(result.Content[1]).Text);
         Assert.IsTrue(JsonElement.DeepEquals(Content(result), textContent.RootElement),
             "Text and structuredContent must contain exactly the same JSON value.");
         Assert.Contains("incomplete", Assert.IsExactInstanceOfType<TextContentBlock>(result.Content[0]).Text);
@@ -262,7 +302,7 @@ public sealed class HostTransportTests(TestContext context)
             context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
             context.CancellationToken);
         var list = await host.Client.ListToolsAsync(new ListToolsRequestParams(), context.CancellationToken);
-        Assert.AreSequenceEqual(ToolNames, list.Tools.Select(static t => t.Name).ToArray());
+        Assert.AreSequenceEqual(s_toolNames, [.. list.Tools.Select(static t => t.Name)]);
         Assert.AreEqual(TimeSpan.FromHours(1), list.TimeToLive);
         Assert.AreEqual(CacheScope.Public, list.CacheScope);
         foreach (var tool in list.Tools)
@@ -276,8 +316,8 @@ public sealed class HostTransportTests(TestContext context)
         }
 
         var second = await host.Client.ListToolsAsync(new ListToolsRequestParams(), context.CancellationToken);
-        Assert.AreSequenceEqual(list.Tools.Select(static t => t.Name).ToArray(),
-            second.Tools.Select(static t => t.Name).ToArray());
+        Assert.AreSequenceEqual([.. list.Tools.Select(static t => t.Name)],
+            [.. second.Tools.Select(static t => t.Name)]);
         for (var i = 0; i < list.Tools.Count; i++)
             Assert.IsTrue(JsonElement.DeepEquals(list.Tools[i].InputSchema, second.Tools[i].InputSchema));
         var complete =
@@ -320,11 +360,11 @@ public sealed class HostTransportTests(TestContext context)
     [Timeout(90000, CooperativeCancellation = true)]
     public async Task Http_KeyAndResourceConflict_Refused()
     {
-        const string keys =
+        const string Keys =
             "{\"a\":[{\"key\":\"test-a\",\"roles\":[\"ingest\",\"read\"]}],\"b\":[{\"key\":\"test-b\",\"roles\":[\"ingest\",\"read\"]}]}";
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
             context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
-            context.CancellationToken, keys, "test-a");
+            context.CancellationToken, Keys, "test-a");
         using var missing = await host.SendJsonAsync("traces",
             OtlpData.Traces(TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2)), project: "a"),
             context.CancellationToken);
@@ -345,23 +385,23 @@ public sealed class HostTransportTests(TestContext context)
     [Timeout(90000, CooperativeCancellation = true)]
     public async Task IncomingMeta_Traceparent_ParentsToolSpan()
     {
-        const string traceId = "0123456789abcdef0123456789abcdef";
-        const string parentId = "fedcba9876543210";
-        const string keys = "{\"nami\":[{\"key\":\"self-read\",\"roles\":[\"read\"]}]}";
+        const string TraceId = "0123456789abcdef0123456789abcdef";
+        const string ParentId = "fedcba9876543210";
+        const string Keys = "{\"nami\":[{\"key\":\"self-read\",\"roles\":[\"read\"]}]}";
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
             context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
-            context.CancellationToken, keys, "self-read");
+            context.CancellationToken, Keys, "self-read");
         await host.Client.CallToolAsync(
             new CallToolRequestParams
             {
                 Name = "sources_status",
-                Meta = new JsonObject { ["traceparent"] = "00-" + traceId + "-" + parentId + "-01" }
+                Meta = new JsonObject { ["traceparent"] = "00-" + TraceId + "-" + ParentId + "-01" }
             }, context.CancellationToken);
         var started = Stopwatch.GetTimestamp();
         JsonElement? recorded = null;
         while (Stopwatch.GetElapsedTime(started) < TimeSpan.FromSeconds(20))
         {
-            var result = await host.CallAsync("traces_get", "{\"trace_id\":\"" + traceId + "\"}",
+            var result = await host.CallAsync("traces_get", "{\"trace_id\":\"" + TraceId + "\"}",
                 context.CancellationToken);
             if (result.IsError != true)
             {
@@ -373,18 +413,18 @@ public sealed class HostTransportTests(TestContext context)
         }
 
         Assert.IsNotNull(recorded, "Self-exported MCP span was not ingested");
-        Assert.AreEqual(parentId, recorded.Value.GetProperty("spans")[0].GetProperty("parent_span_id").GetString());
+        Assert.AreEqual(ParentId, recorded.Value.GetProperty("spans")[0].GetProperty("parent_span_id").GetString());
     }
 
     [TestMethod]
     [Timeout(90000, CooperativeCancellation = true)]
     public async Task Http_KeyRolesAndCrossProjectReads_AreEnforced()
     {
-        const string keys =
+        const string Keys =
             "{\"a\":[{\"key\":\"ingest-a\",\"roles\":[\"ingest\"]},{\"key\":\"read-a\",\"roles\":[\"read\"]}],\"b\":[{\"key\":\"read-b\",\"roles\":[\"read\"]}]}";
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
             context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
-            context.CancellationToken, keys, "read-a");
+            context.CancellationToken, Keys, "read-a");
         var json = OtlpData.Traces(TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2)), project: "a");
         using var refused = await host.SendJsonAsync("traces", json, context.CancellationToken, "read-a");
         Assert.AreEqual(HttpStatusCode.Forbidden, refused.StatusCode);
@@ -414,14 +454,14 @@ public sealed class HostTransportTests(TestContext context)
     [DataRow(true, DisplayName = "Malformed traceparent")]
     public async Task IncomingMeta_AbsentOrInvalid_StartsRoot(bool invalid)
     {
-        const string keys = "{\"nami\":[{\"key\":\"self-read\",\"roles\":[\"read\"]}]}";
+        const string Keys = "{\"nami\":[{\"key\":\"self-read\",\"roles\":[\"read\"]}]}";
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
             context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
-            context.CancellationToken, keys, "self-read");
+            context.CancellationToken, Keys, "self-read");
         var call = new CallToolRequestParams { Name = "sources_status" };
         if (invalid) call.Meta = new JsonObject { ["traceparent"] = "invalid" };
         var first = await host.Client.CallToolAsync(call, context.CancellationToken);
-        Assert.IsFalse(first.IsError == true);
+        Assert.AreNotEqual(true, first.IsError);
         var started = Stopwatch.GetTimestamp();
         JsonElement? root = null;
         while (Stopwatch.GetElapsedTime(started) < TimeSpan.FromSeconds(20))

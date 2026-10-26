@@ -6,7 +6,7 @@ All required probe source is included in this repository. An ordinary source-dir
 
 Normal skill use means reading SKILL.md and only the relevant local reference sections. Do not run the full verifier or browse sources merely to answer a covered language question.
 
-Run the verifier when changing the examples/polyfills, validating an implementation change, or rechecking the recorded compiler behavior. It requires Python 3.10+, SDK 11.0.100-rc.2.26504.105 and the required target framework reference packs. Like normal dotnet builds, restore may obtain framework/reference packages if they are not already installed. It never fetches probe source or documentation.
+Run the verifier when changing the examples/polyfills, validating an implementation change, or rechecking the recorded compiler behavior. It requires Python 3.10+, SDK 11.0.100-rc.3.26522.148 and the required target framework reference packs. Like normal dotnet builds, restore may obtain framework/reference packages if they are not already installed. It never fetches probe source or documentation.
 
 ```sh
 python3 scripts/verify.py
@@ -21,6 +21,7 @@ The runner copies the supplied local source to a temporary directory and builds 
 | examples/unions.cs and verification/Examples | Readonly unions compile with C# 15.0 and warnings as errors; executed cases check text, unit conversion, default/null handling, zero/false and scalar access consistency |
 | examples/unions.cs Result<T> | Generic int/string successes, failure and default execute; a wrong generic case produces CS0029 and an omitted failure arm produces CS8509 |
 | examples/functional.cs | Map/Bind/Match results, skipped callbacks and preserved failures, identity/composition laws, parse/validation pipeline, invalid defaults, null callbacks and exception propagation |
+| examples/closed-hierarchies.cs | Every leaf of a multi-level closed hierarchy, null rejection and a missing-leaf CS8509 failure |
 | probes/QLang | Missing-null runtime failure and explicit null handling |
 | probes/QLang2 | Custom provider construction and default access |
 | probes/QConv | Target typing, generic Task construction and selected invalid conversions |
@@ -29,6 +30,7 @@ The runner copies the supplied local source to a temporary directory and builds 
 | probes/QSrcGen | Web numeric ambiguity versus strict union JSON handling with generated metadata |
 | probes/QClosedJson | Five closed-hierarchy roundtrips; absent/unknown discriminator rejection |
 | probes/QClosed and QClosedLib | Cross-assembly closure and warning promotion |
+| probes/QClosed and QClosedLib, intermediate branches | External derivation through an open child succeeds; direct external derivation from a closed intermediate node fails with CS9382 |
 | verification/Diagnostics | All union and closed-hierarchy diagnostic rows listed in diagnostics.md |
 | verification/PolyfillConsumer | Bundled support types on netstandard2.0/net10.0 and use of BCL types on net11.0 |
 

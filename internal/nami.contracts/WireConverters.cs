@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
 using System.Text.Json;
@@ -60,8 +58,7 @@ public sealed class IntegerStringListConverter<T> : JsonConverter<IReadOnlyList<
             values.Add(value);
         }
 
-        if (reader.TokenType != JsonTokenType.EndArray) throw new JsonException("Unterminated integer array.");
-        return values;
+        return reader.TokenType != JsonTokenType.EndArray ? throw new JsonException("Unterminated integer array.") : values;
     }
 
     public override void Write(Utf8JsonWriter writer, IReadOnlyList<T> value, JsonSerializerOptions options)
@@ -73,15 +70,10 @@ public sealed class IntegerStringListConverter<T> : JsonConverter<IReadOnlyList<
 }
 
 /// <summary>Distinguishes an absent optional member from an explicitly present null.</summary>
-public readonly record struct OptionalValue<T>
+public readonly record struct OptionalValue<T>(T Value)
 {
-    public OptionalValue(T value)
-    {
-        (Value, IsDefined) = (value, true);
-    }
-
-    public T Value { get; }
-    public bool IsDefined { get; }
+    public T Value { get; } = Value;
+    public bool IsDefined { get; } = true;
 
     public static implicit operator OptionalValue<T>(T value)
     {
@@ -129,5 +121,181 @@ public sealed class ExactIntegerConverter<T> : JsonConverter<T> where T : struct
     public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
     {
         writer.WriteRawValue(value.ToString(null, CultureInfo.InvariantCulture));
+    }
+}
+
+/// <summary>Presence and nullable values compose with the property's exact inner codec.</summary>
+public sealed class OptionalNullableValueConverter<T, TConverter> : JsonConverter<OptionalValue<T?>>
+    where T : struct where TConverter : JsonConverter<T>, new()
+{
+    private static readonly TConverter s_inner = new();
+    public override bool HandleNull => true;
+
+    public override OptionalValue<T?> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return new OptionalValue<T?>(reader.TokenType == JsonTokenType.Null
+            ? null
+            : s_inner.Read(ref reader, typeof(T), options));
+    }
+
+    public override void Write(Utf8JsonWriter writer, OptionalValue<T?> value, JsonSerializerOptions options)
+    {
+        if (!value.IsDefined) throw new JsonException("An undefined optional value must be omitted.");
+        if (value.Value is { } present) s_inner.Write(writer, present, options);
+        else writer.WriteNullValue();
+    }
+}
+
+/// <summary>Composes the explicitly selected value codec with nullable value presence.</summary>
+public sealed class NullableEncodedValueConverter<T, TConverter> : JsonConverter<T?>
+    where T : struct where TConverter : JsonConverter<T>, new()
+{
+    private static readonly TConverter s_inner = new();
+    public override bool HandleNull => true;
+
+    public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return reader.TokenType == JsonTokenType.Null ? null : s_inner.Read(ref reader, typeof(T), options);
+    }
+
+    public override void Write(Utf8JsonWriter writer, T? value, JsonSerializerOptions options)
+    {
+        if (value is { } present) s_inner.Write(writer, present, options);
+        else writer.WriteNullValue();
+    }
+}
+
+public sealed class NullableEncodedReferenceConverter<T, TConverter> : JsonConverter<T?>
+    where T : class where TConverter : JsonConverter<T>, new()
+{
+    private static readonly TConverter s_inner = new();
+    public override bool HandleNull => true;
+
+    public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return reader.TokenType == JsonTokenType.Null ? null : s_inner.Read(ref reader, typeof(T), options);
+    }
+
+    public override void Write(Utf8JsonWriter writer, T? value, JsonSerializerOptions options)
+    {
+        if (value is null) writer.WriteNullValue();
+        else s_inner.Write(writer, value, options);
+    }
+}
+
+public sealed class EncodedListConverter<T, TConverter> : JsonConverter<IReadOnlyList<T>>
+    where TConverter : JsonConverter<T>, new()
+{
+    private static readonly TConverter s_inner = new();
+
+    public override IReadOnlyList<T> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType != JsonTokenType.StartArray) throw new JsonException("Expected an encoded array.");
+        var result = new List<T>();
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndArray) return result;
+            result.Add(s_inner.Read(ref reader, typeof(T), options)!);
+        }
+
+        throw new JsonException("Unterminated encoded array.");
+    }
+
+    public override void Write(Utf8JsonWriter writer, IReadOnlyList<T> value, JsonSerializerOptions options)
+    {
+        writer.WriteStartArray();
+        foreach (var item in value) s_inner.Write(writer, item, options);
+        writer.WriteEndArray();
+    }
+}
+
+public sealed class EncodedMapConverter<T, TConverter> : JsonConverter<IReadOnlyDictionary<string, T>>
+    where TConverter : JsonConverter<T>, new()
+{
+    private static readonly TConverter s_inner = new();
+
+    public override IReadOnlyDictionary<string, T> Read(ref Utf8JsonReader reader, Type typeToConvert,
+        JsonSerializerOptions options)
+    {
+        if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException("Expected an encoded map.");
+        var result = new Dictionary<string, T>(StringComparer.Ordinal);
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndObject) return result;
+            if (reader.TokenType != JsonTokenType.PropertyName) throw new JsonException("Expected a map key.");
+            var key = reader.GetString()!;
+            if (!reader.Read()) throw new JsonException("Missing map value.");
+            if (!result.TryAdd(key, s_inner.Read(ref reader, typeof(T), options)!))
+                throw new JsonException("Duplicate map key.");
+        }
+
+        throw new JsonException("Unterminated encoded map.");
+    }
+
+    public override void Write(Utf8JsonWriter writer, IReadOnlyDictionary<string, T> value,
+        JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        foreach (var pair in value)
+        {
+            writer.WritePropertyName(pair.Key);
+            s_inner.Write(writer, pair.Value, options);
+        }
+
+        writer.WriteEndObject();
+    }
+}
+
+public sealed class OptionalConvertedValueConverter<T, TConverter> : JsonConverter<OptionalValue<T>>
+    where TConverter : JsonConverter<T>, new()
+{
+    private static readonly TConverter s_inner = new();
+    public override bool HandleNull => true;
+
+    public override OptionalValue<T> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return new OptionalValue<T>(reader.TokenType == JsonTokenType.Null
+            ? default!
+            : s_inner.Read(ref reader, typeof(T), options)!);
+    }
+
+    public override void Write(Utf8JsonWriter writer, OptionalValue<T> value, JsonSerializerOptions options)
+    {
+        if (!value.IsDefined) throw new JsonException("An undefined optional value must be omitted.");
+        if (value.Value is null) writer.WriteNullValue();
+        else s_inner.Write(writer, value.Value, options);
+    }
+}
+
+public sealed class NamedDoubleConverter : JsonConverter<double>
+{
+    public override double Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return reader.TokenType switch
+        {
+            JsonTokenType.Number => reader.GetDouble(),
+            JsonTokenType.String => reader.GetString() switch
+            {
+                "NaN" => double.NaN,
+                "Infinity" => double.PositiveInfinity,
+                "-Infinity" => double.NegativeInfinity,
+                _ => throw new JsonException("Expected a named nonfinite value.")
+            },
+            JsonTokenType.None or JsonTokenType.StartObject or JsonTokenType.EndObject or
+                JsonTokenType.StartArray or JsonTokenType.EndArray or JsonTokenType.PropertyName or
+                JsonTokenType.Comment or JsonTokenType.True or JsonTokenType.False or JsonTokenType.Null =>
+                throw new JsonException("Expected a float64 or a named nonfinite value."),
+            _ => throw new JsonException("Expected a float64 or a named nonfinite value.")
+        };
+    }
+
+    public override void Write(Utf8JsonWriter writer, double value, JsonSerializerOptions options)
+    {
+        if (double.IsFinite(value)) writer.WriteNumberValue(value);
+        else
+        {
+            writer.WriteStringValue(double.IsNaN(value) ? "NaN" :
+                double.IsPositiveInfinity(value) ? "Infinity" : "-Infinity");
+        }
     }
 }

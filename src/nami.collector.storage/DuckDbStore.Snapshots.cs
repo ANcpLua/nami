@@ -1,10 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using DuckDB.NET.Data;
 
 namespace Nami.Collector.Storage;
@@ -54,24 +48,6 @@ internal sealed partial class DuckDbStore
                 frontier.ExecuteNonQuery();
             }
 
-            List<T> Read<T>(string table, string columns, string order, Func<DbDataReader, T> mapper)
-            {
-                using var read = connection.CreateCommand();
-                read.Transaction = transaction;
-                read.CommandText = "SELECT " + columns + " FROM " + table + " WHERE project_id = $1 ORDER BY " + order;
-                AddParameters(read, projectId);
-                using var cancellation = token.Register(read.Cancel);
-                using var rows = read.ExecuteReader();
-                var result = new List<T>();
-                while (rows.Read())
-                {
-                    token.ThrowIfCancellationRequested();
-                    result.Add(mapper(rows));
-                }
-
-                return result;
-            }
-
             var snapshot = new TelemetrySnapshot(Guid.NewGuid().ToString("N"), projectId, capturedAt,
                 Read("spans", SpanStorageRow.SelectColumnList, "start_time_unix_nano, trace_id, span_id",
                     SpanStorageRow.MapFromReader),
@@ -98,7 +74,7 @@ internal sealed partial class DuckDbStore
             using (var write = connection.CreateCommand())
             {
                 write.Transaction = transaction;
-                write.CommandText = ReadSnapshotRow.BuildMultiRowInsertSql(1);
+                write.CommandText = ReadSnapshotRow.InsertSql;
                 ReadSnapshotRow.AddParameters(write, stored);
                 write.ExecuteNonQuery();
             }
@@ -113,6 +89,24 @@ internal sealed partial class DuckDbStore
 
             transaction.Commit();
             return ValueTask.FromResult<ISnapshot>(snapshot);
+
+            List<T> Read<T>(string table, string columns, string order, Func<DbDataReader, T> mapper)
+            {
+                using var read = connection.CreateCommand();
+                read.Transaction = transaction;
+                read.CommandText = "SELECT " + columns + " FROM " + table + " WHERE project_id = $1 ORDER BY " + order;
+                AddParameters(read, projectId);
+                using var cancellation = token.Register(read.Cancel);
+                using var rows = read.ExecuteReader();
+                var result = new List<T>();
+                while (rows.Read())
+                {
+                    token.ThrowIfCancellationRequested();
+                    result.Add(mapper(rows));
+                }
+
+                return result;
+            }
         }, ct);
 
     private void RecordIngestion(DuckDBConnection connection, DbTransaction transaction, string signal,
@@ -137,13 +131,11 @@ internal sealed partial class DuckDbStore
             };
             if (seenSignals.Add((resource.ProjectId, service)))
             {
-                using (var write = connection.CreateCommand())
-                {
-                    write.Transaction = transaction;
-                    write.CommandText = SignalWatermarkRow.BuildMultiRowInsertSql(1);
-                    SignalWatermarkRow.AddParameters(write, state);
-                    write.ExecuteNonQuery();
-                }
+                using var write = connection.CreateCommand();
+                write.Transaction = transaction;
+                write.CommandText = SignalWatermarkRow.InsertSql;
+                SignalWatermarkRow.AddParameters(write, state);
+                write.ExecuteNonQuery();
             }
 
             foreach (var content in new[]
@@ -153,9 +145,9 @@ internal sealed partial class DuckDbStore
             {
                 if (content is null) continue;
                 using var attributes = JsonDocument.Parse(content);
-                foreach (var property in attributes.RootElement.EnumerateObject())
+                foreach (var property in attributes.RootElement.EnumerateObject()
+                             .Where(property => seenAttributes.Add((resource.ProjectId, property.Name))))
                 {
-                    if (!seenAttributes.Add((resource.ProjectId, property.Name))) continue;
                     var stability = new AttributeStabilityRow
                     {
                         ProjectId = resource.ProjectId,
@@ -164,7 +156,7 @@ internal sealed partial class DuckDbStore
                     };
                     using var write = connection.CreateCommand();
                     write.Transaction = transaction;
-                    write.CommandText = AttributeStabilityRow.BuildMultiRowInsertSql(1);
+                    write.CommandText = AttributeStabilityRow.InsertSql;
                     AttributeStabilityRow.AddParameters(write, stability);
                     write.ExecuteNonQuery();
                 }
@@ -173,7 +165,7 @@ internal sealed partial class DuckDbStore
             foreach (var rename in resource.Renames ?? [])
             {
                 if (!seenRenames.Add((resource.ProjectId, rename.OriginalKey))) continue;
-                var firstDot = rename.OriginalKey.IndexOf('.');
+                var firstDot = rename.OriginalKey.IndexOf('.', StringComparison.Ordinal);
                 var discovery = new AttributeDiscoveryRow
                 {
                     ProjectId = resource.ProjectId,
@@ -185,7 +177,7 @@ internal sealed partial class DuckDbStore
                 };
                 using var write = connection.CreateCommand();
                 write.Transaction = transaction;
-                write.CommandText = AttributeDiscoveryRow.BuildMultiRowInsertSql(1);
+                write.CommandText = AttributeDiscoveryRow.InsertSql;
                 AttributeDiscoveryRow.AddParameters(write, discovery);
                 write.ExecuteNonQuery();
             }
@@ -217,7 +209,7 @@ internal sealed partial class DuckDbStore
             };
             using var record = connection.CreateCommand();
             record.Transaction = transaction;
-            record.CommandText = ResourceObservationRow.BuildMultiRowInsertSql(1);
+            record.CommandText = ResourceObservationRow.InsertSql;
             ResourceObservationRow.AddParameters(record, observation);
             record.ExecuteNonQuery();
         }

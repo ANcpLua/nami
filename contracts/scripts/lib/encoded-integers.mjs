@@ -30,7 +30,7 @@ export function encodedIntegerPattern(schema, context) {
   let maximum = unsigned ? (1n << 64n) - 1n : (1n << 63n) - 1n;
   for (const [key, exclusive, lower] of [["minimum", false, true], ["exclusiveMinimum", true, true], ["maximum", false, false], ["exclusiveMaximum", true, false]]) {
     if (schema[key] === undefined) continue;
-    if (!Number.isSafeInteger(schema[key])) throw new Error(`${context}.${key}: encoded integer bounds must be exact safe integers in OpenAPI.`);
+    if (!(typeof schema[key] === "string" && /^-?(0|[1-9][0-9]*)$/u.test(schema[key])) && !Number.isSafeInteger(schema[key])) throw new Error(`${context}.${key}: encoded integer bounds must be exact safe integers in OpenAPI.`);
     const bound = BigInt(schema[key]) + (exclusive ? (lower ? 1n : -1n) : 0n);
     if (lower && bound > minimum) minimum = bound;
     if (!lower && bound < maximum) maximum = bound;

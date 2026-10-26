@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Text;
-using System.Threading.Tasks;
 using Google.Protobuf;
 using RpcStatus = Google.Rpc.Status;
 
@@ -56,15 +52,27 @@ internal sealed class OtlpHttpResult : IResult
         new OtlpHttpResult(statusCode, encoding, new RpcStatus { Message = message });
 }
 
-internal sealed class OtlpUnsupportedMediaTypeException(string? contentType)
-    : NotSupportedException($"Unsupported OTLP Content-Type '{contentType ?? "<missing>"}'.");
+internal sealed class OtlpUnsupportedMediaTypeException(string? contentType, Exception? innerException)
+    : NotSupportedException($"Unsupported OTLP Content-Type '{contentType ?? "<missing>"}'.", innerException)
+{
+    public OtlpUnsupportedMediaTypeException() : this(null, null) { }
+    public OtlpUnsupportedMediaTypeException(string? contentType) : this(contentType, null) { }
+}
 
-internal sealed class OtlpUnsupportedContentEncodingException(string? contentEncoding)
-    : NotSupportedException($"Unsupported OTLP Content-Encoding '{contentEncoding ?? "<missing>"}'.");
+internal sealed class OtlpUnsupportedContentEncodingException(string? contentEncoding, Exception? innerException)
+    : NotSupportedException($"Unsupported OTLP Content-Encoding '{contentEncoding ?? "<missing>"}'.", innerException)
+{
+    public OtlpUnsupportedContentEncodingException() : this(null, null) { }
+    public OtlpUnsupportedContentEncodingException(string? contentEncoding) : this(contentEncoding, null) { }
+}
 
 /// <summary>
 ///     The OTLP/HTTP body exceeded the decompressed size bound. OTLP 1.11 (request size limits)
 ///     requires 413 Content Too Large, which the endpoint handlers answer for this exception.
 /// </summary>
-internal sealed class OtlpPayloadTooLargeException()
-    : IOException(OtlpPayloadParser.PayloadTooLargeMessage);
+internal sealed class OtlpPayloadTooLargeException(string? message, Exception? innerException)
+    : IOException(message, innerException)
+{
+    public OtlpPayloadTooLargeException() : this(OtlpPayloadParser.PayloadTooLargeMessage, null) { }
+    public OtlpPayloadTooLargeException(string? message) : this(message, null) { }
+}

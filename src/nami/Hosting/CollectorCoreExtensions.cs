@@ -1,8 +1,5 @@
-using System;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Model;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Nami.Grpc;
@@ -68,10 +65,11 @@ internal static class CollectorCoreExtensions
             for (var i = 0; i < options.CompressionProviders.Count; i++)
             {
                 if (options.CompressionProviders[i] is not BoundedDecompressionProvider)
+                {
                     options.CompressionProviders[i] =
                         new BoundedDecompressionProvider(options.CompressionProviders[i], limit);
+                }
             }
         });
-
     }
 }

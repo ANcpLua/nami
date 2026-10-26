@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-
 namespace Nami.Collector.Storage;
 
 internal static class IngestionStorageMapper
@@ -14,22 +8,12 @@ internal static class IngestionStorageMapper
     public static List<SpanStorageRow> ToSpanStorageRows(TraceIngestionBatch batch,
         string? authenticatedProjectId = null)
     {
-        var rows = new List<SpanStorageRow>(batch.Spans.Count);
-
-        foreach (var span in batch.Spans)
-            rows.Add(ToSpanStorageRow(span, authenticatedProjectId));
-
-        return rows;
+        return batch.Spans.Select(span => ToSpanStorageRow(span, authenticatedProjectId)).ToList();
     }
 
     public static List<LogStorageRow> ToLogStorageRows(LogIngestionBatch batch, string? authenticatedProjectId = null)
     {
-        var rows = new List<LogStorageRow>(batch.Logs.Count);
-
-        foreach (var log in batch.Logs)
-            rows.Add(ToLogStorageRow(log, authenticatedProjectId));
-
-        return rows;
+        return batch.Logs.Select(log => ToLogStorageRow(log, authenticatedProjectId)).ToList();
     }
 
     private static SpanStorageRow ToSpanStorageRow(SpanIngestionRecord span, string? authenticatedProjectId)
@@ -122,7 +106,7 @@ internal static class IngestionStorageMapper
                 builder.AppendSegment(log.EventName, true);
                 builder.AppendSegment(sessionId, true);
                 AppendIdentityPart(builder, log.TimeUnixNano);
-                AppendIdentityPart(builder, log.ObservedTimeProvided ? log.ObservedTimeUnixNano : null);
+                AppendIdentityPart(builder, log.TimeOrigin.ProducerObservedTime);
                 if (log.UntimedRequestOrdinal is { } ordinal) AppendIdentityPart(builder, ordinal);
                 AppendIdentityPart(builder, severityNumber);
                 builder.AppendSegment(severityText, true);
@@ -197,14 +181,17 @@ internal static class IngestionStorageMapper
     /// </summary>
     private static string? ToPersistedLogBody(StoredAttributeValue? body, string? original)
     {
-        if (body is null)
-            return null;
-
-        if (body is StoredAttributeValue.StringValue text)
+        switch (body)
         {
-            return Encoding.UTF8.GetByteCount(text.Value) <= MaxPersistedLogBodyUtf8Bytes
-                ? original
-                : EncodeBody(new StoredAttributeValue.StringValue(TruncateBodyText(text.Value)));
+            case null: return null;
+            case StoredAttributeValue.StringValue text:
+                {
+                    return Encoding.UTF8.GetByteCount(text.Value) <= MaxPersistedLogBodyUtf8Bytes
+                        ? original
+                        : EncodeBody(new StoredAttributeValue.StringValue(TruncateBodyText(text.Value)));
+                }
+            case StoredAttributeValue.ArrayValue or StoredAttributeValue.BoolValue or StoredAttributeValue.ObjectValue:
+                break;
         }
 
         var encoded = original ?? throw new InvalidDataException("Nonempty log bodies require canonical content.");
@@ -282,11 +269,8 @@ internal static class IngestionStorageMapper
         var remainingBytes = MaxPersistedLogBodyUtf8Bytes - Encoding.UTF8.GetByteCount(TruncatedLogBodySuffix);
         var builder = new StringBuilder(Math.Min(raw.Length, MaxPersistedLogBodyUtf8Bytes));
         Span<char> utf16 = stackalloc char[2];
-        foreach (var rune in raw.EnumerateRunes())
+        foreach (var rune in raw.EnumerateRunes().TakeWhile(rune => rune.Utf8SequenceLength <= remainingBytes))
         {
-            if (rune.Utf8SequenceLength > remainingBytes)
-                break;
-
             builder.Append(utf16[..rune.EncodeToUtf16(utf16)]);
             remainingBytes -= rune.Utf8SequenceLength;
         }
@@ -296,7 +280,7 @@ internal static class IngestionStorageMapper
 
     private static string? GetResourceEntityRefsIdentity(
         IReadOnlyList<ResourceEntityRefIngestionRecord> entityRefs,
-        IReadOnlyDictionary<string, OtlpAttributeValue> resourceAttributes)
+        NormalizedAttributes resourceAttributes)
     {
         if (entityRefs.Count is 0) return null;
 

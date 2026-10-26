@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using System.Net;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Nami.Collector.Ingestion.Configuration;
 
@@ -12,11 +10,11 @@ internal sealed class CollectorPortOptions
     public string BindAddress { get; set; } = IPAddress.Loopback.ToString();
 
     [ConfigurationKeyName(CollectorConfigurationKeys.OtlpPort)]
-    [ConfiguredRange(CollectorConfigurationKeys.OtlpPort, 0, IPEndPoint.MaxPort)]
+    [ConfiguredRange(Key = CollectorConfigurationKeys.OtlpPort, Minimum = 0, Maximum = IPEndPoint.MaxPort)]
     public int OtlpHttp { get; set; } = 4318;
 
     [ConfigurationKeyName(CollectorConfigurationKeys.GrpcPort)]
-    [ConfiguredRange(CollectorConfigurationKeys.GrpcPort, 0, IPEndPoint.MaxPort)]
+    [ConfiguredRange(Key = CollectorConfigurationKeys.GrpcPort, Minimum = 0, Maximum = IPEndPoint.MaxPort)]
     public int Grpc { get; set; } = 4317;
 
     public IPAddress ParseBindAddress()
@@ -35,8 +33,11 @@ internal sealed class CollectorPortOptionsRules : IValidateOptions<CollectorPort
     {
         List<string> failures = [];
         if (!IPAddress.TryParse(options.BindAddress, out _))
+        {
             failures.Add(
                 $"{CollectorConfigurationKeys.BindAddress} must be an IP address literal, but was '{options.BindAddress}'.");
+        }
+
         return failures.Count is 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
     }
 }

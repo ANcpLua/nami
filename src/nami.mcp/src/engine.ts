@@ -1,8 +1,14 @@
+import { fromJsonSchema, type JsonSchemaType } from "@modelcontextprotocol/server";
+import schemas from "./contracts/generated/contract-schemas.json" with {type: "json"};
+import { TOOLS } from "./contracts/generated/manifest.js";
+import type { ToolName, ToolReply, ValidatedToolCall } from "./contracts/generated/tool-contracts.js";
+const replySchemas = Object.fromEntries(TOOLS.map(tool => [tool.name, fromJsonSchema(schemas[tool.output] as JsonSchemaType)]));
+const errorSchema = fromJsonSchema(schemas["Common.ToolError"] as JsonSchemaType);
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import type { EngineRequest, EngineResponse } from "./contracts/generated/api.js";
+import type { EngineCommand, EngineResponse } from "./contracts/generated/api.js";
 import type { EngineResponse as EngineResponseJson } from "./contracts/generated/json.js";
-import { EngineRequestJson, EngineResponseJson as responseCodec } from "./contracts/generated/serialization.js";
+import { EngineCommandJson, EngineResponseJson as responseCodec } from "./contracts/generated/serialization.js";
 import { CONTRACT_REVISION, ENGINE_LIMITS } from "./contracts/generated/manifest.js";
 
 /** One supervised native engine, with bounded complete JSONL frames and request correlation. */
@@ -55,13 +61,13 @@ export class Engine {
     if (this.pending.size >= ENGINE_LIMITS.max_pending) throw new Error("Engine request queue is full.");
     signal?.throwIfAborted();
     const id = String(++this.sequence);
-    const request: EngineRequest = { id, revision: CONTRACT_REVISION, method, name, input, credential, traceparent, tracestate };
+    const request: EngineCommand = method === "health" ? { id, revision: CONTRACT_REVISION, method } : { id, revision: CONTRACT_REVISION, method, name: name ?? "", input, credential, traceparent, tracestate };
     const result = new Promise<EngineResponse>((resolve, reject) => {
       const abort = () => {
         this.pending.delete(id);
         signal?.removeEventListener("abort", abort);
         reject(new Error("Engine request cancelled."));
-        void this.write({ ...request, method: "cancel", input: null }).catch((error: unknown) => this.fail(asError(error)));
+        void this.write({ id, revision: CONTRACT_REVISION, method: "cancel" }).catch((error: unknown) => this.fail(asError(error)));
       };
       this.pending.set(id, { resolve, reject, cleanup: () => signal?.removeEventListener("abort", abort) });
       signal?.addEventListener("abort", abort, { once: true });
@@ -69,6 +75,16 @@ export class Engine {
     try { await this.write(request); }
     catch (error) { this.fail(asError(error)); }
     return result;
+  }
+
+  async call<N extends ToolName>(call: Extract<ValidatedToolCall, {name: N}>,
+    credential: string | null, signal?: AbortSignal, traceparent: string | null = null,
+    tracestate: string | null = null): Promise<ToolReply<N>> {
+    const reply = await this.request("call", call.name, call.input, credential, signal, traceparent, tracestate);
+    const validator = reply.isError ? errorSchema : replySchemas[call.name]!;
+    const checked = await validator["~standard"].validate(reply.result);
+    if (checked.issues) throw new EngineError("collector_contract_mismatch", "Engine result violates its declared tool contract.");
+    return {isError: reply.isError, result: checked.value} as ToolReply<N>;
   }
 
   async close(): Promise<void> {
@@ -81,8 +97,8 @@ export class Engine {
     try { await exit; } finally { clearTimeout(graceful); clearTimeout(forced); }
   }
 
-  private async write(request: EngineRequest): Promise<void> {
-    const frame = JSON.stringify(EngineRequestJson.toJson(request)) + "\n";
+  private async write(request: EngineCommand): Promise<void> {
+    const frame = JSON.stringify(EngineCommandJson.toJson(request)) + "\n";
     if (Buffer.byteLength(frame) > ENGINE_LIMITS.max_frame_bytes) throw new Error("Engine request exceeds its bound.");
     if (!this.child.stdin.write(frame)) await once(this.child.stdin, "drain");
   }

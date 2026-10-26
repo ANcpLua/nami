@@ -7,6 +7,19 @@ const openapi = await readOpenApi();
 const components = openapi.components ?? {};
 const schemas = components.schemas ?? {};
 const refPrefix = "#/components/schemas/";
+const exact = JSON.parse(await readFile(new URL("../generated/exact-schema.json", import.meta.url), "utf8"));
+function applyExact(node, metadata) {
+  if (!node) return;
+  const variants = node.anyOf ?? node.oneOf;
+  if (variants) { for (const variant of variants) if (variant.type !== "null") applyExact(variant, metadata); return; }
+  node.pattern = encodedIntegerPattern({format: metadata.kind, minimum:metadata.minimum, maximum:metadata.maximum}, "TypeSpec exact numeric metadata");
+  for (const key of ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum"]) delete node[key];
+  if (metadata.default !== undefined) node.default=metadata.default;
+}
+for (const [name,metadata] of Object.entries(exact.scalars)) applyExact(schemas[name], metadata);
+for (const [name,fields] of Object.entries(exact.properties))
+  for (const [field,metadata] of Object.entries(fields)) applyExact(schemas[name]?.properties?.[field], metadata);
+
 
 // Keywords whose value is a schema, a map of schemas or a list of schemas. Every other keyword
 // (enum, const, default, examples, required, description, ...) is data and is copied as is.
@@ -116,7 +129,7 @@ function normalizeFormat(schema, context) {
     if (stringFormats.has(format)) return schema;
     if (format === "int64" || format === "uint64") {
       const { minimum: _min, maximum: _max, exclusiveMinimum: _xmin, exclusiveMaximum: _xmax, ...text } = rest;
-      return { ...text, pattern: encodedIntegerPattern(schema, context), maxLength: 20 };
+      return { ...text, pattern: schema.pattern ?? encodedIntegerPattern(schema, context), maxLength: 20 };
     }
     throw new Error(`${context}: string format '${format}' has no JSON Schema meaning; add it to stringFormats or the contract.`);
   }
@@ -288,7 +301,8 @@ await writeFile(contractSchemasPath, `${JSON.stringify(allDocuments)}\n`);
 // so publish the wire-normalized OpenAPI projection for runtime validation. Both emitters
 // consume the same TypeSpec program; no schema or constraint is hand-maintained here.
 const exported = JSON.parse(await readFile(`${jsonSchemaDirectory}/raw/nami-tools`, "utf8")).$defs;
-const operations = ["SourcesStatus", "ErrorsRecent", "TracesGet", "TracesSlowest", "LogsSearch", "ChangesRecent"];
+const manifest = JSON.parse(await readFile(new URL("../generated/wire-manifest.json", import.meta.url), "utf8"));
+const operations = manifest.tools.map(tool => tool.input.slice("Tools.".length, -"Input".length));
 const snake = value => value.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
 for (const operation of operations) {
   for (const [suffix, kind] of [["Input", "input"], ["Result", "result"]]) {

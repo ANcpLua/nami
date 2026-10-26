@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace Nami.Collector.Storage;
 
 internal static class DuckDbValueReader
@@ -31,5 +28,4 @@ internal static class DuckDbValueReader
         stream.CopyTo(buffer);
         return buffer.ToArray();
     }
-
 }

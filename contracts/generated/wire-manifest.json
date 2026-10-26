@@ -1,0 +1,79 @@
+{
+  "configuration": {
+    "BindAddress": "NAMI_BIND_ADDRESS",
+    "Port": "NAMI_PORT",
+    "PlatformPort": "PORT",
+    "PublicUrl": "NAMI_PUBLIC_URL",
+    "RailwayPublicDomain": "RAILWAY_PUBLIC_DOMAIN",
+    "OtlpPort": "NAMI_OTLP_PORT",
+    "GrpcPort": "NAMI_GRPC_PORT",
+    "CorsAllowedOrigins": "NAMI_OTLP_CORS_ALLOWED_ORIGINS",
+    "CorsAllowedHeaders": "NAMI_OTLP_CORS_ALLOWED_HEADERS",
+    "AuthMode": "NAMI_OTLP_AUTH_MODE",
+    "ProjectKeys": "NAMI_OTLP_PROJECT_KEYS",
+    "RetentionDays": "NAMI_RETENTION_DAYS",
+    "RetentionIntervalMinutes": "NAMI_RETENTION_INTERVAL_MINUTES",
+    "StorageMinimumFreeMegabytes": "NAMI_STORAGE_MIN_FREE_MB",
+    "DataPath": "NAMI_DATA_PATH",
+    "DatabaseMemoryLimit": "NAMI_DB_MEMORY_LIMIT",
+    "DatabaseThreads": "NAMI_DB_THREADS",
+    "DatabaseTempDirectory": "NAMI_DB_TEMP_DIR"
+  },
+  "roots": [
+    "Common.ToolError",
+    "Engine.EngineCommand",
+    "Engine.EngineLimits",
+    "Engine.EngineRequest",
+    "Engine.EngineResponse",
+    "Tools.ChangesRecentInput",
+    "Tools.ChangesRecentResult",
+    "Tools.ErrorsRecentInput",
+    "Tools.ErrorsRecentResult",
+    "Tools.LogsSearchInput",
+    "Tools.LogsSearchResult",
+    "Tools.SourcesStatusInput",
+    "Tools.SourcesStatusResult",
+    "Tools.TracesGetInput",
+    "Tools.TracesGetResult",
+    "Tools.TracesSlowestInput",
+    "Tools.TracesSlowestResult"
+  ],
+  "tools": [
+    {
+      "name": "changes_recent",
+      "input": "Tools.ChangesRecentInput",
+      "output": "Tools.ChangesRecentResult",
+      "error": "Common.ToolError"
+    },
+    {
+      "name": "errors_recent",
+      "input": "Tools.ErrorsRecentInput",
+      "output": "Tools.ErrorsRecentResult",
+      "error": "Common.ToolError"
+    },
+    {
+      "name": "logs_search",
+      "input": "Tools.LogsSearchInput",
+      "output": "Tools.LogsSearchResult",
+      "error": "Common.ToolError"
+    },
+    {
+      "name": "sources_status",
+      "input": "Tools.SourcesStatusInput",
+      "output": "Tools.SourcesStatusResult",
+      "error": "Common.ToolError"
+    },
+    {
+      "name": "traces_get",
+      "input": "Tools.TracesGetInput",
+      "output": "Tools.TracesGetResult",
+      "error": "Common.ToolError"
+    },
+    {
+      "name": "traces_slowest",
+      "input": "Tools.TracesSlowestInput",
+      "output": "Tools.TracesSlowestResult",
+      "error": "Common.ToolError"
+    }
+  ]
+}

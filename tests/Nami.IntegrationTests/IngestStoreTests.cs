@@ -1,15 +1,9 @@
-using System;
 using System.Diagnostics.Metrics;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Time.Testing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nami.Collector.Ingestion;
 using Nami.Collector.Storage;
 using Nami.SemanticConventions;
@@ -25,7 +19,7 @@ public sealed class IngestStoreTests(TestContext context)
     [TestMethod]
     public async Task Catalog_EmbeddedConstants_MatchRegistrySnapshot()
     {
-        using var stream =
+        await using var stream =
             typeof(RegistryInfo).Assembly.GetManifestResourceStream("Nami.SemanticConventions.RegistryInventory.json");
         Assert.IsNotNull(stream);
         using var json = await JsonDocument.ParseAsync(stream, cancellationToken: context.CancellationToken);
@@ -37,12 +31,12 @@ public sealed class IngestStoreTests(TestContext context)
     [TestMethod]
     public async Task Watermark_BackdatedRecord_DoesNotRegress()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.Now.AddSeconds(-1))),
+        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1))),
             context.CancellationToken);
         var before = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.Now.AddDays(-2)), offset: 1),
+        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddDays(-2)), offset: 1),
             context.CancellationToken);
         var after = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         Assert.AreEqual(before.Signals[0].WatermarkUnixNano, after.Signals[0].WatermarkUnixNano);
@@ -53,23 +47,23 @@ public sealed class IngestStoreTests(TestContext context)
     [TestMethod]
     public async Task LastSeen_FutureTimestamp_UsesReceiptTime()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedLogs(store, OtlpData.Logs(TestData.Nanos(TestData.Now.AddYears(3))), clock,
+        await TestData.SeedLogs(store, OtlpData.Logs(TestData.Nanos(TestData.s_now.AddYears(3))), clock,
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
-        Assert.AreEqual(TestData.Nanos(TestData.Now), Assert.ContainsSingle(snapshot.Signals).LastSeenUnixNano);
-        Assert.AreEqual(TestData.Nanos(TestData.Now.AddYears(3)), Assert.ContainsSingle(snapshot.Logs).TimeUnixNano);
+        Assert.AreEqual(TestData.Nanos(TestData.s_now), Assert.ContainsSingle(snapshot.Signals).LastSeenUnixNano);
+        Assert.AreEqual(TestData.Nanos(TestData.s_now.AddYears(3)), Assert.ContainsSingle(snapshot.Logs).TimeUnixNano);
     }
 
     [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
     [TestMethod]
     public async Task Ingest_DeprecatedKey_RewrittenToSuccessor()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
         await TestData.SeedTraces(store,
-            OtlpData.Traces(TestData.Nanos(TestData.Now.AddSeconds(-1)),
+            OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)),
                 attributes: new JsonArray(OtlpData.Attribute("http.method", "POST"))), context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         using var attrs = JsonDocument.Parse(Assert.ContainsSingle(snapshot.Spans).AttributesJson!);
@@ -89,14 +83,14 @@ public sealed class IngestStoreTests(TestContext context)
     [TestMethod]
     public async Task Discovery_RenamedAndDroppedKeys_SurvivesRestart()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         var path = Path.Combine(
             context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
             "discovery.duckdb");
         await using (var store = new DuckDbStore(path, timeProvider: clock))
         {
             await TestData.SeedTraces(store,
-                OtlpData.Traces(TestData.Nanos(TestData.Now.AddSeconds(-1)),
+                OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)),
                     attributes: new JsonArray(OtlpData.Attribute("http.method", "POST"),
                         OtlpData.Attribute("exception.escaped", "true"))), context.CancellationToken);
             _ = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
@@ -112,7 +106,7 @@ public sealed class IngestStoreTests(TestContext context)
                 .Where(static d => d.OriginalKey == "exception.escaped").ToArray());
             Assert.AreEqual("http.request.method", renamed.CanonicalKey);
             Assert.IsNull(dropped.CanonicalKey);
-            Assert.AreEqual(TestData.Nanos(TestData.Now), renamed.FirstSeenUnixNano);
+            Assert.AreEqual(TestData.Nanos(TestData.s_now), renamed.FirstSeenUnixNano);
             using var attrs = JsonDocument.Parse(Assert.ContainsSingle(snapshot.Spans).AttributesJson!);
             Assert.IsFalse(attrs.RootElement.TryGetProperty("exception.escaped", out _));
         }
@@ -122,7 +116,7 @@ public sealed class IngestStoreTests(TestContext context)
     [TestMethod]
     public async Task Ingest_DeprecatedTemplate_PreservesSuffixAndDiscovery()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
         var metadata = new JsonObject
         {
@@ -133,7 +127,7 @@ public sealed class IngestStoreTests(TestContext context)
             }
         };
         await TestData.SeedTraces(store,
-            OtlpData.Traces(TestData.Nanos(TestData.Now.AddSeconds(-1)), attributes: new JsonArray(metadata)),
+            OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), attributes: new JsonArray(metadata)),
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var discovery = Assert.ContainsSingle(snapshot.AttributeDiscoveries
@@ -148,12 +142,12 @@ public sealed class IngestStoreTests(TestContext context)
     [TestMethod]
     public async Task Ingest_DevelopmentKey_StoredWithStabilityMark()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
         var attrs = new JsonArray(new JsonObject
             { ["key"] = "gen_ai.usage.input_tokens", ["value"] = new JsonObject { ["intValue"] = "42" } });
         await TestData.SeedTraces(store,
-            OtlpData.Traces(TestData.Nanos(TestData.Now.AddSeconds(-1)), attributes: attrs), context.CancellationToken);
+            OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), attributes: attrs), context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var mark = Assert.ContainsSingle(snapshot.AttributeStabilities
             .Where(static a => a.AttributeKey == "gen_ai.usage.input_tokens").ToArray());
@@ -223,9 +217,9 @@ public sealed class IngestStoreTests(TestContext context)
         };
         listener.SetMeasurementEventCallback<long>((_, value, _, _) => Interlocked.Add(ref missing[0], value));
         listener.Start();
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.Now.AddSeconds(-1)), service: null),
+        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), service: null),
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         Assert.HasCount(1, snapshot.Spans);
@@ -237,15 +231,15 @@ public sealed class IngestStoreTests(TestContext context)
     [TestMethod]
     public async Task Read_OtherProject_ReturnsNothing()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
         await TestData.SeedTraces(store,
-            OtlpData.Traces(TestData.Nanos(TestData.Now.AddSeconds(-1)), project: "tenant-a"),
+            OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), project: "tenant-a"),
             context.CancellationToken);
         var first = await store.ReadSnapshotAsync("tenant-a", ct: context.CancellationToken);
         var second = await store.ReadSnapshotAsync("tenant-b", ct: context.CancellationToken);
         Assert.HasCount(1, first.Spans);
-        Assert.HasCount(0, second.Spans);
+        Assert.IsEmpty(second.Spans);
         await Assert.ThrowsExactlyAsync<SnapshotUnavailableException>(() =>
             store.ReadSnapshotAsync("tenant-b", first.Id, context.CancellationToken));
     }
@@ -254,7 +248,7 @@ public sealed class IngestStoreTests(TestContext context)
     [TestMethod]
     public async Task Snapshot_Expired_Refused()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store =
             new DuckDbStore(":memory:", timeProvider: clock, snapshotLifetime: TimeSpan.FromMinutes(1));
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
@@ -267,15 +261,15 @@ public sealed class IngestStoreTests(TestContext context)
     [TestMethod]
     public async Task Retention_RemovesExpiredPreservesRecent()
     {
-        var clock = new FakeTimeProvider(TestData.Now);
+        var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.Now.AddDays(-2)), offset: 0),
+        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddDays(-2)), offset: 0),
             context.CancellationToken);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.Now.AddHours(-1)), offset: 1),
+        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddHours(-1)), offset: 1),
             context.CancellationToken);
         _ = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         Assert.AreEqual(1,
-            await store.DeleteExpiredSpansBatchAsync(TestData.Nanos(TestData.Now.AddDays(-1)), 100,
+            await store.DeleteExpiredSpansBatchAsync(TestData.Nanos(TestData.s_now.AddDays(-1)), 100,
                 context.CancellationToken));
         var after = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         Assert.AreEqual(2.ToString("x32", CultureInfo.InvariantCulture), Assert.ContainsSingle(after.Spans).TraceId);
@@ -288,7 +282,7 @@ public sealed class IngestStoreTests(TestContext context)
         var methods = typeof(INamiStore).GetMethods()
             .Where(static m => m.Name.Contains("Delete", StringComparison.Ordinal)).Select(static m => m.Name).Order()
             .ToArray();
-        Assert.AreEqual(4, methods.Length);
+        Assert.HasCount(4, methods);
         Assert.IsTrue(methods.All(static n => n.StartsWith("DeleteExpired", StringComparison.Ordinal)),
             string.Join(",", methods));
     }

@@ -261,13 +261,6 @@ function namespaceOf(type: Type): Namespace | undefined {
   return "namespace" in type ? (type.namespace as Namespace | undefined) : undefined;
 }
 
-/** The full namespace path of a type, for diagnostics. */
-export function namespaceName(type: Type): string {
-  const parts: string[] = [];
-  for (let ns = namespaceOf(type); ns?.name; ns = ns.namespace) parts.unshift(ns.name);
-  return parts.join(".");
-}
-
 export interface ResolvedIdentity {
   readonly identity: IdentityBinding;
   readonly array: boolean;

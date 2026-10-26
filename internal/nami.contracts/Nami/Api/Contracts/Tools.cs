@@ -8,8 +8,38 @@ using System.Text.Json.Serialization;
 
 namespace Nami.Api.Contracts.Tools;
 
+[JsonConverter(typeof(SignalStatusJsonConverter))]
+public readonly union SignalStatus(ActiveSignalStatus, SilentSignalStatus);
+
+public sealed class SignalStatusJsonConverter : JsonConverter<SignalStatus>
+{
+    public override SignalStatus Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object) throw new JsonException("SignalStatus must be a JSON object.");
+        if (!root.TryGetProperty("kind", out var tagProperty) || tagProperty.ValueKind != JsonValueKind.String) throw new JsonException("SignalStatus requires kind.");
+        var tag = tagProperty.GetString();
+        if (tag == "active") return root.Deserialize(options.GetTypeInfo<ActiveSignalStatus>()) ?? throw new JsonException("Missing ActiveSignalStatus case.");
+        if (tag == "silent") return root.Deserialize(options.GetTypeInfo<SilentSignalStatus>()) ?? throw new JsonException("Missing SilentSignalStatus case.");
+        throw new JsonException("Unknown SignalStatus case.");
+    }
+
+    public override void Write(Utf8JsonWriter writer, SignalStatus value, JsonSerializerOptions options)
+    {
+        System.Text.Json.Serialization.Metadata.JsonTypeInfo typeInfo = value switch
+        {
+            ActiveSignalStatus => options.GetTypeInfo<ActiveSignalStatus>(),
+            SilentSignalStatus => options.GetTypeInfo<SilentSignalStatus>(),
+            null => throw new InvalidOperationException("An empty SignalStatus cannot be serialized.")
+        };
+        JsonSerializer.Serialize(writer, value.Value, typeInfo);
+    }
+}
+
 public sealed class SourcesStatusInput
 {
+    public const string SinceDefault = "-60m";
     public const int MaxBytesDefault = 32768;
     public const int MaxBytesMinimum = 1024;
     public const int MaxBytesMaximum = 262144;
@@ -57,18 +87,27 @@ public sealed class ProjectedSourceStatus
     public IReadOnlyList<Nami.Api.Contracts.Tools.SignalStatus>? Signals { get; init; }
 }
 
-public sealed class SignalStatus
+public sealed class ActiveSignalStatus
 {
     [JsonPropertyName("signal")]
     public required string Signal { get; init; }
     [JsonPropertyName("kind")]
-    public required string Kind { get; init; }
+    public string Kind => "active";
+    [JsonPropertyName("last_seen")]
+    public required string LastSeen { get; init; }
+}
+
+public sealed class SilentSignalStatus
+{
+    [JsonPropertyName("signal")]
+    public required string Signal { get; init; }
+    [JsonPropertyName("kind")]
+    public string Kind => "silent";
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("last_seen")]
     public string? LastSeen { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("silent_for")]
-    public string? SilentFor { get; init; }
+    public required string SilentFor { get; init; }
 }
 
 public sealed class SourceStatus
@@ -79,8 +118,15 @@ public sealed class SourceStatus
     public required IReadOnlyList<Nami.Api.Contracts.Tools.SignalStatus> Signals { get; init; }
 }
 
+public sealed class SignalStatusFields
+{
+    [JsonPropertyName("signal")]
+    public required string Signal { get; init; }
+}
+
 public sealed class ErrorsRecentInput
 {
+    public const string SinceDefault = "-60m";
     public const int MaxBytesDefault = 32768;
     public const int MaxBytesMinimum = 1024;
     public const int MaxBytesMaximum = 262144;
@@ -120,6 +166,8 @@ public sealed class ErrorsRecentResult
 
 public sealed class ProjectedErrorGroup
 {
+    public const long CountMinimum = 0;
+    public const long CountMaximum = 9007199254740991;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("error_type")]
     public string? ErrorType { get; init; }
@@ -146,6 +194,8 @@ public sealed class ProjectedErrorGroup
 
 public sealed class ErrorGroup
 {
+    public const long CountMinimum = 0;
+    public const long CountMaximum = 9007199254740991;
     [JsonPropertyName("error_type")]
     public required string ErrorType { get; init; }
     [JsonPropertyName("operation")]
@@ -166,6 +216,7 @@ public sealed class ErrorGroup
 
 public sealed class TracesGetInput
 {
+    public const string SinceDefault = "-60m";
     public const int MaxBytesDefault = 32768;
     public const int MaxBytesMinimum = 1024;
     public const int MaxBytesMaximum = 262144;
@@ -192,8 +243,22 @@ public sealed class TracesGetInput
     public required string TraceId { get; init; }
 }
 
+public sealed class TracesGetResult
+{
+    [JsonPropertyName("freshness")]
+    public required Nami.Api.Contracts.Common.Freshness Freshness { get; init; }
+    [JsonPropertyName("snapshot_id")]
+    public required string SnapshotId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("next_cursor")]
+    public string? NextCursor { get; init; }
+    [JsonPropertyName("trace")]
+    public required Nami.Api.Contracts.Tools.ProjectedTrace Trace { get; init; }
+}
+
 public sealed class ProjectedTrace
 {
+    public const ulong DurationNsMinimum = 0;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("spans")]
     public IReadOnlyList<Nami.Api.Contracts.OTel.Traces.Span>? Spans { get; init; }
@@ -225,21 +290,9 @@ public sealed class ProjectedTrace
     public bool? HasError { get; init; }
 }
 
-public sealed class TracesGetResult
-{
-    [JsonPropertyName("freshness")]
-    public required Nami.Api.Contracts.Common.Freshness Freshness { get; init; }
-    [JsonPropertyName("snapshot_id")]
-    public required string SnapshotId { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("next_cursor")]
-    public string? NextCursor { get; init; }
-    [JsonPropertyName("trace")]
-    public required Nami.Api.Contracts.Tools.ProjectedTrace Trace { get; init; }
-}
-
 public sealed class TracesSlowestInput
 {
+    public const string SinceDefault = "-60m";
     public const int MaxBytesDefault = 32768;
     public const int MaxBytesMinimum = 1024;
     public const int MaxBytesMaximum = 262144;
@@ -289,6 +342,7 @@ public sealed class TracesSlowestResult
 
 public sealed class ProjectedSlowTrace
 {
+    public const double DurationMsMinimum = 0;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("trace_id")]
     public string? TraceId { get; init; }
@@ -308,6 +362,7 @@ public sealed class ProjectedSlowTrace
 
 public sealed class SlowTrace
 {
+    public const double DurationMsMinimum = 0;
     [JsonPropertyName("trace_id")]
     public required string TraceId { get; init; }
     [JsonPropertyName("operation")]
@@ -322,6 +377,7 @@ public sealed class SlowTrace
 
 public sealed class LogsSearchInput
 {
+    public const string SinceDefault = "-60m";
     public const int MaxBytesDefault = 32768;
     public const int MaxBytesMinimum = 1024;
     public const int MaxBytesMaximum = 262144;
@@ -403,6 +459,7 @@ public sealed class LogHit
 
 public sealed class ChangesRecentInput
 {
+    public const string SinceDefault = "-60m";
     public const int MaxBytesDefault = 32768;
     public const int MaxBytesMinimum = 1024;
     public const int MaxBytesMaximum = 262144;

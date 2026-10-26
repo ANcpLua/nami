@@ -3,6 +3,7 @@ import type * as Model from "./api.js";
 import type * as Json from "./json.js";
 
 type Shape = "string" | "number" | "boolean" | "unknown" | (() => Shape)
+  | { decimal: true; minimum?: string; maximum?: string }
   | { literal: unknown } | { array: Shape } | { tuple: Shape[] } | { record: Shape }
   | { fields: [string, string, Shape][] } | { union: Shape[] } | { tag: string; cases: Record<string, Shape> };
 type ObjectValue = Record<string, unknown>;
@@ -10,6 +11,7 @@ const object = (value: unknown): value is ObjectValue => typeof value === "objec
 function matches(value: unknown, shape: Shape, encode: boolean): boolean {
   if (typeof shape === "function") return matches(value, shape(), encode);
   if (typeof shape === "string") return shape === "unknown" || typeof value === shape;
+  if ("decimal" in shape) return typeof value === "string";
   if ("literal" in shape) return value === shape.literal;
   if ("union" in shape) return shape.union.some(variant => matches(value, variant, encode));
   if ("array" in shape || "tuple" in shape) return Array.isArray(value);
@@ -20,10 +22,16 @@ function matches(value: unknown, shape: Shape, encode: boolean): boolean {
     return !("literal" in (typeof child === "object" ? child : {})) || matches(value[key], child, encode);
   });
 }
-/** Naming conversion only. Validate untrusted input against its generated schema before decoding. */
+/** Structural and exact-value conversion. Full message validation remains at the boundary. */
 function convert(value: unknown, shape: Shape, encode: boolean): unknown {
   if (typeof shape === "function") return convert(value, shape(), encode);
   if (typeof shape === "string" || "literal" in shape || value === null) return value;
+  if ("decimal" in shape) {
+    if (typeof value !== "string" || !/^(?:0|-?[1-9][0-9]*)$/.test(value)) throw new TypeError("Expected canonical integer decimal text.");
+    const integer = BigInt(value);
+    if ((shape.minimum !== undefined && integer < BigInt(shape.minimum)) || (shape.maximum !== undefined && integer > BigInt(shape.maximum))) throw new RangeError("Encoded integer is outside its declared range.");
+    return value;
+  }
   if ("union" in shape) {
     const variant = shape.union.find(candidate => matches(value, candidate, encode));
     if (!variant) throw new TypeError("No matching serialized union variant.");
@@ -59,7 +67,7 @@ export const AttributeBytesValueJson = {
   toJson: (value: Model.AttributeBytesValue): Json.AttributeBytesValue => convert(value, AttributeBytesValueShape, true) as Json.AttributeBytesValue,
   fromJson: (value: Json.AttributeBytesValue): Model.AttributeBytesValue => convert(value, AttributeBytesValueShape, false) as Model.AttributeBytesValue,
 };
-const AttributeIntValueShape: Shape = { fields: [["kind", "kind", { literal: "int" }], ["value", "value", "string"]] };
+const AttributeIntValueShape: Shape = { fields: [["kind", "kind", { literal: "int" }], ["value", "value", { decimal: true }]] };
 export const AttributeIntValueJson = {
   toJson: (value: Model.AttributeIntValue): Json.AttributeIntValue => convert(value, AttributeIntValueShape, true) as Json.AttributeIntValue,
   fromJson: (value: Json.AttributeIntValue): Model.AttributeIntValue => convert(value, AttributeIntValueShape, false) as Model.AttributeIntValue,
@@ -134,12 +142,12 @@ export const ResourceJson = {
   toJson: (value: Model.Resource): Json.Resource => convert(value, ResourceShape, true) as Json.Resource,
   fromJson: (value: Json.Resource): Model.Resource => convert(value, ResourceShape, false) as Model.Resource,
 };
-const SpanShape: Shape = { fields: [["spanId", "span_id", "string"], ["traceId", "trace_id", "string"], ["parentSpanId", "parent_span_id", "string"], ["traceState", "trace_state", "string"], ["name", "name", "string"], ["kind", "kind", "unknown"], ["startTimeUnixNano", "start_time_unix_nano", "string"], ["endTimeUnixNano", "end_time_unix_nano", "string"], ["attributes", "attributes", { array: () => AttributeShape }], ["droppedAttributesCount", "dropped_attributes_count", "number"], ["events", "events", { array: () => SpanEventShape }], ["droppedEventsCount", "dropped_events_count", "number"], ["links", "links", { array: () => SpanLinkShape }], ["droppedLinksCount", "dropped_links_count", "number"], ["status", "status", () => SpanStatusShape], ["flags", "flags", "number"], ["resource", "resource", () => ResourceShape], ["instrumentationScope", "instrumentation_scope", () => InstrumentationScopeShape]] };
+const SpanShape: Shape = { fields: [["spanId", "span_id", "string"], ["traceId", "trace_id", "string"], ["parentSpanId", "parent_span_id", "string"], ["traceState", "trace_state", "string"], ["name", "name", "string"], ["kind", "kind", "unknown"], ["startTimeUnixNano", "start_time_unix_nano", { decimal: true, minimum: "0" }], ["endTimeUnixNano", "end_time_unix_nano", { decimal: true, minimum: "0" }], ["attributes", "attributes", { array: () => AttributeShape }], ["droppedAttributesCount", "dropped_attributes_count", "number"], ["events", "events", { array: () => SpanEventShape }], ["droppedEventsCount", "dropped_events_count", "number"], ["links", "links", { array: () => SpanLinkShape }], ["droppedLinksCount", "dropped_links_count", "number"], ["status", "status", () => SpanStatusShape], ["flags", "flags", "number"], ["resource", "resource", () => ResourceShape], ["instrumentationScope", "instrumentation_scope", () => InstrumentationScopeShape]] };
 export const SpanJson = {
   toJson: (value: Model.Span): Json.Span => convert(value, SpanShape, true) as Json.Span,
   fromJson: (value: Json.Span): Model.Span => convert(value, SpanShape, false) as Model.Span,
 };
-const SpanEventShape: Shape = { fields: [["name", "name", "string"], ["timeUnixNano", "time_unix_nano", "string"], ["attributes", "attributes", { array: () => AttributeShape }], ["droppedAttributesCount", "dropped_attributes_count", "number"]] };
+const SpanEventShape: Shape = { fields: [["name", "name", "string"], ["timeUnixNano", "time_unix_nano", { decimal: true, minimum: "0" }], ["attributes", "attributes", { array: () => AttributeShape }], ["droppedAttributesCount", "dropped_attributes_count", "number"]] };
 export const SpanEventJson = {
   toJson: (value: Model.SpanEvent): Json.SpanEvent => convert(value, SpanEventShape, true) as Json.SpanEvent,
   fromJson: (value: Json.SpanEvent): Model.SpanEvent => convert(value, SpanEventShape, false) as Model.SpanEvent,
@@ -154,22 +162,22 @@ export const SpanStatusJson = {
   toJson: (value: Model.SpanStatus): Json.SpanStatus => convert(value, SpanStatusShape, true) as Json.SpanStatus,
   fromJson: (value: Json.SpanStatus): Model.SpanStatus => convert(value, SpanStatusShape, false) as Model.SpanStatus,
 };
-const TraceSummaryShape: Shape = { fields: [["traceId", "trace_id", "string"], ["rootSpan", "root_span", () => SpanShape], ["spanCount", "span_count", "number"], ["durationNs", "duration_ns", "string"], ["startTime", "start_time", "string"], ["endTime", "end_time", "string"], ["services", "services", { array: "string" }], ["hasError", "has_error", "boolean"]] };
+const TraceSummaryShape: Shape = { fields: [["traceId", "trace_id", "string"], ["rootSpan", "root_span", () => SpanShape], ["spanCount", "span_count", "number"], ["durationNs", "duration_ns", { decimal: true, minimum: "0" }], ["startTime", "start_time", "string"], ["endTime", "end_time", "string"], ["services", "services", { array: "string" }], ["hasError", "has_error", "boolean"]] };
 export const TraceSummaryJson = {
   toJson: (value: Model.TraceSummary): Json.TraceSummary => convert(value, TraceSummaryShape, true) as Json.TraceSummary,
   fromJson: (value: Json.TraceSummary): Model.TraceSummary => convert(value, TraceSummaryShape, false) as Model.TraceSummary,
 };
-const TraceShape: Shape = { fields: [["spans", "spans", { array: () => SpanShape }], ["traceId", "trace_id", "string"], ["rootSpan", "root_span", () => SpanShape], ["spanCount", "span_count", "number"], ["durationNs", "duration_ns", "string"], ["startTime", "start_time", "string"], ["endTime", "end_time", "string"], ["services", "services", { array: "string" }], ["hasError", "has_error", "boolean"]] };
+const TraceShape: Shape = { fields: [["spans", "spans", { array: () => SpanShape }], ["traceId", "trace_id", "string"], ["rootSpan", "root_span", () => SpanShape], ["spanCount", "span_count", "number"], ["durationNs", "duration_ns", { decimal: true, minimum: "0" }], ["startTime", "start_time", "string"], ["endTime", "end_time", "string"], ["services", "services", { array: "string" }], ["hasError", "has_error", "boolean"]] };
 export const TraceJson = {
   toJson: (value: Model.Trace): Json.Trace => convert(value, TraceShape, true) as Json.Trace,
   fromJson: (value: Json.Trace): Model.Trace => convert(value, TraceShape, false) as Model.Trace,
 };
-const LogRecordShape: Shape = { fields: [["timeUnixNano", "time_unix_nano", "string"], ["observedTimeUnixNano", "observed_time_unix_nano", "string"], ["severityNumber", "severity_number", "unknown"], ["severityText", "severity_text", "string"], ["body", "body", () => AttributeValueShape], ["attributes", "attributes", { array: () => AttributeShape }], ["droppedAttributesCount", "dropped_attributes_count", "number"], ["flags", "flags", "number"], ["traceId", "trace_id", "string"], ["spanId", "span_id", "string"], ["eventName", "event_name", "string"], ["resource", "resource", () => ResourceShape], ["instrumentationScope", "instrumentation_scope", () => InstrumentationScopeShape]] };
+const LogRecordShape: Shape = { fields: [["timeUnixNano", "time_unix_nano", { decimal: true, minimum: "0" }], ["observedTimeUnixNano", "observed_time_unix_nano", { decimal: true, minimum: "0" }], ["severityNumber", "severity_number", "unknown"], ["severityText", "severity_text", "string"], ["body", "body", () => AttributeValueShape], ["attributes", "attributes", { array: () => AttributeShape }], ["droppedAttributesCount", "dropped_attributes_count", "number"], ["flags", "flags", "number"], ["traceId", "trace_id", "string"], ["spanId", "span_id", "string"], ["eventName", "event_name", "string"], ["resource", "resource", () => ResourceShape], ["instrumentationScope", "instrumentation_scope", () => InstrumentationScopeShape]] };
 export const LogRecordJson = {
   toJson: (value: Model.LogRecord): Json.LogRecord => convert(value, LogRecordShape, true) as Json.LogRecord,
   fromJson: (value: Json.LogRecord): Model.LogRecord => convert(value, LogRecordShape, false) as Model.LogRecord,
 };
-const MetricExemplarShape: Shape = { fields: [["timeUnixNano", "time_unix_nano", "string"], ["value", "value", () => MetricNumberValueShape], ["filteredAttributes", "filtered_attributes", { array: () => AttributeShape }], ["traceId", "trace_id", "string"], ["spanId", "span_id", "string"]] };
+const MetricExemplarShape: Shape = { fields: [["timeUnixNano", "time_unix_nano", { decimal: true, minimum: "0" }], ["value", "value", () => MetricNumberValueShape], ["filteredAttributes", "filtered_attributes", { array: () => AttributeShape }], ["traceId", "trace_id", "string"], ["spanId", "span_id", "string"]] };
 export const MetricExemplarJson = {
   toJson: (value: Model.MetricExemplar): Json.MetricExemplar => convert(value, MetricExemplarShape, true) as Json.MetricExemplar,
   fromJson: (value: Json.MetricExemplar): Model.MetricExemplar => convert(value, MetricExemplarShape, false) as Model.MetricExemplar,
@@ -184,17 +192,17 @@ export const MetricNumberPointDataJson = {
   toJson: (value: Model.MetricNumberPointData): Json.MetricNumberPointData => convert(value, MetricNumberPointDataShape, true) as Json.MetricNumberPointData,
   fromJson: (value: Json.MetricNumberPointData): Model.MetricNumberPointData => convert(value, MetricNumberPointDataShape, false) as Model.MetricNumberPointData,
 };
-const MetricHistogramPointDataShape: Shape = { fields: [["kind", "kind", { literal: "histogram" }], ["count", "count", "string"], ["sum", "sum", () => AttributeDoubleShape], ["min", "min", () => AttributeDoubleShape], ["max", "max", () => AttributeDoubleShape], ["explicitBounds", "explicit_bounds", { array: () => AttributeDoubleShape }], ["bucketCounts", "bucket_counts", { array: "string" }]] };
+const MetricHistogramPointDataShape: Shape = { fields: [["kind", "kind", { literal: "histogram" }], ["count", "count", { decimal: true, minimum: "0" }], ["sum", "sum", () => AttributeDoubleShape], ["min", "min", () => AttributeDoubleShape], ["max", "max", () => AttributeDoubleShape], ["explicitBounds", "explicit_bounds", { array: () => AttributeDoubleShape }], ["bucketCounts", "bucket_counts", { array: { decimal: true, minimum: "0" } }]] };
 export const MetricHistogramPointDataJson = {
   toJson: (value: Model.MetricHistogramPointData): Json.MetricHistogramPointData => convert(value, MetricHistogramPointDataShape, true) as Json.MetricHistogramPointData,
   fromJson: (value: Json.MetricHistogramPointData): Model.MetricHistogramPointData => convert(value, MetricHistogramPointDataShape, false) as Model.MetricHistogramPointData,
 };
-const MetricExponentialBucketsShape: Shape = { fields: [["offset", "offset", "number"], ["bucketCounts", "bucket_counts", { array: "string" }]] };
+const MetricExponentialBucketsShape: Shape = { fields: [["offset", "offset", "number"], ["bucketCounts", "bucket_counts", { array: { decimal: true, minimum: "0" } }]] };
 export const MetricExponentialBucketsJson = {
   toJson: (value: Model.MetricExponentialBuckets): Json.MetricExponentialBuckets => convert(value, MetricExponentialBucketsShape, true) as Json.MetricExponentialBuckets,
   fromJson: (value: Json.MetricExponentialBuckets): Model.MetricExponentialBuckets => convert(value, MetricExponentialBucketsShape, false) as Model.MetricExponentialBuckets,
 };
-const MetricExponentialHistogramPointDataShape: Shape = { fields: [["kind", "kind", { literal: "exponential_histogram" }], ["count", "count", "string"], ["sum", "sum", () => AttributeDoubleShape], ["min", "min", () => AttributeDoubleShape], ["max", "max", () => AttributeDoubleShape], ["scale", "scale", "number"], ["zeroCount", "zero_count", "string"], ["zeroThreshold", "zero_threshold", () => AttributeDoubleShape], ["positive", "positive", () => MetricExponentialBucketsShape], ["negative", "negative", () => MetricExponentialBucketsShape]] };
+const MetricExponentialHistogramPointDataShape: Shape = { fields: [["kind", "kind", { literal: "exponential_histogram" }], ["count", "count", { decimal: true, minimum: "0" }], ["sum", "sum", () => AttributeDoubleShape], ["min", "min", () => AttributeDoubleShape], ["max", "max", () => AttributeDoubleShape], ["scale", "scale", "number"], ["zeroCount", "zero_count", { decimal: true, minimum: "0" }], ["zeroThreshold", "zero_threshold", () => AttributeDoubleShape], ["positive", "positive", () => MetricExponentialBucketsShape], ["negative", "negative", () => MetricExponentialBucketsShape]] };
 export const MetricExponentialHistogramPointDataJson = {
   toJson: (value: Model.MetricExponentialHistogramPointData): Json.MetricExponentialHistogramPointData => convert(value, MetricExponentialHistogramPointDataShape, true) as Json.MetricExponentialHistogramPointData,
   fromJson: (value: Json.MetricExponentialHistogramPointData): Model.MetricExponentialHistogramPointData => convert(value, MetricExponentialHistogramPointDataShape, false) as Model.MetricExponentialHistogramPointData,
@@ -204,7 +212,7 @@ export const MetricQuantileValueJson = {
   toJson: (value: Model.MetricQuantileValue): Json.MetricQuantileValue => convert(value, MetricQuantileValueShape, true) as Json.MetricQuantileValue,
   fromJson: (value: Json.MetricQuantileValue): Model.MetricQuantileValue => convert(value, MetricQuantileValueShape, false) as Model.MetricQuantileValue,
 };
-const MetricSummaryPointDataShape: Shape = { fields: [["kind", "kind", { literal: "summary" }], ["count", "count", "string"], ["sum", "sum", () => AttributeDoubleShape], ["quantileValues", "quantile_values", { array: () => MetricQuantileValueShape }]] };
+const MetricSummaryPointDataShape: Shape = { fields: [["kind", "kind", { literal: "summary" }], ["count", "count", { decimal: true, minimum: "0" }], ["sum", "sum", () => AttributeDoubleShape], ["quantileValues", "quantile_values", { array: () => MetricQuantileValueShape }]] };
 export const MetricSummaryPointDataJson = {
   toJson: (value: Model.MetricSummaryPointData): Json.MetricSummaryPointData => convert(value, MetricSummaryPointDataShape, true) as Json.MetricSummaryPointData,
   fromJson: (value: Json.MetricSummaryPointData): Model.MetricSummaryPointData => convert(value, MetricSummaryPointDataShape, false) as Model.MetricSummaryPointData,
@@ -229,15 +237,30 @@ export const ProjectedSourceStatusJson = {
   toJson: (value: Model.ProjectedSourceStatus): Json.ProjectedSourceStatus => convert(value, ProjectedSourceStatusShape, true) as Json.ProjectedSourceStatus,
   fromJson: (value: Json.ProjectedSourceStatus): Model.ProjectedSourceStatus => convert(value, ProjectedSourceStatusShape, false) as Model.ProjectedSourceStatus,
 };
-const SignalStatusShape: Shape = { fields: [["signal", "signal", { union: [{ literal: "traces" }, { literal: "metrics" }, { literal: "logs" }] }], ["kind", "kind", { union: [{ literal: "active" }, { literal: "silent" }] }], ["lastSeen", "last_seen", "string"], ["silentFor", "silent_for", "string"]] };
+const SignalStatusShape: Shape = { tag: "kind", cases: { "active": () => ActiveSignalStatusShape, "silent": () => SilentSignalStatusShape } };
 export const SignalStatusJson = {
   toJson: (value: Model.SignalStatus): Json.SignalStatus => convert(value, SignalStatusShape, true) as Json.SignalStatus,
   fromJson: (value: Json.SignalStatus): Model.SignalStatus => convert(value, SignalStatusShape, false) as Model.SignalStatus,
+};
+const ActiveSignalStatusShape: Shape = { fields: [["signal", "signal", { union: [{ literal: "traces" }, { literal: "metrics" }, { literal: "logs" }] }], ["kind", "kind", { literal: "active" }], ["lastSeen", "last_seen", "string"]] };
+export const ActiveSignalStatusJson = {
+  toJson: (value: Model.ActiveSignalStatus): Json.ActiveSignalStatus => convert(value, ActiveSignalStatusShape, true) as Json.ActiveSignalStatus,
+  fromJson: (value: Json.ActiveSignalStatus): Model.ActiveSignalStatus => convert(value, ActiveSignalStatusShape, false) as Model.ActiveSignalStatus,
+};
+const SilentSignalStatusShape: Shape = { fields: [["signal", "signal", { union: [{ literal: "traces" }, { literal: "metrics" }, { literal: "logs" }] }], ["kind", "kind", { literal: "silent" }], ["lastSeen", "last_seen", "string"], ["silentFor", "silent_for", "string"]] };
+export const SilentSignalStatusJson = {
+  toJson: (value: Model.SilentSignalStatus): Json.SilentSignalStatus => convert(value, SilentSignalStatusShape, true) as Json.SilentSignalStatus,
+  fromJson: (value: Json.SilentSignalStatus): Model.SilentSignalStatus => convert(value, SilentSignalStatusShape, false) as Model.SilentSignalStatus,
 };
 const SourceStatusShape: Shape = { fields: [["service", "service", "string"], ["signals", "signals", { array: () => SignalStatusShape }]] };
 export const SourceStatusJson = {
   toJson: (value: Model.SourceStatus): Json.SourceStatus => convert(value, SourceStatusShape, true) as Json.SourceStatus,
   fromJson: (value: Json.SourceStatus): Model.SourceStatus => convert(value, SourceStatusShape, false) as Model.SourceStatus,
+};
+const SignalStatusFieldsShape: Shape = { fields: [["signal", "signal", { union: [{ literal: "traces" }, { literal: "metrics" }, { literal: "logs" }] }]] };
+export const SignalStatusFieldsJson = {
+  toJson: (value: Model.SignalStatusFields): Json.SignalStatusFields => convert(value, SignalStatusFieldsShape, true) as Json.SignalStatusFields,
+  fromJson: (value: Json.SignalStatusFields): Model.SignalStatusFields => convert(value, SignalStatusFieldsShape, false) as Model.SignalStatusFields,
 };
 const ErrorsRecentInputShape: Shape = { fields: [["service", "service", "string"], ["since", "since", "string"], ["fields", "fields", { array: "string" }], ["maxBytes", "max_bytes", "number"], ["snapshotId", "snapshot_id", "string"], ["cursor", "cursor", "string"]] };
 export const ErrorsRecentInputJson = {
@@ -264,15 +287,15 @@ export const TracesGetInputJson = {
   toJson: (value: Model.TracesGetInput): Json.TracesGetInput => convert(value, TracesGetInputShape, true) as Json.TracesGetInput,
   fromJson: (value: Json.TracesGetInput): Model.TracesGetInput => convert(value, TracesGetInputShape, false) as Model.TracesGetInput,
 };
-const ProjectedTraceShape: Shape = { fields: [["spans", "spans", { array: () => SpanShape }], ["traceId", "trace_id", "string"], ["rootSpan", "root_span", () => SpanShape], ["spanCount", "span_count", "number"], ["durationNs", "duration_ns", "string"], ["startTime", "start_time", "string"], ["endTime", "end_time", "string"], ["services", "services", { array: "string" }], ["hasError", "has_error", "boolean"]] };
-export const ProjectedTraceJson = {
-  toJson: (value: Model.ProjectedTrace): Json.ProjectedTrace => convert(value, ProjectedTraceShape, true) as Json.ProjectedTrace,
-  fromJson: (value: Json.ProjectedTrace): Model.ProjectedTrace => convert(value, ProjectedTraceShape, false) as Model.ProjectedTrace,
-};
 const TracesGetResultShape: Shape = { fields: [["trace", "trace", () => ProjectedTraceShape], ["freshness", "freshness", () => FreshnessShape], ["snapshotId", "snapshot_id", "string"], ["nextCursor", "next_cursor", "string"]] };
 export const TracesGetResultJson = {
   toJson: (value: Model.TracesGetResult): Json.TracesGetResult => convert(value, TracesGetResultShape, true) as Json.TracesGetResult,
   fromJson: (value: Json.TracesGetResult): Model.TracesGetResult => convert(value, TracesGetResultShape, false) as Model.TracesGetResult,
+};
+const ProjectedTraceShape: Shape = { fields: [["spans", "spans", { array: () => SpanShape }], ["traceId", "trace_id", "string"], ["rootSpan", "root_span", () => SpanShape], ["spanCount", "span_count", "number"], ["durationNs", "duration_ns", { decimal: true, minimum: "0" }], ["startTime", "start_time", "string"], ["endTime", "end_time", "string"], ["services", "services", { array: "string" }], ["hasError", "has_error", "boolean"]] };
+export const ProjectedTraceJson = {
+  toJson: (value: Model.ProjectedTrace): Json.ProjectedTrace => convert(value, ProjectedTraceShape, true) as Json.ProjectedTrace,
+  fromJson: (value: Json.ProjectedTrace): Model.ProjectedTrace => convert(value, ProjectedTraceShape, false) as Model.ProjectedTrace,
 };
 const TracesSlowestInputShape: Shape = { fields: [["operation", "operation", "string"], ["limit", "limit", "number"], ["service", "service", "string"], ["since", "since", "string"], ["fields", "fields", { array: "string" }], ["maxBytes", "max_bytes", "number"], ["snapshotId", "snapshot_id", "string"], ["cursor", "cursor", "string"]] };
 export const TracesSlowestInputJson = {
@@ -348,4 +371,29 @@ const EngineLimitsShape: Shape = { fields: [["maxFrameBytes", "max_frame_bytes",
 export const EngineLimitsJson = {
   toJson: (value: Model.EngineLimits): Json.EngineLimits => convert(value, EngineLimitsShape, true) as Json.EngineLimits,
   fromJson: (value: Json.EngineLimits): Model.EngineLimits => convert(value, EngineLimitsShape, false) as Model.EngineLimits,
+};
+const EngineEnvelopeShape: Shape = { fields: [["id", "id", "string"], ["revision", "revision", "string"]] };
+export const EngineEnvelopeJson = {
+  toJson: (value: Model.EngineEnvelope): Json.EngineEnvelope => convert(value, EngineEnvelopeShape, true) as Json.EngineEnvelope,
+  fromJson: (value: Json.EngineEnvelope): Model.EngineEnvelope => convert(value, EngineEnvelopeShape, false) as Model.EngineEnvelope,
+};
+const EngineCallShape: Shape = { fields: [["id", "id", "string"], ["revision", "revision", "string"], ["method", "method", { literal: "call" }], ["name", "name", "string"], ["input", "input", "unknown"], ["credential", "credential", { union: ["string", { literal: null }] }], ["traceparent", "traceparent", { union: ["string", { literal: null }] }], ["tracestate", "tracestate", { union: ["string", { literal: null }] }]] };
+export const EngineCallJson = {
+  toJson: (value: Model.EngineCall): Json.EngineCall => convert(value, EngineCallShape, true) as Json.EngineCall,
+  fromJson: (value: Json.EngineCall): Model.EngineCall => convert(value, EngineCallShape, false) as Model.EngineCall,
+};
+const EngineHealthShape: Shape = { fields: [["id", "id", "string"], ["revision", "revision", "string"], ["method", "method", { literal: "health" }]] };
+export const EngineHealthJson = {
+  toJson: (value: Model.EngineHealth): Json.EngineHealth => convert(value, EngineHealthShape, true) as Json.EngineHealth,
+  fromJson: (value: Json.EngineHealth): Model.EngineHealth => convert(value, EngineHealthShape, false) as Model.EngineHealth,
+};
+const EngineCancelShape: Shape = { fields: [["id", "id", "string"], ["revision", "revision", "string"], ["method", "method", { literal: "cancel" }]] };
+export const EngineCancelJson = {
+  toJson: (value: Model.EngineCancel): Json.EngineCancel => convert(value, EngineCancelShape, true) as Json.EngineCancel,
+  fromJson: (value: Json.EngineCancel): Model.EngineCancel => convert(value, EngineCancelShape, false) as Model.EngineCancel,
+};
+const EngineCommandShape: Shape = { tag: "method", cases: { "call": () => EngineCallShape, "health": () => EngineHealthShape, "cancel": () => EngineCancelShape } };
+export const EngineCommandJson = {
+  toJson: (value: Model.EngineCommand): Json.EngineCommand => convert(value, EngineCommandShape, true) as Json.EngineCommand,
+  fromJson: (value: Json.EngineCommand): Model.EngineCommand => convert(value, EngineCommandShape, false) as Model.EngineCommand,
 };

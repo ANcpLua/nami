@@ -1,0 +1,14 @@
+[
+  "src/nami.collector.ingestion/Generated/CollectorConfigurationKeys.g.cs",
+  "src/nami.collector.ingestion/Generated/IngestionModels.g.cs",
+  "src/nami.collector.ingestion/Generated/IngestionRecords.g.cs",
+  "src/nami.collector.ingestion/Generated/MetricModels.g.cs",
+  "src/nami.collector.ingestion/Generated/MetricShapes.g.cs",
+  "src/nami.collector.ingestion/Generated/OtlpAttributeValue.g.cs",
+  "src/nami.collector.storage/Generated/AttributeIngestion.g.cs",
+  "src/nami.collector.storage/Generated/IngestionMappings.g.cs",
+  "src/nami.collector.storage/Generated/StorageRows.g.cs",
+  "src/nami.collector.storage/Generated/StoredAttributeProjection.g.cs",
+  "src/nami.collector.storage/Generated/StoredDocuments.g.cs",
+  "src/nami.collector.storage/Generated/StoredMetricRecords.g.cs"
+]

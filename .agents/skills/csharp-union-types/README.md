@@ -2,7 +2,9 @@
 
 A C# 15 skill for AI coding agents, backed by local compiler diagnostics and executed probes. Use the bundled guidance to implement and review code; run only the checks relevant to the requested change.
 
-The baseline is **.NET SDK 11.0.100-rc.2.26504.105**. Findings are version-specific. `union` compiles with C# 15.0 on this SDK; earlier preview instructions requiring `LangVersion=preview` must not be applied universally.
+The baseline is **.NET SDK 11.0.100-rc.3.26522.148**. Findings are version-specific. `union` compiles with C# 15.0 on this SDK; earlier preview instructions requiring `LangVersion=preview` must not be applied universally.
+
+RC3 is an out-of-band security update. Its [release notes](https://github.com/dotnet/core/blob/main/release-notes/11.0/preview/rc3/11.0.0-rc.3.md) list no union-language changes. The existing examples, polyfills and diagnostic probes are revalidated against this SDK.
 
 ## Contents
 
@@ -11,6 +13,7 @@ The baseline is **.NET SDK 11.0.100-rc.2.26504.105**. Findings are version-speci
 - [Verification guide](references/verification.md): compiler/runtime checks and their limits.
 - [Examples](examples/unions.cs): readonly unions with compiled and executed checks for cases, defaults and scalar matching.
 - [Functional composition](examples/functional.cs): pure `Map`/`Bind`/`Match` operators and a parsing/validation pipeline with errors as values.
+- [Closed hierarchies](examples/closed-hierarchies.cs): closed intermediate nodes, sealed leaves, exhaustive matching and null handling.
 - [Polyfills](polyfills/README.md): source-only `UnionAttribute` and `IUnion` for targets before .NET 11.
 - Bundled probes in `probes/`, with the required license notices. No external repository is required.
 - Runtime reports are transient external diagnostic state; no captured run is bundled with the instructions.

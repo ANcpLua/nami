@@ -10,6 +10,12 @@ namespace Nami.Api.Contracts.OTel.Logs;
 
 public sealed class LogRecord
 {
+    public const ulong TimeUnixNanoMinimum = 0;
+    public const ulong ObservedTimeUnixNanoMinimum = 0;
+    public const long DroppedAttributesCountMinimum = 0;
+    public const long DroppedAttributesCountMaximum = 9007199254740991;
+    public const uint FlagsMinimum = 0;
+    public const uint FlagsMaximum = 4294967295;
     [JsonConverter(typeof(global::Nami.Api.Contracts.UInt64StringConverter))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("time_unix_nano")]

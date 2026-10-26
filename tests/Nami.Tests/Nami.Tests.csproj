@@ -1,5 +1,21 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="MSTest.Sdk">
+  <PropertyGroup>
+    <IsTestApplication>false</IsTestApplication>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Fixtures/**/*.cs"/>
+    <GeneratedFixture Include="Fixtures/ProcessHost/Nami.ProcessHost.csproj.template" Name="Nami.ProcessHost" TargetPath="process-host/"/>
+    <Content Include="Capture/*.cs" Link="fixture-sources/capture/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>
+    <ProjectReference Include="../../internal/nami.semconv/Nami.SemanticConventions.csproj"/>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    <PackageReference Include="Grpc.AspNetCore.Server"/>
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all"/>
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <PackageReference Include="Basic.Reference.Assemblies.Net100"/>
+    <PackageReference Include="NuGet.Versioning"/>
+    <Protobuf Include="Protos/**/*.proto" ProtoRoot="Protos" GrpcServices="None" Access="Internal"/>
     <ProjectReference Include="../../src/nami.collector.ingestion/nami.collector.ingestion.csproj"/>
     <ProjectReference Include="../../src/nami.collector.storage/nami.collector.storage.csproj"/>
     <PackageReference Include="Google.Protobuf"/>
@@ -8,4 +24,24 @@
     <InternalsVisibleTo Include="Nami.IntegrationTests"/>
     <InternalsVisibleTo Include="Nami.EndToEndTests"/>
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../global.json" Link="fixture-global.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>
+    <EmbeddedResource Include="../../registry/resolved.json" LogicalName="Nami.Tests.Registry.json"/>
+  </ItemGroup>
+  <Target Name="WriteFixtureDefaults" BeforeTargets="_GetCopyToOutputDirectoryItemsFromThisProject;GetCopyToPublishDirectoryItems">
+    <ItemGroup>
+      <_FixtureDefaultsLine Include="&lt;FixtureDefaults TargetFramework=&quot;$(TargetFramework)&quot;&gt;"/>
+      <_FixtureDefaultsLine Include="@(PackageVersion->'&lt;Package Id=&quot;%(Identity)&quot; Version=&quot;%(Version)&quot; /&gt;')"/>
+      <_FixtureDefaultsLine Include="&lt;/FixtureDefaults&gt;"/>
+    </ItemGroup>
+    <WriteLinesToFile File="$(IntermediateOutputPath)fixture-defaults.xml" Lines="@(_FixtureDefaultsLine)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
+    <ItemGroup>
+      <ContentWithTargetPath Include="$(IntermediateOutputPath)fixture-defaults.xml">
+        <TargetPath>fixture-defaults.xml</TargetPath>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ContentWithTargetPath>
+      <FileWrites Include="$(IntermediateOutputPath)fixture-defaults.xml"/>
+    </ItemGroup>
+  </Target>
 </Project>

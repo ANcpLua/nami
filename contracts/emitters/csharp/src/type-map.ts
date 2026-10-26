@@ -1,8 +1,9 @@
+import { languageName } from "./semantics.js";
 import type { Model, Program, Scalar, Type, Union } from "@typespec/compiler";
 import { getDiscriminatedUnion, isArrayModelType, isRecordModelType, getFormat } from "@typespec/compiler";
 import { getCsharpNamespace, hasCsharpPolymorphic } from "./decorators.js";
 import { hasCsharpBrand } from "./decorators.js";
-import { reportDiagnostic } from "./lib.js";
+import { reportDiagnostic, stateKeys } from "./lib.js";
 
 const SCALAR_MAP: Record<string, string> = {
   "int8": "sbyte",
@@ -28,6 +29,8 @@ const SCALAR_MAP: Record<string, string> = {
 };
 
 export function mapType(program: Program, type: Type): string {
+  const override = program.stateMap(stateKeys.propertyType).get(type) as string | undefined;
+  if (override) return type.kind === "Union" && [...type.variants.values()].some(v => v.type.kind === "Intrinsic" && v.type.name === "null") && !program.stateMap(stateKeys.slot).has(type) ? `${override}?` : override;
   switch (type.kind) {
     case "Scalar":
       return mapScalar(program, type as Scalar);
@@ -37,6 +40,7 @@ export function mapType(program: Program, type: Type): string {
         return `IReadOnlyList<${inner}>`;
       }
       if (isRecordModelType(type)) {
+        if (type.properties.size) throw new Error(`Hybrid map ${type.name} needs an explicit object representation; fixed fields cannot be discarded.`);
         const inner = mapType(program, type.indexer!.value);
         return `IReadOnlyDictionary<string, ${inner}>`;
       }
@@ -50,6 +54,7 @@ export function mapType(program: Program, type: Type): string {
     case "EnumMember":
       return qualifyModelOrEnum(program, (type as { enum: Type }).enum);
     case "Union": {
+      if (program.stateMap(stateKeys.slot).has(type)) return qualifyModelOrEnum(program, type);
       if (hasCsharpPolymorphic(program, type)) return qualifyModelOrEnum(program, type);
       if (isNamedFloatingPointUnion(type)) return "double";
       if (isDiscriminatedUnion(program, type)) return qualifyModelOrEnum(program, type);
@@ -202,6 +207,7 @@ function qualifyModelOrEnum(program: Program, type: Type): string {
     }
     name = parts.join("");
   }
+  name = languageName(program, type, name);
   const ownNs = getCsharpNamespace(program, type);
   if (ownNs) return `${ownNs}.${name}`;
   const parentNs = climbForNamespace(program, type);

@@ -1,0 +1,156 @@
+name,language,original_source,status,consumer,typespec
+Artifact,TypeScript,contracts/agent-control/src/control.ts:14,retained algorithm or separate backlog,Build / generator / control tooling,
+Event,TypeScript,contracts/agent-control/src/control.ts:18,retained algorithm or separate backlog,Build / generator / control tooling,
+Facts,TypeScript,contracts/agent-control/src/control.ts:16,retained algorithm or separate backlog,Build / generator / control tooling,
+Finding,TypeScript,contracts/agent-control/src/control.ts:19,retained algorithm or separate backlog,Build / generator / control tooling,
+Inventory,TypeScript,contracts/agent-control/src/control.ts:15,retained algorithm or separate backlog,Build / generator / control tooling,
+Phase,TypeScript,contracts/agent-control/src/control.ts:17,retained algorithm or separate backlog,Build / generator / control tooling,
+Plan,TypeScript,contracts/agent-control/src/control.ts:21,retained algorithm or separate backlog,Build / generator / control tooling,
+Result,TypeScript,contracts/agent-control/src/control.ts:22,retained algorithm or separate backlog,Build / generator / control tooling,
+SourceEdit,TypeScript,contracts/agent-control/src/control.ts:20,retained algorithm or separate backlog,Build / generator / control tooling,
+Bucket,TypeScript,contracts/emitters/csharp/src/emitter.ts:31,retained algorithm or separate backlog,Build / generator / control tooling,
+MixedUnionShape,TypeScript,contracts/emitters/csharp/src/type-map.ts:102,retained algorithm or separate backlog,Build / generator / control tooling,
+IdentityBinding,TypeScript,contracts/emitters/nami-lint/src/policy.ts:71,retained algorithm or separate backlog,Build / generator / control tooling,
+ReservedName,TypeScript,contracts/emitters/nami-lint/src/policy.ts:151,retained algorithm or separate backlog,Build / generator / control tooling,
+ResolvedIdentity,TypeScript,contracts/emitters/nami-lint/src/policy.ts:271,retained algorithm or separate backlog,Build / generator / control tooling,
+WireNameException,TypeScript,contracts/emitters/nami-lint/src/policy.ts:44,retained algorithm or separate backlog,Build / generator / control tooling,
+Event,Lean,eng/agent-policy/Policy.lean:9,retained algorithm or separate backlog,Build / generator / control tooling,
+Facts,Lean,eng/agent-policy/Policy.lean:13,retained algorithm or separate backlog,Build / generator / control tooling,
+Phase,Lean,eng/agent-policy/Policy.lean:5,retained algorithm or separate backlog,Build / generator / control tooling,
+Nami.Collector.Storage.Generators.DuckDbColumnInfo,C#,internal/nami.collector.storage.generators/DuckDbInsertGenerator.cs:421,retained algorithm or separate backlog,Build / generator / control tooling,
+Nami.Collector.Storage.Generators.DuckDbIndexInfo,C#,internal/nami.collector.storage.generators/DuckDbInsertGenerator.cs:412,retained algorithm or separate backlog,Build / generator / control tooling,
+Nami.Collector.Storage.Generators.DuckDbParameterSetInfo,C#,internal/nami.collector.storage.generators/DuckDbInsertGenerator.cs:417,retained algorithm or separate backlog,Build / generator / control tooling,
+Nami.Collector.Storage.Generators.DuckDbTableInfo,C#,internal/nami.collector.storage.generators/DuckDbInsertGenerator.cs:399,retained algorithm or separate backlog,Build / generator / control tooling,
+Nami.Api.Contracts.ContractIssue,C#,internal/nami.contracts/ContractJson.cs:11,retained algorithm or separate backlog,Contract support,
+Nami.Api.Contracts.OptionalValue`1,C#,internal/nami.contracts/WireConverters.cs:76,retained algorithm or separate backlog,Contract support,
+Nami.ApiKeys.ApiKeyRoles,C#,src/nami/ApiKeys/OtlpApiKeyOptions.cs:62,retained algorithm or separate backlog,Engine,
+Nami.ApiKeys.OtlpApiKeyOptions,C#,src/nami/ApiKeys/OtlpApiKeyOptions.cs:9,retained algorithm or separate backlog,Engine,
+Nami.ApiKeys.ProjectApiKey,C#,src/nami/ApiKeys/OtlpApiKeyOptions.cs:55,retained algorithm or separate backlog,Engine,
+Nami.Hosting.CollectorPortOptions,C#,src/nami/Hosting/CollectorPortOptions.cs:9,retained algorithm or separate backlog,Engine,
+Nami.Hosting.CollectorStorageOptions,C#,src/nami/Hosting/CollectorStorageOptions.cs:8,retained algorithm or separate backlog,Engine,
+Nami.Retention.RetentionOptions,C#,src/nami/Retention/RetentionOptions.cs:8,retained algorithm or separate backlog,Engine,
+Nami.Tools.ErrorsRecentTool.Occurrence,C#,src/nami/Tools/ReadTools.cs:113,retained algorithm or separate backlog,Engine,
+Nami.Tools.ToolRows,C#,src/nami/Tools/ToolDispatcher.cs:319,retained algorithm or separate backlog,Engine,
+Nami.Tools.ToolRunResult,C#,src/nami/Tools/ToolDispatcher.cs:13,retained algorithm or separate backlog,Engine,
+Nami.Tools.ToolWindow,C#,src/nami/Tools/ToolDispatcher.cs:327,retained algorithm or separate backlog,Engine,
+Nami.Collector.Ingestion.AttributeRename,C#,src/nami.collector.ingestion/NormalizedAttributes.cs:10,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.AttributeRename
+Nami.Collector.Ingestion.NormalizedContractAttributes,C#,src/nami.collector.ingestion/NormalizedAttributes.cs:33,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.NormalizedContractAttributes
+Nami.Collector.Ingestion.NormalizedMetricExemplars,C#,src/nami.collector.ingestion/NormalizedAttributes.cs:39,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.NormalizedMetricExemplars
+Nami.Collector.Ingestion.OtlpAttributeValue,C#,src/nami.collector.ingestion/OtlpAttributeValue.cs:21,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.OtlpAttributeValue
+Nami.Collector.Ingestion.OtlpAttributeValueKind,C#,src/nami.collector.ingestion/OtlpAttributeValue.cs:9,retained algorithm or separate backlog,Ingestion,
+Nami.Collector.Ingestion.OtlpConverter.MetricStreamMetadata,C#,src/nami.collector.ingestion/OtlpConverter.Metrics.cs:377,retained algorithm or separate backlog,Ingestion,
+Nami.Collector.Ingestion.OtlpConverter.ResourceAttributeProjectionKey,C#,src/nami.collector.ingestion/OtlpConverter.cs:287,retained algorithm or separate backlog,Ingestion,
+Nami.Collector.Ingestion.OtlpConverter.ResourceProjection,C#,src/nami.collector.ingestion/OtlpConverter.cs:283,retained algorithm or separate backlog,Ingestion,
+Nami.Collector.Ingestion.OtlpCorsOptions,C#,src/nami.collector.ingestion/OtlpCorsOptions.cs:9,retained algorithm or separate backlog,Ingestion,
+Nami.Collector.Ingestion.OtlpPayloadEncoding,C#,src/nami.collector.ingestion/OtlpHttpResult.cs:10,retained algorithm or separate backlog,Ingestion,
+Nami.Collector.Ingestion.LogIngestionBatch,C#,src/nami.collector.ingestion/OtlpIngestionModels.cs:14,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.Records.LogIngestionBatch
+Nami.Collector.Ingestion.LogIngestionRecord,C#,src/nami.collector.ingestion/OtlpIngestionModels.cs:89,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.Records.LogIngestionRecord
+Nami.Collector.Ingestion.MetricIngestionBatch,C#,src/nami.collector.ingestion/OtlpIngestionModels.cs:25,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.Records.MetricIngestionBatch
+Nami.Collector.Ingestion.MetricPointIngestionRecord,C#,src/nami.collector.ingestion/OtlpIngestionModels.cs:129,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.Records.MetricPointIngestionRecord
+Nami.Collector.Ingestion.ResourceEntityRefIngestionRecord,C#,src/nami.collector.ingestion/OtlpIngestionModels.cs:30,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.Records.ResourceEntityRefIngestionRecord
+Nami.Collector.Ingestion.SpanEventIngest,C#,src/nami.collector.ingestion/OtlpIngestionModels.cs:75,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.Records.SpanEventIngest
+Nami.Collector.Ingestion.SpanIngestionRecord,C#,src/nami.collector.ingestion/OtlpIngestionModels.cs:36,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.Records.SpanIngestionRecord
+Nami.Collector.Ingestion.SpanLinkIngest,C#,src/nami.collector.ingestion/OtlpIngestionModels.cs:81,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.Records.SpanLinkIngest
+Nami.Collector.Ingestion.TraceIngestionBatch,C#,src/nami.collector.ingestion/OtlpIngestionModels.cs:8,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.Records.TraceIngestionBatch
+Nami.Collector.Ingestion.Primitives.MetricKind,C#,src/nami.collector.ingestion/Primitives/MetricShapes.cs:4,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.Primitives.MetricKind
+Nami.Collector.Ingestion.Primitives.MetricTemporality,C#,src/nami.collector.ingestion/Primitives/MetricShapes.cs:13,generated,src/nami.collector.ingestion,Nami.Models.Ingestion.Primitives.MetricTemporality
+Nami.Collector.Storage.DuckDbStore.MetricObservationKey,C#,src/nami.collector.storage/DuckDbStore.MetricObservations.cs:179,retained algorithm or separate backlog,Storage,
+Nami.Collector.Storage.DuckDbStore.ArrivingResource,C#,src/nami.collector.storage/DuckDbStore.Snapshots.cs:226,retained algorithm or separate backlog,Storage,
+Nami.Collector.Storage.DuckDbStore.ActualColumn,C#,src/nami.collector.storage/DuckDbStore.cs:992,retained algorithm or separate backlog,Storage,
+Nami.Collector.Storage.DuckDbStore.SchemaIdentity,C#,src/nami.collector.storage/DuckDbStore.cs:994,retained algorithm or separate backlog,Storage,
+Nami.Collector.Storage.StorageFileMetrics,C#,src/nami.collector.storage/INamiStore.cs:10,retained algorithm or separate backlog,Storage,
+Nami.Collector.Storage.MetricExemplarRow,C#,src/nami.collector.storage/MetricExemplarRow.cs:4,generated,src/nami.collector.storage,Nami.Models.Storage.Rows.MetricExemplarRow
+Nami.Collector.Storage.HistoricalMetricProjection,C#,src/nami.collector.storage/MetricObservationCodec.cs:8,generated,src/nami.collector.storage,Nami.Models.Storage.Persistence.HistoricalMetricProjection
+Nami.Collector.Storage.MetricStorageMapper.MetricWriteSet,C#,src/nami.collector.storage/MetricStorageMapper.cs:161,retained algorithm or separate backlog,Storage,
+Nami.Collector.Storage.MetricObservationRow,C#,src/nami.collector.storage/MetricStorageModels.cs:153,generated,src/nami.collector.storage,Nami.Models.Storage.Rows.MetricObservationRow
+Nami.Collector.Storage.MetricPointRow,C#,src/nami.collector.storage/MetricStorageModels.cs:93,generated,src/nami.collector.storage,Nami.Models.Storage.Rows.MetricPointRow
+Nami.Collector.Storage.MetricRetentionResult,C#,src/nami.collector.storage/MetricStorageModels.cs:189,retained algorithm or separate backlog,Storage,
+Nami.Collector.Storage.MetricSeriesRow,C#,src/nami.collector.storage/MetricStorageModels.cs:10,generated,src/nami.collector.storage,Nami.Models.Storage.Rows.MetricSeriesRow
+Nami.Collector.Storage.SpanEventJson,C#,src/nami.collector.storage/SpanChildStorage.cs:5,generated,src/nami.collector.storage,Nami.Models.Storage.Persistence.SpanEventJson
+Nami.Collector.Storage.SpanLinkJson,C#,src/nami.collector.storage/SpanChildStorage.cs:13,generated,src/nami.collector.storage,Nami.Models.Storage.Persistence.SpanLinkJson
+Nami.Collector.Storage.SpanHotAttributeProjection,C#,src/nami.collector.storage/StorageAttributeProjection.cs:31,retained algorithm or separate backlog,Storage,
+Nami.Collector.Storage.AttributeDiscoveryRow,C#,src/nami.collector.storage/StorageRecords.cs:293,generated,src/nami.collector.storage,Nami.Models.Storage.Rows.AttributeDiscoveryRow
+Nami.Collector.Storage.AttributeStabilityRow,C#,src/nami.collector.storage/StorageRecords.cs:282,generated,src/nami.collector.storage,Nami.Models.Storage.Rows.AttributeStabilityRow
+Nami.Collector.Storage.ISnapshot,C#,src/nami.collector.storage/StorageRecords.cs:211,retained algorithm or separate backlog,Storage,
+Nami.Collector.Storage.LogStorageRow,C#,src/nami.collector.storage/StorageRecords.cs:124,generated,src/nami.collector.storage,Nami.Models.Storage.Rows.LogStorageRow
+Nami.Collector.Storage.ReadSnapshotRow,C#,src/nami.collector.storage/StorageRecords.cs:267,generated,src/nami.collector.storage,Nami.Models.Storage.Rows.ReadSnapshotRow
+Nami.Collector.Storage.ResourceObservationRow,C#,src/nami.collector.storage/StorageRecords.cs:253,generated,src/nami.collector.storage,Nami.Models.Storage.Rows.ResourceObservationRow
+Nami.Collector.Storage.SignalWatermarkRow,C#,src/nami.collector.storage/StorageRecords.cs:236,generated,src/nami.collector.storage,Nami.Models.Storage.Rows.SignalWatermarkRow
+Nami.Collector.Storage.SpanBatch,C#,src/nami.collector.storage/StorageRecords.cs:6,generated,src/nami.collector.storage,Nami.Models.Storage.Persistence.SpanBatch
+Nami.Collector.Storage.SpanStorageRow,C#,src/nami.collector.storage/StorageRecords.cs:8,generated,src/nami.collector.storage,Nami.Models.Storage.Rows.SpanStorageRow
+Nami.Collector.Storage.StorageStats,C#,src/nami.collector.storage/StorageRecords.cs:118,generated,src/nami.collector.storage,Nami.Models.Storage.Persistence.StorageStats
+Nami.Collector.Storage.TelemetrySnapshot,C#,src/nami.collector.storage/StorageRecords.cs:224,generated,src/nami.collector.storage,Nami.Models.Storage.Persistence.TelemetrySnapshot
+Nami.Collector.Storage.StoredAttributeValue,C#,src/nami.collector.storage/StoredAttributeValue.cs:15,retained algorithm or separate backlog,Storage,
+Nami.Collector.Storage.StoredAttributeValue.ArrayValue,C#,src/nami.collector.storage/StoredAttributeValue.cs:162,retained algorithm or separate backlog,Storage,
+Nami.Collector.Storage.StoredAttributeValue.BoolValue,C#,src/nami.collector.storage/StoredAttributeValue.cs:157,retained algorithm or separate backlog,Storage,
+Nami.Collector.Storage.StoredAttributeValue.ObjectValue,C#,src/nami.collector.storage/StoredAttributeValue.cs:167,retained algorithm or separate backlog,Storage,
+Nami.Collector.Storage.StoredAttributeValue.StringValue,C#,src/nami.collector.storage/StoredAttributeValue.cs:152,retained algorithm or separate backlog,Storage,
+Nami.Collector.Storage.StoredBytesValue,C#,src/nami.collector.storage/StoredAttributeValue.cs:212,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredBytesValue
+Nami.Collector.Storage.StoredDoubleValue,C#,src/nami.collector.storage/StoredAttributeValue.cs:205,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredDoubleValue
+Nami.Collector.Storage.StoredIntValue,C#,src/nami.collector.storage/StoredAttributeValue.cs:197,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredIntValue
+Nami.Collector.Storage.StoredKeyValueListValue,C#,src/nami.collector.storage/StoredAttributeValue.cs:217,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredKeyValueListValue
+Nami.Collector.Storage.StoredNumberValue,C#,src/nami.collector.storage/StoredAttributeValue.cs:187,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredNumberValue
+Nami.Collector.Storage.StoredObjectValue,C#,src/nami.collector.storage/StoredAttributeValue.cs:174,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredObjectValue
+Nami.Collector.Storage.StoredAttribute,C#,src/nami.collector.storage/StoredMetricRecords.cs:140,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredAttribute
+Nami.Collector.Storage.StoredExemplar,C#,src/nami.collector.storage/StoredMetricRecords.cs:123,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredExemplar
+Nami.Collector.Storage.StoredExponentialBuckets,C#,src/nami.collector.storage/StoredMetricRecords.cs:90,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredExponentialBuckets
+Nami.Collector.Storage.StoredExponentialHistogramPointData,C#,src/nami.collector.storage/StoredMetricRecords.cs:57,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredExponentialHistogramPointData
+Nami.Collector.Storage.StoredHistogramPointData,C#,src/nami.collector.storage/StoredMetricRecords.cs:30,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredHistogramPointData
+Nami.Collector.Storage.StoredMetricPointData,C#,src/nami.collector.storage/StoredMetricRecords.cs:11,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredMetricPointData
+Nami.Collector.Storage.StoredNumberPointData,C#,src/nami.collector.storage/StoredMetricRecords.cs:23,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredNumberPointData
+Nami.Collector.Storage.StoredQuantileValue,C#,src/nami.collector.storage/StoredMetricRecords.cs:113,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredQuantileValue
+Nami.Collector.Storage.StoredSummaryPointData,C#,src/nami.collector.storage/StoredMetricRecords.cs:99,generated,src/nami.collector.storage,Nami.Models.Storage.Json.StoredSummaryPointData
+Nami.Tests.Capture.ActivitySnapshot,C#,tests/Nami.Tests/Capture/ActivitySnapshot.cs:6,retained algorithm or separate backlog,Tests,
+Nami.Tests.InstrumentationScopeRecord,C#,tests/Nami.Tests/CapturedSpan.cs:17,retained algorithm or separate backlog,Tests,
+Nami.Tests.ResourceEntityReference,C#,tests/Nami.Tests/CapturedSpan.cs:4,retained algorithm or separate backlog,Tests,
+Nami.Tests.ResourceRecord,C#,tests/Nami.Tests/CapturedSpan.cs:10,retained algorithm or separate backlog,Tests,
+Nami.Tests.SpanEventRecord,C#,tests/Nami.Tests/CapturedSpan.cs:26,retained algorithm or separate backlog,Tests,
+Nami.Tests.SpanLinkRecord,C#,tests/Nami.Tests/CapturedSpan.cs:31,retained algorithm or separate backlog,Tests,
+Nami.Tests.SpanRecord,C#,tests/Nami.Tests/CapturedSpan.cs:38,retained algorithm or separate backlog,Tests,
+Nami.Tests.StoreIdentity,C#,tests/Nami.Tests/CapturedSpan.cs:68,retained algorithm or separate backlog,Tests,
+Nami.Tests.ChildProcessOptions,C#,tests/Nami.Tests/ChildProcess.cs:125,retained algorithm or separate backlog,Tests,
+Nami.Tests.Collector.ExecutableFormat,C#,tests/Nami.Tests/Collector/PublishedExecutable.cs:5,removed unused helper,none,
+Nami.Tests.Collector.PublishedExecutable,C#,tests/Nami.Tests/Collector/PublishedExecutable.cs:9,removed unused helper,none,
+Nami.Tests.Compilation.InMemoryAnalyzerOptions,C#,tests/Nami.Tests/Compilation/InMemoryAnalyzerOptions.cs:8,retained algorithm or separate backlog,Tests,
+Nami.Tests.Compilation.InMemoryAnalyzerOptions.Options,C#,tests/Nami.Tests/Compilation/InMemoryAnalyzerOptions.cs:28,retained algorithm or separate backlog,Tests,
+Nami.Tests.Compilation.InProcessCompilationResult,C#,tests/Nami.Tests/Compilation/InProcessCompiler.cs:103,retained algorithm or separate backlog,Tests,
+Nami.Tests.Compilation.InProcessGeneratorResult,C#,tests/Nami.Tests/Compilation/InProcessCompiler.cs:110,retained algorithm or separate backlog,Tests,
+Nami.Tests.FixtureEvidence,C#,tests/Nami.Tests/FixtureEvidence.cs:8,retained algorithm or separate backlog,Tests,
+Nami.Tests.FixtureBuildResult,C#,tests/Nami.Tests/FixtureProject.cs:337,retained algorithm or separate backlog,Tests,
+Nami.Tests.FixtureProjectDefinition,C#,tests/Nami.Tests/FixtureProjectDefinition.cs:8,retained algorithm or separate backlog,Tests,
+Nami.Tests.Infrastructure.ProcessResult,C#,tests/Nami.Tests/Infrastructure/ProcessRunner.cs:4,retained algorithm or separate backlog,Tests,
+Nami.Tests.Metadata.AssemblyMetadataEntry,C#,tests/Nami.Tests/Metadata/PeImage.cs:94,retained algorithm or separate backlog,Tests,
+Nami.Tests.Metadata.AssemblyReferenceIdentity,C#,tests/Nami.Tests/Metadata/PeImage.cs:97,retained algorithm or separate backlog,Tests,
+Nami.Tests.FixturePackage,C#,tests/Nami.Tests/PackageFeedFixture.cs:115,retained algorithm or separate backlog,Tests,
+Nami.Tests.PackageFeedFixture.Publication,C#,tests/Nami.Tests/PackageFeedFixture.cs:112,retained algorithm or separate backlog,Tests,
+Nami.Tests.Policies.PublishedTrace,C#,tests/Nami.Tests/Policies/TelemetryInvocation.cs:7,retained algorithm or separate backlog,Tests,
+Nami.Tests.SpanKind,C#,tests/Nami.Tests/SpanKind.cs:3,retained algorithm or separate backlog,Tests,
+Nami.Tests.ExemplarRecord,C#,tests/Nami.Tests/TelemetryRecords.cs:119,retained algorithm or separate backlog,Tests,
+Nami.Tests.ExponentialBuckets,C#,tests/Nami.Tests/TelemetryRecords.cs:86,retained algorithm or separate backlog,Tests,
+Nami.Tests.ExponentialHistogramData,C#,tests/Nami.Tests/TelemetryRecords.cs:52,retained algorithm or separate backlog,Tests,
+Nami.Tests.ExponentialHistogramPoint,C#,tests/Nami.Tests/TelemetryRecords.cs:89,retained algorithm or separate backlog,Tests,
+Nami.Tests.ExportReceipt,C#,tests/Nami.Tests/TelemetryRecords.cs:127,retained algorithm or separate backlog,Tests,
+Nami.Tests.GaugeData,C#,tests/Nami.Tests/TelemetryRecords.cs:42,retained algorithm or separate backlog,Tests,
+Nami.Tests.HistogramData,C#,tests/Nami.Tests/TelemetryRecords.cs:49,retained algorithm or separate backlog,Tests,
+Nami.Tests.HistogramPoint,C#,tests/Nami.Tests/TelemetryRecords.cs:72,retained algorithm or separate backlog,Tests,
+Nami.Tests.LogRecord,C#,tests/Nami.Tests/TelemetryRecords.cs:6,retained algorithm or separate backlog,Tests,
+Nami.Tests.MetricData,C#,tests/Nami.Tests/TelemetryRecords.cs:32,retained algorithm or separate backlog,Tests,
+Nami.Tests.MetricRecord,C#,tests/Nami.Tests/TelemetryRecords.cs:22,retained algorithm or separate backlog,Tests,
+Nami.Tests.NumberPoint,C#,tests/Nami.Tests/TelemetryRecords.cs:63,retained algorithm or separate backlog,Tests,
+Nami.Tests.OtlpExportRequest,C#,tests/Nami.Tests/TelemetryRecords.cs:136,retained algorithm or separate backlog,Tests,
+Nami.Tests.OtlpTransport,C#,tests/Nami.Tests/TelemetryRecords.cs:142,retained algorithm or separate backlog,Tests,
+Nami.Tests.QuantileValue,C#,tests/Nami.Tests/TelemetryRecords.cs:106,retained algorithm or separate backlog,Tests,
+Nami.Tests.SumData,C#,tests/Nami.Tests/TelemetryRecords.cs:45,retained algorithm or separate backlog,Tests,
+Nami.Tests.SummaryData,C#,tests/Nami.Tests/TelemetryRecords.cs:57,retained algorithm or separate backlog,Tests,
+Nami.Tests.SummaryPoint,C#,tests/Nami.Tests/TelemetryRecords.cs:109,retained algorithm or separate backlog,Tests,
+Nami.Tests.TelemetrySnapshot,C#,tests/Nami.Tests/TelemetryRecords.cs:149,retained algorithm or separate backlog,Tests,
+Nami.Tests.UnspecifiedMetricData,C#,tests/Nami.Tests/TelemetryRecords.cs:60,retained algorithm or separate backlog,Tests,
+Nami.Tests.MetricCorrelation,C#,tests/Nami.Tests/TraceEvidence.cs:19,retained algorithm or separate backlog,Tests,
+Nami.Tests.MetricEvidence,C#,tests/Nami.Tests/TraceEvidence.cs:26,retained algorithm or separate backlog,Tests,
+Nami.Tests.MetricPartition,C#,tests/Nami.Tests/TraceEvidence.cs:12,retained algorithm or separate backlog,Tests,
+Nami.Tests.SpanCall,C#,tests/Nami.Tests/TraceEvidence.cs:5,retained algorithm or separate backlog,Tests,
+Nami.Tests.TraceEvidence,C#,tests/Nami.Tests/TraceEvidence.cs:32,retained algorithm or separate backlog,Tests,
+Nami.UnitTests.OptionalFixture,C#,tests/Nami.UnitTests/ContractTests.cs:167,retained algorithm or separate backlog,Tests,
+Nami.UnitTests.Receiver.CapturedAttributeAssertionTests.InvalidCapturedArray,C#,tests/Nami.UnitTests/Receiver/CapturedAttributeAssertionTests.cs:54,retained algorithm or separate backlog,Tests,
+Nami.UnitTests.Receiver.DuplicateAttributeTests.AttributeShape,C#,tests/Nami.UnitTests/Receiver/DuplicateAttributeTests.cs:117,retained algorithm or separate backlog,Tests,
+Nami.UnitTests.Receiver.RawActivityCaptureTests.RawViolation,C#,tests/Nami.UnitTests/Receiver/RawActivityCaptureTests.cs:285,retained algorithm or separate backlog,Tests,

@@ -1,9 +1,6 @@
-using System;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ModelContextProtocol.Protocol;
 using Nami.Tests.Infrastructure;
 
@@ -28,7 +25,9 @@ public sealed class NativeConformanceTests(TestContext context)
             {
                 var json = signal switch
                 {
-                    "traces" => OtlpData.Traces(nanos), "logs" => OtlpData.Logs(nanos), _ => OtlpData.Metrics(nanos)
+                    "traces" => OtlpData.Traces(nanos),
+                    "logs" => OtlpData.Logs(nanos),
+                    _ => OtlpData.Metrics(nanos)
                 };
                 using var response = await host.SendJsonAsync(signal, json, context.CancellationToken);
                 Assert.IsTrue(response.IsSuccessStatusCode, $"OTLP {signal}: {response.StatusCode}");
@@ -46,17 +45,20 @@ public sealed class NativeConformanceTests(TestContext context)
                     _ => "{}"
                 };
                 var result = await host.CallAsync(tool.Name, input, context.CancellationToken);
-                Assert.IsFalse(result.IsError == true, tool.Name);
+                Assert.AreNotEqual(true, result.IsError, tool.Name);
                 var content = Structured(result);
                 Assert.IsTrue(content.TryGetProperty("freshness", out var freshness), tool.Name);
                 Assert.IsTrue(freshness.GetProperty("complete").GetBoolean(), tool.Name);
                 Assert.HasCount(2, result.Content);
-                using var textContent = JsonDocument.Parse(Assert.IsExactInstanceOfType<TextContentBlock>(result.Content[1]).Text);
+                using var textContent =
+                    JsonDocument.Parse(Assert.IsExactInstanceOfType<TextContentBlock>(result.Content[1]).Text);
                 Assert.IsTrue(JsonElement.DeepEquals(content, textContent.RootElement),
                     "Text and structuredContent must contain exactly the same JSON value.");
-                if (tool.Name == "traces_get")
-                    Assert.AreEqual(1, content.GetProperty("trace").GetProperty("span_count").GetInt32());
-                if (tool.Name == "logs_search") Assert.AreEqual(1, content.GetProperty("records").GetArrayLength());
+                switch (tool.Name)
+                {
+                    case "traces_get": Assert.AreEqual(1, content.GetProperty("trace").GetProperty("span_count").GetInt32()); break;
+                    case "logs_search": Assert.AreEqual(1, content.GetProperty("records").GetArrayLength()); break;
+                }
             }
 
             var first = Structured(await host.CallAsync("logs_search", "{\"query\":\"order\"}",
@@ -71,8 +73,32 @@ public sealed class NativeConformanceTests(TestContext context)
         await using var restarted =
             await McpHarness.StartAsync(TestData.HostBinary, true, directory, context.CancellationToken);
         var persisted = await restarted.CallAsync("logs_search", Replay(snapshotId), context.CancellationToken);
-        Assert.IsFalse(persisted.IsError == true);
+        Assert.AreNotEqual(true, persisted.IsError);
         Assert.AreEqual(stableResult, Structured(persisted).GetRawText());
+    }
+
+    [TestMethod]
+    public async Task NativeHost_ResourceEntityIdentity_RoundTripsTheReference()
+    {
+        var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
+        await using var host =
+            await McpHarness.StartAsync(TestData.HostBinary, true, directory, context.CancellationToken);
+        var payload = JsonNode.Parse(OtlpData.Traces(TestData.Nanos(TimeProvider.System.GetUtcNow().AddSeconds(-3))))!;
+        payload["resourceSpans"]![0]!["resource"]!["entityRefs"] = new JsonArray(new JsonObject
+        {
+            ["type"] = "service",
+            ["idKeys"] = new JsonArray("service.name")
+        });
+        using var response = await host.SendJsonAsync("traces", payload.ToJsonString(), context.CancellationToken);
+        Assert.IsTrue(response.IsSuccessStatusCode,
+            await response.Content.ReadAsStringAsync(context.CancellationToken));
+        var result = Structured(await host.CallAsync("traces_get",
+            "{\"trace_id\":\"00000000000000000000000000000001\"}", context.CancellationToken));
+        var references = result.GetProperty("trace").GetProperty("root_span").GetProperty("resource")
+            .GetProperty("entity_refs");
+        Assert.AreEqual(1, references.GetArrayLength());
+        Assert.AreEqual("service", references[0].GetProperty("type").GetString());
+        Assert.AreEqual("service.name", references[0].GetProperty("id_keys")[0].GetString());
     }
 
     private static string Replay(string id)

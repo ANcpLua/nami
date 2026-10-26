@@ -8,6 +8,37 @@ using System.Text.Json.Serialization;
 
 namespace Nami.Api.Contracts.Engine;
 
+[JsonConverter(typeof(EngineCommandJsonConverter))]
+public readonly union EngineCommand(EngineCall, EngineHealth, EngineCancel);
+
+public sealed class EngineCommandJsonConverter : JsonConverter<EngineCommand>
+{
+    public override EngineCommand Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object) throw new JsonException("EngineCommand must be a JSON object.");
+        if (!root.TryGetProperty("method", out var tagProperty) || tagProperty.ValueKind != JsonValueKind.String) throw new JsonException("EngineCommand requires method.");
+        var tag = tagProperty.GetString();
+        if (tag == "call") return root.Deserialize(options.GetTypeInfo<EngineCall>()) ?? throw new JsonException("Missing EngineCall case.");
+        if (tag == "health") return root.Deserialize(options.GetTypeInfo<EngineHealth>()) ?? throw new JsonException("Missing EngineHealth case.");
+        if (tag == "cancel") return root.Deserialize(options.GetTypeInfo<EngineCancel>()) ?? throw new JsonException("Missing EngineCancel case.");
+        throw new JsonException("Unknown EngineCommand case.");
+    }
+
+    public override void Write(Utf8JsonWriter writer, EngineCommand value, JsonSerializerOptions options)
+    {
+        System.Text.Json.Serialization.Metadata.JsonTypeInfo typeInfo = value switch
+        {
+            EngineCall => options.GetTypeInfo<EngineCall>(),
+            EngineHealth => options.GetTypeInfo<EngineHealth>(),
+            EngineCancel => options.GetTypeInfo<EngineCancel>(),
+            null => throw new InvalidOperationException("An empty EngineCommand cannot be serialized.")
+        };
+        JsonSerializer.Serialize(writer, value.Value, typeInfo);
+    }
+}
+
 public sealed class EngineRequest
 {
     [JsonPropertyName("id")]
@@ -16,20 +47,25 @@ public sealed class EngineRequest
     public required string Revision { get; init; }
     [JsonPropertyName("method")]
     public required string Method { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonConverter(typeof(global::Nami.Api.Contracts.OptionalValueConverter<string?>))]
     [JsonPropertyName("name")]
-    public required string? Name { get; init; }
+    public global::Nami.Api.Contracts.OptionalValue<string?> Name { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("input")]
-    public required JsonElement Input { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public JsonElement? Input { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonConverter(typeof(global::Nami.Api.Contracts.OptionalValueConverter<string?>))]
     [JsonPropertyName("credential")]
-    public required string? Credential { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public global::Nami.Api.Contracts.OptionalValue<string?> Credential { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonConverter(typeof(global::Nami.Api.Contracts.OptionalValueConverter<string?>))]
     [JsonPropertyName("traceparent")]
-    public required string? Traceparent { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public global::Nami.Api.Contracts.OptionalValue<string?> Traceparent { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonConverter(typeof(global::Nami.Api.Contracts.OptionalValueConverter<string?>))]
     [JsonPropertyName("tracestate")]
-    public required string? Tracestate { get; init; }
+    public global::Nami.Api.Contracts.OptionalValue<string?> Tracestate { get; init; }
 }
 
 public sealed class EngineResponse
@@ -58,4 +94,55 @@ public sealed class EngineLimits
     [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<int>))]
     [JsonPropertyName("workers")]
     public required int Workers { get; init; }
+}
+
+public sealed class EngineEnvelope
+{
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+    [JsonPropertyName("revision")]
+    public required string Revision { get; init; }
+}
+
+public sealed class EngineCall
+{
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+    [JsonPropertyName("revision")]
+    public required string Revision { get; init; }
+    [JsonPropertyName("method")]
+    public string Method => "call";
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
+    [JsonPropertyName("input")]
+    public required JsonElement Input { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    [JsonPropertyName("credential")]
+    public required string? Credential { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    [JsonPropertyName("traceparent")]
+    public required string? Traceparent { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    [JsonPropertyName("tracestate")]
+    public required string? Tracestate { get; init; }
+}
+
+public sealed class EngineHealth
+{
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+    [JsonPropertyName("revision")]
+    public required string Revision { get; init; }
+    [JsonPropertyName("method")]
+    public string Method => "health";
+}
+
+public sealed class EngineCancel
+{
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+    [JsonPropertyName("revision")]
+    public required string Revision { get; init; }
+    [JsonPropertyName("method")]
+    public string Method => "cancel";
 }

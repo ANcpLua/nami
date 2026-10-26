@@ -13,12 +13,20 @@ import sys
 import tempfile
 
 
-SDK = "11.0.100-rc.2.26504.105"
+SDK = "11.0.100-rc.3.26522.148"
 PACKAGE = Path(__file__).resolve().parents[1]
 
 # Stable names describe behavior; source output is data, never instructions.
 CHECKS = [
     {"name": "examples_compile_csharp15", "project": "Examples"},
+    {"name": "closed_multilevel_leaves_and_null", "project": "Examples",
+     "define": "CLOSED_HIERARCHY_EXAMPLES", "contains": ["closed-hierarchy-leaves-and-null-verified"]},
+    {"name": "closed_multilevel_missing_leaf_rejected", "project": "Examples",
+     "define": "MISSING_CLOSED_LEAF", "error": "CS8509"},
+    {"name": "closed_open_descendant_allows_external_derivation", "project": "QClosed",
+     "contains": ["MyMid via Mid arm => mid"]},
+    {"name": "closed_intermediate_rejects_external_derivation", "project": "QClosed",
+     "define": "DERIVE_CLOSED_MID", "error": "CS9382"},
     {"name": "functional_result_composition", "project": "Examples", "define": "FUNCTIONAL_EXAMPLES", "contains": [
         "functional-map-bind-match-and-short-circuit-verified",
         "functional-laws-and-pure-pipeline-verified",

@@ -1,5 +1,3 @@
-using System;
-using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using Grpc.AspNetCore.Server.Model;

@@ -23,7 +23,7 @@ from toolchain import installation, pin as tool_pin, resolve
 
 BASE = state_root(ROOT) / "inspection"
 RANK = {"error": 0, "warning": 1, "note": 2}
-GENERATED = ["internal/nami.contracts/Nami", "contracts/json-schema", "contracts/openapi",
+GENERATED = ["src/nami.collector.ingestion/Generated", "src/nami.collector.storage/Generated", "contracts/generated", "internal/nami.contracts/Nami", "contracts/json-schema", "contracts/openapi",
              "src/nami.mcp/src/contracts/generated"]
 
 
@@ -31,6 +31,30 @@ class Failure(Exception):
     def __init__(self, status, message):
         super().__init__(message)
         self.status = status
+
+
+def validate_package(directory, package, name, expected):
+    installed = directory / "node_modules" / name / "package.json"
+    if not installed.is_file():
+        raise Failure("SETUP_FAILED", f"{directory.name}: installed {name} is missing.")
+    actual = json.loads(installed.read_text())
+    if expected == "workspace:*":
+        patterns = package.get("workspaces", [])
+        if isinstance(patterns, dict):
+            patterns = patterns.get("packages", [])
+        matches = []
+        for pattern in patterns:
+            for folder in directory.glob(pattern):
+                manifest = folder / "package.json"
+                if manifest.is_file() and json.loads(manifest.read_text()).get("name") == name:
+                    matches.append(manifest.resolve())
+        if len(set(matches)) != 1 or installed.resolve() != matches[0]:
+            raise Failure("SETUP_FAILED", f"{directory.name}: {name} must resolve to its declared local workspace.")
+    elif actual.get("version") != expected:
+        raise Failure("SETUP_FAILED", f"{directory.name}: installed {name} does not match exact package pin {expected}.")
+    if actual.get("name") != name or not isinstance(actual.get("version"), str):
+        raise Failure("SETUP_FAILED", f"{directory.name}: invalid manifest for {name}.")
+    return actual["version"]
 
 
 def fingerprint(root=ROOT):
@@ -195,10 +219,8 @@ class Run:
         for root in ["contracts", "src/nami.mcp"]:
             package = json.loads((ROOT / root / "package.json").read_text())
             for name, expected in (package.get("dependencies", {}) | package.get("devDependencies", {})).items():
-                path = ROOT / root / "node_modules" / name / "package.json"
-                if not path.is_file() or json.loads(path.read_text())["version"] != expected:
-                    raise Failure("SETUP_FAILED", f"{root}: installed {name} does not match exact package pin {expected}.")
-                self.context["packages"][f"{root}:{name}"] = expected
+                version = validate_package(ROOT / root, package, name, expected)
+                self.context["packages"][f"{root}:{name}"] = version
             manifest = ROOT / root / "node_modules/typescript/package.json"
             expected = package["devDependencies"]["typescript"]
             if not manifest.is_file() or json.loads(manifest.read_text())["version"] != expected:

@@ -1,24 +1,4 @@
-using System.Collections.Generic;
-
 namespace Nami.Collector.Storage;
-
-internal sealed class SpanEventJson
-{
-    public string Name { get; set; } = "";
-    public ulong TimeUnixNano { get; set; }
-    public string? AttributesJson { get; set; }
-    public uint DroppedAttributesCount { get; set; }
-}
-
-internal sealed class SpanLinkJson
-{
-    public string TraceId { get; set; } = "";
-    public string SpanId { get; set; } = "";
-    public string? AttributesJson { get; set; }
-    public uint DroppedAttributesCount { get; set; }
-    public uint Flags { get; set; }
-    public string? TraceState { get; set; }
-}
 
 internal static class SpanChildStorage
 {
@@ -27,17 +7,13 @@ internal static class SpanChildStorage
         if (events.Count is 0)
             return null;
 
-        var list = new List<SpanEventJson>(events.Count);
-        foreach (var e in events)
-        {
-            list.Add(new SpanEventJson
+        var list = events.Select(static e => new SpanEventJson
             {
                 Name = e.Name,
                 TimeUnixNano = e.TimeUnixNano,
                 AttributesJson = PersistedAttributePolicy.SerializeAttributes(e.Attributes),
                 DroppedAttributesCount = e.DroppedAttributesCount
-            });
-        }
+            }).ToList();
 
         return JsonSerializer.Serialize(list, StorageJsonSerializerContext.Default.SpanEventJsonList);
     }
@@ -47,10 +23,7 @@ internal static class SpanChildStorage
         if (links.Count is 0)
             return null;
 
-        var list = new List<SpanLinkJson>(links.Count);
-        foreach (var l in links)
-        {
-            list.Add(new SpanLinkJson
+        var list = links.Select(static l => new SpanLinkJson
             {
                 TraceId = l.TraceId,
                 SpanId = l.SpanId,
@@ -58,8 +31,7 @@ internal static class SpanChildStorage
                 DroppedAttributesCount = l.DroppedAttributesCount,
                 Flags = l.Flags,
                 TraceState = l.TraceState
-            });
-        }
+            }).ToList();
 
         return JsonSerializer.Serialize(list, StorageJsonSerializerContext.Default.SpanLinkJsonList);
     }

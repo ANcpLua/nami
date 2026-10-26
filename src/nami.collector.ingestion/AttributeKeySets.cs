@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace Nami.Collector.Ingestion;
 
 internal static class AttributeKeySets

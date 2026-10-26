@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using DuckDB.NET.Data;
 
 namespace Nami.Collector.Storage;
@@ -16,10 +12,10 @@ internal sealed partial class DuckDbStore
         {
             using var command = connection.CreateCommand();
             command.CommandText = "SELECT " + MetricObservationRow.SelectColumnList +
-                " FROM metric_observations WHERE project_id = $1 AND series_id = $2 " +
-                "AND EXISTS (SELECT 1 FROM metric_series s WHERE s.project_id = $1 " +
-                "AND s.series_id = $2 AND s.metric_name = $3) " +
-                "ORDER BY time_unix_nano DESC, observation_id LIMIT $4";
+                                  " FROM metric_observations WHERE project_id = $1 AND series_id = $2 " +
+                                  "AND EXISTS (SELECT 1 FROM metric_series s WHERE s.project_id = $1 " +
+                                  "AND s.series_id = $2 AND s.metric_name = $3) " +
+                                  "ORDER BY time_unix_nano DESC, observation_id LIMIT $4";
             AddParameters(command, projectId, seriesId, metricName, limit);
             var rows = new List<MetricObservationRow>();
             using var reader = command.ExecuteReader();
@@ -104,15 +100,14 @@ internal sealed partial class DuckDbStore
             command.CommandText =
                 "DELETE FROM metric_points WHERE project_id = $1 AND series_id = $2 AND time_unix_nano = $3";
             AddParameters(command, key.ProjectId, key.SeriesId, (decimal)key.TimeUnixNano);
-            command.ExecuteNonQuery();
         }
         else
         {
-            command.CommandText = MetricPointRow.BuildMultiRowInsertSql(1);
+            command.CommandText = MetricPointRow.InsertSql;
             MetricPointRow.AddParameters(command, projection);
-            command.ExecuteNonQuery();
         }
 
+        command.ExecuteNonQuery();
         command.Parameters.Clear();
         command.CommandText =
             "DELETE FROM metric_exemplars WHERE project_id = $1 AND series_id = $2 AND time_unix_nano = $3";
