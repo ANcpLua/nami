@@ -14,7 +14,7 @@ Eine vorhandene Datei beweist nicht, dass ihre komplette Implementierung optimal
 
 | Ort | Jetzt beobachteter Stand | Verwendung und Aufräumentscheidung |
 | --- | --- | --- |
-| `~/RiderProjects/nami` | Implementierung der Konsolidierung in `02181a0`; aktive Branch `codex/playground-consolidation-20261027`. | Produktimplementierung, vier Testprojekte und gemeinsame Build-Dateien. |
+| `~/RiderProjects/nami` | Konsolidierung einschließlich MSBuild-Bereinigung bis `00523cc` auf `main` übernommen. `main` ist der einzige lokale und Remote-Branch. | Produktimplementierung, vier Testprojekte und gemeinsame Build-Dateien. |
 | Downloads-Prototyp und seine alte Sicherung | Laut ausdrücklicher Nutzerbestätigung gelöscht; dokumentiert in [skill-plugin-dedup.md](skill-plugin-dedup.md). | Keine aktive Abhängigkeit und kein neuer Importauftrag. |
 | `~/RiderProjects/qyl` | Separates Produkt mit eigenständigen verschachtelten Repositories. | **Bleibt erhalten.** Die lesende Instrumentierungsberatung ist kein Migrationsauftrag. |
 | `~/RiderProjects/nami.playground` | Kandidaten geprüft; sinnvolle Fähigkeiten in vorhandene Nami-Eigentümer übernommen. | **Am 27. Oktober 2026 auf ausdrücklichen Nutzerauftrag gelöscht.** Geprüfte Sicherung bleibt unter `artifacts/migration-checkpoints/`; kein Produkt-, Build- oder Test-Verweis. |
@@ -109,6 +109,14 @@ geprüft. Vorher wurden die archivierten Quelldateien erneut abgeglichen; Änder
 `15071ed3c0de32426cc0fc1a0c0736a37e606f6aa2f12c4ec9a4b3b857418aef`).
 **Qyl bleibt erhalten.** Downloads-Prototyp und seine alte Sicherung wurden zuvor gesondert
 ausdrücklich gelöscht. Diese Entscheidungen eröffnen keinen weiteren Migrationsauftrag.
+
+Die drei zusätzlichen Branches wurden am 27. Oktober 2026 auf Nutzerauftrag lokal und auf
+`origin` gelöscht. Ihre vollständigen Git-Stände sind im geprüften Bundle
+`artifacts/migration-checkpoints/branches-before-cleanup-2026-10-27.bundle` gesichert;
+die benachbarte JSON-Datei enthält Referenzen, Commit-IDs und SHA256. Der einzige nicht in
+`main` enthaltene Commit war `e3b7ead` (Entfernung der `.blackboard/`-Ignore-Regel);
+er bleibt im Bundle archiviert und wurde nicht in den Produktstand übernommen.
+Der vorhandene Checkpoint-Tag bleibt als historische Sicherung erhalten.
 
 ## 6. Abschlussumfang
 
