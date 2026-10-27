@@ -28,7 +28,6 @@ bounded details. A changed source/output fingerprint requires fresh validation.
 | G7 | `GeneratedCode_AotAnalyzers_ReportNothing`; `NativeAOT conformance execution` |
 | G8 | `PolicyNamingUnpersistedKey_FailsGeneration`; `TokenExemption_ForUnpersistedKey_FailsGeneration` |
 | G9 | `PinChange_WithoutDiffEntry_FailsGate` |
-| G10 | `RustCrate_Constants_EqualCatalogKeys` |
 | R1 | `Ingest_ThreeTransports_SameRows` (traces/logs/metrics × JSON/protobuf/gRPC); `EveryTool_ThreeOtlpTransports_ReturnsTypedEvidence` (generated six-tool × three-transport cases) |
 | R2 | `Watermark_BackdatedRecord_DoesNotRegress` |
 | R3 | `LastSeen_FutureTimestamp_UsesReceiptTime` |

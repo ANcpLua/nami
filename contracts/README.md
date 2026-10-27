@@ -1,5 +1,37 @@
 # Nami contracts
 
+## Package maintenance
+
+`../eng/typespec.sh --check` checks the npm tag configured in `typespec-packages.json`
+(`latest` by default). `../eng/typespec.sh --apply` installs exact versions and refreshes
+the package entry-point reference in
+`../.agents/skills/nami-contract-models/references/typespec-packages.json`.
+The equivalent repository tasks are `mise run typespec:check` and `mise run typespec:update`.
+
+The maintained set includes the compiler/core emitters and the optional Protobuf,
+GraphQL, Streams, SSE, Events, REST and Versioning packages. Required TypeSpec peers
+are resolved with them, and their version constraints must agree before installation.
+Installing a package does not activate its emitter or change Nami's transport.
+Preview package status is separate from the npm tag: `latest` can point to a `0.x`
+preview package. Use `--tag next` only when that channel is intentionally wanted.
+
+The updater fetches one small version document per package, with at most six concurrent
+requests, conditional ETag/Last-Modified requests when supported, and one cache entry per
+package/tag under `artifacts/typespec/metadata`. `--check --offline` uses that cache and
+explicitly reports cached status; it does not establish current online releases.
+No background updater or network check is added to ordinary builds.
+
+An update validates the installed package identities, imports all available TypeSpec
+entry points together, and runs the repository's contract-parity check. A failure restores
+the prior package file, lockfile, reference and installed dependency graph. A release that
+changes generated artifacts therefore requires an explicit emitter/contract migration;
+the updater does not silently accept changed product contracts. Run the normal repository
+build/test gate after an accepted update. The generated reference lists entry points and
+their hashes, not a claim that every API is implemented or exercised. Missing secondary
+export declarations are recorded explicitly; missing primary entry points fail validation.
+
+## Contract generation
+
 The TypeSpec sources define Nami's six read-only tool inputs and results, the health report, the private engine
 protocol,
 and the OpenTelemetry projections used by ingestion and storage. No REST analysis route or

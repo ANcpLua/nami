@@ -4,6 +4,8 @@ The active implementation is in this repository under `tests/`, built by `nami.s
 
 The 2026-10-25 file-by-file reconciliation is recorded in [test-harness-inventory.csv](test-harness-inventory.csv). Every prototype file is assigned to an implemented Nami owner, an explicit replacement, or a retired concern. The inventory is a migration record, not a list of deferred imports.
 
+The [workspace handover and cleanup register](workspace-handoff.md) records the 2026-10-27 recheck of the old skills, runner configuration, local backups and remaining playground candidates. Consult it before importing or removing an older checkout.
+
 ## What is retained
 
 | Concern | Nami owner |
@@ -19,7 +21,7 @@ The 2026-10-25 file-by-file reconciliation is recorded in [test-harness-inventor
 
 ## What is not carried forward
 
-The old product SDK, its public host setup, HTTP collector client, package-delivery probes and additional analysis tools are not Nami APIs. Their project files, snapshot packages and parent-checkout preparation scripts are not used. Relevant ingestion, persistence, isolation, exact-value and restart behavior is exercised against the real Nami engine and its six generated tools.
+The old product SDK, public host setup, HTTP collector client, package-delivery probes and additional analysis tools are not current Nami APIs. Their project files, snapshot packages and parent-checkout preparation scripts are not used. This retires those concrete implementations; it does not rule out a future product requirement for additional instrumentation or tools. The migration assigns ingestion, persistence, isolation, exact-value and restart checks to the real Nami engine and its six generated tools; current success must be established by a current run.
 
 The old standalone definition-conformance API and registry runtime mirror are replaced by Nami's Weaver-generated semantic catalog and its policy/registry tests. This does not add a second runtime registry or recreate the old SDK. Unused wrappers and stub handlers are removed.
 

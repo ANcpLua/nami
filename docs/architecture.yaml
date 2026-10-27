@@ -3,7 +3,7 @@ kind: target-architecture
 product: Agent-operated debugging through instrumentation, OpenTelemetry and six read-only MCP tools.
 audience:
   callers: agents
-  developer_example: Tomo, a Rust developer whose application an agent investigates
+  developer_example: Tomo, a developer whose application an agent investigates
   human_analysis_ui: none
 runtime:
   mcp: {language: TypeScript, runtime: Bun, sdk: official MCP TypeScript SDK v2}
@@ -36,7 +36,7 @@ instrumentation:
 components:
   contracts/: TypeSpec sources, CSharp/TypeScript emitters and wire schemas
   registry/: Generated canonical publication of pinned semantic definitions and policies
-  templates/registry/: Deterministic semantic CSharp, Rust and Markdown generation
+  templates/registry/: Deterministic semantic CSharp and Markdown generation
   internal/nami.contracts/: Generated CSharp wire models and source-generated JSON serialization
   internal/nami.semconv/: Generated definitions, constants, stability and persistence policy
   src/nami/: Native engine and private JSONL entry point
@@ -44,7 +44,6 @@ components:
   src/nami.collector.ingestion/: OTLP decoding, normalization and sanitization
   src/nami.collector.storage/: Project-bound DuckDB, watermarks and immutable snapshots
   internal/nami.collector.storage.generators/: DuckDB schema and row generation
-  crates/nami-semconv/: Generated constants for supported Rust applications
   tests/: MSTest/MTP contract, instrumentation, transport and published-stack evidence
 flow:
   - Pinned registry and TypeSpec -> generated semantic definitions, wrappers, types and schemas

@@ -87,6 +87,24 @@ Bare union JSON adds no discriminator. Two empty cases can both serialize to `{}
 
 Prefer schema-owned discriminators and generated converters. `JsonPolymorphic`/`JsonDerivedType` configure class hierarchy serialization. Do not replace stable persisted tags with inferred CLR names. Source-generated metadata must be checked through the actual options/context. `QSrcGen` proves a JIT source-generation path, not NativeAOT.
 
+For strict System.Text.Json boundaries around closed hierarchies:
+
+- Apply `JsonUnmappedMemberHandling(Disallow)` to concrete cases. Do not assume
+  placing it only on the root rejects extra fields on every derived contract.
+  A payload must not combine a valid case tag with fields belonging to another case.
+- `JsonRequired` checks that a property is present; an explicit JSON `null` still
+  needs domain validation when that value is invalid. Non-nullable C# annotations
+  do not make untrusted JSON non-null, including collection elements.
+- A missing discriminator on an abstract root can produce `NotSupportedException`
+  rather than `JsonException` with the default resolver. Check the real serializer
+  and HTTP boundary so malformed input cannot silently become a server error.
+- Test independently specified wire JSON in both directions. A serialize-then-
+  deserialize round trip alone can miss a discriminator changed on both sides.
+
+These are serializer/application-boundary rules, not additional guarantees supplied
+by `closed` or `union`. Keep HTTP error translation in the application, and retain
+the distinction between the wrapper and its payload when inspecting failed cases.
+
 ## Continuous analyzer checks
 
 A Roslyn analyzer can use `ITypeSymbol.UnionCaseTypes` to find unions and flag catch-all arms, switching on object-valued `Value`, missing default guards under a chosen policy, and reliance on switch statements for completeness. Scope rules to the intended operation; deliberate `Value` access and defaults at parse boundaries remain valid.

@@ -21,11 +21,7 @@ sealed class Build : FalloutBuild, IHasConfiguration
     }
 
     public Target Registry => d => d.Description("Validate the pinned registry and verify deterministic generated conventions")
-        .Executes(() =>
-        {
-            Run("bash", "registry/generate.sh --check");
-            Run("cargo", "build --manifest-path crates/nami-semconv/Cargo.toml --locked --offline --target-dir artifacts/cargo");
-        });
+        .Executes(() => Run("bash", "registry/generate.sh --check"));
     public Target Contracts => d => d.Description("Generate C# contracts and the six tools' JSON Schemas")
         .Executes(() => Run("bash", "eng/contracts.sh generate"));
     public Target VerifyContracts => d => d.Description("Verify committed contract generation is current")

@@ -22,7 +22,16 @@
     "@typespec/openapi3": "1.17.0",
     "typescript": "7.1.0-beta",
     "@ancplua/nami-agent-control": "workspace:*",
-    "@ancplua/typespec-nami-lint": "workspace:*"
+    "@ancplua/typespec-nami-lint": "workspace:*",
+    "@typespec/emitter-framework": "0.21.0",
+    "@typespec/events": "0.87.0",
+    "@typespec/graphql": "0.4.0",
+    "@typespec/mutator-framework": "0.17.1",
+    "@typespec/protobuf": "0.87.0",
+    "@typespec/rest": "0.87.0",
+    "@typespec/sse": "0.87.0",
+    "@typespec/streams": "0.87.0",
+    "@typespec/versioning": "0.87.0"
   },
   "workspaces": [
     "agent-control",

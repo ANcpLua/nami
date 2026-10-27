@@ -70,6 +70,9 @@ catch-all would hide it. See the compiled and executed
 A union declaration does not invent a JSON discriminator. Successful serialization is not proof of deserialization. Multiple object-shaped cases require an unambiguous contract and a discriminator-aware converter/classifier, or a suitable closed hierarchy with configured polymorphism. Do not classify by the first property that happens to be present.
 
 Preserve schema-owned tags. Check every case, null/default, unknown and missing tags, and structurally similar payloads. Source-generated JSON working under JIT is not NativeAOT proof; publish and execute the relevant application for that claim.
+The [serialization reference](references/union-reference.md#closed-hierarchies-and-json)
+also covers concrete-case strictness, explicit null payloads and missing-tag
+exception behavior at application boundaries.
 
 ## Verification
 

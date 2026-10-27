@@ -2,6 +2,8 @@
 
 Work in this repository. The previous Downloads prototype is not a build, test, generator or runtime dependency.
 
+Before importing earlier Qyl, Downloads or playground work, read [the workspace handover](docs/integration/workspace-handoff.md). It identifies existing Nami owners, retired instructions and the few unresolved candidates; do not repeat the completed prototype migration.
+
 ## Ownership
 
 - `src/nami.mcp` is the TypeScript/Bun MCP server. `src/nami` is its C# NativeAOT engine.

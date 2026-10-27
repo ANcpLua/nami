@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Verify old-consumer/new-library behavior by replacing only the library DLL and checking that the consumer hash stays unchanged.
+- Check local Markdown files and section anchors in CI.
+- Add an explicit, drift-checked one-way exporter from the canonical Nami skill to standalone/plugin copies.
+
 ## 2026-10-26 — multi-level closed hierarchies
 
 - Added a visible closed-hierarchy section and a self-contained example with a closed intermediate node and sealed leaves.

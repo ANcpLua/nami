@@ -246,7 +246,7 @@ OTLP-Annahme bedeutet außerdem nicht automatisch dauerhafte Speicherung oder du
 
 ### Die neun zuvor beschriebenen historischen Stationen
 
-Die Bezugnahme auf „neun Punkte“ ist ohne das genaue Zitat nicht eindeutig. Dieser Vergleich bezieht sich auf die zuvor zusammengefassten **neun Stationen des Projektverlaufs**, nicht auf neun bereits beschlossene Produktanforderungen.
+Der Nutzer hat die hier gemeinten **neun Stationen des Projektverlaufs** ausdrücklich zitiert und damit die Zuordnung bestätigt. Sie sind keine neun bereits beschlossenen Produktanforderungen. Ihre heutigen Eigentümer, der Umgang mit allen angefragten Altdateien und die noch nötigen Sicherungsschritte stehen im [Aufräumregister](../integration/workspace-handoff.md). Die ursprüngliche Migration wird nicht erneut begonnen.
 
 | Nr. | Frühere Station | Verhältnis zu diesem Entwurf |
 | --- | --- | --- |

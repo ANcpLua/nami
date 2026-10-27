@@ -1,6 +1,7 @@
 # nami implementation checklist
 
-The product requirements are [docs/prd/nami.md](prd/nami.md). This checklist records the migration
+The draft product requirements are [docs/prd/nami.md](prd/nami.md), under review; current user
+decisions take precedence. This checklist records the migration
 approved on 2026-10-24: **TypeScript MCP + C# NativeAOT engine + TypeSpec contracts**, with
 compile-time instrumentation and explicit observation lifetime. Work only in this repository;
 No predecessor checkout is required. The earlier ten-workstream plan remains in Git history
@@ -20,8 +21,8 @@ The product roadmap still includes full instrumentation-model proofs and hosted 
 - [x] Describe exclusively agent-operated debugging; no dashboard or human-facing analysis UI.
 - [x] Define Claude.ai connector and/or OpenAI plugin with bundled MCP as product integrations;
       local MCP clients remain supported.
-- [x] Correct Tomo to an example Rust developer whose application an agent debugs; remove the
-      assumption that a particular Rust service is the product's only producer or consumer.
+- [x] Describe Tomo as an example developer whose application an agent debugs; remove the
+      assumption that a particular service is the product's only producer or consumer.
 - [x] Replace the single-C#-binary requirement with TypeScript MCP and a native C# engine.
 - [x] Retain TypeSpec and both language outputs; keep Weaver as semantic/persistence authority.
 - [x] Add PRD I1–I18 and D1–D6, with all supplied instrumentation methods and explicit proof scope.
@@ -29,16 +30,16 @@ The product roadmap still includes full instrumentation-model proofs and hosted 
 
 ## 2. Contract generation — `contracts/`, `internal/nami.contracts/`
 
-- [x] Maintain the TypeScript emitter for the six nami input/result pairs and shared types.
-      Output: `src/nami.mcp/src/contracts/generated/`; generated files are never edited by hand.
-- [x] Model private request/result framing and explicit project-bound state identifiers in TypeSpec.
-      Preserve existing tool payloads and wire names unless the PRD explicitly changes them.
-- [x] Generate one semantic revision for both sides; reject incompatible private peers before dispatch.
+- [x] Maintain the TypeScript emitter for the six nami input/result pairs and shared types./// warum sind es genau six input result pairs und was ist shared types?
+      Output: `src/nami.mcp/src/contracts/generated/`; generated files are never edited by hand.  /// wieso sollte man generierten code ändern statt den generator?
+- [x] Model private request/result framing and explicit project-bound state identifiers in TypeSpec. /// warum wird hier privat und von framing gesprochen? was hat es mit dem explicit project bound state identifierst für einen hintergedanken?
+      Define tool payloads and wire names in TypeSpec; update consumers together when they change. /// was soll preserved werden es gab nie etwas das tool payloads oder wire names in production genutzt geschweige den überhaupt jemals released wurde nami ist in privat auf github LOL, das prd wird wie eine regeln enforced bitte nicht solange wir für ordnung gesorgt haben
+- [x] Generate one semantic revision for both sides; reject incompatible private peers before dispatch. /// was ist semantic revision, von welchen both sides wird hier gesprochen, was wird rejected von woher und warum? bahnhof:incompatible private peers before dispatch
 - [ ] Preserve `kind`, required fields, absent/null distinctions and exact integer encodings across
-      C#, TypeScript and enabled Rust consumers (S, I8/I9, D2).
-- [x] Extend `./eng/build.sh Contracts` and parity checks to include the TypeScript artifacts.
+      C# and TypeScript (S, I8/I9, D2). /// alles was mit rust zu tun hat ignoriere das ist falsch info rust ist ein anderes projekt das wie nami ist nur in rust und rust only nichts hat mit nami zu tun und kannst du extrahieren in riderprojects/rustgraveyard(folder erstellen) danach die frage warum muss kind require fields absent null distincation and exact integer encodings across c# typescript für welche dinge getan werden?
+- [x] Extend `./eng/build.sh Contracts` and parity checks to include the TypeScript artifacts. /// was ist dieses eng/build.sh contracts und für was ist es erstellt worden, parity checks sind was und welche typescript artifacts wird hier gesprochen?
 - [x] Keep C# serialization AOT-safe with generated `JsonTypeInfo<T>`; validate TS inputs and outputs
-      with the same generated JSON Schemas.
+      with the same generated JSON Schemas. /// ist das jsontypeinfo<T> die neue .NET 11 system.text api? wenn nein wir wollen die neue api dafür folgende skills laden /Users/alexandernachtmann/.codex/plugins/cache/dotnet-agent-skills/dotnet11/0.1.2/skills/process-api-net11 /Users/alexandernachtmann/.codex/plugins/cache/dotnet-agent-skills/dotnet11/0.1.2/skills/system-text-json-net11
 
 ## 3. TypeScript MCP and engine process — `src/nami.mcp/`, `src/nami/`
 

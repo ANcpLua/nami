@@ -2,7 +2,6 @@
 dotnet = "11.0.100-rc.3.26522.148"
 bun = "1.4.4"
 node = "24.22.1"
-rust = "1.99.0"
 "github:open-telemetry/weaver" = "0.28.0"
 # pino 9.14.0 is a reviewed manual release: registry signature verified and all
 # 207 archive files match upstream 339f1d6c899fa584324e15c587fbd811664dd07c.
@@ -24,6 +23,14 @@ run = "bash ./eng/contracts.sh verify"
 
 [tasks."contracts:status"]
 run = "bash ./eng/contracts.sh status"
+
+[tasks."typespec:check"]
+description = "Check current npm TypeSpec releases and the installed package reference"
+run = "bash ./eng/typespec.sh --check"
+
+[tasks."typespec:update"]
+description = "Update compatible TypeSpec pins, validate imports and contract parity"
+run = "bash ./eng/typespec.sh --apply"
 
 [tasks.publish]
 run = "./eng/build.sh Publish --Configuration Release"

@@ -25,7 +25,7 @@ def resolve(root, name, command=None, override=None):
                             env=dict(os.environ, MISE_EXEC_AUTO_INSTALL="false", MISE_AUTO_INSTALL="false"), timeout=30)
     if result.returncode:
         raise ValueError(f"Pinned {name}@{pin(root, name)} is not installed. Run mise install explicitly.")
-    # Keep executable aliases (cargo -> rustup): argv[0] is part of their behavior.
+    # Keep executable aliases: argv[0] can be part of their behavior.
     return str(Path(result.stdout.strip()).absolute())
 
 
@@ -54,7 +54,7 @@ if __name__ == "__main__":
                 raise ValueError(f"Expected .NET SDK {expected}; found {actual}")
             print(executable)
         elif sys.argv[1] == "build-path":
-            commands = [("bun", "bun"), ("node", "node"), ("rust", "cargo"), ("github:open-telemetry/weaver", "weaver")]
+            commands = [("bun", "bun"), ("node", "node"), ("github:open-telemetry/weaver", "weaver")]
             paths = []
             for name, command in commands:
                 executable = resolve(root, name, command)

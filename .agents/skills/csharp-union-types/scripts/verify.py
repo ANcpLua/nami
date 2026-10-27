@@ -2,6 +2,7 @@
 """Check bundled compiler/runtime probes without fetching external source."""
 
 import argparse
+import hashlib
 from datetime import datetime, timezone
 import json
 import os
@@ -11,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from check_links import check as check_links
 
 
 SDK = "11.0.100-rc.3.26522.148"
@@ -156,6 +158,44 @@ def check(case, workspace, env, binlogs):
     return result
 
 
+def check_library_update(workspace, env, binlogs):
+    """Compile the consumer once, then replace only its library with an added-case build."""
+    project = workspace / 'probes/QClosed/QClosed.csproj'
+    library = workspace / 'probes/QClosedLib/QClosedLib.csproj'
+    output = project.parent / 'bin/Release/net11.0'
+    replacement = workspace / 'updated-library'
+    logs, failures = [], []
+    common = ['--configuration', 'Release', '--nologo', '--verbosity', 'minimal',
+              '-maxcpucount:2', '-nodeReuse:false', '-p:UseSharedCompilation=false']
+    code, log = execute(['dotnet', 'build', str(project), *common, '-p:DefineConstants=',
+                         '-bl:' + str(binlogs / 'old-consumer-{}.binlog')], workspace, env)
+    logs.append(log)
+    if code:
+        failures.append('Baseline consumer did not build')
+    else:
+        consumer = output / 'QClosed.dll'
+        before = hashlib.sha256(consumer.read_bytes()).hexdigest()
+        baseline_code, baseline = execute(['dotnet', str(consumer)], workspace, env)
+        logs.append(baseline)
+        if baseline_code or 'Lib has Helicopter: False' not in baseline:
+            failures.append('Baseline did not use the original library')
+        code, log = execute(['dotnet', 'build', str(library), *common, '-p:DefineConstants=THIRD',
+                             '--output', str(replacement), '-bl:' + str(binlogs / 'new-library-{}.binlog')], workspace, env)
+        logs.append(log)
+        if code:
+            failures.append('Updated library did not build')
+        else:
+            shutil.copyfile(replacement / 'QClosedLib.dll', output / 'QClosedLib.dll')
+            runtime_code, runtime = execute(['dotnet', str(consumer)], workspace, env)
+            logs.append(runtime)
+            if runtime_code or 'Lib has Helicopter: True' not in runtime or 'Helicopter => SwitchExpressionException' not in runtime:
+                failures.append('Old consumer did not demonstrate added-case runtime behavior')
+            if hashlib.sha256(consumer.read_bytes()).hexdigest() != before:
+                failures.append('Consumer changed during library-only replacement')
+    return {'name': 'old_consumer_new_library_added_case', 'passed': not failures,
+            'failures': failures, 'output': '\n'.join(logs).replace(str(workspace), '<temporary>')}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path)
@@ -225,16 +265,26 @@ def main():
                 print(("PASS " if result["passed"] else "FAIL ") + case["name"], flush=True)
                 if not result["passed"]:
                     print("; ".join(result["failures"]), flush=True)
+            try:
+                result = check_library_update(workspace, env, binlogs)
+            except (OSError, subprocess.TimeoutExpired) as error:
+                result = {'name': 'old_consumer_new_library_added_case', 'passed': False, 'failures': [str(error)]}
+            report['checks'].append(result)
+            print(('PASS ' if result['passed'] else 'FAIL ') + result['name'], flush=True)
+            link_failures = check_links(skill_root)
+            report['checks'].append({'name': 'local_links_and_anchors', 'passed': not link_failures, 'failures': link_failures})
+            print(('PASS ' if not link_failures else 'FAIL ') + 'local_links_and_anchors', flush=True)
     except (OSError, ValueError, subprocess.TimeoutExpired) as error:
         report["setup_error"] = str(error)
         print("FAIL setup: " + str(error), file=sys.stderr)
-    report["passed"] = (len(report["checks"]) == len(CHECKS)
+    expected_checks = len(CHECKS) + 2
+    report["passed"] = (len(report["checks"]) == expected_checks
                         and all(result["passed"] for result in report["checks"])
                         and "setup_error" not in report)
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=2) + "\n")
     passed = sum(result["passed"] for result in report["checks"])
-    print(f"{passed}/{len(CHECKS)} checks passed. Report: {args.report}")
+    print(f"{passed}/{expected_checks} checks passed. Report: {args.report}")
     return 0 if report["passed"] else 1
 
 

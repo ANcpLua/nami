@@ -1,0 +1,18 @@
+{
+  "registry": "https://registry.npmjs.org",
+  "tag": "latest",
+  "packages": {
+    "@typespec/compiler": "compiler",
+    "@typespec/http": "core library",
+    "@typespec/json-schema": "schema emitter",
+    "@typespec/openapi": "core library",
+    "@typespec/openapi3": "schema emitter",
+    "@typespec/protobuf": "preview emitter",
+    "@typespec/graphql": "preview emitter",
+    "@typespec/streams": "preview library",
+    "@typespec/sse": "preview library",
+    "@typespec/events": "preview library",
+    "@typespec/rest": "preview library",
+    "@typespec/versioning": "preview library"
+  }
+}

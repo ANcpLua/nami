@@ -10,20 +10,132 @@ description: Evolve Nami TypeSpec models and their C#/TypeScript outputs across 
 Use preview, beta, RC, dev, nightly and experimental features when they serve the architecture.
 The user authorizes the corresponding language features, libraries, compiler APIs, emitters,
 feature flags, package configuration and independent maintenance of this skill. This includes
-.NET 11 RC2/C# 15, TypeScript 7.1 Beta and TypeSpec experimental APIs. Select the implementation
+.NET 11 RC3/C# 15, TypeScript 7.1 Beta and TypeSpec experimental APIs. Select the implementation
 from the versions actually resolved by the project.
 
-Work from the relevant local source files below. Reuse their fixed paths and read the symbols
-needed for the current change. Update a reference when its source moves or its package changes.
-Use the live checkout to decide what work remains; source anchors describe an observed snapshot.
+Work from the current source map and audit below. Read the actual symbols needed for a change;
+update a reference when its source or package moves. Later dated observations and line anchors
+are historical evidence, not assertions about current source locations or remaining work.
 
-Treat the modeling rules below as the intended architecture, including work being implemented
-by another agent. They are durable rules, not claims that each feature already exists or a list
-of changes to repeat. Record executed examples and recurring fixes separately as observations.
-Carry a change through its TypeSpec definition, emitter, structural mapping and actual consumer.
-Choose artifacts by their consumers and keep reusable definitions proportionate to that use.
+The current user instruction owns scope. The PRD, checklist and this skill do not make an
+unreleased architecture or wire name immutable. Evaluate the existing Collector/DuckDB design
+against the requested product; do not retain a component merely because this skill describes it.
+TypeSpec owns Nami data structures, representations and structural mappings. Named semantic
+algorithms, transport execution and external protocol implementations have their own code;
+do not hide a duplicate Nami schema in that code or in emitter string literals.
+Carry each authorized migration through the TypeSpec definition, emitter, structural mapping
+and actual consumer. Keep observed implementation, intended design and unverified claims separate.
 
-## Source basis and version context
+## Current audit and authorized capabilities (2026-10-27)
+
+Audit source baseline: commit `e0dd040f0b9bf884de30e0206bfa49213a39efe7` plus the current
+working tree. The audit inspected all 149 tracked/nonignored project files under `internal/`
+and `src/`, including 110 C# files parsed with the pinned SDK Roslyn parser. It did not
+establish that every runtime behavior is correct. Reports are under
+`/Users/alexandernachtmann/RiderProjects/nami/artifacts/contract-audit-2026-10-27/`.
+The reports describe the captured baseline, not later migrations.
+
+The original 155-row `contracts/model-migration.csv` was a historical candidate inventory:
+83 entries concerned `internal/` or `src/`. All 47 entries labelled generated had a generated
+C# declaration, but 14 also had handwritten partial declarations. `OtlpAttributeValueKind`
+was incorrectly still labelled retained, and 22 of the 69 model-manifest entries were absent.
+The refreshed inventory retains historical `original_source`, adds current source locations
+and audit status, and includes those 22 emitted types. `generated declaration` does not mean
+all behavior or persistence for that type is generated. Entries outside the audited scope
+remain explicitly unverified. Do not treat the inventory as proof of full migration.
+
+Already implemented; do not repeat these as fresh migration tasks:
+
+- Consumer-specific C# output profiles and shared property-semantics resolution.
+- Type-identity traversal and namespace-aware naming support in the language emitters.
+- Typed ingestion slots and explicit `values`/`renames` normalization provenance.
+- Metric-shape variants and `LogTimeOrigin`; the handwritten ingestion partials expose derived views.
+- `ActiveSignalStatus`/`SilentSignalStatus`, typed tool associations and generated field metadata.
+- A revision hash restricted to `wire-manifest.json` roots, rather than the entire schema bundle.
+- Generic .NET 11 `JsonSerializerOptions.GetTypeInfo<T>()` with generated JSON metadata.
+
+Verified remaining gaps in the baseline:
+
+- `contracts/models/storage-json.tsp` uses `@csharpType` to bind `StoredAttributeValue` to the
+  handwritten hierarchy and converter in `src/nami.collector.storage/StoredAttributeValue.cs`.
+- `IngestionStorageMapper.cs`, `MetricStorageMapper.cs` and `StorageAttributeProjection.cs`
+  contain handwritten field mappings and data projections.
+- Row provenance fields remain in handwritten partial records. Several option and helper
+  data models remain handwritten; generated configuration keys are not generated option models.
+- `storage-rows.tsp` contains authored SQL conflict clauses. The Roslyn schema emitter also
+  hardcodes bootstrap tables/sequences, and store query/migration/retention SQL is handwritten.
+- Contract support and some TypeScript input/result construction still contain authored shapes.
+- Contract parity compares generated artifacts; it does not enforce absence of handwritten models
+  and does not automatically refresh or validate `model-migration.csv`.
+
+Current navigation comes from `contracts/generated/model-manifest.json`,
+`contracts/generated/consumer-files.json`, `contracts/emit-config.tsp` and the actual consumers.
+Core stored records are in `src/nami.collector.storage/Generated/StoredMetricRecords.g.cs`;
+the generated `StoredRecordMapper` is in `Generated/AttributeIngestion.g.cs` in that project;
+ingestion metric enums are in `src/nami.collector.ingestion/Generated/MetricShapes.g.cs`.
+
+The user's explicit preview authorization includes two emitters and five libraries:
+
+- `@typespec/protobuf`: Proto3 definitions, RPC services and streaming metadata.
+- `@typespec/graphql`: GraphQL SDL for queries, mutations and subscriptions.
+- `@typespec/streams`, `@typespec/sse`, `@typespec/events`: stream and event semantics and SSE binding.
+- `@typespec/rest`: resource/operation modeling.
+- `@typespec/versioning`: temporal schema views, including `getVersioningMutators` and the needed
+  `@typespec/compiler/experimental` mutator APIs such as `unsafe_mutateSubgraphWithNamespace`.
+
+The official TypeSpec navigation labels these packages preview as inspected on 2026-10-27:
+https://typespec.io/docs/emitters/protobuf/guide/ and
+https://typespec.io/docs/libraries/versioning/guide/ . Their functions must still be checked
+against the installed declarations. At audit start none of those seven optional packages was
+installed. The user subsequently requested their installation and automatic package maintenance.
+They are now pinned in `contracts/package.json`, with required TypeSpec peer packages. The
+machine-generated current version and API entry-point reference is
+[references/typespec-packages.json](references/typespec-packages.json); read it before relying on
+a dated version mentioned elsewhere in this skill. The active compiler at this update is `1.17.0`.
+The separate compiler `1.18.0-dev.8` reference installation has `@typespec/versioning` `0.88.0-dev.2`.
+Installing a package does not activate its emitter or change transport. `Stream<T>` does not
+itself create an AsyncIterable/IAsyncEnumerable codec, framing, cancellation, backpressure or a
+runtime. Temporal schema views do not infer a safe database data migration. Keep upstream OTLP
+protobuf ownership intact.
+
+## TypeSpec package maintenance
+
+Use `/Users/alexandernachtmann/RiderProjects/nami/eng/typespec.sh --check` to query the configured
+npm tag and compare exact pins and installed entry-point metadata. Use `--apply` for an authorized
+update. `contracts/typespec-packages.json` defines the root packages and defaults to npm `latest`;
+this can be a preview `0.x` release. Required TypeSpec peers are resolved and checked with them.
+`--tag next` is an explicit channel change. `--check --offline` only reports cached knowledge.
+Equivalent tasks: `mise run typespec:check` and `mise run typespec:update`.
+
+The Python updater requests only one version document per package, uses up to six concurrent
+requests and conditional HTTP caching when the registry provides validators. It checks peers
+before mutation and validates a combined import of the installed TypeSpec libraries. It then
+runs contract parity. Failed installation, import validation or changed generated outputs cause
+package/lock/reference restoration and a frozen-lockfile reinstall. It does not silently migrate
+changed model output. Run the repository's relevant build/tests after package changes.
+
+The generated reference records actual entry paths and hashes; it is not a complete API catalog
+or proof of runtime behavior. Compiler `1.17.0` advertises the missing secondary declaration
+`./dist/module-resolver/index.d.ts`; that absence is recorded rather than inventing a working API.
+Primary entry points must exist and the combined library import must compile. No scheduled or
+build-triggered network update is installed.
+
+## Verified encoded-name path (2026-10-27)
+
+`ToolReadInput.maxBytes` is optional with default 32768, unlike a required-field example.
+Its generated application TS property is `maxBytes`, C# is `MaxBytes`, JSON is `max_bytes`,
+and normalized runtime schemas use `properties.max_bytes` without listing it in `required`.
+A direct execution of generated `ToolReadInputJson` confirmed both directions and absence.
+The raw artifact `contracts/json-schema/raw/nami-tools` still contains `maxBytes`; it is not
+interchangeable with the normalized runtime bundle. The custom
+`contracts/emitters/nami-lint/src/rules/wire-name-snake-case.ts` currently enforces snake_case.
+Removing `@encodedName` alone will therefore not complete a camelCase migration; update that
+project policy with the intended contract. This is not a TypeSpec or MCP requirement.
+`@encodedName` selects by media type, not by recipient. Reuse one model when the wire form is
+identical; define separate representations only when their data contract actually differs.
+The engine's `input` member currently carries the tool payload; it does not rename its inner fields.
+
+## Historical source basis and version context
 
 The 2026-10-25 source package records branch `snapshot/1932-current-code`, commit
 `9320d39bdfd3a2af0a41a4f5458e19866d5bcd67`, plus selected working-tree changes.
@@ -195,7 +307,7 @@ Source anchors:
 
 - `/Users/alexandernachtmann/RiderProjects/nami/src/nami.collector.ingestion/OtlpIngestionModels.cs:89`: log fields;
   metric fields at line 145.
-- `/Users/alexandernachtmann/RiderProjects/nami/src/nami.collector.ingestion/Primitives/MetricShapes.cs:4`
+- `/Users/alexandernachtmann/RiderProjects/nami/src/nami.collector.ingestion/Generated/MetricShapes.g.cs`
 - `/Users/alexandernachtmann/RiderProjects/nami/src/nami.collector.ingestion/OtlpConverter.Metrics.cs:111`
 - `/Users/alexandernachtmann/RiderProjects/nami/src/nami.collector.ingestion/OtlpConverter.cs:552`
 - `/Users/alexandernachtmann/RiderProjects/nami/src/nami.collector.storage/IngestionStorageMapper.cs:117`
@@ -227,9 +339,9 @@ and carry its consequences through the affected storage/read paths.
 Source anchors:
 
 - `/Users/alexandernachtmann/RiderProjects/nami/src/nami.collector.storage/StoredAttributeValue.cs:27`
-- `/Users/alexandernachtmann/RiderProjects/nami/src/nami.collector.storage/StoredMetricRecords.cs:11`: payload tags;
+- `/Users/alexandernachtmann/RiderProjects/nami/src/nami.collector.storage/Generated/StoredMetricRecords.g.cs`: payload tags;
   optional number at line 23; stored attributes around line 140.
-- `/Users/alexandernachtmann/RiderProjects/nami/src/nami.collector.storage/StoredRecordMapper.cs:20`
+- `/Users/alexandernachtmann/RiderProjects/nami/src/nami.collector.storage/Generated/AttributeIngestion.g.cs`
 - `/Users/alexandernachtmann/RiderProjects/nami/src/nami.collector.storage/MetricObservationCodec.cs:29`
 - `/Users/alexandernachtmann/RiderProjects/nami/src/nami.collector.ingestion/OtlpConverter.MetricIdentity.cs:12`
 - `/Users/alexandernachtmann/RiderProjects/nami/src/nami.collector.storage/MetricStorageMapper.cs:101`
@@ -346,9 +458,9 @@ and
 The recorded `union extends` experiment accepted a named model base after rejecting an inline base.
 Union inheritance and discriminator serialization are independent choices.
 
-Read C# 15 union-specific guidance at
-`/Users/alexandernachtmann/RiderProjects/csharp-union-types/SKILL.md`; the recorded checkout was
-`8cc7b770168a484780080e00b284dcdfa287291c` with working changes. Use generated JSON metadata for AOT.
+Read C# 15 union-specific guidance in the bundled
+[union skill](../csharp-union-types/SKILL.md). This checked-in copy is the source
+for explicit exports; no external checkout is required. Use generated JSON metadata for AOT.
 The earlier .NET RC2 runtime inspection found generic `JsonSerializerOptions.GetTypeInfo<T>()`
 and `TryGetTypeInfo<T>(out JsonTypeInfo<T>?)`, although the targeting-pack XML omitted them.
 Use the actual declarations/assembly when resolving that mismatch. Recorded sources:

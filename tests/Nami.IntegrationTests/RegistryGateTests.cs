@@ -12,7 +12,7 @@ namespace Nami.IntegrationTests;
 public sealed partial class RegistryGateTests(TestContext context)
 {
     private static readonly string[] s_generatedDirectories =
-        ["internal/nami.semconv/Generated", "crates/nami-semconv/src", "docs/semconv"];
+        ["internal/nami.semconv/Generated", "docs/semconv"];
 
     private static readonly string[] s_generationCheckArgs = ["registry/generate.sh", "--check"];
     private static string Root => ProcessRunner.RepositoryRoot;
@@ -260,30 +260,9 @@ public sealed partial class RegistryGateTests(TestContext context)
         Assert.Contains("nami_token_exemption_requires_persistence", result.Output + result.Error);
     }
 
-    [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
-    [TestMethod]
-    public async Task RustCrate_Constants_EqualCatalogKeys()
-    {
-        var rust = await File.ReadAllTextAsync(Path.Combine(Root, "crates/nami-semconv/src/lib.rs"),
-            context.CancellationToken);
-        var start = rust.IndexOf("pub const KEYS:", StringComparison.Ordinal);
-        var end = rust.IndexOf("];", start, StringComparison.Ordinal);
-        Assert.IsGreaterThanOrEqualTo(0, start);
-        Assert.IsGreaterThan(start, end);
-        var keys = QuotedValue().Matches(rust[start..end]).Select(static m => m.Groups[1].Value)
-            .Order(StringComparer.Ordinal).ToArray();
-        var expected = AttributeCatalog.All.Select(static a => a.Key).Order(StringComparer.Ordinal).ToArray();
-        Assert.HasCount(expected.Length, keys);
-        Assert.IsEmpty(expected.Except(keys, StringComparer.Ordinal).ToArray());
-        Assert.IsEmpty(keys.Except(expected, StringComparer.Ordinal).ToArray());
-    }
-
     [GeneratedRegex("\\\"nami\\.[a-z]", RegexOptions.CultureInvariant)]
     private static partial Regex NamiKeyLiteral();
 
     [GeneratedRegex(@"\bIL[23][0-9]{3}\b")]
     private static partial Regex TrimmingDiagnostic();
-
-    [GeneratedRegex("\\\"([^\\\"]+)\\\"")]
-    private static partial Regex QuotedValue();
 }

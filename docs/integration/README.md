@@ -147,8 +147,8 @@ OTLP, DuckDB and analysis remain in the C# NativeAOT engine. TypeSpec remains th
 and must generate both C# and TypeScript artifacts. A private long-lived stream/pipe connects the
 local processes; neither an internal HTTP analysis API nor a single native file is mandatory.
 
-Tomo is an example Rust developer whose application an agent investigates. The product is not tied
-to a service named tomo or exclusively to Rust or Claude Code. Product integrations are a Claude.ai
+Tomo is an example developer whose application an agent investigates. The product is not tied
+to a service named tomo or exclusively to Claude Code. Product integrations are a Claude.ai
 connector and/or OpenAI plugin with bundled MCP; local agent clients remain supported. The product
 has no dashboard or human-facing analysis UI.
 
@@ -162,7 +162,7 @@ Resolved contradictions: TypeScript output is retained; semantic cross-language 
 require JSON property-order equality; Stable-only selection is distinct from allowing Development
 models in the registry; instrumented metric calls are validated through aggregates, not one exported
 point per call. Public and private project selection derives from authentication. No implicit
-fifteen-minute lifetime, CLR-profiler requirement or transparent interception of Rust is claimed.
+fifteen-minute lifetime, CLR-profiler requirement or transparent interception of other language runtimes is claimed.
 
 This is a documentation/acceptance change. The existing C# MCP host and previous proof results are
 the pre-migration baseline, not evidence that TypeScript MCP, IPC or the instrumentation catalog is

@@ -3,7 +3,7 @@
 nami is an agent-operated application debugging stack: compile-time instrumentation, OpenTelemetry,
 DuckDB-backed analysis and six read-only MCP tools. Agents use it through a Claude.ai connector
 and/or an OpenAI plugin with bundled MCP integration; local clients are also supported. There is
-no dashboard or human-facing analysis UI. Tomo is an example Rust developer whose application an
+no dashboard or human-facing analysis UI. Tomo is an example developer whose application an
 agent investigates, not the only supported application.
 
 The runtime is **TypeScript/Bun MCP + C#/.NET 11 NativeAOT engine**, connected locally by
@@ -78,10 +78,9 @@ All three land in the same rows. What the tools can answer comes from the resour
 - `vcs.ref.head.revision`, `service.version`, `deployment.environment.name` and `cicd.*` on the
   resource are what `changes_recent` reports when they change.
 - An exception counts whether it arrives as a log record with event name `exception` or as a span
-  event named `exception` (the `tracing-opentelemetry` path); `errors_recent` groups both together.
+  event named `exception`; `errors_recent` groups both together.
 
-Supported Rust applications can take attribute names from the generated `crates/nami-semconv` crate,
-so renamed constants fail at compilation rather than silently diverging from the catalog. With `NAMI_OTLP_AUTH_MODE=ApiKey`, every
+With `NAMI_OTLP_AUTH_MODE=ApiKey`, every
 OTLP request carries a project key in the `x-otlp-api-key` header; `NAMI_OTLP_PROJECT_KEYS` maps
 projects to keys, and a resource whose `nami.project.id` names another project is refused.
 
@@ -137,25 +136,25 @@ ingest lag; it never means "no errors". A window that ends past the watermark is
 | `src/nami.collector.ingestion` | OTLP decoding over HTTP and gRPC, attribute normalization against the registry, sanitizer limits, watermarks. |
 | `src/nami.collector.storage` | DuckDB storage per project and the read-only snapshots the tools run on. |
 | `registry/` | The canonical Weaver registry and policies; editable definitions and pinned imports live in `registry/source/`. |
-| `templates/registry/` | Jinja templates that generate C# (`internal/nami.semconv`), Rust (`crates/nami-semconv`) and Markdown (`docs/semconv/`) from the registry. |
+| `templates/registry/` | Jinja templates that generate C# (`internal/nami.semconv`) and Markdown (`docs/semconv/`) from the registry. |
 | `contracts/` | TypeSpec for every tool input and result. It generates C# types in `internal/nami.contracts`, JSON Schema in `contracts/json-schema/`, and TypeScript types and tool metadata in `src/nami.mcp/src/contracts/generated`. |
 | `internal/` | Generated contracts and conventions, nami's self-telemetry defaults, and the source generators. |
 | `eng/` | The Fallout build. |
 | `tests/` | Shared test support plus MSTest Unit, Integration and EndToEnd suites; EndToEnd drives the NativeAOT host. |
 | `docs/` | The PRD, the architecture, the implementation checklist and the integration notes. |
-| `claude/debugging-tomo.md` | Agent debugging workflow and the corrected Rust-developer example. |
+| `claude/debugging-tomo.md` | Agent debugging workflow and the developer example. |
 | `.railway/railway.ts` | The Railway service `nami`. |
 
 ## Build
 
 `mise install` installs the pinned toolchain: the .NET SDK `11.0.100-rc.3.26522.148` (.NET 11 RC3,
-pinned in `global.json` too), Weaver `0.28.0`, Rust `1.99.0`, Bun and Node. The build is Fallout, and
+pinned in `global.json` too), Weaver `0.28.0`, Bun and Node. The build is Fallout, and
 `./eng/build.sh --help` lists every target.
 
 | Command | Does |
 | --- | --- |
 | `./eng/build.sh Check --Configuration Release` | The gate before every push, and in CI on every push and pull request: Registry, contract parity, compilation, MSTest suites and the published NativeAOT conformance proof. |
-| `./eng/build.sh Registry` | Runs `weaver registry check --future -r registry`, regenerates the C#, Rust and Markdown outputs, and fails if they differ from the commit. |
+| `./eng/build.sh Registry` | Runs `weaver registry check --future -r registry`, regenerates the C# and Markdown outputs, and fails if they differ from the commit. |
 | `./eng/build.sh Contracts` | Regenerates C#/TypeScript contracts, shared metadata and `contracts/json-schema/` from TypeSpec; commit them with the TypeSpec change. |
 | `./eng/build.sh Compile` | Checks/builds TypeScript MCP and the .NET solution. |
 | `./eng/test.sh --suite Unit` | Runs the fast MSTest contract suite. `Integration`, `EndToEnd` and `All` select the other scopes. |

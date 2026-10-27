@@ -15,6 +15,7 @@ RC3 is an out-of-band security update. Its [release notes](https://github.com/do
 - [Functional composition](examples/functional.cs): pure `Map`/`Bind`/`Match` operators and a parsing/validation pipeline with errors as values.
 - [Closed hierarchies](examples/closed-hierarchies.cs): closed intermediate nodes, sealed leaves, exhaustive matching and null handling.
 - [Polyfills](polyfills/README.md): source-only `UnionAttribute` and `IUnion` for targets before .NET 11.
+- [One-way export](references/verification.md#explicit-one-way-export): check or update standalone/plugin copies from the canonical source.
 - Bundled probes in `probes/`, with the required license notices. No external repository is required.
 - Runtime reports are transient external diagnostic state; no captured run is bundled with the instructions.
 
@@ -59,4 +60,4 @@ CI executes the same script and uploads its report. It does not publish NuGet pa
 
 ## Credits and license
 
-Author and maintainer: Alexander Nachtmann. The package is written for AI coding agents and built from the local files and probes he supplied and selected. Included third-party code retains its existing copyright and license notices. There are no remote-source lookups, commit comparisons or source-hash checks.
+Author and maintainer: Alexander Nachtmann. The package is written for AI coding agents and built from the local files and probes he supplied and selected. Included third-party code retains its existing copyright and license notices. Normal use and compiler checks fetch no source. The explicit exporter compares file hashes, and the binary-update test confirms that its consumer DLL stays unchanged.

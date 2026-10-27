@@ -195,7 +195,7 @@ def main():
             else:
                 canonical.write_bytes(expected_bytes)
         run([weaver,'--future','registry','check','--v2','-r',str(ROOT/'registry'),'-p',str(ROOT/'registry/policies')])
-        destinations=[('csharp','internal/nami.semconv/Generated'),('rust','crates/nami-semconv/src'),('markdown','docs/semconv')]
+        destinations=[('csharp','internal/nami.semconv/Generated'),('markdown','docs/semconv')]
         for target,destination in destinations:
             output=temp/target
             run([weaver,'registry','generate','--v2','-r',str(materialized),'-p',str(ROOT/'registry/policies'),'-t',str(ROOT/'templates/registry'),'-D','core_commit='+core,'-D','genai_commit='+genai,target,str(output)])

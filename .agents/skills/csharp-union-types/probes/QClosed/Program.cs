@@ -1,9 +1,8 @@
 #nullable enable
 using Lib;
 
-// Cross-assembly behaviour of `closed`. QClosedLib is the library; build it with
-// -p:DefineConstants=THIRD to add a third case (Helicopter) without rebuilding this project,
-// then copy its dll over this project's output.
+// scripts/verify.py automates library-only replacement: compile this consumer once,
+// build QClosedLib with THIRD, replace only its DLL, and verify the unchanged consumer.
 
 foreach (Transportation x in new Transportation[] { new Plane("LH1"), new Train("DB") })
     Console.WriteLine($"{x} => {ToLabel(x)}");

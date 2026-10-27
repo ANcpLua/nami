@@ -17,7 +17,7 @@ registries are imported directly.
 Run from the repository root:
 
 ```sh
-registry/generate.sh          # validate source and regenerate the publication, C#, Rust, and Markdown
+registry/generate.sh          # validate source and regenerate the publication, C# and Markdown
 registry/generate.sh --check  # validate source and compare all outputs without editing them
 ```
 
@@ -46,7 +46,7 @@ The entrypoint therefore performs these explicit steps:
 3. Strictly validate the materialization with Weaver and Nami's Rego policies, then regenerate
    or compare `registry/manifest.yaml` and `registry/resolved.json`.
 4. Strictly validate the committed canonical registry with the direct command above and
-   generate C#, Rust, and Markdown from the same checked snapshot.
+   generate C# and Markdown from the same checked snapshot.
 
 Source registries and their git objects are never edited. The generated publication contains
 all effective definitions and provenance annotations; the source files retain the canonical
