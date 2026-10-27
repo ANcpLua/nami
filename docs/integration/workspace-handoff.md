@@ -6,7 +6,7 @@
 
 ## Vor einer erneuten Migration lesen
 
-Die Übernahme des Materialisierungs-Prototyps ist bereits im [Test-Harness-Handover](test-harness.md) und im [Dateiinventar](test-harness-inventory.csv) dokumentiert. **Die 257 Inventareinträge sind keine offenen Importaufträge.** Die neun historischen Stationen stehen im [Request-/Response-Review](../prd/nami-request-response-review.md#8-abgleich-mit-meinen-früheren-antworten).
+Die Übernahme des Materialisierungs-Prototyps ist bereits im [Test-Harness-Handover](test-harness.md) und im [Dateiinventar](test-harness-inventory.csv) dokumentiert. **Die 257 Inventareinträge sind keine offenen Importaufträge.** Der [Request-/Response-Review](../prd/nami-request-response-review.md) enthält den verbindlich korrigierten Produktumfang; ältere Stationslisten sind keine neuen Importaufträge.
 
 Eine vorhandene Datei beweist nicht, dass ihre komplette Implementierung optimal oder jeder frühere Test aktuell bestanden ist. Sie zeigt aber den Ort, an dem Verbesserungen ansetzen. Vor einem neuen Import: bestehenden Eigentümer finden, konkrete fehlende Fähigkeit benennen, Verhalten vergleichen und nur diese Lücke bearbeiten. Keine zweite Fixture-Infrastruktur neben die vorhandene stellen.
 
@@ -14,14 +14,15 @@ Eine vorhandene Datei beweist nicht, dass ihre komplette Implementierung optimal
 
 | Ort | Jetzt beobachteter Stand | Verwendung und Aufräumentscheidung |
 | --- | --- | --- |
-| `~/RiderProjects/nami` | Branch `snapshot/1932-current-code`, HEAD `9e151e0`; 44 Status-Einträge vor dieser Dokumentationsänderung. | Aktive Produktimplementierung, Tests, Build und Vertragsgenerierung. Den Arbeitsbaum erhalten; `e0dd040` ist nicht mehr der neueste lokale Commit. |
-| `~/Downloads/Qyl.Telemetry.Tests-checkpoint-2026-10-24-000952-nami-prd` | `materialized-project`, Branch `main`, HEAD `34d902a`; 235 Status-Einträge. | Historischer Prototyp. Keine aktive Nami-Build-Abhängigkeit und kein Ort für neue Nami-Features. Nach abschließender Sicherung stilllegen; keine erneute Gesamtmigration. |
-| `~/RiderProjects/qyl` | Eigenständiges Repository `ANcpLua/qyl`, Branch `main`, HEAD `80a63fbf`; drei vom Elternrepository nicht verfolgte, jeweils eigenständige Git-Repositories. | Separates Altprodukt. Nicht als Nami-Basis verwenden. Vor Entfernung auch die drei verschachtelten Repositories berücksichtigen. |
-| `~/RiderProjects/nami.playground` | Kein Git-Repository. | Begrenzte Sammlung von Verbesserungskandidaten. Keine zweite aktive Testarchitektur. Vor Entfernung vollständig sichern; die Kandidaten aus Abschnitt 4 einmalig entscheiden. |
-| `~/RiderProjects/nami-plugin` | Eigenständiges Repository, Remote `ANcpLua/opusfix`, HEAD `861d657`; eine lokale Löschung. | Gesonderte Plugin-Arbeit, weder `materialized-project` noch bereits vollständig nach Nami übernommen. Nicht zusammen mit dem Prototyp entsorgen. |
-| `~/RiderProjects/nami-architecture-review` | Lokale Mission, Fragen, User Stories, Quellen und Review-Protokolle. | Entscheidungsarbeit. Keine Produktlaufzeit, kein zweiter Build und keine zweite Implementierung. Beschlossene Änderungen in Nami umsetzen; Status hier nachvollziehen. |
+| `~/RiderProjects/nami` | Implementierung der Konsolidierung in `02181a0`; aktive Branch `codex/playground-consolidation-20261027`. | Produktimplementierung, vier Testprojekte und gemeinsame Build-Dateien. |
+| Downloads-Prototyp und seine alte Sicherung | Laut ausdrücklicher Nutzerbestätigung gelöscht; dokumentiert in [skill-plugin-dedup.md](skill-plugin-dedup.md). | Keine aktive Abhängigkeit und kein neuer Importauftrag. |
+| `~/RiderProjects/qyl` | Separates Produkt mit eigenständigen verschachtelten Repositories. | **Bleibt erhalten.** Die lesende Instrumentierungsberatung ist kein Migrationsauftrag. |
+| `~/RiderProjects/nami.playground` | Kandidaten geprüft; sinnvolle Fähigkeiten in vorhandene Nami-Eigentümer übernommen. | **Bleibt nach neuerer Nutzerentscheidung erhalten.** Kein Produkt-, Build- oder Test-Verweis erforderlich. |
+| `~/RiderProjects/nami-plugin` | Portable Skill-Distribution; Eigentum in [skill-plugin-dedup.md](skill-plugin-dedup.md). | Separate Plugin-Arbeit; nicht zusammen mit Prototypen entfernen. |
+| `~/RiderProjects/nami-architecture-review` | Entscheidungsarbeit. | Keine Produktlaufzeit und keine zweite Implementierung. |
 
-Diese Git-Zahlen sind ein datierter Befund und werden durch weitere Änderungen überholt. Remotes wurden hier nicht auf einen neuen Push-Stand geprüft. Ein Remote schützt unversionierte Dateien grundsätzlich nicht.
+Die Dateiprüfung und Migration ersetzen keinen aktuellen vollständigen Testlauf. Ergebnisse besitzen
+ihren eigenen Quellstand; die früheren Testzahlen bleiben historische Evidenz.
 
 ## 2. Diese Bausteine sind in Nami vorhanden
 
@@ -76,7 +77,8 @@ Das ist ein Konfigurationsvergleich, keine erneute Bestätigung sämtlicher Runn
 
 Gleiche Informationen an vielen Orten erzeugen konkurrierende Anweisungen. Für Nami reichen zurzeit die bestehenden Rollen in Root-`AGENTS.md`, [testing.md](../testing.md), die [.agents/skills/fixture-lifecycle/SKILL.md](../../.agents/skills/fixture-lifecycle/SKILL.md) und die jeweils fachlich zuständigen Skills. Ein zusätzlicher projektspezifischer Skill wird erst angelegt, wenn er einen eigenen, wiederkehrenden Arbeitsablauf beschreibt.
 
-Die Downloads-Kopie enthält außerdem vier gebrochene `.agents/skills/qyl-telemetry-*`-Symlinks auf vor der Umbenennung gültige Qyl-Verzeichnisse. Diese werden nicht in Nami repariert oder repliziert. Der aktuelle Chat stellt einige Skills noch aus der Downloads-Kopie bereit; deren Auffindung ist von der Produktabhängigkeit getrennt. Vor endgültiger Entfernung auch diese Agent-Konfiguration beziehungsweise den neuen Arbeitsort berücksichtigen.
+Die früheren gebrochenen Downloads-Skill-Verweise gehören zum abgeschlossenen Cleanup in
+[skill-plugin-dedup.md](skill-plugin-dedup.md). Sie werden nicht nach Nami repliziert.
 
 ## 4. Playground-Entscheidungen (2026-10-27)
 
@@ -95,44 +97,23 @@ Die vorhandenen Nami-Eigentümer wurden erweitert; es gibt keine zweite Fixture-
 
 Die Testnamen bezeichnen die zuständigen Nachweise. Der endgültige Gesamtprüfstand steht erst nach Abschluss des aktuellen Gates fest.
 
-## 5. Sicherung und Löschbereitschaft
+## 5. Sicherung und aktuelle Aufräumgrenze
 
-### Downloads-Prototyp
+Der Playground wurde vor der Konsolidierung vollständig nach
+`artifacts/migration-checkpoints/nami.playground-2026-10-27.tar.gz` gesichert. Das zugehörige
+`.tar.manifest.json` hält Quell-Hashes fest. Das Archiv ist kein Build- oder Test-Eingang.
+Die neuere ausdrückliche Nutzeranweisung behält **Qyl und Playground**; es gibt hier keinen offenen
+Löschauftrag. Downloads-Prototyp und seine alte Sicherung wurden gesondert ausdrücklich gelöscht.
 
-Die bestehende Sicherung liegt unter:
+## 6. Abschlussumfang
 
-`~/.local/state/nami/handoffs/retired-prototype-20261026T070739Z`
+- Die bestehenden Fixture-, Compiler-, Prozess-, Capture- und Evidenz-Eigentümer bleiben maßgeblich.
+- Die 50 Playground-Dateien haben eine Entscheidung mit Ziel, Begründung und zuständigem Nachweis.
+- Bytebewahrende Materialisierung, SDK-Roslyn, explizite Diagnostik und Cache-Besitz sind übernommen.
+- Unbenutzte Phasenmessung und zusätzliche Test-Host-DI wurden nicht übernommen.
+- Die vier primären Testprojekte und ihre gemeinsamen Props/Targets bilden die aktive Struktur.
+- Der Gesamtprüfstand wird getrennt durch das aktuelle Build-/Test-/Inspektionsgate belegt.
 
-Erneut geprüft: Git-Bundle gültig und vollständig für die enthaltene Historie; Archiv mit 672 Einträgen; Hashes der enthaltenen regulären Dateien stimmen mit dem Sicherungsmanifest überein. Gegen den heutigen Ordner fehlen keine zuvor manifestierten Dateien. Abweichungen seit der Sicherung betreffen `.DS_Store`-Dateien und Rider-`workspace.xml`; neu sind eine weitere `.DS_Store` und Rider-`vcs.xml`.
-
-**Damit ist die Entwicklungsarbeit des damaligen Prototyps gesichert.** Wer auch den neuesten IDE-Zustand erhalten möchte, muss diese wenigen geänderten/neuen Dateien ergänzend sichern. Rebuildbare Verzeichnisse wie `bin`, `obj`, `artifacts`, `node_modules` und `TestResults` wurden bewusst nicht archiviert. Das Archiv ist kein Remote-Push der lokalen Änderungen.
-
-### Qyl
-
-Der Elternstatus `??` ist hier missverständlich: Die drei Verzeichnisse sind eigenständige Git-Repositories, bei der Prüfung jeweils auf `main` und mit sauberem Arbeitsbaum:
-
-| Verschachteltes Repository | Lokaler HEAD | Eingetragener GitHub-Remote |
-| --- | --- | --- |
-| `Qyl.Telemetry.SemanticConventions/` | `684fa819` | `ANcpLua/Qyl.Telemetry.SemanticConventions` |
-| `Qyl.Telemetry.Tests/` | `a196ccb` | `ANcpLua/Qyl.Telemetry.Tests` |
-| `qyl.automation-for-agents/` | `69514d8` | `ANcpLua/qyl.automation-for-agents` |
-
-Sauberer Arbeitsbaum bedeutet, dass keine vom jeweiligen Git-Status angezeigten lokalen Änderungen vorliegen. Es beweist weder, dass alle Commits gepusht sind, noch dass ignorierte Dateien entbehrlich sind. Diese Repositories wurden nicht erneut nach Nami migriert. Vor dem Löschen des Elternordners ihre Historie und benötigte ignorierte Inhalte ebenfalls sichern beziehungsweise den Remote-Stand bestätigen. **Der gesamte Qyl-Ordner ist hier noch nicht als verlustfrei löschbar freigegeben.**
-
-### Playground und Plugin
-
-Der Playground hat keine Git-Historie. Die vollständige Sicherung einschließlich ignorierter Dateien liegt unter `artifacts/migration-checkpoints/nami.playground-2026-10-27.tar.gz`; das zugehörige `.tar.manifest.json` enthält die Quell-Hashes. Die Kandidaten sind in Abschnitt 4 entschieden. Der Originalordner bleibt bis zur abschließenden Prüfung erhalten. `nami-plugin` ist separat; seine lokale Löschung `.github/agents/specification.agent.md` und seine Remote-Historie gehören nicht zum Prototyp-Archiv.
-
-## 6. Abschlussliste gegen Doppelarbeit
-
-- [x] Die neun Stationen und die späteren Architekturkorrekturen dokumentiert.
-- [x] Bestehende Nami-Eigentümer für Materialisierung, Compiler, Metadaten, Paketfeed, Capture, Prozesse und Evidenz erneut gefunden.
-- [x] Alle angefragten Altregeln, Skill-Metadaten, Konfigurationen und Delivery-Pins zugeordnet.
-- [x] Weiterentwickelte Nami-Konfigurationen gegen die alten Dateien verglichen.
-- [x] Prototyp-Sicherung und verbleibende lokale Abweichungen geprüft.
-- [ ] Neueste IDE-Dateien bei Bedarf ergänzend sichern; Agent-Skill-Verweise vor physischer Entfernung umstellen beziehungsweise den neuen Nami-Arbeitsort verwenden.
-- [ ] Qyls drei verschachtelte Repositories und benötigte ignorierte Inhalte sichern beziehungsweise ihren Remote-Stand bestätigen.
-- [x] Playground vollständig sichern und seine sechs Kandidaten einzeln übernehmen oder verwerfen.
-- [ ] Erst dann gewünschte Altordner physisch entfernen. **In diesem Durchgang wurde nichts gelöscht.**
-
-Die beiden offenen Timeout-Risiken und Produktfragen bleiben im [Request-/Response-Review](../prd/nami-request-response-review.md) getrennt aufgeführt. Sie werden durch das Aufräumen weder behoben noch zu Gründen für eine Wiederholung der Migration.
+Der [Request-/Response-Review](../prd/nami-request-response-review.md) bleibt der Produktmaßstab.
+Fehlende Anwendungsinstrumentierung und Beobachtungslebenszeit sind offene Produktanforderungen;
+sie werden durch diese Infrastrukturkonsolidierung weder umgesetzt noch gestrichen.
