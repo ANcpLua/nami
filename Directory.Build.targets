@@ -14,7 +14,7 @@
     <OtelSemConvInstrumentationLibrary>true</OtelSemConvInstrumentationLibrary>
   </PropertyGroup>
 
-  <Target Name="GenerateVersionConstant" BeforeTargets="CoreCompile">
+  <Target Name="GenerateVersionConstant" BeforeTargets="CoreCompile" Condition="'$(MSBuildProjectExtension)' == '.csproj'">
     <PropertyGroup>
       <_NamiInformationalVersion>$(InformationalVersion)</_NamiInformationalVersion>
       <_NamiInformationalVersion Condition="'$(_NamiInformationalVersion)' == ''">$(Version)</_NamiInformationalVersion>

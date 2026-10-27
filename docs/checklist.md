@@ -75,15 +75,14 @@ missing product models. Neither count is a full instrumentation coverage claim.
       slow-peer, cancellation and mid-call process-exit proofs (D2–D4).
 - [x] Exercise credential roles, cross-project reads and valid/missing/malformed trace parents.
 - [ ] Complete concurrent/reconnect/manipulated-identifier isolation and ambient-context proofs (D5/I6).
-- [x] Build MCP before .NET through `eng/build/Build.cs`; publish `mcp/main.js` beside the native
+- [x] Build MCP as a `.esproj` member of `nami.slnx`; publish `mcp/main.js` beside the native
       engine. The Dockerfile declares Bun and native runtime dependencies.
 - [ ] Verify the distributable in a clean environment without installed .NET, including its
       native libraries and channel separation (D6).
 
-`nami.slnx` currently owns the .NET graph. `src/nami.mcp` is a `package.json`/Bun project invoked
-by the build orchestrator, not a `.esproj` member. A future `.esproj` integration must preserve
-one owner for Bun restore/build and validate the actual Rider/MSBuild behavior; it is not an
-unmet runtime requirement or an already completed solution integration.
+`src/nami.mcp/nami.mcp.esproj` integrates the existing Bun/package.json build into `nami.slnx`.
+The JavaScript SDK is pinned, npm install is disabled and the standalone `Mcp` target delegates
+to the same project. CLI build verification does not by itself prove Rider's live indexing state.
 
 ## 4. Application instrumentation and observation lifetime
 

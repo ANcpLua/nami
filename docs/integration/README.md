@@ -5,6 +5,15 @@ The product requirements are [the PRD](../prd/nami.md) and its
 [The checklist](../checklist.md) and [I1–I18 / D1–D6 evidence matrix](requirement-evidence.md)
 record implementation status and proof limits. Entries below are dated history, not current gate results.
 
+## 2026-10-27: Bun MCP participates in the solution build
+
+`src/nami.mcp/nami.mcp.esproj` adds the adapter to `nami.slnx` using the JavaScript SDK pinned in
+`global.json`. The solution entry explicitly enables `<Build />`: the solution serializer defaults
+JavaScript projects to no build. The project owns the frozen Bun install and delegates the build to `package.json`;
+the solution orchestrator no longer runs a duplicate MCP build first. C#-specific version generation
+does not run for the JavaScript project. Native publish keeps the same `mcp/main.js` bundle layout.
+This supersedes the build-scope limitation recorded in the earlier requirement review below.
+
 ## 2026-10-27: requirement evidence reconciled with the actual implementation
 
 All I1–I18 and D1–D6 now name existing source/test evidence and their remaining scope. Contract

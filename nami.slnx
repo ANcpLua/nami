@@ -10,6 +10,9 @@
         <File Path="mise.toml"/>
     </Folder>
     <Folder Name="/src/">
+        <Project Path="src/nami.mcp/nami.mcp.esproj">
+            <Build />
+        </Project>
         <Project Path="src/nami/nami.csproj"/>
         <Project Path="src/nami.collector.ingestion/nami.collector.ingestion.csproj"/>
         <Project Path="src/nami.collector.storage/nami.collector.storage.csproj"/>

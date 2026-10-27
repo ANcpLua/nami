@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk">
+  <PropertyGroup>
+    <BunExecutable Condition="'$(BunExecutable)' == ''">bun</BunExecutable>
+    <ShouldRunNpmInstall>false</ShouldRunNpmInstall>
+    <BuildCommand>&quot;$(BunExecutable)&quot; run build</BuildCommand>
+    <StartupCommand>&quot;$(BunExecutable)&quot; run start</StartupCommand>
+    <BuildOutputFolder>$(MSBuildProjectDirectory)/dist</BuildOutputFolder>
+  </PropertyGroup>
+
+  <!-- The SDK's restore hook and Build share this target. Removing node_modules invalidates
+       its stamp; a successful frozen install is the only operation that writes it. -->
+  <Target Name="NamiRestoreBun" BeforeTargets="NPMRestore;CoreCompile"
+          Condition="'$(DesignTimeBuild)' != 'true'"
+          Inputs="$(MSBuildProjectFullPath);$(MSBuildProjectDirectory)/package.json;$(MSBuildProjectDirectory)/bun.lock;$(MSBuildProjectDirectory)/../../mise.toml"
+          Outputs="$(MSBuildProjectDirectory)/node_modules/.nami-restore">
+    <Exec Command="&quot;$(BunExecutable)&quot; install --frozen-lockfile" WorkingDirectory="$(MSBuildProjectDirectory)"/>
+    <Touch Files="$(MSBuildProjectDirectory)/node_modules/.nami-restore" AlwaysCreate="true"/>
+  </Target>
+
+  <Target Name="NamiTrackBundle" AfterTargets="CoreCompile">
+    <ItemGroup>
+      <FileWrites Include="$(MSBuildProjectDirectory)/dist/main.js"/>
+    </ItemGroup>
+  </Target>
+</Project>

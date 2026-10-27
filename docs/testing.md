@@ -40,10 +40,15 @@ are collected by `GeneratedFixtures.targets` after the support graph has been bu
 Analyzer configurations remain compiler inputs, with explicit virtual links in the project tree.
 Local Rider index preferences are separate from solution membership and build dependencies.
 
-`nami.slnx` is the authoritative .NET project graph. The TypeScript/Bun MCP adapter is a separate
-`package.json` project, currently without a `.esproj` solution member. `eng/build/Build.cs` runs
-its frozen dependency install and build through `Mcp` before `Compile`; `PublishNative` includes
-the resulting `mcp/main.js`. A direct solution build alone does not build that adapter.
+`nami.slnx` includes the .NET graph and `src/nami.mcp/nami.mcp.esproj`. The JavaScript SDK version
+is pinned in `global.json`; an explicit `<Build />` enables the otherwise non-building JavaScript
+solution entry. The project delegates compilation to the existing Bun `package.json`
+script. Its restore target uses `bun install --frozen-lockfile`, invalidated by project/package/
+lockfile/toolchain changes or removal of `node_modules`. npm installation is disabled.
+The solution build now builds MCP directly. `eng/build/Build.cs` also exposes `Mcp` for a standalone
+adapter build; `Compile` does not invoke it separately. `PublishNative` includes `mcp/main.js`.
+The repository entry points resolve the pinned Bun executable. Direct MSBuild/IDE builds need Bun
+on PATH or an explicit `BunExecutable` property. C# version-source generation excludes `.esproj`.
 A `.slnf` is optional for IDE loading; suite selection does not require one.
 MSBuild follows the projects' `ProjectReference` dependencies for build
 ordering. Repository commands default to two MSBuild workers and `DOTNET_PROCESSOR_COUNT=2`;

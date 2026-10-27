@@ -27,12 +27,8 @@ sealed class Build : FalloutBuild, IHasConfiguration
     public Target VerifyContracts => d => d.Description("Verify committed contract generation is current")
         .Executes(() => Run("bash", "eng/contracts.sh verify"));
     public Target Mcp => d => d.Description("Build the TypeScript MCP adapter and validate generated wire types")
-        .Executes(() =>
-        {
-            Run("bun", "install --frozen-lockfile", (RootDirectory / "src/nami.mcp").ToString());
-            Run("bun", "run build", (RootDirectory / "src/nami.mcp").ToString());
-        });
-    public Target Compile => d => d.Description("Build the Nami solution").DependsOn(Mcp)
+        .Executes(() => Run("dotnet", $"build src/nami.mcp/nami.mcp.esproj -c {Configuration} {CpuLimit} -nodeReuse:false {BinaryLog("mcp")}"));
+    public Target Compile => d => d.Description("Build the Nami solution, including the TypeScript MCP adapter")
         .Executes(() => Run("dotnet", $"build nami.slnx -c {Configuration} {CpuLimit} -nodeReuse:false -p:UseSharedCompilation=false {BinaryLog("compile")}"));
     public Target BuildDiagnostics => d => d.Description("Verify build and inspection diagnostic reporting")
         .DependsOn(Compile)

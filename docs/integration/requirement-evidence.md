@@ -88,12 +88,13 @@ D1 und der vollständige D6-Abschluss benötigen reale Auslieferungsevidenz.
 
 ### Build-/Solution-Grenze
 
-[nami.slnx](../../nami.slnx) umfasst elf .NET-Projekte einschließlich Build-Orchestrator.
-[Build.Mcp/Compile][build] führen `bun install --frozen-lockfile` und `bun run build` aus, bevor
-die .NET-Solution gebaut wird. [nami.mcp/package.json](../../src/nami.mcp/package.json) ist aktuell
-kein `.esproj`-Mitglied. Deshalb ist die Solution der vollständige **.NET**-Projektgraph, nicht
-allein die vollständige gemischte Builddefinition. Eine `.esproj` kann diese Integration ergänzen;
-ihre Aufnahme und Rider-/Bun-Verifikation sind nicht Teil dieses lesenden Abgleichs.
+Nachtrag zur Build-Integration vom 27. Oktober: [nami.slnx](../../nami.slnx) umfasst elf .NET-Projekte
+einschließlich Build-Orchestrator und nun auch [nami.mcp.esproj](../../src/nami.mcp/nami.mcp.esproj).
+Das gepinnte JavaScript-SDK führt den bestehenden [Bun-Build](../../src/nami.mcp/package.json) aus;
+der projektbezogene Restore verwendet den eingefrorenen Bun-Lockfile. [Build.Compile][build]
+baut diese Solution, ohne MCP zuvor ein zweites Mal aufzurufen. Der separate `Mcp`-Einstieg
+delegiert an dieselbe `.esproj`. Das ergänzt die ursprüngliche lesende Bestandsaufnahme;
+Riders aktueller Indexzustand bleibt von der CLI-/Solution-Integration zu unterscheiden.
 
 [registry]: ../../registry/generate.sh
 [semconv]: ../../internal/nami.semconv
