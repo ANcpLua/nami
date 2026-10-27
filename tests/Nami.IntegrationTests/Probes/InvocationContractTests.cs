@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text.Json;
 using System.Xml.Linq;
 
@@ -17,7 +18,7 @@ public sealed class InvocationContractTests(TestContext context)
         var (exitCode, error, results) = await RunReportedAsync("ClassName=Nami.IntegrationTests.Probes.ProbeCases");
         Assert.AreEqual(2, exitCode, error);
         Assert.HasCount(5, results);
-        Assert.HasCount(5, results.Select(item => (string?)item.Attribute("testId")).Distinct());
+        Assert.AreAllDistinct(results.Select(item => (string?)item.Attribute("testId")));
         var passed = results.Where(item => (string?)item.Attribute("outcome") == "Passed").ToArray();
         Assert.HasCount(2, passed);
         Assert.AreSequenceEqual([ProbeContract.FirstRow, ProbeContract.SecondRow],
@@ -28,7 +29,7 @@ public sealed class InvocationContractTests(TestContext context)
 
         var rowIdentities = passed.Select(item => item.Value.Split(ProbeContract.RowMarker + "|")[1]
             .Split('|')[1].Split('\r', '\n')[0]).ToArray();
-        Assert.HasCount(2, rowIdentities.Distinct(StringComparer.Ordinal));
+        Assert.AreAllDistinct(rowIdentities);
         Assert.AreSequenceEqual([32, 32], rowIdentities.Select(identity => identity.Length));
         var assertion = Assert.ContainsSingle(ResultsFor(results, ProbeContract.AssertionMethod));
         Assert.AreEqual("Failed", (string?)assertion.Attribute("outcome"));
@@ -117,7 +118,7 @@ public sealed class InvocationContractTests(TestContext context)
         Assert.Contains(FixtureContract.InconclusiveMessage, inconclusive.Value);
         var directories = results.Select(result => result.Value.Split(FixtureContract.DirectoryMarker + "|")[1]
             .Split('\r', '\n')[0]).ToArray();
-        Assert.HasCount(5, directories.Distinct(StringComparer.Ordinal));
+        Assert.AreAllDistinct(directories);
         Assert.IsEmpty(directories.Where(Directory.Exists));
     }
 
@@ -135,12 +136,21 @@ public sealed class InvocationContractTests(TestContext context)
 
     private async Task<(int ExitCode, string Error, XElement[] Results)> RunReportedAsync(string filter)
     {
-        var directory = context.TestTempDirectory ??
-                        throw new InvalidOperationException("The runner did not provide a test directory.");
+        var root = context.TestTempDirectory ??
+                   throw new InvalidOperationException("The runner did not provide a test directory.");
+        var directory = Path.Combine(root, "probe-results");
+        Directory.CreateDirectory(directory);
         var result = await RunAsync("--report-trx", "--results-directory", directory, "--filter", filter);
-        var path = Directory.GetFiles(directory, "*.trx").Single();
-        context.AddResultFile(path);
-        return (result.ExitCode, result.Error, [.. XDocument.Load(path).Descendants(s_trx + "UnitTestResult")]);
+        var path = Assert.ContainsSingle(Directory.GetFiles(directory, "*.trx"));
+        // Deliberately failing child runs are evidence, not additional host-suite results.
+        // Keep their TRX and referenced files together, and verify the attached artifact itself.
+        var evidence = Path.Combine(root, "invocation-probe-evidence.zip");
+        ZipFile.CreateFromDirectory(directory, evidence, CompressionLevel.Fastest, false);
+        context.AddResultFile(evidence);
+        using var archive = ZipFile.OpenRead(evidence);
+        var report = Assert.ContainsSingle(entry => entry.FullName == Path.GetFileName(path), archive.Entries);
+        using var stream = report.Open();
+        return (result.ExitCode, result.Error, [.. XDocument.Load(stream).Descendants(s_trx + "UnitTestResult")]);
     }
 
     private async Task<(int ExitCode, string Output, string Error)> RunAsync(params string[] arguments)

@@ -2,7 +2,14 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 namespace Nami.Collector.Ingestion.Models;
+
+internal closed partial class MetricShape
+{
+}
 
 internal closed partial class MetricPointData
 {
@@ -82,10 +89,6 @@ internal sealed partial class MetricExemplar
     public required IReadOnlyList<Nami.Collector.Ingestion.Models.Attribute> FilteredAttributes { get; init; }
     public string? TraceId { get; init; }
     public string? SpanId { get; init; }
-}
-
-internal closed partial class MetricShape
-{
 }
 
 internal sealed partial class GaugeMetric : Nami.Collector.Ingestion.Models.MetricShape

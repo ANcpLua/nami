@@ -11,116 +11,137 @@ namespace Nami.Api.Contracts.Common;
 [JsonConverter(typeof(AttributeValueJsonConverter))]
 public closed class AttributeValue
 {
-    private protected AttributeValue()
-    {
-    }
-
+    private protected AttributeValue() { }
     public sealed class StringValue(string value) : AttributeValue
     {
         public string Value { get; } = value;
     }
-
     public sealed class BoolValue(bool value) : AttributeValue
     {
         public bool Value { get; } = value;
     }
-
     public sealed class ArrayValue(IReadOnlyList<AttributeValue?> value) : AttributeValue
     {
         public IReadOnlyList<AttributeValue?> Value { get; } = value;
     }
-
     public sealed class ObjectValue(Nami.Api.Contracts.Common.AttributeObjectValue value) : AttributeValue
     {
         public Nami.Api.Contracts.Common.AttributeObjectValue Value { get; } = value;
     }
-
-    /// <summary>
-    /// The canonical text of this value: its wire JSON with every object's keys in ordinal order and
-    /// numbers in ECMAScript form. Byte-identical to the TypeScript runtime's attributeIdentity, so an
-    /// identity computed in either language is the same string.
-    /// </summary>
     public string ToStableString()
     {
         var buffer = new System.Buffers.ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))
-        {
             WriteStable(writer, this);
-        }
-
         return System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
-
-    /// <summary>The canonical text of a possibly-empty value; the empty value is <c>null</c>.</summary>
     public static string StableString(AttributeValue? value) => value is null ? "null" : value.ToStableString();
-
+    internal static void Serialize(Utf8JsonWriter writer, AttributeValue value, JsonSerializerOptions options) => WriteJson(writer, value, options);
+    private static bool WriteNull(Utf8JsonWriter writer) { writer.WriteNullValue(); return true; }
+    private static void WriteJson(Utf8JsonWriter writer, AttributeValue? value, JsonSerializerOptions options)
+    {
+        _ = value switch
+        {
+            AttributeValue.StringValue typed => WriteJsonStringValue(writer, typed, options),
+            AttributeValue.BoolValue typed => WriteJsonBoolValue(writer, typed, options),
+            AttributeValue.ArrayValue typed => WriteJsonArrayValue(writer, typed, options),
+            AttributeValue.ObjectValue typed => WriteJsonObjectValue(writer, typed, options),
+            null => WriteNull(writer),
+        };
+    }
+    private static bool WriteJsonStringValue(Utf8JsonWriter writer, AttributeValue.StringValue typed, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(typed.Value);
+        return true;
+    }
+    private static bool WriteJsonBoolValue(Utf8JsonWriter writer, AttributeValue.BoolValue typed, JsonSerializerOptions options)
+    {
+        writer.WriteBooleanValue(typed.Value);
+        return true;
+    }
+    private static bool WriteJsonArrayValue(Utf8JsonWriter writer, AttributeValue.ArrayValue typed, JsonSerializerOptions options)
+    {
+        writer.WriteStartArray(); foreach (var item in typed.Value) WriteJson(writer, item, options); writer.WriteEndArray();
+        return true;
+    }
+    private static bool WriteJsonObjectValue(Utf8JsonWriter writer, AttributeValue.ObjectValue typed, JsonSerializerOptions options)
+    {
+        JsonSerializer.Serialize(writer, typed.Value, options.GetTypeInfo<Nami.Api.Contracts.Common.AttributeObjectValue>());
+        return true;
+    }
     private static void WriteStable(Utf8JsonWriter writer, AttributeValue? value)
     {
-        switch ((object?)value)
+        _ = value switch
         {
-            case null:
-                writer.WriteNullValue();
-                return;
-            case AttributeValue.StringValue typed:
-                writer.WriteStringValue(typed.Value);
-                return;
-            case AttributeValue.BoolValue typed:
-                writer.WriteBooleanValue(typed.Value);
-                return;
-            case AttributeValue.ArrayValue typed:
-                writer.WriteStartArray();
-                foreach (var item in typed.Value) WriteStable(writer, item);
-                writer.WriteEndArray();
-                return;
-            case AttributeValue.ObjectValue typed:
-                WriteStableObject(writer, typed.Value);
-                return;
-            default:
-                throw new InvalidOperationException("Unknown canonical attribute value case.");
-        }
+            AttributeValue.StringValue typed => WriteStableStringValue(writer, typed),
+            AttributeValue.BoolValue typed => WriteStableBoolValue(writer, typed),
+            AttributeValue.ArrayValue typed => WriteStableArrayValue(writer, typed),
+            AttributeValue.ObjectValue typed => WriteStableObjectValue(writer, typed),
+            null => WriteNull(writer),
+        };
     }
-
+    private static bool WriteStableStringValue(Utf8JsonWriter writer, AttributeValue.StringValue typed)
+    {
+        writer.WriteStringValue(typed.Value);
+        return true;
+    }
+    private static bool WriteStableBoolValue(Utf8JsonWriter writer, AttributeValue.BoolValue typed)
+    {
+        writer.WriteBooleanValue(typed.Value);
+        return true;
+    }
+    private static bool WriteStableArrayValue(Utf8JsonWriter writer, AttributeValue.ArrayValue typed)
+    {
+        writer.WriteStartArray(); foreach (var item in typed.Value) WriteStable(writer, item); writer.WriteEndArray();
+        return true;
+    }
+    private static bool WriteStableObjectValue(Utf8JsonWriter writer, AttributeValue.ObjectValue typed)
+    {
+        WriteStableObject(writer, typed.Value);
+        return true;
+    }
     private static void WriteStableObject(Utf8JsonWriter writer, Nami.Api.Contracts.Common.AttributeObjectValue value)
     {
-        switch (value)
+        _ = value switch
         {
-            case Nami.Api.Contracts.Common.AttributeIntValue typed:
-                writer.WriteStartObject();
-                writer.WritePropertyName("kind");
-                writer.WriteStringValue("int");
-                writer.WritePropertyName("value");
-                writer.WriteStringValue(typed.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                writer.WriteEndObject();
-                return;
-            case Nami.Api.Contracts.Common.AttributeDoubleValue typed:
-                writer.WriteStartObject();
-                writer.WritePropertyName("kind");
-                writer.WriteStringValue("double");
-                writer.WritePropertyName("value");
-                WriteJsNumber(writer, typed.Value);
-                writer.WriteEndObject();
-                return;
-            case Nami.Api.Contracts.Common.AttributeBytesValue typed:
-                writer.WriteStartObject();
-                writer.WritePropertyName("base64");
-                writer.WriteStringValue(Convert.ToBase64String(typed.Base64.Span));
-                writer.WritePropertyName("kind");
-                writer.WriteStringValue("bytes");
-                writer.WriteEndObject();
-                return;
-            case Nami.Api.Contracts.Common.AttributeKeyValueListValue typed:
-                writer.WriteStartObject();
-                writer.WritePropertyName("kind");
-                writer.WriteStringValue("kvlist");
-                writer.WritePropertyName("values");
-                writer.WriteStartObject();
-                foreach (var (key, nested) in typed.Values.OrderBy(static item => item.Key, StringComparer.Ordinal)) { writer.WritePropertyName(key); WriteStable(writer, nested); }
-                writer.WriteEndObject();
-                writer.WriteEndObject();
-                return;
-            default:
-                throw new InvalidOperationException($"Unknown Nami.Api.Contracts.Common.AttributeObjectValue variant '{value.GetType().FullName}'.");
-        }
+            Nami.Api.Contracts.Common.AttributeIntValue typed => WriteStableObjectCase0(writer, typed),
+            Nami.Api.Contracts.Common.AttributeDoubleValue typed => WriteStableObjectCase1(writer, typed),
+            Nami.Api.Contracts.Common.AttributeBytesValue typed => WriteStableObjectCase2(writer, typed),
+            Nami.Api.Contracts.Common.AttributeKeyValueListValue typed => WriteStableObjectCase3(writer, typed),
+            null => throw new InvalidOperationException("The tagged value was not initialized."),
+        };
+    }
+    private static bool WriteStableObjectCase0(Utf8JsonWriter writer, Nami.Api.Contracts.Common.AttributeIntValue typed)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("kind"); writer.WriteStringValue("int");
+        writer.WritePropertyName("value"); writer.WriteStringValue(typed.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        writer.WriteEndObject();
+        return true;
+    }
+    private static bool WriteStableObjectCase1(Utf8JsonWriter writer, Nami.Api.Contracts.Common.AttributeDoubleValue typed)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("kind"); writer.WriteStringValue("double");
+        writer.WritePropertyName("value"); WriteJsNumber(writer, typed.Value);
+        writer.WriteEndObject();
+        return true;
+    }
+    private static bool WriteStableObjectCase2(Utf8JsonWriter writer, Nami.Api.Contracts.Common.AttributeBytesValue typed)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("base64"); writer.WriteStringValue(Convert.ToBase64String(typed.Base64.Span));
+        writer.WritePropertyName("kind"); writer.WriteStringValue("bytes");
+        writer.WriteEndObject();
+        return true;
+    }
+    private static bool WriteStableObjectCase3(Utf8JsonWriter writer, Nami.Api.Contracts.Common.AttributeKeyValueListValue typed)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("kind"); writer.WriteStringValue("kvlist");
+        writer.WritePropertyName("values"); writer.WriteStartObject(); foreach (var (key, nested) in typed.Values.OrderBy(static item => item.Key, StringComparer.Ordinal)) { writer.WritePropertyName(key); WriteStable(writer, nested); } writer.WriteEndObject();
+        writer.WriteEndObject();
+        return true;
     }
 
     /// <summary>A double as ECMAScript Number::toString prints it, so both languages agree on identity.</summary>
@@ -163,65 +184,30 @@ public closed class AttributeValue
     }
 
 }
-
 public sealed class AttributeValueJsonConverter : JsonConverter<AttributeValue>
 {
     public override AttributeValue? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         switch (reader.TokenType)
         {
-            case JsonTokenType.Null:
-                return null;
-            case JsonTokenType.String:
-                return new AttributeValue.StringValue(reader.GetString()!);
-            case JsonTokenType.True:
-            case JsonTokenType.False:
-                return new AttributeValue.BoolValue(reader.GetBoolean());
+            case JsonTokenType.Null: return null;
+            case JsonTokenType.String: return new AttributeValue.StringValue(reader.GetString()!);
+            case JsonTokenType.True: case JsonTokenType.False: return new AttributeValue.BoolValue(reader.GetBoolean());
             case JsonTokenType.StartArray:
             {
                 var items = new List<AttributeValue?>();
-                while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+                while (reader.Read())
                 {
+                    if (reader.TokenType == JsonTokenType.EndArray) return new AttributeValue.ArrayValue(items);
                     items.Add(Read(ref reader, typeToConvert, options));
                 }
-                return new AttributeValue.ArrayValue(items);
+                throw new JsonException("Unterminated AttributeValue array.");
             }
-            case JsonTokenType.StartObject:
-            {
-                var value = JsonSerializer.Deserialize(ref reader, options.GetTypeInfo<Nami.Api.Contracts.Common.AttributeObjectValue>());
-                return new AttributeValue.ObjectValue(value);
-            }
-            default:
-                throw new JsonException($"AttributeValue cannot start with token '{reader.TokenType}'.");
+            case JsonTokenType.StartObject: return new AttributeValue.ObjectValue(JsonSerializer.Deserialize(ref reader, options.GetTypeInfo<Nami.Api.Contracts.Common.AttributeObjectValue>()));
+            default: throw new JsonException($"AttributeValue cannot start with token '{reader.TokenType}'.");
         }
     }
-
-    public override void Write(Utf8JsonWriter writer, AttributeValue value, JsonSerializerOptions options)
-    {
-        switch (value)
-        {
-            case AttributeValue.StringValue typed:
-                writer.WriteStringValue(typed.Value);
-                return;
-            case AttributeValue.BoolValue typed:
-                writer.WriteBooleanValue(typed.Value);
-                return;
-            case AttributeValue.ArrayValue typed:
-                writer.WriteStartArray();
-                foreach (var item in typed.Value)
-                {
-                    if (item is null) writer.WriteNullValue();
-                    else Write(writer, item, options);
-                }
-                writer.WriteEndArray();
-                return;
-            case AttributeValue.ObjectValue typed:
-                JsonSerializer.Serialize(writer, typed.Value, options.GetTypeInfo<Nami.Api.Contracts.Common.AttributeObjectValue>());
-                return;
-            default:
-                throw new JsonException($"Unknown AttributeValue case '{value.GetType().FullName}'.");
-        }
-    }
+    public override void Write(Utf8JsonWriter writer, AttributeValue value, JsonSerializerOptions options) => AttributeValue.Serialize(writer, value, options);
 }
 
 [JsonConverter(typeof(AttributeObjectValueJsonConverter))]

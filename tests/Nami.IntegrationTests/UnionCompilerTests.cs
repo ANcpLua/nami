@@ -49,25 +49,22 @@ public sealed partial class UnionCompilerTests(TestContext context)
     }
 
     [TestMethod]
-    [DataRow("Nami.Collector.Ingestion.Models", "MetricPointData", "IngestionMappings.g.cs", false)]
-    [DataRow("Nami.Collector.Ingestion.Models", "MetricNumberValue", "IngestionMappings.g.cs", false)]
-    [DataRow("Nami.Collector.Ingestion.Models", "MetricShape", "OtlpIngestionModels.cs", false)]
-    [DataRow("Nami.Collector.Storage", "StoredAttributeValue", "StoredAttributeProjection.g.cs", true)]
-    [DataRow("Nami.Collector.Storage", "StoredObjectValue", "StoredAttributeProjection.g.cs", true)]
-    [DataRow("Nami.Collector.Storage", "StoredNumberValue", "MetricObservationCodec.cs", true)]
-    [DataRow("Nami.Collector.Storage", "StoredMetricPointData", "MetricProjection.cs", false)]
+    [DataRow("Nami.Collector.Ingestion.Models", "MetricPointData", "IngestionMappings.g.cs")]
+    [DataRow("Nami.Collector.Ingestion.Models", "MetricNumberValue", "IngestionMappings.g.cs")]
+    [DataRow("Nami.Collector.Ingestion.Models", "MetricShape", "OtlpIngestionModels.cs")]
+    [DataRow("Nami.Collector.Storage", "StoredAttributeValue", "StoredAttributeProjection.g.cs")]
+    [DataRow("Nami.Api.Contracts.Common", "AttributeValue", "Common.cs")]
+    [DataRow("Nami.Collector.Storage", "StoredObjectValue", "StoredAttributeProjection.g.cs")]
+    [DataRow("Nami.Collector.Storage", "StoredNumberValue", "MetricObservationCodec.cs")]
+    [DataRow("Nami.Collector.Storage", "StoredMetricPointData", "MetricProjection.cs")]
     public async Task Build_AddedHierarchyLeaf_RejectsTheActualConsumer(
-        string ns, string type, string consumer, bool canonicalWriter)
+        string ns, string type, string consumer)
     {
         await using var project = new FixtureProject("AddedHierarchyLeaf", context: context);
         AddActualSources(project);
         project.AddSource("AddedCase.cs", $$"""
             namespace {{ns}};
-            internal sealed class AddedCase : {{type}}
-            {
-                {{(canonicalWriter ? "internal override void WriteCanonical(Utf8JsonWriter writer) => throw new NotSupportedException();" : "")}}
-                {{(type == "StoredAttributeValue" ? "internal override void WriteJson(Utf8JsonWriter writer, JsonSerializerOptions options) => throw new NotSupportedException();" : "")}}
-            }
+            internal sealed class AddedCase : {{type}};
             """);
         var result = await project.BuildAsync(context.CancellationToken);
         AssertMissingCase(result, "AddedCase", consumer);
@@ -85,6 +82,7 @@ public sealed partial class UnionCompilerTests(TestContext context)
             using Nami.Api.Contracts.Engine;
             using Nami.Api.Contracts.OTel.Metrics;
             using Nami.Api.Contracts.Tools;
+            using Nami.Collector.Storage;
 
             if (JsonSerializer.IsReflectionEnabledByDefault)
                 throw new InvalidOperationException("Reflection must remain disabled.");
@@ -129,7 +127,32 @@ public sealed partial class UnionCompilerTests(TestContext context)
                 RequireFailure<JsonException>(() => JsonSerializer.Deserialize(
                     name == "Engine.EngineCommand" ? "{\"method\":\"unknown\"}" : "{\"kind\":\"unknown\"}", metadata));
             }
-            Console.Write("15 roundtrips; 5 defaults rejected; 10 invalid tags rejected; reflection disabled");
+            (string Json, string Canonical)[] storedCases =
+            [
+                ("null", "null"),
+                ("\"text\"", "\"text\""),
+                ("false", "false"),
+                ("[\"text\",null,true]", "[\"text\",null,true]"),
+                ("{\"type\":\"int\",\"value\":\"-9223372036854775808\"}", "{\"type\":\"int\",\"value\":\"-9223372036854775808\"}"),
+                ("{\"value\":\"-Infinity\",\"type\":\"double\"}", "{\"type\":\"double\",\"value\":\"-Infinity\"}"),
+                ("{\"type\":\"bytes\",\"base64\":\"AP8=\"}", "{\"base64\":\"AP8=\",\"type\":\"bytes\"}"),
+                ("{\"values\":{\"z\":null,\"kind\":\"kept\",\"type\":false},\"type\":\"kvlist\"}", "{\"type\":\"kvlist\",\"values\":{\"kind\":\"kept\",\"type\":false,\"z\":null}}")
+            ];
+            var storedMetadata = StorageJsonSerializerContext.Default.StoredAttributeValue;
+            foreach (var (json, canonical) in storedCases)
+            {
+                var value = JsonSerializer.Deserialize(json, storedMetadata);
+                if (StoredAttributeValue.StableString(value) != canonical)
+                    throw new InvalidOperationException("Stored canonical bytes changed: " + json);
+                var reloaded = JsonSerializer.Deserialize(JsonSerializer.Serialize(value, storedMetadata), storedMetadata);
+                if (StoredAttributeValue.StableString(reloaded) != canonical)
+                    throw new InvalidOperationException("Stored roundtrip changed: " + json);
+            }
+            RequireFailure<InvalidOperationException>(() => new AttributeValue.ObjectValue(default).ToStableString());
+            RequireFailure<InvalidOperationException>(() => new StoredAttributeValue.ObjectValue(null!).ToStableString());
+            RequireFailure<JsonException>(() => JsonSerializer.Deserialize("{}", storedMetadata));
+            RequireFailure<JsonException>(() => JsonSerializer.Deserialize("{\"type\":\"unknown\"}", storedMetadata));
+            Console.Write("15 wire and 8 stored roundtrips; 7 defaults and 12 invalid tags rejected; reflection disabled");
 
             static void RequireFailure<T>(Action action) where T : Exception
             {
@@ -144,7 +167,7 @@ public sealed partial class UnionCompilerTests(TestContext context)
                 Path.Combine(published.OutputDirectory, project.Definition.Name + (OperatingSystem.IsWindows() ? ".exe" : ""))),
             "the NativeAOT union consumer", context.CancellationToken);
         Assert.AreEqual(0, run.ExitCode, run.Output + run.Error);
-        Assert.AreEqual("15 roundtrips; 5 defaults rejected; 10 invalid tags rejected; reflection disabled", run.Output);
+        Assert.AreEqual("15 wire and 8 stored roundtrips; 7 defaults and 12 invalid tags rejected; reflection disabled", run.Output);
     }
 
     private static void AssertMissingCase(FixtureBuildResult result, string type, string consumer)
@@ -170,6 +193,7 @@ public sealed partial class UnionCompilerTests(TestContext context)
                     .Select(static property => property.Value.Replace("$(WarningsAsErrors)", "", StringComparison.Ordinal))))
             .RecordProperties("TreatWarningsAsErrors", "WarningsAsErrors");
         foreach (var file in Directory.EnumerateFiles(RepositoryPath(ContractDirectory), "*.cs")
+                     .Concat(Directory.EnumerateFiles(RepositoryPath(ContractDirectory + "/Generated"), "*.cs"))
                      .Concat(Directory.EnumerateFiles(RepositoryPath(ContractDirectory + "/Nami"), "*.cs", SearchOption.AllDirectories))
                      .Concat(Directory.EnumerateFiles(RepositoryPath(IngestionDirectory + "/Generated"), "*.cs"))
                      .Concat(Directory.EnumerateFiles(RepositoryPath(StorageDirectory + "/Generated"), "*.cs")))
@@ -178,7 +202,6 @@ public sealed partial class UnionCompilerTests(TestContext context)
                  {
                      IngestionDirectory + "/OtlpIngestionModels.cs",
                      IngestionDirectory + "/NormalizedAttributes.cs",
-                     StorageDirectory + "/StoredAttributeValue.cs",
                      StorageDirectory + "/CanonicalAttributeOrder.cs",
                      StorageDirectory + "/StorageJsonSerializerContext.cs",
                      StorageDirectory + "/MetricProjection.cs",

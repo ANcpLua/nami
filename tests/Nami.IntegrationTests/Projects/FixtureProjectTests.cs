@@ -8,7 +8,7 @@ public sealed class FixtureProjectTests(TestContext context)
     [TestMethod]
     public async Task BuildAsync_OrdinaryConsumer_RunsWithoutTestRunnerDependencies()
     {
-        await using var project = new FixtureProject("OrdinaryConsumer");
+        await using var project = new FixtureProject("OrdinaryConsumer", context: context);
         project
             .AddSource("Program.cs", "Console.Write(\"fixture-ok\");");
 
@@ -28,7 +28,7 @@ public sealed class FixtureProjectTests(TestContext context)
     [TestMethod]
     public async Task BuildAsync_InvalidSource_ReturnsTheCompilerDiagnostic()
     {
-        await using var project = new FixtureProject("InvalidConsumer");
+        await using var project = new FixtureProject("InvalidConsumer", context: context);
         project
             .AddSource("Program.cs", "MissingType value = new(); Console.Write(value);");
 
@@ -43,7 +43,7 @@ public sealed class FixtureProjectTests(TestContext context)
     public async Task BuildAsync_XmlCharactersInProperties_PreservesTheExactValue()
     {
         const string Description = "<fixture> & \"quoted\"";
-        await using var project = new FixtureProject("EscapedConsumer");
+        await using var project = new FixtureProject("EscapedConsumer", context: context);
         project
             .WithProperty("Description", Description)
             .AddSource("Nested Folder/Program.cs", """
@@ -61,7 +61,7 @@ public sealed class FixtureProjectTests(TestContext context)
     [TestMethod]
     public async Task BuildAsync_CancelledToken_DoesNotMaterializeTheProject()
     {
-        await using var project = new FixtureProject("CancelledConsumer");
+        await using var project = new FixtureProject("CancelledConsumer", context: context);
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
 

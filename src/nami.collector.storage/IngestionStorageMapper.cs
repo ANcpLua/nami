@@ -21,57 +21,28 @@ internal static class IngestionStorageMapper
         if (span.EndTimeUnixNano < span.StartTimeUnixNano)
             throw new InvalidDataException("Span end time must not precede its start.");
         var durationNs = span.EndTimeUnixNano - span.StartTimeUnixNano;
-        var projection = StorageAttributeProjection.ExtractSpanHotAttributes(span);
+        var projection = SpanHotAttributeProjectionFactory.FromAttributes(span.Attributes);
         var resourceEntityRefsJson = StorageJsonSerializerContext.SerializeResourceEntityRefs(span.ResourceEntityRefs);
 
-        return new SpanStorageRow
+        return ModelMappings.ToModel(span, new SpanStorageValues
         {
             AttributeRenames = NormalizedAttributes.Collect([
                 span.Attributes, span.ResourceAttributes, span.ScopeAttributes,
                 .. span.Events.Select(static e => e.Attributes), .. span.Links.Select(static l => l.Attributes)
             ]),
             ProjectId = ProjectScope.ForIngest(span.ProjectIdHint, authenticatedProjectId),
-            SpanId = span.SpanId,
-            TraceId = span.TraceId,
             ParentSpanId = string.IsNullOrEmpty(span.ParentSpanId) ? null : span.ParentSpanId,
-            SessionId = projection.SessionId,
-            Name = span.Name,
+            SessionId = span.Attributes.GetSessionId(span.ScopeName, span.ServiceName),
             Kind = (byte)(span.Kind ?? 0),
-            StartTimeUnixNano = span.StartTimeUnixNano,
-            EndTimeUnixNano = span.EndTimeUnixNano,
             DurationNs = durationNs,
             StatusCode = (byte)(span.StatusCode ?? 0),
-            ServiceName = span.ServiceName,
-            GenAiProviderName = projection.GenAiProviderName,
-            GenAiOperationName = projection.GenAiOperationName,
-            GenAiOutputType = projection.GenAiOutputType,
-            GenAiRequestModel = projection.GenAiRequestModel,
-            GenAiResponseModel = projection.GenAiResponseModel,
-            GenAiInputTokens = projection.GenAiInputTokens,
-            GenAiOutputTokens = projection.GenAiOutputTokens,
-            GenAiCacheReadInputTokens = projection.GenAiCacheReadInputTokens,
-            GenAiCacheWriteInputTokens = projection.GenAiCacheWriteInputTokens,
-            GenAiReasoningTokens = projection.GenAiReasoningTokens,
-            AttributesJson = PersistedAttributePolicy.SerializeSpanAttributes(span.Attributes, projection),
+            AttributesJson = PersistedAttributePolicy.SerializeAttributes(span.Attributes),
             ResourceJson = PersistedAttributePolicy.SerializeAttributes(span.ResourceAttributes),
             ResourceEntityRefsJson = resourceEntityRefsJson,
-            SchemaUrl = span.SchemaUrl,
-            StatusMessage = span.StatusMessage,
             EventsJson = SpanChildStorage.SerializeEvents(span.Events),
             LinksJson = SpanChildStorage.SerializeLinks(span.Links),
-            ScopeName = span.ScopeName,
-            ScopeVersion = span.ScopeVersion,
-            ScopeSchemaUrl = span.ScopeSchemaUrl,
             ScopeAttributesJson = PersistedAttributePolicy.SerializeScopeAttributes(span.ScopeAttributes),
-            ScopeDroppedAttributesCount = span.ScopeDroppedAttributesCount,
-            ResourceSchemaUrl = span.ResourceSchemaUrl,
-            ResourceDroppedAttributesCount = span.ResourceDroppedAttributesCount,
-            TraceState = span.TraceState,
-            Flags = span.Flags,
-            DroppedAttributesCount = span.DroppedAttributesCount,
-            DroppedEventsCount = span.DroppedEventsCount,
-            DroppedLinksCount = span.DroppedLinksCount
-        };
+        }, projection);
     }
 
     private static LogStorageRow ToLogStorageRow(LogIngestionRecord log, string? authenticatedProjectId)
@@ -93,7 +64,7 @@ internal static class IngestionStorageMapper
             log.ResourceEntityRefs,
             log.ResourceAttributes);
 
-        return new LogStorageRow
+        return ModelMappings.ToModel(log, new LogStorageValues
         {
             AttributeRenames =
                 NormalizedAttributes.Collect([log.Attributes, log.ResourceAttributes, log.ScopeAttributes]),
@@ -126,30 +97,18 @@ internal static class IngestionStorageMapper
                 if (!string.IsNullOrEmpty(resourceEntityRefsIdentity))
                     builder.AppendSegment(resourceEntityRefsIdentity, true);
             }),
-            TraceId = log.TraceId,
-            SpanId = log.SpanId,
-            EventName = log.EventName,
             SessionId = sessionId,
             TimeUnixNano = log.TimeUnixNano,
             ObservedTimeUnixNano = log.ObservedTimeUnixNano,
             SeverityNumber = severityNumber,
             SeverityText = severityText,
             Body = body,
-            ServiceName = log.ServiceName,
             AttributesJson = attributesJson,
             ResourceJson = resourceJson,
             ResourceEntityRefsJson = resourceEntityRefsJson,
-            ScopeName = log.ScopeName,
-            ScopeVersion = log.ScopeVersion,
-            ScopeSchemaUrl = log.ScopeSchemaUrl,
             ScopeAttributesJson = scopeAttributesJson,
-            ScopeDroppedAttributesCount = log.ScopeDroppedAttributesCount,
-            ResourceSchemaUrl = log.ResourceSchemaUrl,
-            ResourceDroppedAttributesCount = log.ResourceDroppedAttributesCount,
-            Flags = log.Flags,
-            DroppedAttributesCount = log.DroppedAttributesCount,
-            ReceivedTimeUnixNano = log.ReceivedTimeUnixNano
-        };
+            ReceivedTimeUnixNano = log.ReceivedTimeUnixNano,
+        });
     }
 
     private static string StableStorageId(string prefix, Action<StringBuilder> appendParts)
@@ -198,7 +157,7 @@ internal static class IngestionStorageMapper
         return FitsBodyBudget(encoded)
             ? encoded
             : EncodeBody(
-                new StoredAttributeValue.StringValue(TruncateBodyText(StoredAttributeValue.CanonicalText(body))));
+                new StoredAttributeValue.StringValue(TruncateBodyText(StoredAttributeValue.StableString(body))));
     }
 
     private static string EncodeBody(StoredAttributeValue body) =>
@@ -300,7 +259,7 @@ internal static class IngestionStorageMapper
                 }
 
                 identity.AppendSegment(key, true);
-                identity.AppendSegment(StoredAttributeValue.CanonicalText(StoredRecordMapper.ToStored(value)), true);
+                identity.AppendSegment(StoredAttributeValue.StableString(StoredRecordMapper.ToStored(value)), true);
             }
 
             identities.Add(identity.ToString());

@@ -15,6 +15,13 @@ namespace Nami.UnitTests;
 public sealed class ContractTests
 {
     [TestMethod]
+    public void StoredBody_InvalidJson_IsNotAcceptedAsAnOlderPlainTextFormat()
+    {
+        Assert.Throws<JsonException>(() => ToolValues.Body("invalid plain text"));
+        Assert.AreEqual("valid text", ToolValues.Body("\"valid text\""));
+    }
+
+    [TestMethod]
     [DataRow("AttributeIntValue", DisplayName = "Signed integer tag")]
     [DataRow("AttributeDoubleValue", DisplayName = "Double tag")]
     [DataRow("AttributeBytesValue", DisplayName = "Bytes tag")]

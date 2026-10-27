@@ -5,9 +5,9 @@ namespace Nami.Collector.Storage;
 
 internal sealed partial class DuckDbStore
 {
-    public Task<ISnapshot> ReadSnapshotAsync(string projectId, string? snapshotId = null,
+    public Task<TelemetrySnapshot> ReadSnapshotAsync(string projectId, string? snapshotId = null,
         CancellationToken ct = default) =>
-        ExecuteWriteAsync<ISnapshot>((connection, token) =>
+        ExecuteWriteAsync<TelemetrySnapshot>((connection, token) =>
         {
             var capturedAt = _timeProvider.GetUtcNow();
             var now = NamiTimeConversions.ToUnixNanoUnsigned(capturedAt);
@@ -34,7 +34,7 @@ internal sealed partial class DuckDbStore
                     JsonSerializer.Deserialize(decoded, StorageJsonSerializerContext.Default.TelemetrySnapshot)
                     ?? throw new SnapshotUnavailableException();
                 transaction.Commit();
-                return ValueTask.FromResult<ISnapshot>(restored);
+                return ValueTask.FromResult(restored);
             }
 
             // This writer-queue barrier observes every earlier accepted ingest job committed. Advance
@@ -88,7 +88,7 @@ internal sealed partial class DuckDbStore
             }
 
             transaction.Commit();
-            return ValueTask.FromResult<ISnapshot>(snapshot);
+            return ValueTask.FromResult(snapshot);
 
             List<T> Read<T>(string table, string columns, string order, Func<DbDataReader, T> mapper)
             {
@@ -215,11 +215,5 @@ internal sealed partial class DuckDbStore
         }
     }
 
-    private readonly record struct ArrivingResource(
-        string ProjectId,
-        string? ServiceName,
-        string? AttributesJson,
-        string? RecordAttributesJson = null,
-        string? ScopeAttributesJson = null,
-        IReadOnlyList<AttributeRename>? Renames = null);
+
 }

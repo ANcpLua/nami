@@ -65,6 +65,17 @@ export const CONFIG = {
   "DatabaseThreads": "NAMI_DB_THREADS",
   "DatabaseTempDirectory": "NAMI_DB_TEMP_DIR"
 } as const;
+export const CONFIG_DEFAULTS = {
+  "AuthMode": "Unsecured",
+  "BindAddress": "127.0.0.1",
+  "DataPath": "nami.duckdb",
+  "GrpcPort": "4317",
+  "OtlpPort": "4318",
+  "Port": "5100",
+  "RetentionDays": "30",
+  "RetentionIntervalMinutes": "60",
+  "StorageMinimumFreeMegabytes": "2048"
+} as const;
 export const ENGINE_LIMITS = {
   "max_frame_bytes": 1048576,
   "max_pending": 32,

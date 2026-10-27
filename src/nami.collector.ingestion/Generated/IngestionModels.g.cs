@@ -2,6 +2,9 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 namespace Nami.Collector.Ingestion;
 
 internal sealed partial record AttributeRename
@@ -16,10 +19,12 @@ internal sealed partial record NormalizedAttributes
     public List<AttributeRename> Renames { get; init; } = [];
 }
 
-internal sealed partial record NormalizedContractAttributes
+internal sealed partial record LogTimeOrigin
 {
-    public List<Nami.Collector.Ingestion.Models.Attribute> Values { get; init; } = [];
-    public List<AttributeRename> Renames { get; init; } = [];
+    public ulong? ProducerEventTime { get; init; }
+    public ulong? ProducerObservedTime { get; init; }
+    public ulong? CollectorReceivedTime { get; init; }
+    public int? UntimedRequestOrdinal { get; init; }
 }
 
 internal sealed partial record NormalizedMetricExemplars
@@ -28,10 +33,8 @@ internal sealed partial record NormalizedMetricExemplars
     public List<AttributeRename> Renames { get; init; } = [];
 }
 
-internal sealed partial record LogTimeOrigin
+internal sealed partial record NormalizedContractAttributes
 {
-    public ulong? ProducerEventTime { get; init; }
-    public ulong? ProducerObservedTime { get; init; }
-    public ulong? CollectorReceivedTime { get; init; }
-    public int? UntimedRequestOrdinal { get; init; }
+    public List<Nami.Collector.Ingestion.Models.Attribute> Values { get; init; } = [];
+    public List<AttributeRename> Renames { get; init; } = [];
 }

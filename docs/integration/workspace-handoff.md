@@ -78,18 +78,22 @@ Gleiche Informationen an vielen Orten erzeugen konkurrierende Anweisungen. Für 
 
 Die Downloads-Kopie enthält außerdem vier gebrochene `.agents/skills/qyl-telemetry-*`-Symlinks auf vor der Umbenennung gültige Qyl-Verzeichnisse. Diese werden nicht in Nami repariert oder repliziert. Der aktuelle Chat stellt einige Skills noch aus der Downloads-Kopie bereit; deren Auffindung ist von der Produktabhängigkeit getrennt. Vor endgültiger Entfernung auch diese Agent-Konfiguration beziehungsweise den neuen Arbeitsort berücksichtigen.
 
-## 4. Was vom Playground wirklich noch offen ist
+## 4. Playground-Entscheidungen (2026-10-27)
 
-Der [gesonderte Review](../../../nami-architecture-review/REVIEW-TIME-PLAYGROUND.md) bleibt die ausführlichere lokale Quelle. Die folgenden Punkte sind **Kandidaten**, keine zweite Gesamtmigration und keine automatisch beschlossenen Verbesserungen:
+Alle 50 archivierten Quell-, Konfigurations- und Metadatendateien sind in
+[playground-migration.csv](playground-migration.csv) mit SHA256, Ziel, Entscheidung und Prüfnamen zugeordnet.
+Die vorhandenen Nami-Eigentümer wurden erweitert; es gibt keine zweite Fixture-Infrastruktur.
 
-| Kandidat | Verhältnis zum vorhandenen Nami | Einmalig zu entscheidende Frage |
+| Kandidat | Entscheidung | Konkreter Nachweis |
 | --- | --- | --- |
-| `WriteIfDifferent` | Nami schreibt Fixture-Quellen derzeit direkt; der Playground erhält unveränderte Bytes/Zeitstempel. | Verbessert das einen tatsächlich wiederverwendeten Build, ohne veraltete Eingaben zu behalten? |
-| SDK-passende Roslyn-Referenzen | Nami besitzt bereits den Compiler-Harness und nutzt `Basic.Reference.Assemblies.Net100`; der Playground hat eine andere Referenzstrategie. | Welche Ziel-Frameworks muss eine konkrete Probe semantisch testen? Parser-Version und Referenz-API-Fläche getrennt entscheiden. |
-| Explizite Diagnoseauswahl | Nami besitzt Evidenz- und Run-Retention-Eigentümer; der Playground bietet `None`/`Full`. | Ist eine auswählbare Menge nötig? Bestehenden Besitz und Fehlernachweis erhalten. |
-| Paket-/HTTP-Cache-Besitz | Der Paketfeed existiert in Nami bereits. | Nur eine konkret fehlende Cache-Zuständigkeit ergänzen. |
-| Phasenmessung | Der Playground trennt Materialisierung, Ausführung und Diagnostik. | Gibt es eine beantwortbare Performancefrage? Die Felder sind kein Benchmark-Ergebnis. |
-| Test-Host-DI / Scopes | Nami besitzt per-Invocation- und Shared-Fixtures. | Nur übernehmen, wenn ein benötigter Lebenszeitfall dadurch besser und mit dem tatsächlichen Host kompatibel wird. |
+| `WriteIfDifferent` | In `FixtureProject` übernommen: Quellen, Projekt-/Config-XML und SDK-Auswahl werden nur bei geänderten Bytes geschrieben. | `FixtureMaterializationTests`; tatsächlicher Wiederholungsbuild in `FixtureIncrementalBuildTests`. |
+| SDK-passende Roslyn-Referenzen | Compiler und Probe verwenden Roslyn des gepinnten SDK. Der Aufrufer übergibt Frameworkreferenzen ausdrücklich; die feste Net100-Referenzbibliothek ist entfernt. | `InProcessCompilerTests`, `PeImageTests`; C# 15 und .NET-11-API werden tatsächlich kompiliert. |
+| Explizite Diagnoseauswahl | `FixtureDiagnostics.None/Full`; ohne expliziten TestContext keine Evidenz. Nur der MSTest-Adapter liest seinen Frameworkkontext. | `FixtureMaterializationTests`, `FixtureIncrementalBuildTests`, `FixtureEvidenceTests`, `InvocationContractTests`. |
+| Paket-/HTTP-Cache-Besitz | Beide Caches gehören dem ausdrücklich geteilten `PackageFeedFixture`; private Projekte bleiben isoliert. | Materialisierungs-, Lebenszeit- und reale SDK-Build-Tests. |
+| Phasenmessung | Nicht übernommen. Kein aktueller Verbraucher und keine konkrete Performancefrage rechtfertigen weitere Ergebnisfelder. | Quell-/Verbraucherabgleich im Migrationsinventar. |
+| Test-Host-DI / Scopes | Nicht übernommen. Bestehende per-Invocation- und Shared-Fixtures decken die tatsächlichen Verbraucher ab. | `InvocationContractTests`, `SharedFixtureTests`; kein neuer Generic Host. |
+
+Die Testnamen bezeichnen die zuständigen Nachweise. Der endgültige Gesamtprüfstand steht erst nach Abschluss des aktuellen Gates fest.
 
 ## 5. Sicherung und Löschbereitschaft
 
@@ -117,7 +121,7 @@ Sauberer Arbeitsbaum bedeutet, dass keine vom jeweiligen Git-Status angezeigten 
 
 ### Playground und Plugin
 
-Der Playground hat keine Git-Historie. Vor dem Entfernen einmal vollständig sichern und die begrenzten Kandidaten aus Abschnitt 4 mit Status versehen. `nami-plugin` ist separat; seine lokale Löschung `.github/agents/specification.agent.md` und seine Remote-Historie gehören nicht zum Prototyp-Archiv.
+Der Playground hat keine Git-Historie. Die vollständige Sicherung einschließlich ignorierter Dateien liegt unter `artifacts/migration-checkpoints/nami.playground-2026-10-27.tar.gz`; das zugehörige `.tar.manifest.json` enthält die Quell-Hashes. Die Kandidaten sind in Abschnitt 4 entschieden. Der Originalordner bleibt bis zur abschließenden Prüfung erhalten. `nami-plugin` ist separat; seine lokale Löschung `.github/agents/specification.agent.md` und seine Remote-Historie gehören nicht zum Prototyp-Archiv.
 
 ## 6. Abschlussliste gegen Doppelarbeit
 
@@ -128,7 +132,7 @@ Der Playground hat keine Git-Historie. Vor dem Entfernen einmal vollständig sic
 - [x] Prototyp-Sicherung und verbleibende lokale Abweichungen geprüft.
 - [ ] Neueste IDE-Dateien bei Bedarf ergänzend sichern; Agent-Skill-Verweise vor physischer Entfernung umstellen beziehungsweise den neuen Nami-Arbeitsort verwenden.
 - [ ] Qyls drei verschachtelte Repositories und benötigte ignorierte Inhalte sichern beziehungsweise ihren Remote-Stand bestätigen.
-- [ ] Playground sichern und seine sechs Kandidaten einzeln übernehmen oder verwerfen.
+- [x] Playground vollständig sichern und seine sechs Kandidaten einzeln übernehmen oder verwerfen.
 - [ ] Erst dann gewünschte Altordner physisch entfernen. **In diesem Durchgang wurde nichts gelöscht.**
 
 Die beiden offenen Timeout-Risiken und Produktfragen bleiben im [Request-/Response-Review](../prd/nami-request-response-review.md) getrennt aufgeführt. Sie werden durch das Aufräumen weder behoben noch zu Gründen für eine Wiederholung der Migration.

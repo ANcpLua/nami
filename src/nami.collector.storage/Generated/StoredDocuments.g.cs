@@ -2,6 +2,9 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 namespace Nami.Collector.Storage;
 
 internal sealed partial record StoredResourceEntityRef
@@ -16,17 +19,6 @@ internal sealed partial record StoredResourceEntityRef
     public required IReadOnlyList<string> DescriptionKeys { get; init; }
 }
 
-internal sealed partial record TelemetrySnapshot(string Id, string ProjectId, DateTimeOffset CapturedAt, IReadOnlyList<Nami.Collector.Storage.SpanStorageRow> Spans, IReadOnlyList<Nami.Collector.Storage.LogStorageRow> Logs, IReadOnlyList<Nami.Collector.Storage.MetricSeriesRow> Metrics, IReadOnlyList<Nami.Collector.Storage.SignalWatermarkRow> Signals, IReadOnlyList<Nami.Collector.Storage.ResourceObservationRow> Resources, IReadOnlyList<Nami.Collector.Storage.AttributeStabilityRow> AttributeStabilities, IReadOnlyList<Nami.Collector.Storage.AttributeDiscoveryRow> AttributeDiscoveries);
-internal sealed record SpanBatch(IReadOnlyList<Nami.Collector.Storage.SpanStorageRow> Spans);
-internal sealed partial record StorageStats
-{
-    [System.Text.Json.Serialization.JsonPropertyName("spanCount")]
-    public long SpanCount { get; init; } = 0;
-    [System.Text.Json.Serialization.JsonPropertyName("sessionCount")]
-    public long SessionCount { get; init; } = 0;
-}
-
-internal sealed record HistoricalMetricProjection(double? Value = null, ulong? HistogramCount = null, double? HistogramSum = null, double? HistogramMin = null, double? HistogramMax = null, string? BucketBoundsJson = null, string? BucketCountsJson = null);
 internal sealed partial record SpanEventJson
 {
     [System.Text.Json.Serialization.JsonPropertyName("name")]
@@ -55,11 +47,20 @@ internal sealed partial record SpanLinkJson
     public string? TraceState { get; init; }
 }
 
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredResourceEntityRef))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(TelemetrySnapshot))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(SpanBatch))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StorageStats))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(HistoricalMetricProjection))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(SpanEventJson))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(SpanLinkJson))]
-internal partial class StorageJsonSerializerContext : System.Text.Json.Serialization.JsonSerializerContext;
+internal sealed partial record TelemetrySnapshot(string Id, string ProjectId, DateTimeOffset CapturedAt, IReadOnlyList<Nami.Collector.Storage.SpanStorageRow> Spans, IReadOnlyList<Nami.Collector.Storage.LogStorageRow> Logs, IReadOnlyList<Nami.Collector.Storage.MetricSeriesRow> Metrics, IReadOnlyList<Nami.Collector.Storage.SignalWatermarkRow> Signals, IReadOnlyList<Nami.Collector.Storage.ResourceObservationRow> Resources, IReadOnlyList<Nami.Collector.Storage.AttributeStabilityRow> AttributeStabilities, IReadOnlyList<Nami.Collector.Storage.AttributeDiscoveryRow> AttributeDiscoveries);
+internal sealed record SpanBatch(IReadOnlyList<Nami.Collector.Storage.SpanStorageRow> Spans);
+internal sealed partial record StorageStats
+{
+    [System.Text.Json.Serialization.JsonPropertyName("spanCount")]
+    public long SpanCount { get; init; } = 0;
+    [System.Text.Json.Serialization.JsonPropertyName("sessionCount")]
+    public long SessionCount { get; init; } = 0;
+}
+
+[JsonSerializable(typeof(StoredResourceEntityRef), TypeInfoPropertyName = "StoredResourceEntityRef")]
+[JsonSerializable(typeof(SpanEventJson), TypeInfoPropertyName = "SpanEventJson")]
+[JsonSerializable(typeof(SpanLinkJson), TypeInfoPropertyName = "SpanLinkJson")]
+[JsonSerializable(typeof(TelemetrySnapshot), TypeInfoPropertyName = "TelemetrySnapshot")]
+[JsonSerializable(typeof(SpanBatch), TypeInfoPropertyName = "SpanBatch")]
+[JsonSerializable(typeof(StorageStats), TypeInfoPropertyName = "StorageStats")]
+internal partial class StorageJsonSerializerContext : JsonSerializerContext;

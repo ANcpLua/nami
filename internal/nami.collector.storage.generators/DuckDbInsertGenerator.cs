@@ -16,7 +16,6 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         context.RegisterPostInitializationOutput(static ctx =>
         {
             ctx.AddSource("DuckDbAttributes.g.cs", SourceText.From(DuckDbAttributeSource.Source, Encoding.UTF8));
-            ctx.AddSource("StorageDefaults.g.cs", SourceText.From(StorageDefaultsSource.Source, Encoding.UTF8));
         });
 
         var tableTypes = context.SyntaxProvider
@@ -62,6 +61,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         string? onConflict = null;
         var appenderEligible = false;
         var derived = false;
+        var bootstrap = false;
         var arrowEligible = false;
         var indexes = "";
         var uniqueIndexes = "";
@@ -82,6 +82,9 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                     break;
                 case "Derived":
                     derived = named.Value.Value is true;
+                    break;
+                case "Bootstrap":
+                    bootstrap = named.Value.Value is true;
                     break;
                 case "ArrowEligible":
                     arrowEligible = named.Value.Value is true;
@@ -126,6 +129,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             onConflict,
             appenderEligible,
             derived,
+            bootstrap,
             arrowEligible,
             columns.ToArray().ToEquatableArray(),
             ParseIndexSpecs(tableName, indexes, columns, false)
@@ -312,6 +316,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         var excludeFromInsert = false;
         string? sqlType = null;
         string? defaultSql = null;
+        string? sequenceName = null;
         var primaryKeyOrdinal = -1;
 
         var colAttr = FindAttribute(prop, columnAttributeType);
@@ -329,6 +334,9 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                         break;
                     case "DefaultSql":
                         defaultSql = named.Value.Value as string;
+                        break;
+                    case "SequenceName":
+                        sequenceName = named.Value.Value as string;
                         break;
                     case "PrimaryKeyOrdinal":
                         if (named.Value.Value is int p)
@@ -351,7 +359,8 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             defaultOrdinal,
             sqlType,
             defaultSql,
-            primaryKeyOrdinal);
+            primaryKeyOrdinal,
+            sequenceName);
     }
 
     private static AttributeData? FindAttribute(ISymbol symbol, INamedTypeSymbol? attributeType)
@@ -389,6 +398,7 @@ internal readonly record struct DuckDbTableInfo(
     string? OnConflict,
     bool AppenderEligible,
     bool Derived,
+    bool Bootstrap,
     bool ArrowEligible,
     EquatableArray<DuckDbColumnInfo> Columns,
     EquatableArray<DuckDbIndexInfo> Indexes,
@@ -412,4 +422,5 @@ internal readonly record struct DuckDbColumnInfo(
     int Ordinal,
     string? SqlType,
     string? DefaultSql,
-    int PrimaryKeyOrdinal);
+    int PrimaryKeyOrdinal,
+    string? SequenceName);

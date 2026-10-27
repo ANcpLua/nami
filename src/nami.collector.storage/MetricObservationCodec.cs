@@ -56,29 +56,6 @@ internal static class MetricObservationCodec
         null => "absent"
     };
 
-    internal static MetricObservationRow FromHistorical(MetricPointRow point, IReadOnlyList<string> traceIds)
-    {
-        var projection = new HistoricalMetricProjection(point.Value, point.HistogramCount,
-            point.HistogramSum, point.HistogramMin, point.HistogramMax,
-            point.BucketBoundsJson, point.BucketCountsJson);
-        var json = JsonSerializer.Serialize(projection,
-            StorageJsonSerializerContext.Default.HistoricalMetricProjection);
-        var traceJson = JsonSerializer.Serialize(traceIds, StorageJsonSerializerContext.Default.IReadOnlyListString);
-        var time = point.TimeUnixNano.ToString(CultureInfo.InvariantCulture);
-        var start = point.StartTimeUnixNano?.ToString(CultureInfo.InvariantCulture);
-        return new MetricObservationRow
-        {
-            ProjectId = point.ProjectId,
-            SeriesId = point.SeriesId,
-            TimeUnixNano = point.TimeUnixNano,
-            StartTimeUnixNano = point.StartTimeUnixNano,
-            HistoricalProjectionJson = json,
-            HistoricalExemplarTraceIdsJson = traceJson,
-            MeasurementId = Fingerprint("mm_", "historical", time, start, json),
-            ObservationId = Fingerprint("mo_", "historical", time, start, json, traceJson)
-        };
-    }
-
     private static string Fingerprint(string prefix, params string?[] parts)
     {
         var buffer = new ArrayBufferWriter<byte>();

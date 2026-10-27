@@ -14,15 +14,9 @@ internal sealed class NamiSchemaMismatchException(string? message, Exception? in
     public NamiSchemaMismatchException(string? message) : this(message, null) { }
 }
 
-internal readonly record struct StorageFileMetrics(
-    long DatabaseFileSizeBytes,
-    long WalFileSizeBytes,
-    long ManagedStorageBytes,
-    long StorageFreeBytes);
-
 internal interface INamiStore : IAsyncDisposable
 {
-    Task<ISnapshot> ReadSnapshotAsync(string projectId, string? snapshotId = null, CancellationToken ct = default);
+    Task<TelemetrySnapshot> ReadSnapshotAsync(string projectId, string? snapshotId = null, CancellationToken ct = default);
     ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default);
     Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default);
 

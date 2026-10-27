@@ -34,6 +34,23 @@ public sealed class HostTransportTests(TestContext context)
     }
 
     [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    public async Task Startup_EngineCannotStart_ReportsExitAndDiagnosticsWithoutWaitingForHealthTimeout()
+    {
+        var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
+        var missingEngine = Path.Combine(directory, "missing-engine");
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(15));
+        var failure = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+        {
+            await using var host = await McpHarness.StartAsync(missingEngine, false, directory, deadline.Token)
+                .WaitAsync(deadline.Token);
+        });
+        Assert.StartsWith("Nami exited (", failure.Message);
+        Assert.Contains(missingEngine, failure.Message);
+    }
+
+    [TestMethod]
     [Timeout(90000, CooperativeCancellation = true)]
     [DataRow("json", "traces", DisplayName = "Traces HTTP JSON")]
     [DataRow("protobuf", "traces", DisplayName = "Traces HTTP protobuf")]
@@ -140,7 +157,7 @@ public sealed class HostTransportTests(TestContext context)
                     var points = await store.ListMetricPointsAsync(
                         "default", snapshot.Metrics[0].MetricName, snapshot.Metrics[0].SeriesId,
                         10, context.CancellationToken);
-                    using var data = JsonDocument.Parse(Assert.ContainsSingle(points).DataJson!);
+                    using var data = JsonDocument.Parse(Assert.ContainsSingle(points).DataJson);
                     Assert.AreEqual("1", data.RootElement.GetProperty("value").GetProperty("value").GetString());
                 }
                 break;
@@ -397,23 +414,23 @@ public sealed class HostTransportTests(TestContext context)
                 Name = "sources_status",
                 Meta = new JsonObject { ["traceparent"] = "00-" + TraceId + "-" + ParentId + "-01" }
             }, context.CancellationToken);
-        var started = Stopwatch.GetTimestamp();
-        JsonElement? recorded = null;
-        while (Stopwatch.GetElapsedTime(started) < TimeSpan.FromSeconds(20))
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        JsonElement recorded;
+        while (true)
         {
             var result = await host.CallAsync("traces_get", "{\"trace_id\":\"" + TraceId + "\"}",
-                context.CancellationToken);
+                deadline.Token);
             if (result.IsError != true)
             {
                 recorded = Content(result).GetProperty("trace");
                 break;
             }
 
-            await Task.Delay(100, context.CancellationToken);
+            await Task.Delay(100, deadline.Token);
         }
 
-        Assert.IsNotNull(recorded, "Self-exported MCP span was not ingested");
-        Assert.AreEqual(ParentId, recorded.Value.GetProperty("spans")[0].GetProperty("parent_span_id").GetString());
+        Assert.AreEqual(ParentId, recorded.GetProperty("spans")[0].GetProperty("parent_span_id").GetString());
     }
 
     [TestMethod]
@@ -462,29 +479,29 @@ public sealed class HostTransportTests(TestContext context)
         if (invalid) call.Meta = new JsonObject { ["traceparent"] = "invalid" };
         var first = await host.Client.CallToolAsync(call, context.CancellationToken);
         Assert.AreNotEqual(true, first.IsError);
-        var started = Stopwatch.GetTimestamp();
-        JsonElement? root = null;
-        while (Stopwatch.GetElapsedTime(started) < TimeSpan.FromSeconds(20))
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        JsonElement root;
+        while (true)
         {
             // Polling emits its own spans; query the operation under test before applying the top-ten limit.
             var rows = Content(await host.CallAsync("traces_slowest", "{\"operation\":\"tools/call sources_status\"}",
-                context.CancellationToken)).GetProperty("traces");
+                deadline.Token)).GetProperty("traces");
             var matches = rows.EnumerateArray()
                 .Where(static r => r.GetProperty("operation").GetString() == "tools/call sources_status").ToArray();
             if (matches.Length > 0)
             {
                 var traceId = matches[0].GetProperty("trace_id").GetString();
                 var trace = Content(await host.CallAsync("traces_get",
-                    new JsonObject { ["trace_id"] = traceId }.ToJsonString(), context.CancellationToken));
+                    new JsonObject { ["trace_id"] = traceId }.ToJsonString(), deadline.Token));
                 root = trace.GetProperty("trace").GetProperty("root_span");
                 break;
             }
 
-            await Task.Delay(100, context.CancellationToken);
+            await Task.Delay(100, deadline.Token);
         }
 
-        Assert.IsNotNull(root, "Root tool span was not exported");
-        Assert.IsFalse(root.Value.TryGetProperty("parent_span_id", out _));
+        Assert.IsFalse(root.TryGetProperty("parent_span_id", out _));
     }
 
     [TestMethod]

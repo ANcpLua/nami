@@ -401,23 +401,5 @@ internal static partial class OtlpConverter
 
     private static ulong? NullIfZero(ulong value) => value is 0 ? null : value;
 
-    private readonly record struct MetricStreamMetadata(
-        string? ProjectIdHint,
-        string MetricName,
-        string? Unit,
-        string? Description,
-        string ServiceName,
-        string? SchemaUrl,
-        NormalizedAttributes ResourceAttributes,
-        IReadOnlyList<ResourceEntityRefIngestionRecord> ResourceEntityRefs,
-        string? ResourceSchemaUrl,
-        uint ResourceDroppedAttributesCount,
-        string? ScopeName,
-        string? ScopeVersion,
-        string? ScopeSchemaUrl,
-        NormalizedAttributes ScopeAttributes,
-        uint ScopeDroppedAttributesCount,
-        NormalizedContractAttributes InstrumentMetadata,
-        string ResourceIdentity,
-        string ScopeIdentity);
+
 }

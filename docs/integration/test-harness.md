@@ -4,7 +4,7 @@ The active implementation is in this repository under `tests/`, built by `nami.s
 
 The 2026-10-25 file-by-file reconciliation is recorded in [test-harness-inventory.csv](test-harness-inventory.csv). Every prototype file is assigned to an implemented Nami owner, an explicit replacement, or a retired concern. The inventory is a migration record, not a list of deferred imports.
 
-The [workspace handover and cleanup register](workspace-handoff.md) records the 2026-10-27 recheck of the old skills, runner configuration, local backups and remaining playground candidates. Consult it before importing or removing an older checkout.
+The [workspace handover and cleanup register](workspace-handoff.md) records the 2026-10-27 recheck of the old skills, runner configuration, local backups and the adopted/retired playground decisions. [playground-migration.csv](playground-migration.csv) records all archived playground sources and their final owners. Consult it before importing or removing an older checkout.
 
 ## What is retained
 

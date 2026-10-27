@@ -10,7 +10,7 @@ internal static class StoredAttributeProjection
         null => null,
         Nami.Collector.Storage.StoredAttributeValue.StringValue item => new Nami.Api.Contracts.Common.AttributeValue.StringValue(item.Value),
         Nami.Collector.Storage.StoredAttributeValue.BoolValue item => new Nami.Api.Contracts.Common.AttributeValue.BoolValue(item.Value),
-        Nami.Collector.Storage.StoredAttributeValue.ArrayValue item => new Nami.Api.Contracts.Common.AttributeValue.ArrayValue(item.Items.Select(ToContract).ToArray()),
+        Nami.Collector.Storage.StoredAttributeValue.ArrayValue item => new Nami.Api.Contracts.Common.AttributeValue.ArrayValue(item.Value.Select(ToContract).ToArray()),
         Nami.Collector.Storage.StoredAttributeValue.ObjectValue item => ObjectToContract(item.Value),
     };
     private static Nami.Api.Contracts.Common.AttributeValue ObjectToContract(Nami.Collector.Storage.StoredObjectValue value) => value switch

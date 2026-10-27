@@ -21,7 +21,7 @@ public sealed class InProcessCompilerTests(TestContext context)
                                          #endif
                                          """);
 
-        var result = InProcessCompiler.Compile(project, cancellationToken: context.CancellationToken);
+        var result = InProcessCompiler.Compile(project, CompilerReferences.Framework, cancellationToken: context.CancellationToken);
 
         Assert.IsTrue(result.Success, result.DiagnosticText);
         Assert.IsNotNull(result.Compilation.GetTypeByMetadataName("Selected"));
@@ -30,10 +30,10 @@ public sealed class InProcessCompilerTests(TestContext context)
     [TestMethod]
     public void Compile_ImplicitUsingsEnabled_ResolvesConsole()
     {
-        var project = new FixtureProjectDefinition("ConsoleConsumer", "net10.0")
+        var project = new FixtureProjectDefinition("ConsoleConsumer", "net11.0")
             .AddSource("Program.cs", "Console.WriteLine(\"hello\");");
 
-        var result = InProcessCompiler.Compile(project, cancellationToken: context.CancellationToken);
+        var result = InProcessCompiler.Compile(project, CompilerReferences.Framework, cancellationToken: context.CancellationToken);
 
         Assert.IsTrue(result.Success, result.DiagnosticText);
         Assert.IsNotNull(result.Compilation.GetEntryPoint(context.CancellationToken));
@@ -46,7 +46,7 @@ public sealed class InProcessCompilerTests(TestContext context)
             .AddSource("Consumer.cs",
                 "public sealed class Consumer { public System.Collections.Generic.List<Model> Models { get; } = new(); }");
 
-        var result = InProcessCompiler.Compile(project, cancellationToken: context.CancellationToken);
+        var result = InProcessCompiler.Compile(project, CompilerReferences.Framework, cancellationToken: context.CancellationToken);
 
         Assert.IsTrue(result.Success, result.DiagnosticText);
         Assert.IsNotEmpty(result.Image);
@@ -63,7 +63,7 @@ public sealed class InProcessCompilerTests(TestContext context)
         var project = Library().AddSource("virtual/Consumer.cs",
             "public sealed class Consumer { public MissingType Value; }");
 
-        var result = InProcessCompiler.Compile(project, cancellationToken: context.CancellationToken);
+        var result = InProcessCompiler.Compile(project, CompilerReferences.Framework, cancellationToken: context.CancellationToken);
 
         Assert.IsFalse(result.Success);
         Assert.IsEmpty(result.Image);
@@ -80,8 +80,8 @@ public sealed class InProcessCompilerTests(TestContext context)
     {
         var project = Library().AddSource("Model.cs", "public sealed class Model { public int Value => 42; }");
 
-        var first = InProcessCompiler.Compile(project, cancellationToken: context.CancellationToken);
-        var second = InProcessCompiler.Compile(project, cancellationToken: context.CancellationToken);
+        var first = InProcessCompiler.Compile(project, CompilerReferences.Framework, cancellationToken: context.CancellationToken);
+        var second = InProcessCompiler.Compile(project, CompilerReferences.Framework, cancellationToken: context.CancellationToken);
 
         Assert.IsTrue(first.Success, first.DiagnosticText);
         Assert.IsTrue(second.Success, second.DiagnosticText);
@@ -97,16 +97,64 @@ public sealed class InProcessCompilerTests(TestContext context)
         var token = cancellation.Token;
 
         _ = Assert.ThrowsExactly<OperationCanceledException>(() =>
-            InProcessCompiler.Compile(Library(), cancellationToken: token));
+            InProcessCompiler.Compile(Library(), CompilerReferences.Framework, cancellationToken: token));
     }
 
     [TestMethod]
-    public void Compile_UnsupportedFramework_RejectsReferenceMismatch()
+    public void Compile_MultipleTargetFrameworks_RequiresSeparateReferenceSets()
     {
-        var project = new FixtureProjectDefinition("OtherFramework", "net9.0");
+        var project = Library().WithTargetFrameworks("net10.0", "net11.0");
 
-        _ = Assert.ThrowsExactly<NotSupportedException>(() =>
-            InProcessCompiler.Compile(project, cancellationToken: context.CancellationToken));
+        Assert.ThrowsExactly<NotSupportedException>(() =>
+            InProcessCompiler.Compile(project, CompilerReferences.Framework,
+                cancellationToken: context.CancellationToken));
+    }
+
+    [TestMethod]
+    public void CreateCompilation_NullReferences_RejectsTheMissingInput()
+    {
+        var error = Assert.ThrowsExactly<ArgumentNullException>(() =>
+            InProcessCompiler.CreateCompilation(Library(), null!, cancellationToken: context.CancellationToken));
+
+        Assert.AreEqual("references", error.ParamName);
+    }
+
+    [TestMethod]
+    public void Compile_EmptyReferences_DoesNotAddAnImplicitFramework()
+    {
+        var project = Library().AddSource("Model.cs", "public sealed class Model { }");
+
+        var result = InProcessCompiler.Compile(project, [], cancellationToken: context.CancellationToken);
+
+        Assert.IsFalse(result.Success);
+        Assert.Contains(diagnostic => diagnostic.Id == "CS0518", result.Diagnostics);
+        Assert.IsEmpty(result.Image);
+    }
+
+    [TestMethod]
+    public void Compile_CurrentSdk_RecognizesCSharp15AndNet11MetadataApi()
+    {
+        var project = Library().AddSource("Model.cs", """
+            public readonly union Reading(int, string);
+            public static class Probe
+            {
+                public static System.Text.Json.Serialization.Metadata.JsonTypeInfo<Reading> Resolve(
+                    System.Text.Json.JsonSerializerOptions options) => options.GetTypeInfo<Reading>();
+            }
+            """);
+
+        var result = InProcessCompiler.Compile(project, CompilerReferences.Framework,
+            cancellationToken: context.CancellationToken);
+
+        Assert.IsTrue(result.Success, result.DiagnosticText);
+        Assert.IsNotEmpty(result.Image);
+        var reading = result.Compilation.GetTypeByMetadataName("Reading");
+        Assert.IsNotNull(reading);
+        Assert.AreEqual(TypeKind.Struct, reading.TypeKind);
+        var probe = result.Compilation.GetTypeByMetadataName("Probe");
+        Assert.IsNotNull(probe);
+        var method = Assert.ContainsSingle(probe.GetMembers("Resolve").OfType<IMethodSymbol>());
+        Assert.AreEqual("System.Text.Json.Serialization.Metadata.JsonTypeInfo<Reading>", method.ReturnType.ToDisplayString());
     }
 
     [TestMethod]
@@ -116,7 +164,7 @@ public sealed class InProcessCompilerTests(TestContext context)
             "public sealed class Consumer { public int Value => GeneratedValue.Number; }");
 
         var result =
-            InProcessCompiler.Generate(project, new ValueGenerator(), cancellationToken: context.CancellationToken);
+            InProcessCompiler.Generate(project, CompilerReferences.Framework, new ValueGenerator(), cancellationToken: context.CancellationToken);
 
         Assert.IsEmpty(result.Diagnostics);
         Assert.IsEmpty(result.Compilation.GetDiagnostics(context.CancellationToken)
@@ -132,7 +180,7 @@ public sealed class InProcessCompilerTests(TestContext context)
     [TestMethod]
     public void Generate_InitializationThrows_ReturnsFailureEvidence()
     {
-        var result = InProcessCompiler.Generate(Library(), new ThrowingGenerator(),
+        var result = InProcessCompiler.Generate(Library(), CompilerReferences.Framework, new ThrowingGenerator(),
             cancellationToken: context.CancellationToken);
 
         var generator = Assert.ContainsSingle(result.RunResult.Results);
@@ -147,7 +195,7 @@ public sealed class InProcessCompilerTests(TestContext context)
     {
         var project = Library().AddSource("Model.cs", "public sealed class Model { }");
 
-        var diagnostics = await InProcessCompiler.AnalyzeAsync(project, [new ThrowingAnalyzer()],
+        var diagnostics = await InProcessCompiler.AnalyzeAsync(project, CompilerReferences.Framework, [new ThrowingAnalyzer()],
             cancellationToken: context.CancellationToken);
 
         var failure = Assert.ContainsSingle(diagnostics.Where(item => item.Id == "AD0001"));
@@ -159,7 +207,7 @@ public sealed class InProcessCompilerTests(TestContext context)
     {
         var project = Library().AddSource("virtual/Bad.cs", "public sealed class Bad { }");
 
-        var diagnostics = await InProcessCompiler.AnalyzeAsync(project, [new NameAnalyzer()],
+        var diagnostics = await InProcessCompiler.AnalyzeAsync(project, CompilerReferences.Framework, [new NameAnalyzer()],
             [new InMemoryAdditionalText("/virtual/BannedSymbols.txt", "Bad")],
             new InMemoryAnalyzerOptions(new Dictionary<string, string> { [NameAnalyzer.Enabled] = "true" }),
             context.CancellationToken);
@@ -182,7 +230,7 @@ public sealed class InProcessCompilerTests(TestContext context)
                 ["virtual/Bad.cs"] = new Dictionary<string, string> { [NameAnalyzer.Enabled] = "false" }
             });
 
-        var diagnostics = await InProcessCompiler.AnalyzeAsync(project, [new NameAnalyzer()],
+        var diagnostics = await InProcessCompiler.AnalyzeAsync(project, CompilerReferences.Framework, [new NameAnalyzer()],
             [new InMemoryAdditionalText("/virtual/BannedSymbols.txt", "Bad")], options, context.CancellationToken);
 
         Assert.IsEmpty(diagnostics);
@@ -190,7 +238,7 @@ public sealed class InProcessCompilerTests(TestContext context)
 
     private static FixtureProjectDefinition Library()
     {
-        return new FixtureProjectDefinition("MemoryLibrary", "net10.0")
+        return new FixtureProjectDefinition("MemoryLibrary", "net11.0")
             .WithProperty("OutputType", "Library").WithProperty("ImplicitUsings", "disable");
     }
 

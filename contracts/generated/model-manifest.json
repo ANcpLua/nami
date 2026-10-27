@@ -16,6 +16,12 @@
     "json": false,
     "properties": [
       {
+        "code": "attributeRenames",
+        "json": "attributeRenames",
+        "optional": false,
+        "nullable": false
+      },
+      {
         "code": "projectId",
         "json": "projectId",
         "optional": false,
@@ -97,7 +103,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 8
+          "order": 8,
+          "merge": "replace"
         }
       },
       {
@@ -106,7 +113,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 9
+          "order": 9,
+          "merge": "replace"
         }
       },
       {
@@ -115,7 +123,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 10
+          "order": 10,
+          "merge": "replace"
         }
       },
       {
@@ -124,7 +133,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 11
+          "order": 11,
+          "merge": "coalesce"
         }
       },
       {
@@ -133,7 +143,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 12
+          "order": 12,
+          "merge": "replace"
         }
       },
       {
@@ -142,7 +153,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 13
+          "order": 13,
+          "merge": "replace"
         }
       },
       {
@@ -151,7 +163,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 14
+          "order": 14,
+          "merge": "replace"
         }
       },
       {
@@ -160,7 +173,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 15
+          "order": 15,
+          "merge": "replace"
         }
       },
       {
@@ -169,7 +183,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 16
+          "order": 16,
+          "merge": "replace"
         }
       },
       {
@@ -178,7 +193,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 17
+          "order": 17,
+          "merge": "replace"
         }
       },
       {
@@ -187,7 +203,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 18
+          "order": 18,
+          "merge": "replace"
         }
       },
       {
@@ -196,7 +213,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 19
+          "order": 19,
+          "merge": "replace"
         }
       },
       {
@@ -205,7 +223,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 20
+          "order": 20,
+          "merge": "replace"
         }
       },
       {
@@ -214,7 +233,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 21
+          "order": 21,
+          "merge": "replace"
         }
       },
       {
@@ -224,7 +244,8 @@
         "nullable": true,
         "column": {
           "order": 22,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -234,7 +255,8 @@
         "nullable": true,
         "column": {
           "order": 23,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -244,7 +266,8 @@
         "nullable": true,
         "column": {
           "order": 24,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -254,7 +277,8 @@
         "nullable": true,
         "column": {
           "order": 25,
-          "sqlType": "VARCHAR(256)"
+          "sqlType": "VARCHAR(256)",
+          "merge": "replace"
         }
       },
       {
@@ -264,7 +288,8 @@
         "nullable": true,
         "column": {
           "order": 26,
-          "sqlType": "VARCHAR"
+          "sqlType": "VARCHAR",
+          "merge": "replace"
         }
       },
       {
@@ -274,7 +299,8 @@
         "nullable": true,
         "column": {
           "order": 27,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -284,7 +310,8 @@
         "nullable": true,
         "column": {
           "order": 28,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -294,7 +321,8 @@
         "nullable": true,
         "column": {
           "order": 29,
-          "sqlType": "VARCHAR(256)"
+          "sqlType": "VARCHAR(256)",
+          "merge": "replace"
         }
       },
       {
@@ -304,7 +332,8 @@
         "nullable": true,
         "column": {
           "order": 30,
-          "sqlType": "VARCHAR(64)"
+          "sqlType": "VARCHAR(64)",
+          "merge": "replace"
         }
       },
       {
@@ -313,7 +342,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 31
+          "order": 31,
+          "merge": "replace"
         }
       },
       {
@@ -323,7 +353,8 @@
         "nullable": true,
         "column": {
           "order": 32,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -332,7 +363,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 33
+          "order": 33,
+          "merge": "replace"
         }
       },
       {
@@ -341,7 +373,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 34
+          "order": 34,
+          "merge": "replace"
         }
       },
       {
@@ -350,7 +383,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 35
+          "order": 35,
+          "merge": "replace"
         }
       },
       {
@@ -359,7 +393,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 36
+          "order": 36,
+          "merge": "replace"
         }
       },
       {
@@ -368,7 +403,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 37
+          "order": 37,
+          "merge": "replace"
         }
       },
       {
@@ -377,7 +413,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 38
+          "order": 38,
+          "merge": "replace"
         }
       },
       {
@@ -386,7 +423,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 39
+          "order": 39,
+          "merge": "replace"
         }
       },
       {
@@ -395,7 +433,48 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 40
+          "order": 40,
+          "merge": "replace"
+        }
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Storage.Rows.SchemaMetadataRow",
+    "project": "src/nami.collector.storage/Generated",
+    "file": "StorageRows.g.cs",
+    "namespace": "Nami.Collector.Storage",
+    "form": "internal sealed partial record",
+    "json": false,
+    "properties": [
+      {
+        "code": "singleton",
+        "json": "singleton",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 0,
+          "primaryKeyOrdinal": 0
+        }
+      },
+      {
+        "code": "authoritativeSchemaHash",
+        "json": "authoritativeSchemaHash",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 1,
+          "merge": "replace"
+        }
+      },
+      {
+        "code": "derivedSchemaHash",
+        "json": "derivedSchemaHash",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 2,
+          "merge": "replace"
         }
       }
     ]
@@ -408,6 +487,12 @@
     "form": "internal sealed partial record",
     "json": false,
     "properties": [
+      {
+        "code": "attributeRenames",
+        "json": "attributeRenames",
+        "optional": false,
+        "nullable": false
+      },
       {
         "code": "projectId",
         "json": "projectId",
@@ -435,7 +520,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 2
+          "order": 2,
+          "merge": "replace"
         }
       },
       {
@@ -444,7 +530,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 3
+          "order": 3,
+          "merge": "replace"
         }
       },
       {
@@ -453,7 +540,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 4
+          "order": 4,
+          "merge": "replace"
         }
       },
       {
@@ -462,7 +550,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 5
+          "order": 5,
+          "merge": "replace"
         }
       },
       {
@@ -471,7 +560,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 6
+          "order": 6,
+          "merge": "replace"
         }
       },
       {
@@ -480,7 +570,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 7
+          "order": 7,
+          "merge": "min"
         }
       },
       {
@@ -489,7 +580,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 8
+          "order": 8,
+          "merge": "replace"
         }
       },
       {
@@ -498,7 +590,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 9
+          "order": 9,
+          "merge": "replace"
         }
       },
       {
@@ -507,7 +600,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 10
+          "order": 10,
+          "merge": "replace"
         }
       },
       {
@@ -516,7 +610,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 11
+          "order": 11,
+          "merge": "replace"
         }
       },
       {
@@ -526,7 +621,8 @@
         "nullable": true,
         "column": {
           "order": 12,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -536,7 +632,8 @@
         "nullable": true,
         "column": {
           "order": 13,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -546,7 +643,8 @@
         "nullable": true,
         "column": {
           "order": 14,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -557,7 +655,7 @@
         "column": {
           "order": 15,
           "excludeFromInsert": true,
-          "defaultSql": "nextval('logs_ingest_sequence')",
+          "sequenceName": "logs_ingest_sequence",
           "privateInit": true
         }
       },
@@ -567,7 +665,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 16
+          "order": 16,
+          "merge": "replace"
         }
       },
       {
@@ -576,7 +675,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 17
+          "order": 17,
+          "merge": "replace"
         }
       },
       {
@@ -585,7 +685,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 18
+          "order": 18,
+          "merge": "replace"
         }
       },
       {
@@ -595,7 +696,8 @@
         "nullable": true,
         "column": {
           "order": 19,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -604,7 +706,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 20
+          "order": 20,
+          "merge": "replace"
         }
       },
       {
@@ -613,7 +716,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 21
+          "order": 21,
+          "merge": "replace"
         }
       },
       {
@@ -622,7 +726,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 22
+          "order": 22,
+          "merge": "replace"
         }
       },
       {
@@ -631,7 +736,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 23
+          "order": 23,
+          "merge": "replace"
         }
       },
       {
@@ -640,7 +746,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 24
+          "order": 24,
+          "merge": "replace"
         }
       },
       {
@@ -649,7 +756,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 25
+          "order": 25,
+          "merge": "minPresent"
         }
       }
     ]
@@ -698,7 +806,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 3
+          "order": 3,
+          "merge": "max"
         }
       },
       {
@@ -707,7 +816,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 4
+          "order": 4,
+          "merge": "max"
         }
       }
     ]
@@ -862,7 +972,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 2
+          "order": 2,
+          "merge": "replace"
         }
       }
     ]
@@ -901,7 +1012,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 2
+          "order": 2,
+          "merge": "replace"
         }
       },
       {
@@ -928,7 +1040,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 5
+          "order": 5,
+          "merge": "max"
         }
       }
     ]
@@ -941,6 +1054,12 @@
     "form": "internal sealed partial record",
     "json": false,
     "properties": [
+      {
+        "code": "attributeRenames",
+        "json": "attributeRenames",
+        "optional": false,
+        "nullable": false
+      },
       {
         "code": "projectId",
         "json": "projectId",
@@ -977,7 +1096,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 3
+          "order": 3,
+          "merge": "replace"
         }
       },
       {
@@ -986,7 +1106,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 4
+          "order": 4,
+          "merge": "replace"
         }
       },
       {
@@ -995,7 +1116,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 5
+          "order": 5,
+          "merge": "replace"
         }
       },
       {
@@ -1004,7 +1126,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 6
+          "order": 6,
+          "merge": "replace"
         }
       },
       {
@@ -1013,7 +1136,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 7
+          "order": 7,
+          "merge": "longest"
         }
       },
       {
@@ -1032,7 +1156,8 @@
         "nullable": true,
         "column": {
           "order": 9,
-          "sqlType": "VARCHAR(256)"
+          "sqlType": "VARCHAR(256)",
+          "merge": "replace"
         }
       },
       {
@@ -1042,7 +1167,8 @@
         "nullable": true,
         "column": {
           "order": 10,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -1052,7 +1178,8 @@
         "nullable": true,
         "column": {
           "order": 11,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -1062,7 +1189,8 @@
         "nullable": true,
         "column": {
           "order": 12,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -1071,7 +1199,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 13
+          "order": 13,
+          "merge": "min"
         }
       },
       {
@@ -1080,7 +1209,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 14
+          "order": 14,
+          "merge": "max"
         }
       },
       {
@@ -1089,7 +1219,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 15
+          "order": 15,
+          "merge": "replace"
         }
       },
       {
@@ -1098,7 +1229,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 16
+          "order": 16,
+          "merge": "replace"
         }
       },
       {
@@ -1107,7 +1239,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 17
+          "order": 17,
+          "merge": "replace"
         }
       },
       {
@@ -1117,7 +1250,8 @@
         "nullable": true,
         "column": {
           "order": 18,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -1126,7 +1260,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 19
+          "order": 19,
+          "merge": "replace"
         }
       },
       {
@@ -1135,7 +1270,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 20
+          "order": 20,
+          "merge": "replace"
         }
       },
       {
@@ -1144,16 +1280,18 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 21
+          "order": 21,
+          "merge": "replace"
         }
       },
       {
         "code": "instrumentId",
         "json": "instrumentId",
-        "optional": true,
-        "nullable": true,
+        "optional": false,
+        "nullable": false,
         "column": {
-          "order": 22
+          "order": 22,
+          "merge": "replace"
         }
       }
     ]
@@ -1203,7 +1341,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 3
+          "order": 3,
+          "merge": "replace"
         }
       },
       {
@@ -1212,7 +1351,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 4
+          "order": 4,
+          "merge": "replace"
         }
       },
       {
@@ -1221,7 +1361,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 5
+          "order": 5,
+          "merge": "replace"
         }
       },
       {
@@ -1230,7 +1371,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 6
+          "order": 6,
+          "merge": "replace"
         }
       },
       {
@@ -1239,7 +1381,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 7
+          "order": 7,
+          "merge": "replace"
         }
       },
       {
@@ -1248,7 +1391,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 8
+          "order": 8,
+          "merge": "replace"
         }
       },
       {
@@ -1258,7 +1402,8 @@
         "nullable": true,
         "column": {
           "order": 9,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -1268,7 +1413,8 @@
         "nullable": true,
         "column": {
           "order": 10,
-          "sqlType": "JSON"
+          "sqlType": "JSON",
+          "merge": "replace"
         }
       },
       {
@@ -1277,7 +1423,8 @@
         "optional": true,
         "nullable": false,
         "column": {
-          "order": 11
+          "order": 11,
+          "merge": "replace"
         }
       },
       {
@@ -1286,7 +1433,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 12
+          "order": 12,
+          "merge": "replace"
         }
       }
     ]
@@ -1369,8 +1517,8 @@
       {
         "code": "dataJson",
         "json": "dataJson",
-        "optional": true,
-        "nullable": true,
+        "optional": false,
+        "nullable": false,
         "column": {
           "order": 7,
           "sqlType": "JSON"
@@ -1393,26 +1541,6 @@
         "nullable": true,
         "column": {
           "order": 9,
-          "sqlType": "JSON"
-        }
-      },
-      {
-        "code": "historicalProjectionJson",
-        "json": "historicalProjectionJson",
-        "optional": true,
-        "nullable": true,
-        "column": {
-          "order": 10,
-          "sqlType": "JSON"
-        }
-      },
-      {
-        "code": "historicalExemplarTraceIdsJson",
-        "json": "historicalExemplarTraceIdsJson",
-        "optional": true,
-        "nullable": true,
-        "column": {
-          "order": 11,
           "sqlType": "JSON"
         }
       },
@@ -1486,6 +1614,136 @@
         }
       }
     ]
+  },
+  {
+    "type": "Nami.Models.Ingestion.AttributeRename",
+    "project": "src/nami.collector.ingestion/Generated",
+    "file": "IngestionModels.g.cs",
+    "namespace": "Nami.Collector.Ingestion",
+    "form": "internal sealed partial record",
+    "json": false,
+    "properties": [
+      {
+        "code": "originalKey",
+        "json": "originalKey",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "canonicalKey",
+        "json": "canonicalKey",
+        "optional": false,
+        "nullable": true
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Ingestion.NormalizedAttributes",
+    "project": "src/nami.collector.ingestion/Generated",
+    "file": "IngestionModels.g.cs",
+    "namespace": "Nami.Collector.Ingestion",
+    "form": "internal sealed partial record",
+    "json": false,
+    "properties": [
+      {
+        "code": "values",
+        "json": "values",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "renames",
+        "json": "renames",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Ingestion.LogTimeOrigin",
+    "project": "src/nami.collector.ingestion/Generated",
+    "file": "IngestionModels.g.cs",
+    "namespace": "Nami.Collector.Ingestion",
+    "form": "internal sealed partial record",
+    "json": false,
+    "properties": [
+      {
+        "code": "producerEventTime",
+        "json": "producerEventTime",
+        "optional": true,
+        "nullable": false
+      },
+      {
+        "code": "producerObservedTime",
+        "json": "producerObservedTime",
+        "optional": true,
+        "nullable": false
+      },
+      {
+        "code": "collectorReceivedTime",
+        "json": "collectorReceivedTime",
+        "optional": true,
+        "nullable": false
+      },
+      {
+        "code": "untimedRequestOrdinal",
+        "json": "untimedRequestOrdinal",
+        "optional": true,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Ingestion.NormalizedMetricExemplars",
+    "project": "src/nami.collector.ingestion/Generated",
+    "file": "IngestionModels.g.cs",
+    "namespace": "Nami.Collector.Ingestion",
+    "form": "internal sealed partial record",
+    "json": false,
+    "properties": [
+      {
+        "code": "values",
+        "json": "values",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "renames",
+        "json": "renames",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Ingestion.NormalizedContractAttributes",
+    "project": "src/nami.collector.ingestion/Generated",
+    "file": "IngestionModels.g.cs",
+    "namespace": "Nami.Collector.Ingestion",
+    "form": "internal sealed partial record",
+    "json": false,
+    "properties": [
+      {
+        "code": "values",
+        "json": "values",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "renames",
+        "json": "renames",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Storage.Json.StoredAttributeValue",
+    "project": "src/nami.collector.storage/Generated",
+    "file": "StoredMetricRecords.g.cs",
+    "namespace": "Nami.Collector.Storage",
+    "form": "closed-mixed-union",
+    "json": true
   },
   {
     "type": "Nami.Models.Storage.Json.StoredObjectValue",
@@ -1921,6 +2179,86 @@
     ]
   },
   {
+    "type": "Nami.Models.Storage.Persistence.SpanEventJson",
+    "project": "src/nami.collector.storage/Generated",
+    "file": "StoredDocuments.g.cs",
+    "namespace": "Nami.Collector.Storage",
+    "form": "internal sealed partial record",
+    "json": true,
+    "properties": [
+      {
+        "code": "name",
+        "json": "name",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "timeUnixNano",
+        "json": "timeUnixNano",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "attributesJson",
+        "json": "attributesJson",
+        "optional": true,
+        "nullable": false
+      },
+      {
+        "code": "droppedAttributesCount",
+        "json": "droppedAttributesCount",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Storage.Persistence.SpanLinkJson",
+    "project": "src/nami.collector.storage/Generated",
+    "file": "StoredDocuments.g.cs",
+    "namespace": "Nami.Collector.Storage",
+    "form": "internal sealed partial record",
+    "json": true,
+    "properties": [
+      {
+        "code": "traceId",
+        "json": "traceId",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "spanId",
+        "json": "spanId",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "attributesJson",
+        "json": "attributesJson",
+        "optional": true,
+        "nullable": false
+      },
+      {
+        "code": "droppedAttributesCount",
+        "json": "droppedAttributesCount",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "flags",
+        "json": "flags",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "traceState",
+        "json": "traceState",
+        "optional": true,
+        "nullable": false
+      }
+    ]
+  },
+  {
     "type": "Nami.Models.Storage.Persistence.TelemetrySnapshot",
     "project": "src/nami.collector.storage/Generated",
     "file": "StoredDocuments.g.cs",
@@ -2029,68 +2367,200 @@
     ]
   },
   {
-    "type": "Nami.Models.Storage.Persistence.HistoricalMetricProjection",
+    "type": "Nami.Models.Storage.NumericJson.Doubles",
     "project": "src/nami.collector.storage/Generated",
-    "file": "StoredDocuments.g.cs",
+    "file": "StorageNumericJson.g.cs",
     "namespace": "Nami.Collector.Storage",
-    "form": "internal sealed record",
-    "json": true,
+    "form": "json-root",
+    "json": true
+  },
+  {
+    "type": "Nami.Models.Storage.Runtime.SpanStorageValues",
+    "project": "src/nami.collector.storage/Generated",
+    "file": "StorageRuntime.g.cs",
+    "namespace": "Nami.Collector.Storage",
+    "form": "internal sealed partial record",
+    "json": false,
     "properties": [
       {
-        "code": "value",
-        "json": "value",
-        "optional": true,
+        "code": "attributeRenames",
+        "json": "attributeRenames",
+        "optional": false,
         "nullable": false
       },
       {
-        "code": "histogramCount",
-        "json": "histogramCount",
-        "optional": true,
+        "code": "projectId",
+        "json": "projectId",
+        "optional": false,
         "nullable": false
       },
       {
-        "code": "histogramSum",
-        "json": "histogramSum",
-        "optional": true,
+        "code": "parentSpanId",
+        "json": "parentSpanId",
+        "optional": false,
         "nullable": false
       },
       {
-        "code": "histogramMin",
-        "json": "histogramMin",
-        "optional": true,
+        "code": "sessionId",
+        "json": "sessionId",
+        "optional": false,
         "nullable": false
       },
       {
-        "code": "histogramMax",
-        "json": "histogramMax",
-        "optional": true,
+        "code": "kind",
+        "json": "kind",
+        "optional": false,
         "nullable": false
       },
       {
-        "code": "bucketBoundsJson",
-        "json": "bucketBoundsJson",
-        "optional": true,
+        "code": "durationNs",
+        "json": "durationNs",
+        "optional": false,
         "nullable": false
       },
       {
-        "code": "bucketCountsJson",
-        "json": "bucketCountsJson",
-        "optional": true,
+        "code": "statusCode",
+        "json": "statusCode",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "attributesJson",
+        "json": "attributesJson",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "resourceJson",
+        "json": "resourceJson",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "resourceEntityRefsJson",
+        "json": "resourceEntityRefsJson",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "eventsJson",
+        "json": "eventsJson",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "linksJson",
+        "json": "linksJson",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "scopeAttributesJson",
+        "json": "scopeAttributesJson",
+        "optional": false,
         "nullable": false
       }
     ]
   },
   {
-    "type": "Nami.Models.Storage.Persistence.SpanEventJson",
+    "type": "Nami.Models.Storage.Runtime.SpanHotAttributeProjection",
     "project": "src/nami.collector.storage/Generated",
-    "file": "StoredDocuments.g.cs",
+    "file": "StorageRuntime.g.cs",
     "namespace": "Nami.Collector.Storage",
     "form": "internal sealed partial record",
-    "json": true,
+    "json": false,
     "properties": [
       {
-        "code": "name",
-        "json": "name",
+        "code": "genAiProviderName",
+        "json": "genAiProviderName",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "genAiOperationName",
+        "json": "genAiOperationName",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "genAiOutputType",
+        "json": "genAiOutputType",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "genAiRequestModel",
+        "json": "genAiRequestModel",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "genAiResponseModel",
+        "json": "genAiResponseModel",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "genAiInputTokens",
+        "json": "genAiInputTokens",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "genAiOutputTokens",
+        "json": "genAiOutputTokens",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "genAiCacheReadInputTokens",
+        "json": "genAiCacheReadInputTokens",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "genAiCacheWriteInputTokens",
+        "json": "genAiCacheWriteInputTokens",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "genAiReasoningTokens",
+        "json": "genAiReasoningTokens",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Storage.Runtime.LogStorageValues",
+    "project": "src/nami.collector.storage/Generated",
+    "file": "StorageRuntime.g.cs",
+    "namespace": "Nami.Collector.Storage",
+    "form": "internal sealed partial record",
+    "json": false,
+    "properties": [
+      {
+        "code": "attributeRenames",
+        "json": "attributeRenames",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "projectId",
+        "json": "projectId",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "logId",
+        "json": "logId",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "sessionId",
+        "json": "sessionId",
         "optional": false,
         "nullable": false
       },
@@ -2101,186 +2571,281 @@
         "nullable": false
       },
       {
-        "code": "attributesJson",
-        "json": "attributesJson",
-        "optional": true,
+        "code": "observedTimeUnixNano",
+        "json": "observedTimeUnixNano",
+        "optional": false,
         "nullable": false
       },
       {
-        "code": "droppedAttributesCount",
-        "json": "droppedAttributesCount",
+        "code": "severityNumber",
+        "json": "severityNumber",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "severityText",
+        "json": "severityText",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "body",
+        "json": "body",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "attributesJson",
+        "json": "attributesJson",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "resourceJson",
+        "json": "resourceJson",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "resourceEntityRefsJson",
+        "json": "resourceEntityRefsJson",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "scopeAttributesJson",
+        "json": "scopeAttributesJson",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "receivedTimeUnixNano",
+        "json": "receivedTimeUnixNano",
         "optional": false,
         "nullable": false
       }
     ]
   },
   {
-    "type": "Nami.Models.Storage.Persistence.SpanLinkJson",
+    "type": "Nami.Models.Storage.Runtime.MetricSeriesValues",
     "project": "src/nami.collector.storage/Generated",
-    "file": "StoredDocuments.g.cs",
+    "file": "StorageRuntime.g.cs",
     "namespace": "Nami.Collector.Storage",
     "form": "internal sealed partial record",
-    "json": true,
+    "json": false,
     "properties": [
       {
-        "code": "traceId",
-        "json": "traceId",
+        "code": "attributeRenames",
+        "json": "attributeRenames",
         "optional": false,
         "nullable": false
       },
       {
-        "code": "spanId",
-        "json": "spanId",
+        "code": "projectId",
+        "json": "projectId",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "seriesId",
+        "json": "seriesId",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "instrumentId",
+        "json": "instrumentId",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "metricKind",
+        "json": "metricKind",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "temporality",
+        "json": "temporality",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "isMonotonic",
+        "json": "isMonotonic",
         "optional": false,
         "nullable": false
       },
       {
         "code": "attributesJson",
         "json": "attributesJson",
-        "optional": true,
-        "nullable": false
-      },
-      {
-        "code": "droppedAttributesCount",
-        "json": "droppedAttributesCount",
         "optional": false,
         "nullable": false
       },
       {
-        "code": "flags",
-        "json": "flags",
+        "code": "resourceJson",
+        "json": "resourceJson",
         "optional": false,
         "nullable": false
       },
       {
-        "code": "traceState",
-        "json": "traceState",
-        "optional": true,
+        "code": "resourceEntityRefsJson",
+        "json": "resourceEntityRefsJson",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "scopeAttributesJson",
+        "json": "scopeAttributesJson",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "firstSeenUnixNano",
+        "json": "firstSeenUnixNano",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "lastSeenUnixNano",
+        "json": "lastSeenUnixNano",
+        "optional": false,
         "nullable": false
       }
     ]
   },
   {
-    "type": "Nami.Models.Ingestion.AttributeRename",
-    "project": "src/nami.collector.ingestion/Generated",
-    "file": "IngestionModels.g.cs",
-    "namespace": "Nami.Collector.Ingestion",
-    "form": "internal sealed partial record",
+    "type": "Nami.Models.Storage.Runtime.ArrivingResource",
+    "project": "src/nami.collector.storage/Generated",
+    "file": "StorageRuntime.g.cs",
+    "namespace": "Nami.Collector.Storage",
+    "form": "internal readonly record struct",
     "json": false,
     "properties": [
       {
-        "code": "originalKey",
-        "json": "originalKey",
+        "code": "projectId",
+        "json": "projectId",
         "optional": false,
         "nullable": false
       },
       {
-        "code": "canonicalKey",
-        "json": "canonicalKey",
+        "code": "serviceName",
+        "json": "serviceName",
         "optional": false,
         "nullable": true
-      }
-    ]
-  },
-  {
-    "type": "Nami.Models.Ingestion.NormalizedAttributes",
-    "project": "src/nami.collector.ingestion/Generated",
-    "file": "IngestionModels.g.cs",
-    "namespace": "Nami.Collector.Ingestion",
-    "form": "internal sealed partial record",
-    "json": false,
-    "properties": [
+      },
       {
-        "code": "values",
-        "json": "values",
+        "code": "attributesJson",
+        "json": "attributesJson",
         "optional": false,
+        "nullable": true
+      },
+      {
+        "code": "recordAttributesJson",
+        "json": "recordAttributesJson",
+        "optional": true,
+        "nullable": false
+      },
+      {
+        "code": "scopeAttributesJson",
+        "json": "scopeAttributesJson",
+        "optional": true,
         "nullable": false
       },
       {
         "code": "renames",
         "json": "renames",
+        "optional": true,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Storage.Runtime.StorageFileMetrics",
+    "project": "src/nami.collector.storage/Generated",
+    "file": "StorageRuntime.g.cs",
+    "namespace": "Nami.Collector.Storage",
+    "form": "internal readonly record struct",
+    "json": false,
+    "properties": [
+      {
+        "code": "databaseFileSizeBytes",
+        "json": "databaseFileSizeBytes",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "walFileSizeBytes",
+        "json": "walFileSizeBytes",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "managedStorageBytes",
+        "json": "managedStorageBytes",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "storageFreeBytes",
+        "json": "storageFreeBytes",
         "optional": false,
         "nullable": false
       }
     ]
   },
   {
-    "type": "Nami.Models.Ingestion.NormalizedContractAttributes",
-    "project": "src/nami.collector.ingestion/Generated",
-    "file": "IngestionModels.g.cs",
-    "namespace": "Nami.Collector.Ingestion",
-    "form": "internal sealed partial record",
+    "type": "Nami.Models.Storage.Runtime.MetricRetentionResult",
+    "project": "src/nami.collector.storage/Generated",
+    "file": "StorageRuntime.g.cs",
+    "namespace": "Nami.Collector.Storage",
+    "form": "internal readonly record struct",
     "json": false,
     "properties": [
       {
-        "code": "values",
-        "json": "values",
+        "code": "points",
+        "json": "points",
         "optional": false,
         "nullable": false
       },
       {
-        "code": "renames",
-        "json": "renames",
+        "code": "series",
+        "json": "series",
         "optional": false,
         "nullable": false
       }
     ]
   },
   {
-    "type": "Nami.Models.Ingestion.NormalizedMetricExemplars",
-    "project": "src/nami.collector.ingestion/Generated",
-    "file": "IngestionModels.g.cs",
-    "namespace": "Nami.Collector.Ingestion",
-    "form": "internal sealed partial record",
+    "type": "Nami.Models.Storage.Runtime.MetricWriteSet",
+    "project": "src/nami.collector.storage/Generated",
+    "file": "StorageRuntime.g.cs",
+    "namespace": "Nami.Collector.Storage",
+    "form": "internal readonly record struct",
     "json": false,
     "properties": [
       {
-        "code": "values",
-        "json": "values",
+        "code": "series",
+        "json": "series",
         "optional": false,
         "nullable": false
       },
       {
-        "code": "renames",
-        "json": "renames",
+        "code": "observations",
+        "json": "observations",
         "optional": false,
         "nullable": false
       }
     ]
   },
   {
-    "type": "Nami.Models.Ingestion.LogTimeOrigin",
+    "type": "Nami.Models.Ingestion.Metrics.MetricShape",
     "project": "src/nami.collector.ingestion/Generated",
-    "file": "IngestionModels.g.cs",
-    "namespace": "Nami.Collector.Ingestion",
-    "form": "internal sealed partial record",
+    "file": "MetricModels.g.cs",
+    "namespace": "Nami.Collector.Ingestion.Models",
+    "form": "internal closed partial class",
     "json": false,
-    "properties": [
-      {
-        "code": "producerEventTime",
-        "json": "producerEventTime",
-        "optional": true,
-        "nullable": false
-      },
-      {
-        "code": "producerObservedTime",
-        "json": "producerObservedTime",
-        "optional": true,
-        "nullable": false
-      },
-      {
-        "code": "collectorReceivedTime",
-        "json": "collectorReceivedTime",
-        "optional": true,
-        "nullable": false
-      },
-      {
-        "code": "untimedRequestOrdinal",
-        "json": "untimedRequestOrdinal",
-        "optional": true,
-        "nullable": false
-      }
-    ]
+    "properties": []
   },
   {
     "type": "Nami.Models.Ingestion.Metrics.MetricPointData",
@@ -2593,15 +3158,6 @@
     ]
   },
   {
-    "type": "Nami.Models.Ingestion.Metrics.MetricShape",
-    "project": "src/nami.collector.ingestion/Generated",
-    "file": "MetricModels.g.cs",
-    "namespace": "Nami.Collector.Ingestion.Models",
-    "form": "internal closed partial class",
-    "json": false,
-    "properties": []
-  },
-  {
     "type": "Nami.Models.Ingestion.Metrics.GaugeMetric",
     "project": "src/nami.collector.ingestion/Generated",
     "file": "MetricModels.g.cs",
@@ -2722,7 +3278,7 @@
     "json": false
   },
   {
-    "type": "Nami.Models.Ingestion.Records.TraceIngestionBatch",
+    "type": "Nami.Models.Ingestion.Records.ResourceEntityRefIngestionRecord",
     "project": "src/nami.collector.ingestion/Generated",
     "file": "IngestionRecords.g.cs",
     "namespace": "Nami.Collector.Ingestion",
@@ -2730,21 +3286,27 @@
     "json": false,
     "properties": [
       {
-        "code": "spans",
-        "json": "spans",
+        "code": "schemaUrl",
+        "json": "schemaUrl",
+        "optional": false,
+        "nullable": true
+      },
+      {
+        "code": "type",
+        "json": "type",
         "optional": false,
         "nullable": false
       },
       {
-        "code": "rejectedSpans",
-        "json": "rejectedSpans",
+        "code": "idKeys",
+        "json": "idKeys",
         "optional": false,
         "nullable": false
       },
       {
-        "code": "rejectionMessage",
-        "json": "rejectionMessage",
-        "optional": true,
+        "code": "descriptionKeys",
+        "json": "descriptionKeys",
+        "optional": false,
         "nullable": false
       }
     ]
@@ -2934,40 +3496,6 @@
     ]
   },
   {
-    "type": "Nami.Models.Ingestion.Records.ResourceEntityRefIngestionRecord",
-    "project": "src/nami.collector.ingestion/Generated",
-    "file": "IngestionRecords.g.cs",
-    "namespace": "Nami.Collector.Ingestion",
-    "form": "internal sealed record",
-    "json": false,
-    "properties": [
-      {
-        "code": "schemaUrl",
-        "json": "schemaUrl",
-        "optional": false,
-        "nullable": true
-      },
-      {
-        "code": "type",
-        "json": "type",
-        "optional": false,
-        "nullable": false
-      },
-      {
-        "code": "idKeys",
-        "json": "idKeys",
-        "optional": false,
-        "nullable": false
-      },
-      {
-        "code": "descriptionKeys",
-        "json": "descriptionKeys",
-        "optional": false,
-        "nullable": false
-      }
-    ]
-  },
-  {
     "type": "Nami.Models.Ingestion.Records.SpanEventIngest",
     "project": "src/nami.collector.ingestion/Generated",
     "file": "IngestionRecords.g.cs",
@@ -3043,34 +3571,6 @@
         "code": "droppedAttributesCount",
         "json": "droppedAttributesCount",
         "optional": false,
-        "nullable": false
-      }
-    ]
-  },
-  {
-    "type": "Nami.Models.Ingestion.Records.LogIngestionBatch",
-    "project": "src/nami.collector.ingestion/Generated",
-    "file": "IngestionRecords.g.cs",
-    "namespace": "Nami.Collector.Ingestion",
-    "form": "internal sealed record",
-    "json": false,
-    "properties": [
-      {
-        "code": "logs",
-        "json": "logs",
-        "optional": false,
-        "nullable": false
-      },
-      {
-        "code": "rejectedLogRecords",
-        "json": "rejectedLogRecords",
-        "optional": false,
-        "nullable": false
-      },
-      {
-        "code": "rejectionMessage",
-        "json": "rejectionMessage",
-        "optional": true,
         "nullable": false
       }
     ]
@@ -3208,34 +3708,6 @@
         "json": "attributes",
         "optional": false,
         "nullable": false
-      }
-    ]
-  },
-  {
-    "type": "Nami.Models.Ingestion.Records.MetricIngestionBatch",
-    "project": "src/nami.collector.ingestion/Generated",
-    "file": "IngestionRecords.g.cs",
-    "namespace": "Nami.Collector.Ingestion",
-    "form": "internal sealed record",
-    "json": false,
-    "properties": [
-      {
-        "code": "points",
-        "json": "points",
-        "optional": false,
-        "nullable": false
-      },
-      {
-        "code": "rejectedDataPoints",
-        "json": "rejectedDataPoints",
-        "optional": false,
-        "nullable": false
-      },
-      {
-        "code": "rejectionMessage",
-        "json": "rejectionMessage",
-        "optional": false,
-        "nullable": true
       }
     ]
   },
@@ -3400,6 +3872,230 @@
     ]
   },
   {
+    "type": "Nami.Models.Ingestion.Records.ResourceProjection",
+    "project": "src/nami.collector.ingestion/Generated",
+    "file": "IngestionRecords.g.cs",
+    "namespace": "Nami.Collector.Ingestion",
+    "form": "internal sealed record",
+    "json": false,
+    "properties": [
+      {
+        "code": "attributes",
+        "json": "attributes",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "entityRefs",
+        "json": "entityRefs",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Ingestion.Records.MetricStreamMetadata",
+    "project": "src/nami.collector.ingestion/Generated",
+    "file": "IngestionRecords.g.cs",
+    "namespace": "Nami.Collector.Ingestion",
+    "form": "internal readonly record struct",
+    "json": false,
+    "properties": [
+      {
+        "code": "projectIdHint",
+        "json": "projectIdHint",
+        "optional": false,
+        "nullable": true
+      },
+      {
+        "code": "metricName",
+        "json": "metricName",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "unit",
+        "json": "unit",
+        "optional": false,
+        "nullable": true
+      },
+      {
+        "code": "description",
+        "json": "description",
+        "optional": false,
+        "nullable": true
+      },
+      {
+        "code": "serviceName",
+        "json": "serviceName",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "schemaUrl",
+        "json": "schemaUrl",
+        "optional": false,
+        "nullable": true
+      },
+      {
+        "code": "resourceAttributes",
+        "json": "resourceAttributes",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "resourceEntityRefs",
+        "json": "resourceEntityRefs",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "resourceSchemaUrl",
+        "json": "resourceSchemaUrl",
+        "optional": false,
+        "nullable": true
+      },
+      {
+        "code": "resourceDroppedAttributesCount",
+        "json": "resourceDroppedAttributesCount",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "scopeName",
+        "json": "scopeName",
+        "optional": false,
+        "nullable": true
+      },
+      {
+        "code": "scopeVersion",
+        "json": "scopeVersion",
+        "optional": false,
+        "nullable": true
+      },
+      {
+        "code": "scopeSchemaUrl",
+        "json": "scopeSchemaUrl",
+        "optional": false,
+        "nullable": true
+      },
+      {
+        "code": "scopeAttributes",
+        "json": "scopeAttributes",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "scopeDroppedAttributesCount",
+        "json": "scopeDroppedAttributesCount",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "instrumentMetadata",
+        "json": "instrumentMetadata",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "resourceIdentity",
+        "json": "resourceIdentity",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "scopeIdentity",
+        "json": "scopeIdentity",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Ingestion.Records.TraceIngestionBatch",
+    "project": "src/nami.collector.ingestion/Generated",
+    "file": "IngestionRecords.g.cs",
+    "namespace": "Nami.Collector.Ingestion",
+    "form": "internal sealed record",
+    "json": false,
+    "properties": [
+      {
+        "code": "spans",
+        "json": "spans",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "rejectedSpans",
+        "json": "rejectedSpans",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "rejectionMessage",
+        "json": "rejectionMessage",
+        "optional": true,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Ingestion.Records.LogIngestionBatch",
+    "project": "src/nami.collector.ingestion/Generated",
+    "file": "IngestionRecords.g.cs",
+    "namespace": "Nami.Collector.Ingestion",
+    "form": "internal sealed record",
+    "json": false,
+    "properties": [
+      {
+        "code": "logs",
+        "json": "logs",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "rejectedLogRecords",
+        "json": "rejectedLogRecords",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "rejectionMessage",
+        "json": "rejectionMessage",
+        "optional": true,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Ingestion.Records.MetricIngestionBatch",
+    "project": "src/nami.collector.ingestion/Generated",
+    "file": "IngestionRecords.g.cs",
+    "namespace": "Nami.Collector.Ingestion",
+    "form": "internal sealed record",
+    "json": false,
+    "properties": [
+      {
+        "code": "points",
+        "json": "points",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "rejectedDataPoints",
+        "json": "rejectedDataPoints",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "rejectionMessage",
+        "json": "rejectionMessage",
+        "optional": false,
+        "nullable": true
+      }
+    ]
+  },
+  {
     "type": "Nami.Models.Configuration.CollectorConfigurationKeys",
     "project": "src/nami.collector.ingestion/Generated",
     "file": "CollectorConfigurationKeys.g.cs",
@@ -3512,6 +4208,494 @@
       {
         "code": "databaseTempDirectory",
         "json": "databaseTempDirectory",
+        "optional": true,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Configuration.Hosting.CollectorPortOptions",
+    "project": "src/nami/Generated",
+    "file": "HostingOptions.g.cs",
+    "namespace": "Nami.Hosting",
+    "form": "internal sealed partial class",
+    "json": false,
+    "properties": [
+      {
+        "code": "bindAddress",
+        "json": "bindAddress",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "otlpHttp",
+        "json": "otlpHttp",
+        "optional": false,
+        "nullable": false,
+        "minimum": "0",
+        "maximum": "65535"
+      },
+      {
+        "code": "grpc",
+        "json": "grpc",
+        "optional": false,
+        "nullable": false,
+        "minimum": "0",
+        "maximum": "65535"
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Configuration.Hosting.CollectorStorageOptions",
+    "project": "src/nami/Generated",
+    "file": "HostingOptions.g.cs",
+    "namespace": "Nami.Hosting",
+    "form": "internal sealed partial class",
+    "json": false,
+    "properties": [
+      {
+        "code": "dataPath",
+        "json": "dataPath",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "memoryLimit",
+        "json": "memoryLimit",
+        "optional": true,
+        "nullable": false
+      },
+      {
+        "code": "threads",
+        "json": "threads",
+        "optional": true,
+        "nullable": false,
+        "minimum": "1",
+        "maximum": "2147483647"
+      },
+      {
+        "code": "tempDirectory",
+        "json": "tempDirectory",
+        "optional": true,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Configuration.Retention.RetentionOptions",
+    "project": "src/nami/Generated",
+    "file": "RetentionOptions.g.cs",
+    "namespace": "Nami.Retention",
+    "form": "internal sealed partial class",
+    "json": false,
+    "properties": [
+      {
+        "code": "days",
+        "json": "days",
+        "optional": false,
+        "nullable": false,
+        "minimum": "0",
+        "maximum": "2147483647"
+      },
+      {
+        "code": "intervalMinutes",
+        "json": "intervalMinutes",
+        "optional": false,
+        "nullable": false,
+        "minimum": "1",
+        "maximum": "71582"
+      },
+      {
+        "code": "storageMinimumFreeMegabytes",
+        "json": "storageMinimumFreeMegabytes",
+        "optional": false,
+        "nullable": false,
+        "minimum": "0",
+        "maximum": "8796093022207"
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Configuration.Cors.OtlpCorsOptions",
+    "project": "src/nami.collector.ingestion/Configuration/Generated",
+    "file": "CorsOptions.g.cs",
+    "namespace": "Nami.Collector.Ingestion",
+    "form": "internal sealed partial class",
+    "json": false,
+    "properties": [
+      {
+        "code": "allowedOrigins",
+        "json": "allowedOrigins",
+        "optional": true,
+        "nullable": false
+      },
+      {
+        "code": "allowedHeaders",
+        "json": "allowedHeaders",
+        "optional": true,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Configuration.Auth.ProjectApiKey",
+    "project": "src/nami/Generated",
+    "file": "AuthOptions.g.cs",
+    "namespace": "Nami.ApiKeys",
+    "form": "internal sealed record",
+    "json": false,
+    "properties": [
+      {
+        "code": "projectId",
+        "json": "projectId",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "apiKey",
+        "json": "apiKey",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "roles",
+        "json": "roles",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Configuration.Auth.OtlpApiKeyOptions",
+    "project": "src/nami/Generated",
+    "file": "AuthOptions.g.cs",
+    "namespace": "Nami.ApiKeys",
+    "form": "internal sealed partial class",
+    "json": false,
+    "properties": [
+      {
+        "code": "authMode",
+        "json": "authMode",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "projectKeys",
+        "json": "projectKeys",
+        "optional": true,
+        "nullable": false
+      },
+      {
+        "code": "keys",
+        "json": "keys",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Configuration.Auth.ApiKeyRoles",
+    "project": "src/nami/Generated",
+    "file": "AuthOptions.g.cs",
+    "namespace": "Nami.ApiKeys",
+    "form": "enum:int",
+    "json": false
+  },
+  {
+    "type": "Nami.Models.Configuration.Credentials.CredentialDefinition",
+    "project": "src/nami/Generated",
+    "file": "CredentialJson.g.cs",
+    "namespace": "Nami.ApiKeys",
+    "form": "internal sealed partial record",
+    "json": true,
+    "properties": [
+      {
+        "code": "key",
+        "json": "key",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "roles",
+        "json": "roles",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Configuration.Credentials.ProjectKeyDocument",
+    "project": "src/nami/Generated",
+    "file": "CredentialJson.g.cs",
+    "namespace": "Nami.ApiKeys",
+    "form": "json-root",
+    "json": true
+  },
+  {
+    "type": "Nami.Models.Tools.Runtime.ScopeApiValues",
+    "project": "src/nami/Generated",
+    "file": "ToolRuntime.g.cs",
+    "namespace": "Nami.Tools",
+    "form": "internal sealed partial record",
+    "json": false,
+    "properties": [
+      {
+        "code": "scopeAttributes",
+        "json": "scopeAttributes",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Tools.Runtime.ResourceApiValues",
+    "project": "src/nami/Generated",
+    "file": "ToolRuntime.g.cs",
+    "namespace": "Nami.Tools",
+    "form": "internal sealed partial record",
+    "json": false,
+    "properties": [
+      {
+        "code": "serviceName",
+        "json": "serviceName",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "attributes",
+        "json": "attributes",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "entityRefs",
+        "json": "entityRefs",
+        "optional": false,
+        "nullable": true
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Tools.Runtime.EventApiValues",
+    "project": "src/nami/Generated",
+    "file": "ToolRuntime.g.cs",
+    "namespace": "Nami.Tools",
+    "form": "internal sealed partial record",
+    "json": false,
+    "properties": [
+      {
+        "code": "attributes",
+        "json": "attributes",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Tools.Runtime.LinkApiValues",
+    "project": "src/nami/Generated",
+    "file": "ToolRuntime.g.cs",
+    "namespace": "Nami.Tools",
+    "form": "internal sealed partial record",
+    "json": false,
+    "properties": [
+      {
+        "code": "attributes",
+        "json": "attributes",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Tools.Runtime.SpanApiValues",
+    "project": "src/nami/Generated",
+    "file": "ToolRuntime.g.cs",
+    "namespace": "Nami.Tools",
+    "form": "internal sealed partial record",
+    "json": false,
+    "properties": [
+      {
+        "code": "kind",
+        "json": "kind",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "attributes",
+        "json": "attributes",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "status",
+        "json": "status",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "resource",
+        "json": "resource",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "instrumentationScope",
+        "json": "instrumentationScope",
+        "optional": false,
+        "nullable": true
+      },
+      {
+        "code": "events",
+        "json": "events",
+        "optional": false,
+        "nullable": true
+      },
+      {
+        "code": "links",
+        "json": "links",
+        "optional": false,
+        "nullable": true
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Tools.Runtime.ToolRunResult",
+    "project": "src/nami/Generated",
+    "file": "ToolRuntime.g.cs",
+    "namespace": "Nami.Tools",
+    "form": "internal readonly record struct",
+    "json": false,
+    "properties": [
+      {
+        "code": "content",
+        "json": "content",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "isError",
+        "json": "isError",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Tools.Runtime.ToolRows",
+    "project": "src/nami/Generated",
+    "file": "ToolRuntime.g.cs",
+    "namespace": "Nami.Tools",
+    "form": "internal sealed record",
+    "json": false,
+    "properties": [
+      {
+        "code": "member",
+        "json": "member",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "items",
+        "json": "items",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "examined",
+        "json": "examined",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "signals",
+        "json": "signals",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "allowedFields",
+        "json": "allowedFields",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "single",
+        "json": "single",
+        "optional": false,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Tools.Runtime.ToolWindow",
+    "project": "src/nami/Generated",
+    "file": "ToolRuntime.g.cs",
+    "namespace": "Nami.Tools",
+    "form": "internal readonly partial record struct",
+    "json": false,
+    "properties": [
+      {
+        "code": "start",
+        "json": "start",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "end",
+        "json": "end",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "service",
+        "json": "service",
+        "optional": false,
+        "nullable": true
+      },
+      {
+        "code": "watermarks",
+        "json": "watermarks",
+        "optional": true,
+        "nullable": false
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Contracts.Runtime.ContractIssue",
+    "project": "internal/nami.contracts/Generated",
+    "file": "ContractIssue.g.cs",
+    "namespace": "Nami.Api.Contracts",
+    "form": "public sealed record",
+    "json": false,
+    "properties": [
+      {
+        "code": "field",
+        "json": "field",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "keyword",
+        "json": "keyword",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "message",
+        "json": "message",
+        "optional": false,
+        "nullable": false
+      },
+      {
+        "code": "allowed",
+        "json": "allowed",
+        "optional": true,
+        "nullable": false
+      },
+      {
+        "code": "hint",
+        "json": "hint",
         "optional": true,
         "nullable": false
       }

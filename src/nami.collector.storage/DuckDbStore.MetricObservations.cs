@@ -121,10 +121,6 @@ internal sealed partial class DuckDbStore
                                   SELECT json_extract_string(e.value, '$.trace_id') AS trace_id
                                   FROM metric_observations o, json_each(o.exemplars_json) e
                                   WHERE o.project_id = $1 AND o.series_id = $2 AND o.time_unix_nano = $3
-                                  UNION
-                                  SELECT json_extract_string(e.value, '$') AS trace_id
-                                  FROM metric_observations o, json_each(o.historical_exemplar_trace_ids_json) e
-                                  WHERE o.project_id = $1 AND o.series_id = $2 AND o.time_unix_nano = $3
                               ) WHERE trace_id IS NOT NULL ON CONFLICT DO NOTHING
                               """;
         AddParameters(command, key.ProjectId, key.SeriesId, (decimal)key.TimeUnixNano);

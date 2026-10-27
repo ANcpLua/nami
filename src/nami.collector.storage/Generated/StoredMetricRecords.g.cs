@@ -2,7 +2,218 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 namespace Nami.Collector.Storage;
+
+[JsonConverter(typeof(StoredAttributeValueJsonConverter))]
+internal closed class StoredAttributeValue
+{
+    private protected StoredAttributeValue() { }
+    public sealed class StringValue(string value) : StoredAttributeValue
+    {
+        public string Value { get; } = value;
+    }
+    public sealed class BoolValue(bool value) : StoredAttributeValue
+    {
+        public bool Value { get; } = value;
+    }
+    public sealed class ArrayValue(IReadOnlyList<StoredAttributeValue?> value) : StoredAttributeValue
+    {
+        public IReadOnlyList<StoredAttributeValue?> Value { get; } = value;
+    }
+    public sealed class ObjectValue(Nami.Collector.Storage.StoredObjectValue value) : StoredAttributeValue
+    {
+        public Nami.Collector.Storage.StoredObjectValue Value { get; } = value;
+    }
+    public string ToStableString()
+    {
+        var buffer = new System.Buffers.ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))
+            WriteStable(writer, this);
+        return System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+    public static string StableString(StoredAttributeValue? value) => value is null ? "null" : value.ToStableString();
+    internal static void Serialize(Utf8JsonWriter writer, StoredAttributeValue value, JsonSerializerOptions options) => WriteJson(writer, value, options);
+    private static bool WriteNull(Utf8JsonWriter writer) { writer.WriteNullValue(); return true; }
+    private static void WriteJson(Utf8JsonWriter writer, StoredAttributeValue? value, JsonSerializerOptions options)
+    {
+        _ = value switch
+        {
+            StoredAttributeValue.StringValue typed => WriteJsonStringValue(writer, typed, options),
+            StoredAttributeValue.BoolValue typed => WriteJsonBoolValue(writer, typed, options),
+            StoredAttributeValue.ArrayValue typed => WriteJsonArrayValue(writer, typed, options),
+            StoredAttributeValue.ObjectValue typed => WriteJsonObjectValue(writer, typed, options),
+            null => WriteNull(writer),
+        };
+    }
+    private static bool WriteJsonStringValue(Utf8JsonWriter writer, StoredAttributeValue.StringValue typed, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(typed.Value);
+        return true;
+    }
+    private static bool WriteJsonBoolValue(Utf8JsonWriter writer, StoredAttributeValue.BoolValue typed, JsonSerializerOptions options)
+    {
+        writer.WriteBooleanValue(typed.Value);
+        return true;
+    }
+    private static bool WriteJsonArrayValue(Utf8JsonWriter writer, StoredAttributeValue.ArrayValue typed, JsonSerializerOptions options)
+    {
+        writer.WriteStartArray(); foreach (var item in typed.Value) WriteJson(writer, item, options); writer.WriteEndArray();
+        return true;
+    }
+    private static bool WriteJsonObjectValue(Utf8JsonWriter writer, StoredAttributeValue.ObjectValue typed, JsonSerializerOptions options)
+    {
+        JsonSerializer.Serialize(writer, typed.Value, options.GetTypeInfo<Nami.Collector.Storage.StoredObjectValue>());
+        return true;
+    }
+    private static void WriteStable(Utf8JsonWriter writer, StoredAttributeValue? value)
+    {
+        _ = value switch
+        {
+            StoredAttributeValue.StringValue typed => WriteStableStringValue(writer, typed),
+            StoredAttributeValue.BoolValue typed => WriteStableBoolValue(writer, typed),
+            StoredAttributeValue.ArrayValue typed => WriteStableArrayValue(writer, typed),
+            StoredAttributeValue.ObjectValue typed => WriteStableObjectValue(writer, typed),
+            null => WriteNull(writer),
+        };
+    }
+    private static bool WriteStableStringValue(Utf8JsonWriter writer, StoredAttributeValue.StringValue typed)
+    {
+        writer.WriteStringValue(typed.Value);
+        return true;
+    }
+    private static bool WriteStableBoolValue(Utf8JsonWriter writer, StoredAttributeValue.BoolValue typed)
+    {
+        writer.WriteBooleanValue(typed.Value);
+        return true;
+    }
+    private static bool WriteStableArrayValue(Utf8JsonWriter writer, StoredAttributeValue.ArrayValue typed)
+    {
+        writer.WriteStartArray(); foreach (var item in typed.Value) WriteStable(writer, item); writer.WriteEndArray();
+        return true;
+    }
+    private static bool WriteStableObjectValue(Utf8JsonWriter writer, StoredAttributeValue.ObjectValue typed)
+    {
+        WriteStableObject(writer, typed.Value);
+        return true;
+    }
+    private static void WriteStableObject(Utf8JsonWriter writer, Nami.Collector.Storage.StoredObjectValue value)
+    {
+        _ = value switch
+        {
+            Nami.Collector.Storage.StoredIntValue typed => WriteStableObjectCase0(writer, typed),
+            Nami.Collector.Storage.StoredDoubleValue typed => WriteStableObjectCase1(writer, typed),
+            Nami.Collector.Storage.StoredBytesValue typed => WriteStableObjectCase2(writer, typed),
+            Nami.Collector.Storage.StoredKeyValueListValue typed => WriteStableObjectCase3(writer, typed),
+            null => throw new InvalidOperationException("The tagged value was not initialized."),
+        };
+    }
+    private static bool WriteStableObjectCase0(Utf8JsonWriter writer, Nami.Collector.Storage.StoredIntValue typed)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("type"); writer.WriteStringValue("int");
+        writer.WritePropertyName("value"); writer.WriteStringValue(typed.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        writer.WriteEndObject();
+        return true;
+    }
+    private static bool WriteStableObjectCase1(Utf8JsonWriter writer, Nami.Collector.Storage.StoredDoubleValue typed)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("type"); writer.WriteStringValue("double");
+        writer.WritePropertyName("value"); WriteJsNumber(writer, typed.Value);
+        writer.WriteEndObject();
+        return true;
+    }
+    private static bool WriteStableObjectCase2(Utf8JsonWriter writer, Nami.Collector.Storage.StoredBytesValue typed)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("base64"); writer.WriteStringValue(Convert.ToBase64String(typed.Base64.Span));
+        writer.WritePropertyName("type"); writer.WriteStringValue("bytes");
+        writer.WriteEndObject();
+        return true;
+    }
+    private static bool WriteStableObjectCase3(Utf8JsonWriter writer, Nami.Collector.Storage.StoredKeyValueListValue typed)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("type"); writer.WriteStringValue("kvlist");
+        writer.WritePropertyName("values"); writer.WriteStartObject(); foreach (var (key, nested) in typed.Values.OrderBy(static item => item.Key, StringComparer.Ordinal)) { writer.WritePropertyName(key); WriteStable(writer, nested); } writer.WriteEndObject();
+        writer.WriteEndObject();
+        return true;
+    }
+
+    /// <summary>A double as ECMAScript Number::toString prints it, so both languages agree on identity.</summary>
+    private static void WriteJsNumber(Utf8JsonWriter writer, double value)
+    {
+        if (double.IsNaN(value)) { writer.WriteStringValue("NaN"); return; }
+        if (double.IsPositiveInfinity(value)) { writer.WriteStringValue("Infinity"); return; }
+        if (double.IsNegativeInfinity(value)) { writer.WriteStringValue("-Infinity"); return; }
+        if (value == 0) { writer.WriteRawValue("0", skipInputValidation: true); return; }
+        var negative = value < 0;
+        var round = Math.Abs(value).ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        var exponentIndex = round.IndexOfAny(['E', 'e']);
+        var mantissa = exponentIndex < 0 ? round : round[..exponentIndex];
+        var exponent = exponentIndex < 0 ? 0 : int.Parse(round[(exponentIndex + 1)..], System.Globalization.CultureInfo.InvariantCulture);
+        var pointIndex = mantissa.IndexOf('.');
+        var integerPart = pointIndex < 0 ? mantissa : mantissa[..pointIndex];
+        var fraction = pointIndex < 0 ? "" : mantissa[(pointIndex + 1)..];
+        var digits = (integerPart + fraction).TrimStart('0');
+        var n = integerPart.TrimStart('0').Length + exponent;
+        if (integerPart.TrimStart('0').Length == 0)
+        {
+            var leadingZeros = fraction.Length - fraction.TrimStart('0').Length;
+            n = -leadingZeros + exponent;
+        }
+
+        digits = digits.TrimEnd('0');
+        var k = digits.Length;
+        string text;
+        if (k <= n && n <= 21) text = digits + new string('0', n - k);
+        else if (0 < n && n <= 21) text = digits[..n] + "." + digits[n..];
+        else if (-6 < n && n <= 0) text = "0." + new string('0', -n) + digits;
+        else
+        {
+            var e = n - 1;
+            var sign = e >= 0 ? "+" : "-";
+            text = (k == 1 ? digits : digits[..1] + "." + digits[1..]) + "e" + sign + Math.Abs(e).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        writer.WriteRawValue((negative ? "-" : "") + text, skipInputValidation: true);
+    }
+
+}
+internal sealed class StoredAttributeValueJsonConverter : JsonConverter<StoredAttributeValue>
+{
+    public override StoredAttributeValue? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.Null: return null;
+            case JsonTokenType.String: return new StoredAttributeValue.StringValue(reader.GetString()!);
+            case JsonTokenType.True: case JsonTokenType.False: return new StoredAttributeValue.BoolValue(reader.GetBoolean());
+            case JsonTokenType.StartArray:
+            {
+                var items = new List<StoredAttributeValue?>();
+                while (reader.Read())
+                {
+                    if (reader.TokenType == JsonTokenType.EndArray) return new StoredAttributeValue.ArrayValue(items);
+                    items.Add(Read(ref reader, typeToConvert, options));
+                }
+                throw new JsonException("Unterminated StoredAttributeValue array.");
+            }
+            case JsonTokenType.StartObject:
+            {
+                using var document = JsonDocument.ParseValue(ref reader);
+                if (!document.RootElement.TryGetProperty("type", out var tag) || tag.ValueKind != JsonValueKind.String)
+                    throw new JsonException("StoredObjectValue requires type.");
+                return new StoredAttributeValue.ObjectValue(document.RootElement.Deserialize(options.GetTypeInfo<Nami.Collector.Storage.StoredObjectValue>()) ?? throw new JsonException("Null object case."));
+            }
+            default: throw new JsonException($"StoredAttributeValue cannot start with token '{reader.TokenType}'.");
+        }
+    }
+    public override void Write(Utf8JsonWriter writer, StoredAttributeValue value, JsonSerializerOptions options) => StoredAttributeValue.Serialize(writer, value, options);
+}
 
 [System.Text.Json.Serialization.JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [System.Text.Json.Serialization.JsonDerivedType(typeof(StoredIntValue), "int")]
@@ -165,19 +376,20 @@ internal sealed partial class StoredAttribute
     public required Nami.Collector.Storage.StoredAttributeValue? Value { get; init; }
 }
 
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredObjectValue))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredNumberValue))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredIntValue))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredDoubleValue))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredBytesValue))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredKeyValueListValue))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredMetricPointData))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredNumberPointData))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredHistogramPointData))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredExponentialHistogramPointData))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredExponentialBuckets))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredSummaryPointData))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredQuantileValue))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredExemplar))]
-[System.Text.Json.Serialization.JsonSerializable(typeof(StoredAttribute))]
-internal partial class StorageJsonSerializerContext : System.Text.Json.Serialization.JsonSerializerContext;
+[JsonSerializable(typeof(StoredObjectValue), TypeInfoPropertyName = "StoredObjectValue")]
+[JsonSerializable(typeof(StoredNumberValue), TypeInfoPropertyName = "StoredNumberValue")]
+[JsonSerializable(typeof(StoredIntValue), TypeInfoPropertyName = "StoredIntValue")]
+[JsonSerializable(typeof(StoredDoubleValue), TypeInfoPropertyName = "StoredDoubleValue")]
+[JsonSerializable(typeof(StoredBytesValue), TypeInfoPropertyName = "StoredBytesValue")]
+[JsonSerializable(typeof(StoredKeyValueListValue), TypeInfoPropertyName = "StoredKeyValueListValue")]
+[JsonSerializable(typeof(StoredMetricPointData), TypeInfoPropertyName = "StoredMetricPointData")]
+[JsonSerializable(typeof(StoredNumberPointData), TypeInfoPropertyName = "StoredNumberPointData")]
+[JsonSerializable(typeof(StoredHistogramPointData), TypeInfoPropertyName = "StoredHistogramPointData")]
+[JsonSerializable(typeof(StoredExponentialHistogramPointData), TypeInfoPropertyName = "StoredExponentialHistogramPointData")]
+[JsonSerializable(typeof(StoredExponentialBuckets), TypeInfoPropertyName = "StoredExponentialBuckets")]
+[JsonSerializable(typeof(StoredSummaryPointData), TypeInfoPropertyName = "StoredSummaryPointData")]
+[JsonSerializable(typeof(StoredQuantileValue), TypeInfoPropertyName = "StoredQuantileValue")]
+[JsonSerializable(typeof(StoredExemplar), TypeInfoPropertyName = "StoredExemplar")]
+[JsonSerializable(typeof(StoredAttribute), TypeInfoPropertyName = "StoredAttribute")]
+[JsonSerializable(typeof(StoredAttributeValue), TypeInfoPropertyName = "StoredAttributeValue")]
+internal partial class StorageJsonSerializerContext : JsonSerializerContext;

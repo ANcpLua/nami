@@ -1,3 +1,4 @@
+using StorageSnapshot = Nami.Collector.Storage.TelemetrySnapshot;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -21,12 +22,12 @@ public sealed class ToolContractTests(TestContext context)
         return document.RootElement.Clone();
     }
 
-    private static ToolRunResult Run(string name, ISnapshot snapshot, string json = "{}")
+    private static ToolRunResult Run(string name, StorageSnapshot snapshot, string json = "{}")
     {
         return ToolDispatcher.Run(name, snapshot, Input(json));
     }
 
-    private async Task<ISnapshot> SeedAll(DuckDbStore store, FakeTimeProvider clock)
+    private async Task<StorageSnapshot> SeedAll(DuckDbStore store, FakeTimeProvider clock)
     {
         var time = TestData.Nanos(TestData.s_now.AddSeconds(-5));
         var tracePayload = JsonNode.Parse(OtlpData.Traces(time, error: true, exceptionEvent: true))!;

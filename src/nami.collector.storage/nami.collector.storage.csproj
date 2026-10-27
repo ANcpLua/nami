@@ -1,6 +1,6 @@
 <Project Sdk="ANcpLua.NET.Sdk">
-  <!-- DuckDB persistence. Its compile assets stay private to this assembly, so the host and the
-       tests reach DuckDB only through INamiStore and the other storage intent methods. -->
+  <!-- DuckDB compile assets stay private to the product storage assembly. Integration tests
+       explicitly reference the same pinned driver to verify physical schema and failure boundaries. -->
   <PropertyGroup>
     <RootNamespace>Nami.Collector.Storage</RootNamespace>
     <LangVersion>preview</LangVersion>

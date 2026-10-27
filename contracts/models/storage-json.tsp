@@ -5,8 +5,13 @@ namespace Nami.Models.Storage.Json;
 @encode(string) scalar HistogramCount extends Nami.Models.Values.HistogramCount;
 union StoredFloat64 { float64, "NaN", "Infinity", "-Infinity" }
 
-@csharpType("Nami.Collector.Storage.StoredAttributeValue")
-union StoredAttributeValue { string, boolean, null, StoredAttributeValue[], StoredObjectValue }
+union StoredAttributeValue {
+  stringValue: string,
+  boolValue: boolean,
+  empty: null,
+  arrayValue: StoredAttributeValue[],
+  objectValue: StoredObjectValue,
+}
 @discriminator("type") @csharpForm("internal closed partial class")
 model StoredObjectValue {}
 @discriminator("type") @csharpForm("internal closed partial class")

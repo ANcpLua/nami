@@ -10,6 +10,17 @@ workspaces, `eng/scripts/run_tests.py` for a test run, and
 `eng/scripts/artifact_lifetime.py` for its lease and evidence. Read
 `docs/testing.md` and these files before changing their contract.
 
+Pass `TestContext` explicitly when full fixture evidence is wanted. `FixtureDiagnostics.None`
+disables evidence even with a context; an absent context does not fall back to ambient test
+state. The MSTest fixture adapter supplies its invocation context explicitly. No evidence
+capture means no fallback SDK binlog. This changes the amount captured, not workspace ownership
+or the run's cleanup/retention rules.
+
+Materialization compares bytes and writes only missing or changed inputs. An explicitly shared
+`PackageFeedFixture` owns both package and HTTP caches; each consumer still owns its scratch and
+plugin directories. Empty shared feeds may own external-package caches without advertising an
+empty local package-source mapping.
+
 Repository test entry points put mutable fixture work below the run's owned
 workspace. Successful and failed runs remove payloads by default. Only an explicit
 `--retain-failure-minutes N` seals failed-run evidence in `evidence.zip`; N is at

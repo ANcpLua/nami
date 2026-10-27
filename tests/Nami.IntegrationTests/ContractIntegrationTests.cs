@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Nami.Api.Contracts;
+using Nami.ApiKeys;
+using Nami.Hosting;
 using Nami.Tests.Infrastructure;
 
 namespace Nami.IntegrationTests;
@@ -9,6 +11,19 @@ namespace Nami.IntegrationTests;
 [DependsOn(typeof(IngestStoreTests), nameof(IngestStoreTests.Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
 public sealed class ContractIntegrationTests(TestContext context)
 {
+    [TestMethod]
+    public async Task AdapterDefaults_AreGeneratedFromTheSharedConfiguration()
+    {
+        const string Script = "import { CONFIG_DEFAULTS } from './src/nami.mcp/src/contracts/generated/manifest.ts'; console.log(JSON.stringify(CONFIG_DEFAULTS));";
+        var result = await ProcessRunner.RunAsync("node", ["--input-type=module", "-e", Script],
+            ProcessRunner.RepositoryRoot, context.CancellationToken);
+        Assert.AreEqual(0, result.ExitCode, result.Error);
+        using var values = JsonDocument.Parse(result.Output);
+        Assert.AreEqual(new CollectorPortOptions().BindAddress, values.RootElement.GetProperty("BindAddress").GetString());
+        Assert.AreEqual(new OtlpApiKeyOptions().AuthMode, values.RootElement.GetProperty("AuthMode").GetString());
+        Assert.AreEqual("5100", values.RootElement.GetProperty("Port").GetString());
+    }
+
     [TestMethod]
     public void SerializerContext_CoversEveryContractType()
     {

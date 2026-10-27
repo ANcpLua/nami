@@ -6,11 +6,12 @@ audience:
   developer_example: Tomo, a developer whose application an agent investigates
   human_analysis_ui: none
 runtime:
+  collector_owner: Nami; binding architecture decision
   mcp: {language: TypeScript, runtime: Bun, sdk: official MCP TypeScript SDK v2}
   engine: {framework: net11.0, compilation: NativeAOT, duties: [otlp, storage, analysis]}
   processes: separately hosted MCP and engine, released together
   local_supervisor: TypeScript launcher owns engine process and private streams
-  current_implementation: TypeScript MCP and native engine implemented; instrumentation and hosted delivery proofs remain tracked
+  current_implementation: TypeScript MCP and native engine implemented; auto-instrumentation is not wired in; hosted delivery remains tracked
 surfaces:
   claude_ai: remote MCP connector
   openai: plugin bundle with MCP integration
@@ -27,12 +28,20 @@ contracts:
   internal_revision: validated before dispatch
   application_state: explicit project-bound observation and snapshot identifiers
 instrumentation:
+  required: true
+  implementation_status: supported-application instrumentation and observation lifetimes are not wired in yet
+  self_instrumentation_scope: Nami's own engine and tool operations
+  application_instrumentation_scope: declared supported application call sites; separate from self-instrumentation
   csharp: compiler-bound call sites and generated wrappers
   native_aot: no CLR profiler, no JIT, no separately installed .NET runtime
   scope: full declared model manifest with executable proofs or explicit exclusions
   lifetime: XML-configured rules enforced by runtime code
   limits: no implicit fifteen-minute cap; no instrumentation of arbitrary precompiled dependencies
   other_languages: language-appropriate instrumentation using generated semantic definitions and OTLP
+acceptance:
+  required: [I1-I18, D1-D6]
+  definitions_and_limits: docs/prd/nami-request-response-review.md
+  implementation_evidence: docs/checklist.md
 components:
   contracts/: TypeSpec sources, CSharp/TypeScript emitters and wire schemas
   registry/: Generated canonical publication of pinned semantic definitions and policies
@@ -59,6 +68,7 @@ rules:
   - Empty incomplete results never prove absence of errors.
   - Retention alone removes recorded telemetry.
   - Recording, export acceptance, persistence and query visibility are independently evidenced.
+  - Snapshot completeness, producer coverage and loss-free delivery are distinct guarantees.
   - Self-observation remains finite and shutdown accounts for unfinished accepted telemetry.
 tools: [sources_status, errors_recent, traces_get, traces_slowest, logs_search, changes_recent]
 deployment:

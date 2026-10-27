@@ -5,6 +5,7 @@ using Nami.Collector.Ingestion;
 using Nami.Collector.Ingestion.Models;
 using Nami.Collector.Ingestion.Primitives;
 using Nami.Collector.Storage;
+using Nami.SemanticConventions;
 using AttributeIntValue = Nami.Collector.Ingestion.Models.AttributeIntValue;
 
 namespace Nami.IntegrationTests;
@@ -13,6 +14,79 @@ namespace Nami.IntegrationTests;
 [TestCategory("Integration")]
 public sealed class GeneratedModelTests
 {
+    [TestMethod]
+    public void ToSpanStorageRows_CatalogProjection_PreservesEveryTypedColumn()
+    {
+        var attributes = new NormalizedAttributes { Values = new Dictionary<string, OtlpAttributeValue>
+        {
+            [CollectorSemanticAttributeCatalog.GenAiProviderName] = OtlpAttributeValue.FromString("provider"),
+            [CollectorSemanticAttributeCatalog.GenAiOperationName] = OtlpAttributeValue.FromString("chat"),
+            [CollectorSemanticAttributeCatalog.GenAiOutputType] = OtlpAttributeValue.FromString("text"),
+            [CollectorSemanticAttributeCatalog.GenAiRequestModel] = OtlpAttributeValue.FromString("requested"),
+            [CollectorSemanticAttributeCatalog.GenAiResponseModel] = OtlpAttributeValue.FromString("actual"),
+            [CollectorSemanticAttributeCatalog.GenAiInputTokens] = OtlpAttributeValue.FromInt(11),
+            [CollectorSemanticAttributeCatalog.GenAiOutputTokens] = OtlpAttributeValue.FromInt(12),
+            [CollectorSemanticAttributeCatalog.GenAiCacheReadInputTokens] = OtlpAttributeValue.FromInt(13),
+            [CollectorSemanticAttributeCatalog.GenAiCacheWriteInputTokens] = OtlpAttributeValue.FromInt(14),
+            [CollectorSemanticAttributeCatalog.GenAiReasoningTokens] = OtlpAttributeValue.FromInt(long.MaxValue)
+        } };
+        var row = Assert.ContainsSingle(IngestionStorageMapper.ToSpanStorageRows(new TraceIngestionBatch([Span(attributes)])));
+        Assert.AreEqual("provider", row.GenAiProviderName);
+        Assert.AreEqual("chat", row.GenAiOperationName);
+        Assert.AreEqual("text", row.GenAiOutputType);
+        Assert.AreEqual("requested", row.GenAiRequestModel);
+        Assert.AreEqual("actual", row.GenAiResponseModel);
+        Assert.AreEqual(11L, row.GenAiInputTokens);
+        Assert.AreEqual(12L, row.GenAiOutputTokens);
+        Assert.AreEqual(13L, row.GenAiCacheReadInputTokens);
+        Assert.AreEqual(14L, row.GenAiCacheWriteInputTokens);
+        Assert.AreEqual(long.MaxValue, row.GenAiReasoningTokens);
+    }
+
+    [TestMethod]
+    [DataRow(CollectorSemanticAttributeCatalog.GenAiOperationName)]
+    [DataRow(CollectorSemanticAttributeCatalog.GenAiOutputType)]
+    public void ToSpanStorageRows_WrongTypedCatalogValue_RetainsEvidenceWithoutFillingStringColumn(string key)
+    {
+        var attributes = new NormalizedAttributes { Values = new Dictionary<string, OtlpAttributeValue>
+        { [key] = OtlpAttributeValue.FromInt(123) } };
+        var row = Assert.ContainsSingle(IngestionStorageMapper.ToSpanStorageRows(new TraceIngestionBatch([Span(attributes)])));
+        Assert.IsNull(row.GenAiOperationName);
+        Assert.IsNull(row.GenAiOutputType);
+        using var json = JsonDocument.Parse(row.AttributesJson!);
+        Assert.AreEqual("int", json.RootElement.GetProperty(key).GetProperty("type").GetString());
+        Assert.AreEqual("123", json.RootElement.GetProperty(key).GetProperty("value").GetString());
+    }
+
+    private static SpanIngestionRecord Span(NormalizedAttributes attributes) => new()
+    {
+        SpanId = "0123456789abcdef", TraceId = "0123456789abcdef0123456789abcdef", Name = "probe",
+        ServiceName = "test", StartTimeUnixNano = 1, EndTimeUnixNano = 2,
+        Attributes = attributes, ResourceAttributes = new NormalizedAttributes()
+    };
+
+    [TestMethod]
+    public void StorageJson_SimpleRecords_UseGeneratedWriterWithoutGlobalNumberPolicy()
+    {
+        var metadata = StorageJsonSerializerContext.Default.SpanEventJson;
+        Assert.IsNotNull(metadata.SerializeHandler);
+        Assert.AreEqual("{\"name\":\"event\",\"timeUnixNano\":42,\"droppedAttributesCount\":0}",
+            JsonSerializer.Serialize(new SpanEventJson { Name = "event", TimeUnixNano = 42 }, metadata));
+    }
+
+    [TestMethod]
+    public void StorageJson_StandaloneNumbers_PreserveNonfiniteValuesAndSignedZero()
+    {
+        var metadata = StorageNumericJsonSerializerContext.Default.Doubles;
+        IReadOnlyList<double> values = [double.NaN, double.PositiveInfinity, double.NegativeInfinity, -0d, 1.5];
+        var json = JsonSerializer.Serialize(values, metadata);
+        Assert.AreEqual("[\"NaN\",\"Infinity\",\"-Infinity\",-0,1.5]", json);
+        var decoded = JsonSerializer.Deserialize(json, metadata);
+        Assert.IsNotNull(decoded);
+        Assert.AreSequenceEqual(values.Select(BitConverter.DoubleToInt64Bits).ToArray(),
+            decoded.Select(BitConverter.DoubleToInt64Bits).ToArray());
+    }
+
     [TestMethod]
     public void ToSpanStorageRows_CopiedValues_PreservesExplicitDeprecationProvenance()
     {

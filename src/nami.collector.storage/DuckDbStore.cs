@@ -53,11 +53,8 @@ internal sealed partial class DuckDbStore : INamiStore
         {
             connection.Open();
             ConfigureDatabase(connection, memoryLimit, threads, tempDirectory);
-            var preservedHistory = PreserveHistoricalMetricPoints(connection);
-            MigrateUnknownLogTimes(connection);
             var resetDerived = InitializeSchema(connection);
-            var migratedSeries = BackfillMetricInstrumentIds(connection);
-            if (preservedHistory || resetDerived || migratedSeries || MetricProjectionsNeedRebuild(connection))
+            if (resetDerived || MetricProjectionsNeedRebuild(connection))
                 RebuildMetricProjections(connection);
         }
         catch
@@ -491,33 +488,32 @@ internal sealed partial class DuckDbStore : INamiStore
     private static bool InitializeSchema(DuckDBConnection con)
     {
         using var transaction = con.BeginTransaction();
-        ExecuteSchemaSql(con, transaction, DuckDbGeneratedSchema.BootstrapDdl);
+        var bootstrapMismatches = FindSchemaMismatches(con, transaction, DuckDbGeneratedSchema.BootstrapTables);
+        if (bootstrapMismatches.Count > 0)
+        {
+            if (HasRows(con, transaction, DuckDbGeneratedSchema.BootstrapTableNames) ||
+                HasRows(con, transaction, DuckDbGeneratedSchema.AuthoritativeTableNames))
+                throw new NamiSchemaMismatchException("Persisted data has incompatible or missing schema metadata. Use a new database.");
+            DropTables(con, transaction, DuckDbGeneratedSchema.BootstrapTableNames);
+        }
+        CreateSchema(con, transaction, DuckDbGeneratedSchema.BootstrapDdl);
 
         var stored = ReadSchemaIdentity(con, transaction);
+        if (stored is null && HasRows(con, transaction, DuckDbGeneratedSchema.AuthoritativeTableNames))
+            throw new NamiSchemaMismatchException("Persisted data has no current schema identity. Use a new database.");
         IReadOnlyList<string> authoritativeMismatches = FindSchemaMismatches(
             con,
             transaction,
             DuckDbGeneratedSchema.AuthoritativeTables, true);
-        if (stored is { AuthoritativeHash: not DuckDbGeneratedSchema.AuthoritativeHash })
-        {
-            var appended = PlanAdditiveRelease(con, transaction, authoritativeMismatches);
-            if (appended is null)
-            {
-                authoritativeMismatches = DuckDbGeneratedSchema.AuthoritativeTableNames;
-            }
-            else
-            {
-                AppendColumns(con, transaction, appended);
-                authoritativeMismatches = [];
-            }
-        }
+        if (stored is { AuthoritativeSchemaHash: not DuckDbGeneratedSchema.AuthoritativeHash })
+            authoritativeMismatches = DuckDbGeneratedSchema.AuthoritativeTableNames;
 
         var derivedMismatches = FindSchemaMismatches(
             con,
             transaction,
             DuckDbGeneratedSchema.DerivedTables);
-        var resetDerived = derivedMismatches.Count > 0 ||
-                           stored is { DerivedHash: not DuckDbGeneratedSchema.DerivedHash };
+        var resetDerived = authoritativeMismatches.Count > 0 || derivedMismatches.Count > 0 ||
+                           stored is { DerivedSchemaHash: not DuckDbGeneratedSchema.DerivedHash };
 
         if (authoritativeMismatches.Count > 0)
         {
@@ -526,44 +522,29 @@ internal sealed partial class DuckDbStore : INamiStore
                     transaction,
                     DuckDbGeneratedSchema.AuthoritativeTableNames))
             {
-                var difference = stored is { AuthoritativeHash: not DuckDbGeneratedSchema.AuthoritativeHash }
-                    ? $"stored authoritative DDL hash {stored.AuthoritativeHash} does not match " +
+                var difference = stored is { AuthoritativeSchemaHash: not DuckDbGeneratedSchema.AuthoritativeHash }
+                    ? $"stored authoritative DDL hash {stored.AuthoritativeSchemaHash} does not match " +
                       DuckDbGeneratedSchema.AuthoritativeHash
                     : $"incompatible tables: {string.Join(", ", authoritativeMismatches)}";
                 throw new NamiSchemaMismatchException(
                     "The authoritative DuckDB schema differs from this build while persisted data exists, " +
-                    "beyond the tables and trailing nullable columns a release may add. Start with a new " +
-                    "database and replay or import the authoritative journal; nami will not rewrite or delete " +
+                    "and this private build does not migrate earlier schemas. Use a new database; nami will not rewrite or delete " +
                     $"that data automatically. Difference: {difference}");
             }
 
-            DropExpectedIndexes(
-                con,
-                transaction,
-                DuckDbGeneratedSchema.AuthoritativeTables.Where(table =>
-                    authoritativeMismatches.Contains(table.Name, StringComparer.Ordinal)));
-            DropTables(con, transaction, authoritativeMismatches);
-            if (authoritativeMismatches.Contains(LogStorageRow.TableName, StringComparer.Ordinal))
-                ExecuteSchemaSql(con, transaction, "DROP SEQUENCE IF EXISTS logs_ingest_sequence");
-            CreateSchema(con, transaction, DuckDbGeneratedSchema.AuthoritativeDdl);
+            // No authoritative rows exist: recreate the whole owned schema and its sequences.
+            DropExpectedIndexes(con, transaction, DuckDbGeneratedSchema.AuthoritativeTables);
+            DropTables(con, transaction, DuckDbGeneratedSchema.AuthoritativeTableNames);
+            CreateSchema(con, transaction, DuckDbGeneratedSchema.DropAuthoritativeSequencesDdl);
         }
-        else
+        CreateSchema(con, transaction, DuckDbGeneratedSchema.AuthoritativeDdl);
+        if (resetDerived)
         {
-            // A schema created before nami_schema_meta can be adopted only after its
-            // complete generated structure has been checked above. Derived state is
-            // never migrated: a mismatch is repaired by deterministic recreation.
-            CreateSchema(con, transaction, DuckDbGeneratedSchema.AuthoritativeDdl);
-            if (derivedMismatches.Count > 0 ||
-                stored is { DerivedHash: not DuckDbGeneratedSchema.DerivedHash })
-            {
-                DropExpectedIndexes(con, transaction, DuckDbGeneratedSchema.DerivedTables);
-                DropGeneratedTables(con, transaction, false);
-            }
-
+            DropExpectedIndexes(con, transaction, DuckDbGeneratedSchema.DerivedTables);
+            DropTables(con, transaction, DuckDbGeneratedSchema.DerivedTableNames);
         }
 
         CreateSchema(con, transaction, DuckDbGeneratedSchema.DerivedDdl);
-        DropRetiredTables(con, transaction);
         WriteSchemaIdentity(con, transaction);
         transaction.Commit();
 
@@ -571,96 +552,26 @@ internal sealed partial class DuckDbStore : INamiStore
         return resetDerived;
     }
 
-    // A release may add authoritative tables (annotations and saved queries joined the telemetry
-    // tables this way) and append nullable columns to an existing one (the span instrumentation
-    // scope joined this way). Both keep every stored row: an absent table is created empty by the
-    // IF NOT EXISTS DDL, an appended column is added with NULL in every existing row. Each present
-    // table must otherwise be this build's, column for column; anything else (a changed, removed or
-    // reordered column, a changed default or primary key, a required or defaulted new column) is
-    // not additive and fails closed while data exists. Returns the columns to append per table, or
-    // null when the difference is not additive.
-    private static List<(DuckDbExpectedTable Table, DuckDbExpectedColumn[] Columns)>? PlanAdditiveRelease(
-        DuckDBConnection con,
-        DbTransaction transaction,
-        IReadOnlyList<string> mismatches)
-    {
-        var plan = new List<(DuckDbExpectedTable, DuckDbExpectedColumn[])>();
-        foreach (var name in mismatches)
-        {
-            if (!TableExists(con, transaction, name))
-                continue;
-
-            var table = DuckDbGeneratedSchema.AuthoritativeTables.Single(expected =>
-                string.Equals(expected.Name, name, StringComparison.Ordinal));
-            var actual = ReadColumns(con, transaction, name);
-            if (actual.Count > table.Columns.Length)
-                return null;
-            if (actual.Where((column, ordinal) => !ColumnMatches(column, table.Columns[ordinal])).Any())
-                return null;
-
-            var appended = table.Columns[actual.Count..];
-            if (appended.Any(static column =>
-                    column.Required || column.DefaultSql is not null || column.PrimaryKeyOrdinal >= 0))
-                return null;
-            plan.Add((table, appended));
-        }
-
-        return plan;
-    }
-
-    private static void AppendColumns(
-        DuckDBConnection con,
-        DbTransaction transaction,
-        IReadOnlyList<(DuckDbExpectedTable Table, DuckDbExpectedColumn[] Columns)> plan)
-    {
-        foreach (var (table, columns) in plan)
-        {
-            foreach (var column in columns)
-            {
-                ExecuteSchemaSql(
-                    con,
-                    transaction,
-                    $"ALTER TABLE {QuoteIdentifier(table.Name)} ADD COLUMN {QuoteIdentifier(column.Name)} {column.SqlType}");
-            }
-        }
-    }
-
-    private static SchemaIdentity? ReadSchemaIdentity(
-        DuckDBConnection con,
-        DbTransaction transaction)
+    private static SchemaMetadataRow? ReadSchemaIdentity(DuckDBConnection con, DbTransaction transaction)
     {
         using var command = con.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = """
-                              SELECT authoritative_schema_hash, derived_schema_hash
-                              FROM nami_schema_meta
-                              WHERE singleton = 0
-                              """;
+        command.CommandText = "SELECT " + SchemaMetadataRow.SelectColumnList + " FROM " + SchemaMetadataRow.TableName +
+                              " WHERE singleton = 0";
         using var reader = command.ExecuteReader();
-        return reader.Read()
-            ? new SchemaIdentity(reader.GetString(0), reader.GetString(1))
-            : null;
+        return reader.Read() ? SchemaMetadataRow.MapFromReader(reader) : null;
     }
 
-    private static void WriteSchemaIdentity(
-        DuckDBConnection con,
-        DbTransaction transaction)
+    private static void WriteSchemaIdentity(DuckDBConnection con, DbTransaction transaction)
     {
         using var command = con.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = """
-                              INSERT INTO nami_schema_meta
-                                  (singleton, authoritative_schema_hash, derived_schema_hash)
-                              VALUES (0, $1, $2)
-                              ON CONFLICT (singleton) DO UPDATE SET
-                                  authoritative_schema_hash = excluded.authoritative_schema_hash,
-                                  derived_schema_hash = excluded.derived_schema_hash,
-                                  updated_at = now()
-                              """;
-        AddParameters(
-            command,
-            DuckDbGeneratedSchema.AuthoritativeHash,
-            DuckDbGeneratedSchema.DerivedHash);
+        command.CommandText = SchemaMetadataRow.InsertSql;
+        SchemaMetadataRow.AddParameters(command, new SchemaMetadataRow
+        {
+            AuthoritativeSchemaHash = DuckDbGeneratedSchema.AuthoritativeHash,
+            DerivedSchemaHash = DuckDbGeneratedSchema.DerivedHash
+        });
         command.ExecuteNonQuery();
     }
 
@@ -873,20 +784,6 @@ internal sealed partial class DuckDbStore : INamiStore
             ExecuteSchemaSql(con, transaction, statement);
     }
 
-    private static void DropGeneratedTables(
-        DuckDBConnection con,
-        DbTransaction transaction,
-        bool includeAuthoritative)
-    {
-        DropTables(con, transaction, DuckDbGeneratedSchema.DerivedTableNames);
-
-        if (!includeAuthoritative)
-            return;
-
-        DropTables(con, transaction, DuckDbGeneratedSchema.AuthoritativeTableNames);
-        ExecuteSchemaSql(con, transaction, "DROP SEQUENCE IF EXISTS logs_ingest_sequence");
-    }
-
     private static void DropTables(
         DuckDBConnection con,
         DbTransaction transaction,
@@ -903,14 +800,6 @@ internal sealed partial class DuckDbStore : INamiStore
     {
         foreach (var index in tables.SelectMany(static table => table.Indexes))
             ExecuteSchemaSql(con, transaction, $"DROP INDEX IF EXISTS {QuoteIdentifier(index.Name)}");
-    }
-
-    private static void DropRetiredTables(
-        DuckDBConnection con,
-        DbTransaction transaction)
-    {
-        foreach (var table in DuckDbGeneratedSchema.RetiredTableNames)
-            ExecuteSchemaSql(con, transaction, $"DROP TABLE IF EXISTS {QuoteIdentifier(table)}");
     }
 
     private static void ExecuteSchemaSql(
@@ -979,7 +868,6 @@ internal sealed partial class DuckDbStore : INamiStore
 
     private sealed record ActualColumn(string Name, string Type, bool Nullable, string? Default);
 
-    private sealed record SchemaIdentity(string AuthoritativeHash, string DerivedHash);
 
     private abstract class WriteJob
     {

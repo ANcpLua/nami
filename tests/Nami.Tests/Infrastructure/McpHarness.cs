@@ -169,7 +169,14 @@ internal sealed class McpHarness : IAsyncDisposable
             {
                 linked.Token.ThrowIfCancellationRequested();
                 if (_process?.HasExited == true)
-                    throw new InvalidOperationException("Nami exited: " + await _stderr!.ConfigureAwait(false));
+                {
+                    var exitCode = _process.ExitCode;
+                    // The ownership host keeps the output pipes open after the child exits.
+                    // Terminate it before draining, otherwise startup and cleanup wait on each other.
+                    await _process.KillAsync(linked.Token).ConfigureAwait(false);
+                    var error = await _stderr!.WaitAsync(linked.Token).ConfigureAwait(false);
+                    throw new InvalidOperationException($"Nami exited ({exitCode}): {error}");
+                }
                 try
                 {
                     using var response = await Http.GetAsync($"http://127.0.0.1:{HttpPort}/health", linked.Token)

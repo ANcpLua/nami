@@ -90,9 +90,9 @@ public sealed class BuildContractTests(TestContext context)
         Assert.AreEqual("inherited", Environment.GetEnvironmentVariable("CI"));
     }
 
-    private static FixtureProject Library(string name)
+    private FixtureProject Library(string name)
     {
-        return new FixtureProject(name);
+        return new FixtureProject(name, context: context);
     }
 
     private static void ConfigureLibrary(FixtureProject project)

@@ -86,7 +86,11 @@ internal sealed class FixtureTestMethodAttribute<TFixture>(
     public override async Task<TestResult[]> ExecuteAsync(ITestMethod testMethod)
     {
         ArgumentNullException.ThrowIfNull(testMethod);
-        await using var project = new FixtureProject(TFixture.Name);
+#pragma warning disable MSTESTEXP
+        var context = TestContext.Current
+                      ?? throw new InvalidOperationException("MSTest did not provide the fixture invocation context.");
+#pragma warning restore MSTESTEXP
+        await using var project = new FixtureProject(TFixture.Name, context: context);
         TFixture.Configure(project);
         using var activation = FixtureInvocation.Push(typeof(TFixture), project);
         var results = await inner.ExecuteAsync(testMethod).ConfigureAwait(false);

@@ -2,9 +2,17 @@
 #nullable enable
 using System;
 using System.Linq;
+using System.Collections.Generic;
 namespace Nami.Collector.Storage;
 internal static class IngestionMappings
 {
+    internal static Nami.Collector.Storage.StoredResourceEntityRef ToStored(Nami.Collector.Ingestion.ResourceEntityRefIngestionRecord value) => new()
+    {
+        SchemaUrl = value.SchemaUrl,
+        Type = value.Type,
+        IdKeys = value.IdKeys,
+        DescriptionKeys = value.DescriptionKeys,
+    };
     internal static Nami.Collector.Storage.StoredMetricPointData ToStored(Nami.Collector.Ingestion.Models.MetricPointData value) => value switch
     {
         Nami.Collector.Ingestion.Models.MetricNumberPointData item => ToStored(item),
@@ -80,12 +88,5 @@ internal static class IngestionMappings
         FilteredAttributes = value.FilteredAttributes.Select(item => ToStored(item)).ToArray(),
         TraceId = value.TraceId,
         SpanId = value.SpanId,
-    };
-    internal static Nami.Collector.Storage.StoredResourceEntityRef ToStored(Nami.Collector.Ingestion.ResourceEntityRefIngestionRecord value) => new()
-    {
-        SchemaUrl = value.SchemaUrl,
-        Type = value.Type,
-        IdKeys = value.IdKeys,
-        DescriptionKeys = value.DescriptionKeys,
     };
 }

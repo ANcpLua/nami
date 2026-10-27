@@ -8,8 +8,6 @@ namespace Nami.Collector.Storage;
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    NumberHandling = JsonNumberHandling.AllowReadingFromString |
-                     JsonNumberHandling.AllowNamedFloatingPointLiterals,
     AllowOutOfOrderMetadataProperties = true,
     WriteIndented = false)]
 [JsonSerializable(typeof(List<SpanEventJson>), TypeInfoPropertyName = "SpanEventJsonList")]
@@ -18,11 +16,9 @@ namespace Nami.Collector.Storage;
     TypeInfoPropertyName = "StoredResourceEntityRefList")]
 [JsonSerializable(typeof(IReadOnlyList<StoredResourceEntityRef>),
     TypeInfoPropertyName = "StoredResourceEntityRefReadOnlyList")]
-[JsonSerializable(typeof(StoredAttributeValue))]
 [JsonSerializable(typeof(IReadOnlyList<StoredExemplar>), TypeInfoPropertyName = "StoredExemplars")]
 [JsonSerializable(typeof(IReadOnlyList<StoredAttribute>), TypeInfoPropertyName = "StoredAttributes")]
 [JsonSerializable(typeof(IReadOnlyList<string>), TypeInfoPropertyName = "IReadOnlyListString")]
-[JsonSerializable(typeof(IReadOnlyList<double>), TypeInfoPropertyName = "Doubles")]
 [JsonSerializable(typeof(IReadOnlyList<ulong>), TypeInfoPropertyName = "Counts")]
 internal partial class StorageJsonSerializerContext
 {

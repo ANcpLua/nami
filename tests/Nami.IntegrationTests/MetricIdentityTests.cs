@@ -62,13 +62,13 @@ public sealed class MetricIdentityTests
             {
                 Data = new MetricNumberPointData
                 {
-                    Value = value?.Value switch
+                    Value = value switch
                     {
                         AttributeIntValue item => new Collector.Ingestion.Models.AttributeIntValue
                             { Value = item.Value },
                         AttributeDoubleValue item => new Collector.Ingestion.Models.AttributeDoubleValue
                             { Value = item.Value },
-                        _ => null
+                        null => null
                     }
                 }
             },

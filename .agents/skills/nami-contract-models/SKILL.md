@@ -17,9 +17,16 @@ Work from the current source map and audit below. Read the actual symbols needed
 update a reference when its source or package moves. Later dated observations and line anchors
 are historical evidence, not assertions about current source locations or remaining work.
 
-The current user instruction owns scope. The PRD, checklist and this skill do not make an
-unreleased architecture or wire name immutable. Evaluate the existing Collector/DuckDB design
-against the requested product; do not retain a component merely because this skill describes it.
+The current user instruction owns scope. Nami's own Collector, compile-time instrumentation of
+declared supported application call sites, and configured observation lifetimes are binding product
+requirements. Preserve I1–I18 and D1–D6 with their limits in
+`/Users/alexandernachtmann/RiderProjects/nami/docs/prd/nami-request-response-review.md`.
+Existing self-instrumentation covers Nami's own operations; it does not replace application
+instrumentation. Missing implementation is an open requirement, not an optional or cancelled scope.
+Keep snapshot completeness, producer capture and loss-free delivery distinct. Do not reopen these
+decisions as a choice between Nami and the OpenTelemetry Collector. Unreleased wire names,
+compatibility paths and implementation details may be simplified within these requirements; do not
+retain them merely because an earlier file describes them.
 TypeSpec owns Nami data structures, representations and structural mappings. Named semantic
 algorithms, transport execution and external protocol implementations have their own code;
 do not hide a duplicate Nami schema in that code or in emitter string literals.

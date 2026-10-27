@@ -2,9 +2,12 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 namespace Nami.Collector.Ingestion;
 
-internal sealed record TraceIngestionBatch(IReadOnlyList<Nami.Collector.Ingestion.SpanIngestionRecord> Spans, long RejectedSpans = 0, string? RejectionMessage = null);
+internal sealed record ResourceEntityRefIngestionRecord(string? SchemaUrl, string Type, IReadOnlyList<string> IdKeys, IReadOnlyList<string> DescriptionKeys);
 internal sealed partial record SpanIngestionRecord
 {
     public string? ProjectIdHint { get; init; }
@@ -38,10 +41,8 @@ internal sealed partial record SpanIngestionRecord
     public IReadOnlyList<Nami.Collector.Ingestion.SpanLinkIngest> Links { get; init; } = [];
 }
 
-internal sealed record ResourceEntityRefIngestionRecord(string? SchemaUrl, string Type, IReadOnlyList<string> IdKeys, IReadOnlyList<string> DescriptionKeys);
 internal sealed record SpanEventIngest(string Name, ulong TimeUnixNano, Nami.Collector.Ingestion.NormalizedAttributes Attributes, uint DroppedAttributesCount = 0);
 internal sealed record SpanLinkIngest(string TraceId, string SpanId, Nami.Collector.Ingestion.NormalizedAttributes Attributes, string? TraceState = null, uint Flags = 0, uint DroppedAttributesCount = 0);
-internal sealed record LogIngestionBatch(IReadOnlyList<Nami.Collector.Ingestion.LogIngestionRecord> Logs, long RejectedLogRecords = 0, string? RejectionMessage = null);
 internal sealed partial record LogIngestionRecord
 {
     public string? ProjectIdHint { get; init; }
@@ -67,7 +68,6 @@ internal sealed partial record LogIngestionRecord
     public required Nami.Collector.Ingestion.NormalizedAttributes Attributes { get; init; }
 }
 
-internal sealed record MetricIngestionBatch(IReadOnlyList<Nami.Collector.Ingestion.MetricPointIngestionRecord> Points, long RejectedDataPoints, string? RejectionMessage);
 internal sealed partial record MetricPointIngestionRecord
 {
     public string? ProjectIdHint { get; init; }
@@ -96,3 +96,9 @@ internal sealed partial record MetricPointIngestionRecord
     public Nami.Collector.Ingestion.NormalizedMetricExemplars Exemplars { get; init; } = new() { Values = [], Renames = [] };
     public Nami.Collector.Ingestion.NormalizedContractAttributes InstrumentMetadata { get; init; } = new() { Values = [], Renames = [] };
 }
+
+internal sealed record ResourceProjection(Nami.Collector.Ingestion.NormalizedAttributes Attributes, IReadOnlyList<Nami.Collector.Ingestion.ResourceEntityRefIngestionRecord> EntityRefs);
+internal readonly record struct MetricStreamMetadata(string? ProjectIdHint, string MetricName, string? Unit, string? Description, string ServiceName, string? SchemaUrl, Nami.Collector.Ingestion.NormalizedAttributes ResourceAttributes, IReadOnlyList<Nami.Collector.Ingestion.ResourceEntityRefIngestionRecord> ResourceEntityRefs, string? ResourceSchemaUrl, uint ResourceDroppedAttributesCount, string? ScopeName, string? ScopeVersion, string? ScopeSchemaUrl, Nami.Collector.Ingestion.NormalizedAttributes ScopeAttributes, uint ScopeDroppedAttributesCount, Nami.Collector.Ingestion.NormalizedContractAttributes InstrumentMetadata, string ResourceIdentity, string ScopeIdentity);
+internal sealed record TraceIngestionBatch(IReadOnlyList<Nami.Collector.Ingestion.SpanIngestionRecord> Spans, long RejectedSpans = 0, string? RejectionMessage = null);
+internal sealed record LogIngestionBatch(IReadOnlyList<Nami.Collector.Ingestion.LogIngestionRecord> Logs, long RejectedLogRecords = 0, string? RejectionMessage = null);
+internal sealed record MetricIngestionBatch(IReadOnlyList<Nami.Collector.Ingestion.MetricPointIngestionRecord> Points, long RejectedDataPoints, string? RejectionMessage);

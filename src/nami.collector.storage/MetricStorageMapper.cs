@@ -39,7 +39,7 @@ internal static class MetricStorageMapper
                 record.Unit, record.AttributesIdentity);
 
             var key = (projectId, seriesId);
-            var row = new MetricSeriesRow
+            var row = ModelMappings.ToModel(record, new MetricSeriesValues
             {
                 AttributeRenames = NormalizedAttributes
                     .Collect([record.Attributes, record.ResourceAttributes, record.ScopeAttributes])
@@ -49,27 +49,16 @@ internal static class MetricStorageMapper
                 ProjectId = projectId,
                 SeriesId = seriesId,
                 InstrumentId = instrumentId,
-                MetricName = record.MetricName,
                 MetricKind = (byte)record.Kind,
                 Temporality = (byte)record.Temporality,
                 IsMonotonic = record.IsMonotonic ? (byte)1 : (byte)0,
-                Unit = record.Unit,
-                Description = record.Description,
-                ServiceName = record.ServiceName,
-                SchemaUrl = record.SchemaUrl,
                 AttributesJson = attributesJson,
                 ResourceJson = resourceJson,
                 ResourceEntityRefsJson = resourceEntityRefsJson,
-                ScopeName = record.ScopeName,
-                ScopeVersion = record.ScopeVersion,
-                ScopeSchemaUrl = record.ScopeSchemaUrl,
                 ScopeAttributesJson = scopeAttributesJson,
-                ScopeDroppedAttributesCount = record.ScopeDroppedAttributesCount,
-                ResourceSchemaUrl = record.ResourceSchemaUrl,
-                ResourceDroppedAttributesCount = record.ResourceDroppedAttributesCount,
                 FirstSeenUnixNano = record.TimeUnixNano,
-                LastSeenUnixNano = record.TimeUnixNano
-            };
+                LastSeenUnixNano = record.TimeUnixNano,
+            });
 
             // One export can carry many points for one stream. Collapse them here rather than
             // sending N conflicting inserts through the writer for the same primary key.
@@ -120,14 +109,6 @@ internal static class MetricStorageMapper
                Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())).AsSpan(0, 16));
     }
 
-    internal static string InstrumentId(MetricSeriesRow row) => ComputeInstrumentId(
-        row.MetricName, row.ServiceName, row.ResourceJson, row.ScopeName, row.ScopeVersion,
-        row.ScopeSchemaUrl, row.ScopeAttributesJson, row.ResourceSchemaUrl);
-
-    internal static string SeriesId(MetricSeriesRow row) => ComputeSeriesId(
-        row.InstrumentId ?? InstrumentId(row), row.AttributesJson,
-        (MetricKind)row.MetricKind, (MetricTemporality)row.Temporality, row.IsMonotonic is not 0, row.Unit);
-
     private static string ComputeSeriesId(string instrumentId, string? attributesJson,
         MetricKind kind,
         MetricTemporality temporality,
@@ -155,7 +136,4 @@ internal static class MetricStorageMapper
         (left?.Length ?? 0) < (right?.Length ?? 0) ? right :
         StringComparer.Ordinal.Compare(left, right) >= 0 ? left : right;
 
-    internal readonly record struct MetricWriteSet(
-        IReadOnlyList<MetricSeriesRow> Series,
-        IReadOnlyList<MetricObservationRow> Observations);
 }

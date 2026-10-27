@@ -6,7 +6,7 @@
     <ProjectReference Include="../../internal/nami.contracts/Nami.Api.Contracts.csproj"/>
     <ProjectReference Include="../../internal/nami.semconv/Nami.SemanticConventions.csproj"/>
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing"/>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <PackageReference Include="DuckDB.NET.Data.Full"/>
     <None Update="testconfig.json" CopyToOutputDirectory="PreserveNewest"/>
   </ItemGroup>
   <ItemGroup>

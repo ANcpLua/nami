@@ -99,3 +99,58 @@ using Nami.Api.Schema.Emit.CSharp;
 @@storageProjection(Nami.Models.Ingestion.Records.ResourceEntityRefIngestionRecord, Nami.Models.Storage.Persistence.StoredResourceEntityRef);
 
 @@storageAttributeProjection(Nami.Models.Ingestion.OtlpAttributeValue, Nami.Models.Storage.Json.StoredAttributeValue);
+
+@@csharpOutput(Nami.Models.Storage.NumericJson, #{
+ directory: "src/nami.collector.storage/Generated", `namespace`: "Nami.Collector.Storage",
+ file: "StorageNumericJson.g.cs", json: true, context: "StorageNumericJsonSerializerContext", typescript: false, schema: false
+});
+
+@@csharpOutput(Nami.Models.Configuration.Hosting, #{
+ directory: "src/nami/Generated", `namespace`: "Nami.Hosting", file: "HostingOptions.g.cs",
+ mutable: true, json: false, typescript: false, schema: false
+});
+@@csharpOutput(Nami.Models.Configuration.Retention, #{
+ directory: "src/nami/Generated", `namespace`: "Nami.Retention", file: "RetentionOptions.g.cs",
+ mutable: true, json: false, typescript: false, schema: false
+});
+@@csharpOutput(Nami.Models.Configuration.Auth, #{
+ directory: "src/nami/Generated", `namespace`: "Nami.ApiKeys", file: "AuthOptions.g.cs",
+ mutable: true, json: false, typescript: false, schema: false
+});
+@@csharpOutput(Nami.Models.Configuration.Cors, #{
+ directory: "src/nami.collector.ingestion/Configuration/Generated", `namespace`: "Nami.Collector.Ingestion",
+ file: "CorsOptions.g.cs", mutable: true, json: false, typescript: false, schema: false
+});
+@@csharpOutput(Nami.Models.Storage.Runtime, #{
+ directory: "src/nami.collector.storage/Generated", `namespace`: "Nami.Collector.Storage",
+ file: "StorageRuntime.g.cs", json: false, typescript: false, schema: false
+});
+
+@@modelProjection(Nami.Models.Storage.Rows.SpanStorageRow, Nami.Models.Ingestion.Records.SpanIngestionRecord, Nami.Models.Storage.Runtime.SpanStorageValues, Nami.Models.Storage.Runtime.SpanHotAttributeProjection);
+@@modelProjection(Nami.Models.Storage.Rows.LogStorageRow, Nami.Models.Ingestion.Records.LogIngestionRecord, Nami.Models.Storage.Runtime.LogStorageValues);
+@@modelProjection(Nami.Models.Storage.Rows.MetricSeriesRow, Nami.Models.Ingestion.Records.MetricPointIngestionRecord, Nami.Models.Storage.Runtime.MetricSeriesValues);
+
+@@csharpOutput(Nami.Models.Configuration.Credentials, #{
+ directory: "src/nami/Generated", `namespace`: "Nami.ApiKeys", file: "CredentialJson.g.cs",
+ json: true, context: "CredentialJsonContext", strictJson: true, typescript: true, schema: false
+});
+
+@@csharpOutput(Nami.Models.Tools.Runtime, #{
+ directory: "src/nami/Generated", `namespace`: "Nami.Tools", file: "ToolRuntime.g.cs",
+ json: false, typescript: false, schema: false
+});
+@@modelProjection(Nami.Api.Contracts.OTel.Traces.Span, Nami.Models.Storage.Rows.SpanStorageRow, Nami.Models.Tools.Runtime.SpanApiValues);
+@@modelProjection(Nami.Api.Contracts.OTel.Resource.Resource, Nami.Models.Storage.Rows.SpanStorageRow, Nami.Models.Tools.Runtime.ResourceApiValues);
+@@projectionSource(Nami.Api.Contracts.OTel.Resource.Resource.schemaUrl, Nami.Models.Storage.Rows.SpanStorageRow.resourceSchemaUrl);
+@@projectionSource(Nami.Api.Contracts.OTel.Resource.Resource.droppedAttributesCount, Nami.Models.Storage.Rows.SpanStorageRow.resourceDroppedAttributesCount);
+@@modelProjection(Nami.Api.Contracts.Common.InstrumentationScope, Nami.Models.Storage.Rows.SpanStorageRow, Nami.Models.Tools.Runtime.ScopeApiValues);
+@@projectionSource(Nami.Api.Contracts.Common.InstrumentationScope.schemaUrl, Nami.Models.Storage.Rows.SpanStorageRow.scopeSchemaUrl);
+@@projectionSource(Nami.Api.Contracts.Common.InstrumentationScope.droppedAttributesCount, Nami.Models.Storage.Rows.SpanStorageRow.scopeDroppedAttributesCount);
+@@modelProjection(Nami.Api.Contracts.OTel.Traces.SpanEvent, Nami.Models.Storage.Persistence.SpanEventJson, Nami.Models.Tools.Runtime.EventApiValues);
+@@modelProjection(Nami.Api.Contracts.OTel.Traces.SpanLink, Nami.Models.Storage.Persistence.SpanLinkJson, Nami.Models.Tools.Runtime.LinkApiValues);
+@@modelProjection(Nami.Api.Contracts.Common.EntityRef, Nami.Models.Storage.Persistence.StoredResourceEntityRef, Nami.Models.Tools.Runtime);
+
+@@csharpOutput(Nami.Models.Contracts.Runtime, #{
+ directory: "internal/nami.contracts/Generated", `namespace`: "Nami.Api.Contracts", file: "ContractIssue.g.cs",
+ json: false, typescript: false, schema: false
+});

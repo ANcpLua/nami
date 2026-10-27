@@ -16,25 +16,6 @@ internal static class MetricProjection
             HasConflict = hasConflict ? (byte)1 : (byte)0
         };
         if (hasConflict) return row;
-        if (observation.DataJson is null)
-        {
-            var historical = JsonSerializer.Deserialize(observation.HistoricalProjectionJson ??
-                                                        throw new InvalidDataException(
-                                                            "Historical metric observation has no retained projection."),
-                                 StorageJsonSerializerContext.Default.HistoricalMetricProjection) ??
-                             throw new InvalidDataException("Historical metric projection is null.");
-            return row with
-            {
-                Value = historical.Value,
-                HistogramCount = historical.HistogramCount,
-                HistogramSum = historical.HistogramSum,
-                HistogramMin = historical.HistogramMin,
-                HistogramMax = historical.HistogramMax,
-                BucketBoundsJson = historical.BucketBoundsJson,
-                BucketCountsJson = historical.BucketCountsJson
-            };
-        }
-
         if ((observation.Flags & 1) != 0) return row;
         var data = JsonSerializer.Deserialize(observation.DataJson,
                        StorageJsonSerializerContext.Default.StoredMetricPointData) ??
@@ -57,7 +38,7 @@ internal static class MetricProjection
                 HistogramMin = histogram.Min,
                 HistogramMax = histogram.Max,
                 BucketBoundsJson =
-                JsonSerializer.Serialize(histogram.ExplicitBounds, StorageJsonSerializerContext.Default.Doubles),
+                JsonSerializer.Serialize(histogram.ExplicitBounds, StorageNumericJsonSerializerContext.Default.Doubles),
                 BucketCountsJson =
                 JsonSerializer.Serialize(histogram.BucketCounts, StorageJsonSerializerContext.Default.Counts),
                 ProjectionUnavailableReason = histogram is { Count: > 0, BucketCounts.Count: 0 }
@@ -130,7 +111,7 @@ internal static class MetricProjection
         return row with
         {
             BucketBoundsJson =
-            JsonSerializer.Serialize<IReadOnlyList<double>>(bounds, StorageJsonSerializerContext.Default.Doubles),
+            JsonSerializer.Serialize<IReadOnlyList<double>>(bounds, StorageNumericJsonSerializerContext.Default.Doubles),
             BucketCountsJson =
             JsonSerializer.Serialize<IReadOnlyList<ulong>>(counts, StorageJsonSerializerContext.Default.Counts)
         };

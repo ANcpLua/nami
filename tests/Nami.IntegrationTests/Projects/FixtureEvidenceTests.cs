@@ -15,7 +15,7 @@ public sealed class FixtureEvidenceTests(TestContext context)
     {
         const string Source = "public class Consumer { public MissingType Value; }";
         const string SourcePath = "Nested Folder/Con;sumer.cs";
-        var project = new FixtureProject("FailedEvidence");
+        var project = new FixtureProject("FailedEvidence", context: context);
         var workspace = project.DirectoryPath;
         FixtureBuildResult result;
         await using (project)
@@ -247,9 +247,9 @@ public sealed class FixtureEvidenceTests(TestContext context)
         Assert.AreEqual("Materialized", (string?)manifest.Root!.Element("Outcome")!.Attribute("Status"));
     }
 
-    private static FixtureProject Library(string name)
+    private FixtureProject Library(string name)
     {
-        return new FixtureProject(name);
+        return new FixtureProject(name, context: context);
     }
 
     private static void ConfigureLibrary(FixtureProject project)

@@ -7,8 +7,6 @@ using Nami.Collector.Storage;
 
 namespace Nami.Tools;
 
-internal readonly record struct ToolRunResult(JsonElement Content, bool IsError);
-
 /// <summary>Pure, deterministic analysis over an immutable project snapshot.</summary>
 internal static class ToolDispatcher
 {
@@ -26,7 +24,7 @@ internal static class ToolDispatcher
         return parts[0];
     }
 
-    public static ToolRunResult Run(string name, ISnapshot snapshot, JsonElement input)
+    public static ToolRunResult Run(string name, TelemetrySnapshot snapshot, JsonElement input)
     {
         try
         {
@@ -43,7 +41,7 @@ internal static class ToolDispatcher
             var watermarks = snapshot.Signals.Where(s => service is null || s.ServiceName == service)
                 .GroupBy(static s => s.Signal).ToDictionary(static g => g.Key,
                     static g => g.Max(s => s.WatermarkUnixNano), StringComparer.Ordinal);
-            var window = new ToolWindow(start, end, service) { RequestedEnd = end, Watermarks = watermarks };
+            var window = new ToolWindow(start, end, service) { Watermarks = watermarks };
             var maxBytes = input.TryGetProperty("max_bytes", out var budget)
                 ? ContractJson.ReadInteger(budget)
                 : ToolReadInput.MaxBytesDefault;
@@ -160,7 +158,7 @@ internal static class ToolDispatcher
         return result.ToString();
     }
 
-    private static ToolRunResult Page(string name, string schema, ISnapshot snapshot, JsonElement input,
+    private static ToolRunResult Page(string name, string schema, TelemetrySnapshot snapshot, JsonElement input,
         ToolRows result,
         string[] fields, int maxBytes, ToolWindow window)
     {
@@ -190,7 +188,7 @@ internal static class ToolDispatcher
         var freshness = ToolValues.Json(new Freshness
         {
             Watermark = Timestamp(watermark),
-            Complete = NamiTimeConversions.ToUnixNanoUnsigned(window.RequestedEnd) <= watermark,
+            Complete = NamiTimeConversions.ToUnixNanoUnsigned(window.End) <= watermark,
             Examined = result.Examined,
             Matched = result.Items.Count,
             Returned = 0,
@@ -332,19 +330,8 @@ internal static class ToolDispatcher
     }
 }
 
-internal sealed record ToolRows(
-    string Member,
-    IReadOnlyList<JsonObject> Items,
-    long Examined,
-    string[] Signals,
-    IReadOnlyList<string> AllowedFields,
-    bool Single = false);
-
-internal readonly record struct ToolWindow(DateTimeOffset Start, DateTimeOffset End, string? Service)
+internal readonly partial record struct ToolWindow
 {
-    internal DateTimeOffset RequestedEnd { get; init; } = End;
-    internal IReadOnlyDictionary<string, ulong>? Watermarks { get; init; }
-
     internal bool Matches(string? service)
     {
         return Service is null || Service == service;

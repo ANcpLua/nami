@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Xml.Linq;
 using JetBrains.Annotations;
 using Microsoft.Build.Construction;
@@ -13,6 +14,7 @@ namespace Nami.Tests;
 public sealed class FixtureProject : IAsyncDisposable
 {
     private readonly TestContext? _context;
+    private readonly FixtureDiagnostics _diagnostics;
     private readonly XElement _defaults;
     private readonly Dictionary<string, string?> _environment = new(StringComparer.Ordinal);
     private readonly List<FixtureEvidence> _evidence = [];
@@ -22,9 +24,12 @@ public sealed class FixtureProject : IAsyncDisposable
     private bool _disposed;
     private int _operation;
 
-    public FixtureProject(string name, TimeProvider? timeProvider = null, TestContext? context = null)
+    public FixtureProject(string name, TimeProvider? timeProvider = null, TestContext? context = null,
+        FixtureDiagnostics diagnostics = FixtureDiagnostics.Full)
     {
+        if (!Enum.IsDefined(diagnostics)) throw new ArgumentOutOfRangeException(nameof(diagnostics));
         _context = context;
+        _diagnostics = diagnostics;
         _defaults = XElement.Load(Path.Combine(AppContext.BaseDirectory, "fixture-defaults.xml"));
         var targetFramework = (string?)_defaults.Attribute("TargetFramework")
                               ?? throw new InvalidDataException("The fixture target framework was not staged.");
@@ -44,6 +49,10 @@ public sealed class FixtureProject : IAsyncDisposable
         ? Path.Combine(DirectoryPath, ".nuget", "packages")
         : _packageFeeds[0].CacheDirectory;
 
+    private string HttpCache => _packageFeeds.Count == 0
+        ? Path.Combine(DirectoryPath, ".nuget", "http")
+        : _packageFeeds[0].HttpCacheDirectory;
+
     public ValueTask DisposeAsync()
     {
         if (_disposed) return ValueTask.CompletedTask;
@@ -52,16 +61,10 @@ public sealed class FixtureProject : IAsyncDisposable
         return ValueTask.CompletedTask;
     }
 
-    private static TestContext? CurrentContext()
-    {
-#pragma warning disable MSTESTEXP
-        return TestContext.Current;
-#pragma warning restore MSTESTEXP
-    }
-
     private FixtureEvidenceCapture? BeginEvidence(string command)
     {
-        var context = _context ?? CurrentContext();
+        if (_diagnostics == FixtureDiagnostics.None) return null;
+        var context = _context;
         return context is null
             ? null
             : new FixtureEvidenceCapture(
@@ -230,11 +233,11 @@ public sealed class FixtureProject : IAsyncDisposable
             foreach (var argument in new[]
                      {
                          command, ProjectPath, "-p:Configuration=Release", "-m:1", "-nodeReuse:false",
-                         "-p:UseSharedCompilation=false",
-                         "-bl:" + (capture?.BinlogPath ?? Path.Combine(DirectoryPath,
-                             command + "-" + Guid.NewGuid().ToString("N") + ".binlog")) + ";ProjectImports=Embed"
+                         "-p:UseSharedCompilation=false"
                      })
                 start.ArgumentList.Add(argument);
+            if (capture is not null)
+                start.ArgumentList.Add("-bl:" + capture.BinlogPath + ";ProjectImports=Embed");
             if (command == "build" && frameworks.Length > 1)
                 start.ArgumentList.Add("-p:BaseOutputPath=" + output + Path.DirectorySeparatorChar);
             else if (command != "restore")
@@ -256,7 +259,7 @@ public sealed class FixtureProject : IAsyncDisposable
                              || key.StartsWith("VSTEST", StringComparison.OrdinalIgnoreCase))
                          .ToArray()) start.Environment[key] = "";
             start.Environment["NUGET_PACKAGES"] = PackageCache;
-            start.Environment["NUGET_HTTP_CACHE_PATH"] = Path.Combine(DirectoryPath, ".nuget", "http");
+            start.Environment["NUGET_HTTP_CACHE_PATH"] = HttpCache;
             start.Environment["NUGET_SCRATCH"] = Path.Combine(DirectoryPath, ".nuget", "scratch");
             start.Environment["NUGET_PLUGINS_CACHE_PATH"] = Path.Combine(DirectoryPath, ".nuget", "plugins");
             foreach (var (key, value) in _environment) start.Environment[key] = value;
@@ -307,11 +310,11 @@ public sealed class FixtureProject : IAsyncDisposable
     private void MaterializeCore(FixtureEvidenceCapture? capture)
     {
         Directory.CreateDirectory(DirectoryPath);
-        File.Copy(Path.Combine(AppContext.BaseDirectory, "fixture-global.json"),
-            Path.Combine(DirectoryPath, "global.json"), true);
+        WriteIfDifferent(Path.Combine(DirectoryPath, "global.json"),
+            File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "fixture-global.json")));
         WriteNuGetConfiguration();
-        new XDocument(new XElement("Project")).Save(Path.Combine(DirectoryPath, "Directory.Build.props"));
-        new XDocument(new XElement("Project")).Save(Path.Combine(DirectoryPath, "Directory.Build.targets"));
+        SaveXml(new XDocument(new XElement("Project")), Path.Combine(DirectoryPath, "Directory.Build.props"));
+        SaveXml(new XDocument(new XElement("Project")), Path.Combine(DirectoryPath, "Directory.Build.targets"));
         SaveProject(Definition.ToPackageDocument(), Path.Combine(DirectoryPath, "Directory.Packages.props"));
         var document = Definition.ToProjectDocument();
         if (capture is not null)
@@ -329,7 +332,7 @@ public sealed class FixtureProject : IAsyncDisposable
         {
             var path = Path.Combine(DirectoryPath, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.WriteAllText(path, source);
+            WriteIfDifferent(path, Encoding.UTF8.GetBytes(source));
         }
 
         capture?.CaptureInputs();
@@ -343,27 +346,46 @@ public sealed class FixtureProject : IAsyncDisposable
         {
             var feed = _packageFeeds[index];
             feed.EnsureAvailable();
+            var packageIds = feed.PackageIds.ToArray();
+            if (packageIds.Length == 0) continue;
             var name = "FixtureFeed" + index;
             sources.Add(new XElement("add", new XAttribute("key", name), new XAttribute("value", feed.DirectoryPath)));
             mapping.Add(new XElement("packageSource", new XAttribute("key", name),
-                feed.PackageIds.Select(id => new XElement("package", new XAttribute("pattern", id)))));
+                packageIds.Select(id => new XElement("package", new XAttribute("pattern", id)))));
         }
 
         sources.Add(new XElement("add", new XAttribute("key", "nuget.org"),
             new XAttribute("value", "https://api.nuget.org/v3/index.json")));
         mapping.Add(new XElement("packageSource", new XAttribute("key", "nuget.org"),
             new XElement("package", new XAttribute("pattern", "*"))));
-        new XDocument(new XElement("configuration", new XElement("config",
+        SaveXml(new XDocument(new XElement("configuration", new XElement("config",
                 new XElement("add", new XAttribute("key", "globalPackagesFolder"),
-                    new XAttribute("value", PackageCache))), sources, mapping))
-            .Save(Path.Combine(DirectoryPath, "NuGet.Config"));
+                    new XAttribute("value", PackageCache))), sources, mapping)),
+            Path.Combine(DirectoryPath, "NuGet.Config"));
     }
 
     private static void SaveProject(XDocument document, string path)
     {
         using var collection = new ProjectCollection();
         using var reader = document.CreateReader();
-        ProjectRootElement.Create(reader, collection).Save(path);
+        using var buffer = new MemoryStream();
+        using (var writer = new StreamWriter(buffer, Encoding.UTF8, leaveOpen: true))
+            ProjectRootElement.Create(reader, collection).Save(writer);
+        WriteIfDifferent(path, buffer.ToArray());
+    }
+
+    private static void SaveXml(XDocument document, string path)
+    {
+        using var buffer = new MemoryStream();
+        document.Save(buffer);
+        WriteIfDifferent(path, buffer.ToArray());
+    }
+
+    private static void WriteIfDifferent(string path, byte[] content)
+    {
+        if (File.Exists(path) && new FileInfo(path).Length == content.Length &&
+            File.ReadAllBytes(path).AsSpan().SequenceEqual(content)) return;
+        File.WriteAllBytes(path, content);
     }
 
     private ImmutableDictionary<string, ImmutableDictionary<string, string>> ReadRecordedProperties()
@@ -388,6 +410,14 @@ public sealed class FixtureProject : IAsyncDisposable
 
         return result.ToImmutable();
     }
+}
+
+/// <summary>Controls fixture evidence without changing compiler output or failure reporting.</summary>
+[PublicAPI]
+public enum FixtureDiagnostics
+{
+    None,
+    Full
 }
 
 /// <summary>Compiler diagnostics and the output directory of one generated consumer build.</summary>

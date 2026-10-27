@@ -4,19 +4,8 @@ using Nami.Collector.Ingestion.Configuration;
 
 namespace Nami.Hosting;
 
-internal sealed class CollectorPortOptions
+internal sealed partial class CollectorPortOptions
 {
-    [ConfigurationKeyName(CollectorConfigurationKeys.BindAddress)]
-    public string BindAddress { get; set; } = IPAddress.Loopback.ToString();
-
-    [ConfigurationKeyName(CollectorConfigurationKeys.OtlpPort)]
-    [ConfiguredRange(Key = CollectorConfigurationKeys.OtlpPort, Minimum = 0, Maximum = IPEndPoint.MaxPort)]
-    public int OtlpHttp { get; set; } = 4318;
-
-    [ConfigurationKeyName(CollectorConfigurationKeys.GrpcPort)]
-    [ConfiguredRange(Key = CollectorConfigurationKeys.GrpcPort, Minimum = 0, Maximum = IPEndPoint.MaxPort)]
-    public int Grpc { get; set; } = 4317;
-
     public IPAddress ParseBindAddress()
     {
         return IPAddress.Parse(BindAddress);

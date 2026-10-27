@@ -36,7 +36,7 @@ public sealed class PackageFeedTests(TestContext context) : IAsyncDisposable
         await using var producer = Producer();
         ConfigureProducer(producer);
         var package = await _feed.PackAsync(producer, PackageId, PackageVersion, context.CancellationToken);
-        await using var consumer = new FixtureProject("PackageConsumer");
+        await using var consumer = new FixtureProject("PackageConsumer", context: context);
         consumer.WithPackageFeed(_feed)
             .AddPackage(package.Id, package.Version).AddSource("Program.cs", "Console.Write(ProducedValue.Number);");
 
@@ -134,7 +134,7 @@ public sealed class PackageFeedTests(TestContext context) : IAsyncDisposable
     [TestMethod]
     public async Task PackAsync_FailedProducer_DoesNotReserveThePackageIdentity()
     {
-        await using var invalid = new FixtureProject("InvalidProducer");
+        await using var invalid = new FixtureProject("InvalidProducer", context: context);
         invalid.WithProperty("OutputType", "Library")
             .AddSource("Model.cs", "public class Model { MissingType Value; }");
         var error = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
@@ -161,9 +161,9 @@ public sealed class PackageFeedTests(TestContext context) : IAsyncDisposable
         _ = Assert.ThrowsExactly<InvalidDataException>(package.Verify);
     }
 
-    private static FixtureProject Producer()
+    private FixtureProject Producer()
     {
-        return new FixtureProject("FixtureProducer");
+        return new FixtureProject("FixtureProducer", context: context);
     }
 
     private static void ConfigureProducer(FixtureProject project)

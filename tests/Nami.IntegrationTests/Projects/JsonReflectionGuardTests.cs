@@ -33,7 +33,7 @@ public sealed class JsonReflectionGuardTests(TestContext context)
     [TestMethod]
     public async Task BuildAsync_GeneratedConsumer_UsesMetadataWithReflectionDisabled()
     {
-        await using var project = new FixtureProject("JsonGuardConsumer");
+        await using var project = new FixtureProject("JsonGuardConsumer", context: context);
         project.RecordProperties("JsonSerializerIsReflectionEnabledByDefault")
             .AddSource("Program.cs", """
                                      using System.Text.Json;

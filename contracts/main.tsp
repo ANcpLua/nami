@@ -29,3 +29,9 @@ import "./models/configuration.tsp";
 import "./models/ingestion-records.tsp";
 
 import "./models/storage-persistence.tsp";
+import "./models/storage-numeric-json.tsp";
+import "./models/configuration-options.tsp";
+import "./models/storage-runtime.tsp";
+import "./models/credential-json.tsp";
+import "./models/tool-runtime.tsp";
+import "./models/contract-runtime.tsp";

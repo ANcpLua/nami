@@ -1,7 +1,8 @@
 # nami
 
-nami is an agent-operated application debugging stack: compile-time instrumentation, OpenTelemetry,
-DuckDB-backed analysis and six read-only MCP tools. Agents use it through a Claude.ai connector
+nami is an agent-operated application debugging stack: compile-time instrumentation,
+configured observation lifetimes, its own OpenTelemetry collector, DuckDB-backed analysis
+and six read-only MCP tools. Agents use it through a Claude.ai connector
 and/or an OpenAI plugin with bundled MCP integration; local clients are also supported. There is
 no dashboard or human-facing analysis UI. Tomo is an example developer whose application an
 agent investigates, not the only supported application.
@@ -12,15 +13,20 @@ Weaver supplies semantic definitions and persistence rules. A common release nee
 See the [PRD](docs/prd/nami.md), [architecture](docs/architecture.yaml) and
 [migration checklist](docs/checklist.md).
 
-The transport migration is implemented; the existing 38 EndToEnd cases run through the
-TypeScript host and published native engine. The full instrumentation catalog and actual
-Claude.ai/OpenAI distribution are tracked separately in the checklist.
+The transport migration is implemented; the EndToEnd suite runs through the TypeScript host
+and published native engine. Compile-time instrumentation of supported applications and
+observation lifetimes are required product scope; their application path is not wired in yet.
+Nami's existing self-instrumentation covers its own operations and does not replace that scope.
+Nami has no product SDK or public CLI; launcher arguments and engineering scripts operate the
+service and its tests. The binding I1–I18 and D1–D6 requirements and their limits are in the
+[request/response review](docs/prd/nami-request-response-review.md); implementation and actual
+Claude.ai/OpenAI distribution evidence remain tracked in the checklist.
 
 ## Two surfaces
 
 | Surface | Used by | What it is |
 | --- | --- | --- |
-| OTLP | Instrumented OpenTelemetry producers | OTLP/HTTP (protobuf or JSON) and OTLP/gRPC. No custom wire format, so no SDK. |
+| OTLP | Instrumented OpenTelemetry producers | Standard OTLP/HTTP (protobuf or JSON) and OTLP/gRPC; ingestion requires no Nami-specific producer SDK. |
 | MCP | Agents | Six read-only tools over stdio or Streamable HTTP; MCP `2026-07-28`, stateless, no protocol session. |
 
 The TypeScript supervisor starts the native engine and owns its private, bounded JSONL streams.

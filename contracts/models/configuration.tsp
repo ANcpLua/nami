@@ -4,7 +4,7 @@ namespace Nami.Models.Configuration;
 @csharpForm("internal static class")
 model CollectorConfigurationKeys {
   @environment("NAMI_BIND_ADDRESS") bindAddress?: string;
-  @environment("NAMI_PORT") port?: string;
+  @environment("NAMI_PORT") port?: string = "5100";
   @environment("PORT") platformPort?: string;
   @environment("NAMI_PUBLIC_URL") publicUrl?: string;
   @environment("RAILWAY_PUBLIC_DOMAIN") railwayPublicDomain?: string;

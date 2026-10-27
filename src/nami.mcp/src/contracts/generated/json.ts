@@ -503,3 +503,12 @@ export interface EngineCancel {
   "revision": string;
   "method": "cancel";
 }
+
+export interface CredentialDefinition {
+  "key": string;
+  "roles": string[];
+}
+
+export interface ProjectKeyDocument {
+  [key: string]: CredentialDefinition[];
+}

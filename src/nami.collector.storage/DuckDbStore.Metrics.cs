@@ -16,18 +16,12 @@ internal sealed partial class DuckDbStore
         if (observations.Count is 0)
             return;
 
-        var indexedSeries = series.Any(static row => row.InstrumentId is null)
-            ? series.Select(static row => row.InstrumentId is null
-                ? row with { InstrumentId = MetricStorageMapper.InstrumentId(row) }
-                : row).ToArray()
-            : series;
-
         await ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
             // Series first: a point is only reachable through its series row, so writing the
             // point first would expose an unjoinable sample to a concurrent reader.
-            await InsertRowsBatchedAsync(con, tx, indexedSeries, MetricSeriesRow.AddParameters,
+            await InsertRowsBatchedAsync(con, tx, series, MetricSeriesRow.AddParameters,
                 MetricSeriesRow.BuildMultiRowInsertSql, MaxMetricSeriesPerBatch, token);
             await InsertRowsBatchedAsync(con, tx, observations, MetricObservationRow.AddParameters,
                 MetricObservationRow.BuildMultiRowInsertSql, MaxMetricPointsPerBatch, token);
@@ -40,7 +34,7 @@ internal sealed partial class DuckDbStore
             }
 
             RecordIngestion(con, tx, "metrics",
-                indexedSeries.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName,
+                series.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName,
                     row.ResourceJson, row.AttributesJson, row.ScopeAttributesJson, row.AttributeRenames)), token);
             await tx.CommitAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
@@ -120,104 +114,4 @@ internal sealed partial class DuckDbStore
         }, ct);
     }
 
-    private static bool BackfillMetricInstrumentIds(DuckDBConnection connection)
-    {
-        var changed = false;
-        while (true)
-        {
-            using var transaction = connection.BeginTransaction();
-            var rows = new List<MetricSeriesRow>();
-            using (var read = connection.CreateCommand())
-            {
-                read.Transaction = transaction;
-                read.CommandText = "SELECT " + MetricSeriesRow.SelectColumnList +
-                                   " FROM metric_series WHERE instrument_id IS NULL LIMIT 1000";
-                using var reader = read.ExecuteReader();
-                while (reader.Read()) rows.Add(MetricSeriesRow.MapFromReader(reader));
-            }
-
-            foreach (var previous in rows)
-            {
-                changed = true;
-                var indexed = previous with { InstrumentId = MetricStorageMapper.InstrumentId(previous) };
-                var migrated = indexed with { SeriesId = MetricStorageMapper.SeriesId(indexed) };
-                if (migrated.SeriesId == previous.SeriesId)
-                {
-                    using var update = connection.CreateCommand();
-                    update.Transaction = transaction;
-                    update.CommandText =
-                        "UPDATE metric_series SET instrument_id = $1 WHERE project_id = $2 AND series_id = $3";
-                    AddParameters(update, migrated.InstrumentId, previous.ProjectId, previous.SeriesId);
-                    update.ExecuteNonQuery();
-                    continue;
-                }
-
-                using var command = connection.CreateCommand();
-                command.Transaction = transaction;
-                command.CommandText = "SELECT " + MetricSeriesRow.SelectColumnList +
-                                      " FROM metric_series WHERE project_id = $1 AND series_id = $2";
-                AddParameters(command, migrated.ProjectId, migrated.SeriesId);
-                using (var reader = command.ExecuteReader())
-                {
-                    if (reader.Read())
-                    {
-                        var existing = MetricSeriesRow.MapFromReader(reader);
-                        existing = existing with
-                        {
-                            InstrumentId = existing.InstrumentId ?? MetricStorageMapper.InstrumentId(existing)
-                        };
-                        // Only description, observation ranges and dropped counts are non-identifying.
-                        var comparable = migrated with
-                        {
-                            Description = existing.Description,
-                            FirstSeenUnixNano = existing.FirstSeenUnixNano,
-                            LastSeenUnixNano = existing.LastSeenUnixNano,
-                            ScopeDroppedAttributesCount = existing.ScopeDroppedAttributesCount,
-                            ResourceDroppedAttributesCount = existing.ResourceDroppedAttributesCount
-                        };
-                        if (comparable != existing)
-                        {
-                            throw new InvalidDataException(
-                                $"Metric identity collision while migrating '{previous.SeriesId}'.");
-                        }
-                    }
-                }
-
-                command.Parameters.Clear();
-                command.CommandText = MetricSeriesRow.InsertSql;
-                MetricSeriesRow.AddParameters(command, migrated);
-                command.ExecuteNonQuery();
-
-                // Canonical observations survive ID changes, including contradictory historical
-                // measurements. The derived query tables are rebuilt after this migration.
-                MoveMetricRows("metric_observations", MetricObservationRow.SelectColumnList);
-                command.Parameters.Clear();
-                command.CommandText = "DELETE FROM metric_series WHERE project_id = $1 AND series_id = $2";
-                AddParameters(command, previous.ProjectId, previous.SeriesId);
-                command.ExecuteNonQuery();
-
-                continue;
-
-                void MoveMetricRows(string table, string columns)
-                {
-                    var projection = string.Join(", ",
-                        columns.Split(',').Select(static column => column.Trim().Trim('"'))
-                            .Select(static column => column == "series_id" ? "$1" : column));
-                    command.Parameters.Clear();
-                    command.CommandText = "INSERT INTO " + table + " (" + columns + ") SELECT " + projection +
-                                          " FROM " + table + " " +
-                                          "WHERE project_id = $2 AND series_id = $3 ON CONFLICT DO NOTHING";
-                    AddParameters(command, migrated.SeriesId, previous.ProjectId, previous.SeriesId);
-                    command.ExecuteNonQuery();
-                    command.Parameters.Clear();
-                    command.CommandText = "DELETE FROM " + table + " WHERE project_id = $1 AND series_id = $2";
-                    AddParameters(command, previous.ProjectId, previous.SeriesId);
-                    command.ExecuteNonQuery();
-                }
-            }
-
-            transaction.Commit();
-            if (rows.Count is 0) return changed;
-        }
-    }
 }

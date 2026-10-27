@@ -19,13 +19,13 @@ import { $slotValue } from "./slots.js";
 setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $slotValue);
 export { $slotValue };
 
-import { $storageProjection, $storageProjectionUsing } from "./projections.js";
-setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $storageProjection, $storageProjectionUsing);
-export { $storageProjection, $storageProjectionUsing };
+import { $storageProjection, $storageProjectionUsing, $modelProjection, $projectionSource, $catalogProjection, $catalogValue } from "./projections.js";
+setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $storageProjection, $storageProjectionUsing, $modelProjection, $projectionSource, $catalogProjection, $catalogValue);
+export { $storageProjection, $storageProjectionUsing, $modelProjection, $projectionSource, $catalogProjection, $catalogValue };
 
-import { $environment } from "./outputs.js";
-setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $environment);
-export { $environment };
+import { $environment, $configuredBy, $csharpSetter, $csharpInternal } from "./outputs.js";
+setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $environment, $configuredBy, $csharpSetter, $csharpInternal);
+export { $environment, $configuredBy, $csharpSetter, $csharpInternal };
 
 import { $attributeProjection } from "./attribute-projection.js";
 setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $attributeProjection);

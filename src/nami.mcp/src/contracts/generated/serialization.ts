@@ -397,3 +397,13 @@ export const EngineCommandJson = {
   toJson: (value: Model.EngineCommand): Json.EngineCommand => convert(value, EngineCommandShape, true) as Json.EngineCommand,
   fromJson: (value: Json.EngineCommand): Model.EngineCommand => convert(value, EngineCommandShape, false) as Model.EngineCommand,
 };
+const CredentialDefinitionShape: Shape = { fields: [["key", "key", "string"], ["roles", "roles", { array: "string" }]] };
+export const CredentialDefinitionJson = {
+  toJson: (value: Model.CredentialDefinition): Json.CredentialDefinition => convert(value, CredentialDefinitionShape, true) as Json.CredentialDefinition,
+  fromJson: (value: Json.CredentialDefinition): Model.CredentialDefinition => convert(value, CredentialDefinitionShape, false) as Model.CredentialDefinition,
+};
+const ProjectKeyDocumentShape: Shape = { record: { array: () => CredentialDefinitionShape } };
+export const ProjectKeyDocumentJson = {
+  toJson: (value: Model.ProjectKeyDocument): Json.ProjectKeyDocument => convert(value, ProjectKeyDocumentShape, true) as Json.ProjectKeyDocument,
+  fromJson: (value: Json.ProjectKeyDocument): Model.ProjectKeyDocument => convert(value, ProjectKeyDocumentShape, false) as Model.ProjectKeyDocument,
+};

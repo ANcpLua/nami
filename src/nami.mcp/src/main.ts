@@ -3,7 +3,8 @@ import { timingSafeEqual } from "node:crypto";
 import { resolve } from "node:path";
 import { createMcpHandler } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
-import { CONFIG } from "./contracts/generated/manifest.js";
+import { CONFIG, CONFIG_DEFAULTS } from "./contracts/generated/manifest.js";
+import type { ProjectKeyDocument } from "./contracts/generated/json.js";
 import { Engine } from "./engine.js";
 import { dnsRebindingResponse, isLoopbackBindHost } from "./http-security.js";
 import { createServer } from "./server.js";
@@ -16,16 +17,17 @@ const engine = new Engine(resolve(enginePath));
 await engine.ready;
 const stdio = args.includes("--stdio");
 const environment = process.env.DOTNET_ENVIRONMENT ?? process.env.ASPNETCORE_ENVIRONMENT;
-const mode = process.env[CONFIG.AuthMode] ?? (environment?.toLowerCase() === "development" ? "Unsecured" : "ApiKey");
+const mode = process.env[CONFIG.AuthMode] ?? (environment?.toLowerCase() === "development" ? CONFIG_DEFAULTS.AuthMode : "ApiKey");
 const keyDocument: unknown = JSON.parse(process.env[CONFIG.ProjectKeys] ?? "{}");
-const keys = Object.values(keyDocument as Record<string, { key: string; roles: string[] }[]>)
+// Engine readiness follows validation of this shared credential configuration.
+const keys = Object.values(keyDocument as ProjectKeyDocument)
   .flat().map((entry) => ({ bytes: Buffer.from(entry.key), read: entry.roles.includes("read") }));
 
 function credential(request: Request): string | null | Response {
   if (mode.toLowerCase() !== "apikey") return null;
   const supplied = request.headers.get("x-otlp-api-key");
   const bytes = Buffer.from(supplied ?? "");
-  let match: { read: boolean } | undefined;
+  let match: (typeof keys)[number] | undefined;
   for (const key of keys) if (bytes.length === key.bytes.length && timingSafeEqual(bytes, key.bytes)) match = key;
   return !match || !match.read ? new Response(null, { status: match ? 403 : 401,
     headers: { "WWW-Authenticate": 'x-otlp-api-key realm="nami"' } }) : supplied;
@@ -36,8 +38,8 @@ if (stdio) {
   const handle = serveStdio(() => createServer(engine), { onerror: report });
   closeTransport = () => handle.close();
 } else {
-  const hostname = process.env[CONFIG.BindAddress] ?? "127.0.0.1";
-  const port = Number(process.env[CONFIG.Port] ?? process.env[CONFIG.PlatformPort] ?? 5100);
+  const hostname = process.env[CONFIG.BindAddress] ?? CONFIG_DEFAULTS.BindAddress;
+  const port = Number(process.env[CONFIG.Port] ?? process.env[CONFIG.PlatformPort] ?? CONFIG_DEFAULTS.Port);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("NAMI_PORT is outside its supported range.");
   const domain = process.env[CONFIG.RailwayPublicDomain];
   const publicUrl = process.env[CONFIG.PublicUrl] ?? (domain ? `https://${domain}` : undefined);

@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Text;
-using Basic.Reference.Assemblies;
 using JetBrains.Annotations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -10,24 +9,19 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Nami.Tests.Compilation;
 
-/// <summary>A managed Roslyn host that compiles virtual sources against bundled .NET 10 reference assemblies.</summary>
+/// <summary>Compiles virtual sources with the SDK compiler and caller-selected reference assemblies.</summary>
 [PublicAPI]
 public static class InProcessCompiler
 {
-    private static readonly ImmutableArray<MetadataReference> s_references = [.. Net100.References.All];
-
     public static CSharpCompilation CreateCompilation(FixtureProjectDefinition definition,
-        IEnumerable<MetadataReference>? additionalReferences = null, CSharpCompilationOptions? options = null,
+        IEnumerable<MetadataReference> references, CSharpCompilationOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(definition);
         cancellationToken.ThrowIfCancellationRequested();
-        if (definition.Properties.GetValueOrDefault("TargetFramework") != "net10.0"
-            || definition.Properties.ContainsKey("TargetFrameworks"))
-        {
-            throw new NotSupportedException(
-                "The in-process compiler uses the bundled net10.0 reference set. Use an SDK build for other target frameworks.");
-        }
+        ArgumentNullException.ThrowIfNull(references);
+        if (definition.Properties.ContainsKey("TargetFrameworks"))
+            throw new NotSupportedException("Create a separate compilation and reference set for each target framework.");
 
         var parseOptions = ParseOptions(definition);
         var trees = definition.Sources.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair =>
@@ -57,15 +51,15 @@ public static class InProcessCompiler
                 _ => NullableContextOptions.Enable
             });
         return CSharpCompilation.Create(definition.Name, trees,
-            additionalReferences is null ? s_references : s_references.AddRange(additionalReferences),
+            references,
             compilationOptions);
     }
 
     public static InProcessCompilationResult Compile(FixtureProjectDefinition definition,
-        IEnumerable<MetadataReference>? additionalReferences = null, CSharpCompilationOptions? options = null,
+        IEnumerable<MetadataReference> references, CSharpCompilationOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var compilation = CreateCompilation(definition, additionalReferences, options, cancellationToken);
+        var compilation = CreateCompilation(definition, references, options, cancellationToken);
         using var image = new MemoryStream();
         using var symbols = new MemoryStream();
         var result = compilation.Emit(image, symbols,
@@ -77,10 +71,10 @@ public static class InProcessCompiler
     }
 
     public static Task<ImmutableArray<Diagnostic>> AnalyzeAsync(FixtureProjectDefinition definition,
-        ImmutableArray<DiagnosticAnalyzer> analyzers, ImmutableArray<AdditionalText> additionalTexts = default,
+        IEnumerable<MetadataReference> references, ImmutableArray<DiagnosticAnalyzer> analyzers, ImmutableArray<AdditionalText> additionalTexts = default,
         AnalyzerConfigOptionsProvider? options = null, CancellationToken cancellationToken = default)
     {
-        var compilation = CreateCompilation(definition, cancellationToken: cancellationToken);
+        var compilation = CreateCompilation(definition, references, cancellationToken: cancellationToken);
         if (analyzers.IsDefaultOrEmpty) return Task.FromResult(compilation.GetDiagnostics(cancellationToken));
         var analyzerOptions = new AnalyzerOptions(additionalTexts.IsDefault ? [] : additionalTexts,
             options ?? new InMemoryAnalyzerOptions());
@@ -90,12 +84,12 @@ public static class InProcessCompiler
     }
 
     public static InProcessGeneratorResult Generate(FixtureProjectDefinition definition,
-        IIncrementalGenerator generator,
+        IEnumerable<MetadataReference> references, IIncrementalGenerator generator,
         ImmutableArray<AdditionalText> additionalTexts = default, AnalyzerConfigOptionsProvider? options = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(generator);
-        var compilation = CreateCompilation(definition, cancellationToken: cancellationToken);
+        var compilation = CreateCompilation(definition, references, cancellationToken: cancellationToken);
         GeneratorDriver driver = CSharpGeneratorDriver.Create([generator.AsSourceGenerator()],
             additionalTexts.IsDefault ? [] : additionalTexts, ParseOptions(definition),
             options ?? new InMemoryAnalyzerOptions(),
@@ -107,7 +101,7 @@ public static class InProcessCompiler
 
     private static CSharpParseOptions ParseOptions(FixtureProjectDefinition definition)
     {
-        var language = LanguageVersion.CSharp14;
+        var language = LanguageVersion.CSharp15;
         if (definition.Properties.TryGetValue("LangVersion", out var configured)
             && !LanguageVersionFacts.TryParse(configured, out language))
             throw new ArgumentException("Invalid C# language version: " + configured, nameof(definition));

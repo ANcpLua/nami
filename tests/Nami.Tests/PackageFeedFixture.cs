@@ -23,6 +23,7 @@ public sealed class PackageFeedFixture : IAsyncDisposable
                      ?? Path.GetTempPath(), "nami-package-feed-" + Guid.NewGuid().ToString("N"));
 
     public string CacheDirectory => Path.Combine(DirectoryPath, ".cache", "packages");
+    public string HttpCacheDirectory => Path.Combine(DirectoryPath, ".cache", "http");
 
     internal IEnumerable<string> PackageIds => _published.Values.Select(publication => publication.Package.Id)
         .Distinct(StringComparer.OrdinalIgnoreCase);

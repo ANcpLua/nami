@@ -1,4 +1,4 @@
-import type { DecoratorContext, Model, Program, Scalar, Type, Union } from "@typespec/compiler";
+import type { DecoratorContext, Model, ModelProperty, Program, Scalar, Type, Union } from "@typespec/compiler";
 import { emitFile, getNamespaceFullName, walkPropertiesInherited } from "@typespec/compiler";
 import { stateKeys } from "./lib.js";
 import { resolveProperty } from "./semantics.js";
@@ -18,7 +18,20 @@ export async function emitToolMetadata(program: Program, csharpDir: string): Pro
   const rootTypes = new Set<Type>(program.stateSet(stateKeys.wireRoot));
   for (const tool of tools) for (const type of [tool.input,tool.result,tool.error]) rootTypes.add(type);
   const configuration = Object.fromEntries([...program.stateMap(stateKeys.environment)].map(([property,value]) => [(property as import("@typespec/compiler").ModelProperty).name.replace(/^./u, c => c.toUpperCase()),value]));
-  await emitFile(program,{path:`${program.projectRoot}/generated/wire-manifest.json`,content:JSON.stringify({configuration,roots:[...rootTypes].map(t=>schemaName(t as Model)).sort(),tools:tools.map(t=>({name:t.name,input:schemaName(t.input),output:schemaName(t.result),error:schemaName(t.error)}))},null,2)+"\n"});
+  const defaults = new Map<string,string>();
+  const addDefault = (property: ModelProperty, key: ModelProperty) => {
+    const value = property.defaultValue;
+    if (!value) return;
+    if (!["StringValue","NumericValue","BooleanValue"].includes(value.valueKind)) throw new Error(`${property.name} needs a scalar environment default`);
+    const text = String((value as {value: unknown}).value);
+    const name = key.name.replace(/^./u,c=>c.toUpperCase());
+    if (defaults.has(name) && defaults.get(name) !== text) throw new Error(`Conflicting environment defaults for ${name}`);
+    defaults.set(name,text);
+  };
+  for (const [property] of program.stateMap(stateKeys.environment)) addDefault(property as ModelProperty,property as ModelProperty);
+  for (const [property,key] of program.stateMap(stateKeys.configuredBy)) addDefault(property as ModelProperty,key as ModelProperty);
+  const configurationDefaults = Object.fromEntries([...defaults].sort(([a],[b])=>a.localeCompare(b)));
+  await emitFile(program,{path:`${program.projectRoot}/generated/wire-manifest.json`,content:JSON.stringify({configuration,configurationDefaults,roots:[...rootTypes].map(t=>schemaName(t as Model)).sort(),tools:tools.map(t=>({name:t.name,input:schemaName(t.input),output:schemaName(t.result),error:schemaName(t.error)}))},null,2)+"\n"});
   const models = new Map<Model,string>();
   for (const tool of tools) {
     for (const p of walkPropertiesInherited(tool.result)) {

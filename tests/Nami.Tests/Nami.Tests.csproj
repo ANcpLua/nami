@@ -12,8 +12,6 @@
     <PackageReference Include="Grpc.AspNetCore.Server"/>
     <PackageReference Include="Grpc.Tools" PrivateAssets="all"/>
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
-    <PackageReference Include="Basic.Reference.Assemblies.Net100"/>
     <PackageReference Include="NuGet.Versioning"/>
     <Protobuf Include="Protos/**/*.proto" ProtoRoot="Protos" GrpcServices="None" Access="Internal"/>
     <ProjectReference Include="../../src/nami.collector.ingestion/nami.collector.ingestion.csproj"/>
@@ -28,12 +26,15 @@
     <Content Include="../../global.json" Link="fixture-global.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>
     <EmbeddedResource Include="../../registry/resolved.json" LogicalName="Nami.Tests.Registry.json"/>
   </ItemGroup>
-  <Target Name="WriteFixtureDefaults" BeforeTargets="_GetCopyToOutputDirectoryItemsFromThisProject;GetCopyToPublishDirectoryItems">
+  <Target Name="WriteFixtureDefaults" DependsOnTargets="ResolveReferences" BeforeTargets="_GetCopyToOutputDirectoryItemsFromThisProject;GetCopyToPublishDirectoryItems">
     <ItemGroup>
+      <_FixtureFrameworkReference Include="@(ReferencePath)" Condition="'%(ReferencePath.FrameworkReferenceName)' == 'Microsoft.NETCore.App'"/>
       <_FixtureDefaultsLine Include="&lt;FixtureDefaults TargetFramework=&quot;$(TargetFramework)&quot;&gt;"/>
       <_FixtureDefaultsLine Include="@(PackageVersion->'&lt;Package Id=&quot;%(Identity)&quot; Version=&quot;%(Version)&quot; /&gt;')"/>
+      <_FixtureDefaultsLine Include="@(_FixtureFrameworkReference->'&lt;Reference Path=&quot;%(Identity)&quot; /&gt;')"/>
       <_FixtureDefaultsLine Include="&lt;/FixtureDefaults&gt;"/>
     </ItemGroup>
+    <Error Condition="'@(_FixtureFrameworkReference)' == ''" Text="The SDK did not resolve the fixture framework reference assemblies."/>
     <WriteLinesToFile File="$(IntermediateOutputPath)fixture-defaults.xml" Lines="@(_FixtureDefaultsLine)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
     <ItemGroup>
       <ContentWithTargetPath Include="$(IntermediateOutputPath)fixture-defaults.xml">

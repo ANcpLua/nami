@@ -275,9 +275,7 @@ internal static partial class OtlpConverter
         return builder.ToString();
     }
 
-    private sealed record ResourceProjection(
-        NormalizedAttributes Attributes,
-        IReadOnlyList<ResourceEntityRefIngestionRecord> EntityRefs);
+
 
     private readonly record struct ResourceAttributeProjectionKey(string PersistedKey);
 

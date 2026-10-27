@@ -69,6 +69,10 @@ creates that workspace when `Materialize()` or an SDK operation is requested. Re
 Its process runner isolates NuGet state and clears inherited CI/runner settings unless the test
 explicitly supplies them.
 
+Materialization compares the actual bytes before writing project, configuration and source
+files. Unchanged inputs keep their timestamps; missing or altered files are restored from the
+current definition. This lets repeated SDK operations use their ordinary incremental build state.
+
 `CaptureFixture` adds the staged sources from `Nami.Tests/Capture` and their package dependencies
 to the consumer. The consumer does not reference the test assembly. The
 [capture fixture tests](../tests/Nami.IntegrationTests/Projects/CaptureFixtureTests.cs) verify
@@ -77,13 +81,29 @@ per-row isolation, cleanup and a published NativeAOT consumer without MSTest or 
 [`PackageFeedFixture`](../tests/Nami.Tests/PackageFeedFixture.cs) owns a temporary NuGet feed for
 generated producers and consumers. Reusing an identical package identity and inputs reuses the
 published package; changing the inputs under that identity is rejected. Disposing the feed removes
-its packages and cache. Keep the feed alive for the consumers that use it.
+its packages and package/HTTP caches. The first explicitly supplied feed owns both caches,
+including when it contains no local packages. Other scratch/plugin directories remain private
+to each consumer. Keep the feed alive for the consumers that use it.
 
-Each fixture operation preserves [`FixtureEvidence`](../tests/Nami.Tests/FixtureEvidence.cs) outside
-the disposable consumer workspace: `invocation.xml`, `inputs.zip`, `properties.xml`, `output.log`
+Pass `TestContext` explicitly to capture [`FixtureEvidence`](../tests/Nami.Tests/FixtureEvidence.cs)
+outside the disposable consumer workspace: `invocation.xml`, `inputs.zip`, `properties.xml`, `output.log`
 and, for SDK operations, `build.binlog`. These become MSTest result attachments. Initial/final
 MSBuild property snapshots are separated by target framework, and repeated operations receive
 separate evidence directories. Diagnose failed builds from this evidence after workspace cleanup.
+`FixtureDiagnostics.None` disables this capture even with a context. Without a context, the
+fixture does not look up ambient test state and produces no evidence archive, input manifest or
+binlog. Exit code, stdout/stderr and requested MSBuild properties remain available. The MSTest
+fixture attribute is the framework boundary that passes the current invocation context explicitly.
+
+Intentionally failing invocation probes attach their entire child result directory as a ZIP.
+Their parent assertions parse the TRX from that archive; child failures remain observable without
+being merged into the host suite as additional test results.
+
+The in-process compiler requires an explicit reference set. Nami's compiler tests use the
+framework references resolved by the actual SDK build and recorded in `fixture-defaults.xml`.
+Test support, compiler tests and compiler probes use Roslyn from the pinned SDK. They do not
+load a bundled .NET 10 reference package or silently add framework references to a compilation.
+Create one compilation and reference set per target framework.
 
 Repository test runs own these files through
 [`artifact_lifetime.py`](../eng/scripts/artifact_lifetime.py). A passing run removes

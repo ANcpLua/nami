@@ -18,16 +18,6 @@ model TelemetrySnapshot {
 @csharpForm("internal sealed record")
 model SpanBatch { spans: Nami.Models.Storage.Rows.SpanStorageRow[]; }
 model StorageStats { spanCount: int64 = 0; sessionCount: int64 = 0; }
-@csharpForm("internal sealed record")
-model HistoricalMetricProjection {
-  value?: float64;
-  histogramCount?: uint64;
-  histogramSum?: float64;
-  histogramMin?: float64;
-  histogramMax?: float64;
-  bucketBoundsJson?: string;
-  bucketCountsJson?: string;
-}
 model SpanEventJson {
   name: string = "";
   timeUnixNano: uint64 = 0;

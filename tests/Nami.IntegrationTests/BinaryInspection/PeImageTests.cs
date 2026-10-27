@@ -1,3 +1,4 @@
+using Nami.IntegrationTests.Compilation;
 using Nami.Tests.Compilation;
 using Nami.Tests.Metadata;
 
@@ -47,12 +48,12 @@ public sealed class PeImageTests(TestContext context)
     public void ReadTargetFrameworkName_DeclaredAttribute_ReturnsFramework()
     {
         var compiled = Compile("""
-                               [assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v10.0")]
+                               [assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v11.0")]
                                public sealed class Model { }
                                """);
         using var image = new PeImage(compiled.Image);
 
-        Assert.AreEqual(".NETCoreApp,Version=v10.0", image.ReadTargetFrameworkName());
+        Assert.AreEqual(".NETCoreApp,Version=v11.0", image.ReadTargetFrameworkName());
     }
 
     [TestMethod]
@@ -75,7 +76,7 @@ public sealed class PeImageTests(TestContext context)
         var reference =
             Assert.ContainsSingle(image.ReadAssemblyReferences().Where(item => item.Name == "System.Collections"));
 
-        Assert.AreEqual(new Version(10, 0, 0, 0), reference.Version);
+        Assert.AreEqual(new Version(11, 0, 0, 0), reference.Version);
     }
 
     [TestMethod]
@@ -114,8 +115,8 @@ public sealed class PeImageTests(TestContext context)
 
     private InProcessCompilationResult Compile(string source)
     {
-        var project = new FixtureProjectDefinition("MetadataFixture", "net10.0")
+        var project = new FixtureProjectDefinition("MetadataFixture", "net11.0")
             .WithProperty("OutputType", "Library").AddSource("Source.cs", source);
-        return InProcessCompiler.Compile(project, cancellationToken: context.CancellationToken);
+        return InProcessCompiler.Compile(project, CompilerReferences.Framework, cancellationToken: context.CancellationToken);
     }
 }

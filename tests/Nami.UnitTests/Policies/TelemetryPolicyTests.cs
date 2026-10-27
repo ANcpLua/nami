@@ -43,6 +43,39 @@ public sealed class TelemetryPolicyTests
     }
 
     [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void ConnectedTrace_AlternateParentCycle_RejectsEveryAffectedIdentity(bool reverse)
+    {
+        const string OtherId = "0000000000000003";
+        var rooted = Span();
+        var alternate = rooted with { ParentSpanId = OtherId };
+        var other = rooted with { SpanId = OtherId, ParentSpanId = SpanId };
+        SpanRecord[] spans = reverse ? [other, alternate, rooted] : [rooted, alternate, other];
+        var failures = Violations(new ConnectedTraceAttribute(), spans);
+        Assert.HasCount(2, failures);
+        foreach (var failure in failures) Assert.Contains("has cyclic parentage", failure);
+    }
+
+    [TestMethod]
+    public void ConnectedTrace_AlternateAcyclicParents_AcceptsBothPathsToRoot()
+    {
+        const string OtherId = "0000000000000003";
+        var rooted = Span();
+        Assert.IsEmpty(Violations(new ConnectedTraceAttribute(), rooted,
+            rooted with { ParentSpanId = OtherId }, rooted with { SpanId = OtherId }));
+    }
+
+    [TestMethod]
+    public void ConnectedTrace_ParentOnlyInAnotherTrace_DoesNotConnectTheChild()
+    {
+        const string OtherId = "0000000000000003";
+        Assert.Contains($"names parent {OtherId}", Assert.ContainsSingle(Violations(new ConnectedTraceAttribute(),
+            Span() with { ParentSpanId = OtherId },
+            Span() with { TraceId = TestSpan.UnrelatedTraceId, SpanId = OtherId })));
+    }
+
+    [TestMethod]
     public void NoDuplicateSpans_SeparateCapturedObservations_RejectsRetransmission()
     {
         var span = Span();
@@ -59,6 +92,25 @@ public sealed class TelemetryPolicyTests
         using var invocation = TelemetryInvocation.Begin([new NoDuplicateSpansAttribute()]);
         TelemetryInvocation.Publish(Published(span));
         TelemetryInvocation.Publish(Published(span));
+        Assert.IsEmpty(invocation.Violations());
+    }
+
+    [TestMethod]
+    public void NoDuplicateSpans_OneCapture_PreservesEqualObservationMultiplicity()
+    {
+        var span = Span();
+        Assert.Contains("was exported 3 times", Assert.ContainsSingle(Violations(
+            new NoDuplicateSpansAttribute(), span, span with { }, span with { })));
+    }
+
+    [TestMethod]
+    public void NoDuplicateSpans_SameSpanIdInDifferentTraces_AcceptsIndependentIdentities()
+    {
+        var span = Span();
+        var capture = new TelemetrySnapshot([span, span with { TraceId = TestSpan.UnrelatedTraceId }], [], [], []);
+        using var invocation = TelemetryInvocation.Begin([new NoDuplicateSpansAttribute(), new ConnectedTraceAttribute()]);
+        TelemetryInvocation.Publish(new PublishedTrace(new TraceEvidence(TestSpan.TraceId, capture), Root));
+        TelemetryInvocation.Publish(new PublishedTrace(new TraceEvidence(TestSpan.UnrelatedTraceId, capture), Root));
         Assert.IsEmpty(invocation.Violations());
     }
 

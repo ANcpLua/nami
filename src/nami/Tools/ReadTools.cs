@@ -1,9 +1,7 @@
 using System.Text.Json.Nodes;
 using System.Xml;
 using Nami.Api.Contracts;
-using Nami.Api.Contracts.Common;
 using Nami.Api.Contracts.OTel.Enums;
-using Nami.Api.Contracts.OTel.Resource;
 using Nami.Api.Contracts.OTel.Traces;
 using Nami.Api.Contracts.Tools;
 using Nami.Collector.Storage;
@@ -14,7 +12,7 @@ namespace Nami.Tools;
 
 internal static class SourcesStatusTool
 {
-    public static ToolRows Run(ISnapshot snapshot, ToolWindow window)
+    public static ToolRows Run(TelemetrySnapshot snapshot, ToolWindow window)
     {
         var services = snapshot.Signals.Select(static s => s.ServiceName)
             .Concat(snapshot.Resources.Select(static r => r.ServiceName)).Distinct(StringComparer.Ordinal)
@@ -39,8 +37,8 @@ internal static class SourcesStatusTool
                     {
                         Signal = signal,
                         LastSeen = lastSeen == 0 ? null : ToolDispatcher.Timestamp(lastSeen),
-                        SilentFor = XmlConvert.ToString(window.RequestedEnd > last
-                            ? window.RequestedEnd - last
+                        SilentFor = XmlConvert.ToString(window.End > last
+                            ? window.End - last
                             : TimeSpan.Zero)
                     };
                 }
@@ -58,7 +56,7 @@ internal static class SourcesStatusTool
 
 internal static class ErrorsRecentTool
 {
-    public static ToolRows Run(ISnapshot snapshot, ToolWindow window)
+    public static ToolRows Run(TelemetrySnapshot snapshot, ToolWindow window)
     {
         var errors = new List<Occurrence>();
         var spans = snapshot.Spans.ToDictionary(static s => (s.TraceId, s.SpanId));
@@ -127,7 +125,7 @@ internal static class ErrorsRecentTool
 
 internal static class TracesSlowestTool
 {
-    public static ToolRows Run(ISnapshot snapshot, ToolWindow window, string? operation, int limit)
+    public static ToolRows Run(TelemetrySnapshot snapshot, ToolWindow window, string? operation, int limit)
     {
         var traces = snapshot.Spans.GroupBy(static s => s.TraceId).Select(g =>
             {
@@ -159,7 +157,7 @@ internal static class TracesSlowestTool
 
 internal static class LogsSearchTool
 {
-    public static ToolRows Run(ISnapshot snapshot, ToolWindow window, string query)
+    public static ToolRows Run(TelemetrySnapshot snapshot, ToolWindow window, string query)
     {
         var logs = snapshot.Logs.Where(l =>
                 window.Matches(l.ServiceName) &&
@@ -185,7 +183,7 @@ internal static class LogsSearchTool
 
 internal static class ChangesRecentTool
 {
-    public static ToolRows Run(ISnapshot snapshot, ToolWindow window)
+    public static ToolRows Run(TelemetrySnapshot snapshot, ToolWindow window)
     {
         var changes = new List<JsonObject>();
         foreach (var service in snapshot.Resources.Where(r => window.Matches(r.ServiceName))
@@ -242,7 +240,7 @@ internal static class ChangesRecentTool
 
 internal static class TracesGetTool
 {
-    public static ToolRows Run(ISnapshot snapshot, ToolWindow window, string traceId)
+    public static ToolRows Run(TelemetrySnapshot snapshot, ToolWindow window, string traceId)
     {
         var spans = snapshot.Spans.Where(s => s.TraceId == traceId && window.Contains(s.StartTimeUnixNano, "traces"))
             .OrderBy(static s => s.StartTimeUnixNano).ThenBy(static s => s.SpanId, StringComparer.Ordinal).ToArray();
@@ -287,18 +285,10 @@ internal static class ToolValues
     internal static string Body(string? json)
     {
         if (json is null) return "";
-        try
-        {
-            var node = JsonNode.Parse(json);
-            return node is JsonValue scalar && scalar.TryGetValue<string>(out var text)
-                ? text
-                : node?.ToJsonString() ?? "";
-        }
-        catch (JsonException)
-        {
-            // Rows predating typed log-body storage contain plain text.
-            return json;
-        }
+        var node = JsonNode.Parse(json);
+        return node is JsonValue scalar && scalar.TryGetValue<string>(out var text)
+            ? text
+            : node?.ToJsonString() ?? "";
     }
 
     internal static string Severity(byte severity)
@@ -331,73 +321,27 @@ internal static class ToolValues
 
     internal static Span SpanModel(SpanStorageRow span)
     {
-        return new Span
+        return ModelMappings.ToModel(span, new SpanApiValues
         {
-            SpanId = span.SpanId,
-            TraceId = span.TraceId,
-            Name = span.Name,
             Kind = (SpanKind)span.Kind,
-            StartTimeUnixNano = span.StartTimeUnixNano,
-            EndTimeUnixNano = span.EndTimeUnixNano,
-            ParentSpanId = span.ParentSpanId,
-            TraceState = span.TraceState,
             Attributes = AttributeModels(span.AttributesJson),
-            Status = new SpanStatus
-            {
-                Code = (SpanStatusCode)span.StatusCode,
-                Message = span.StatusMessage
-            },
-            Flags = span.Flags,
-            DroppedAttributesCount = span.DroppedAttributesCount,
-            DroppedEventsCount = span.DroppedEventsCount,
-            DroppedLinksCount = span.DroppedLinksCount,
-            Resource = new Resource
+            Status = new SpanStatus { Code = (SpanStatusCode)span.StatusCode, Message = span.StatusMessage },
+            Resource = ModelMappings.ToModel(span, new ResourceApiValues
             {
                 ServiceName = span.ServiceName ?? "unknown",
                 Attributes = AttributeModels(span.ResourceJson),
-                SchemaUrl = span.ResourceSchemaUrl,
-                DroppedAttributesCount = span.ResourceDroppedAttributesCount,
                 EntityRefs = span.ResourceEntityRefsJson is { } json
                     ? JsonSerializer.Deserialize(json, StorageJsonSerializerContext.Default.StoredResourceEntityRefList)
-                        ?
-                        .Select(static value => new EntityRef
-                        {
-                            Type = value.Type,
-                            IdKeys = value.IdKeys,
-                            DescriptionKeys = value.DescriptionKeys,
-                            SchemaUrl = value.SchemaUrl
-                        }).ToArray()
+                        ?.Select(static value => ModelMappings.ToModel(value)).ToArray()
                     : null
-            },
-            InstrumentationScope = span.ScopeName is not null || span.ScopeVersion is not null ||
-                                   span.ScopeAttributesJson is not null
-                ? new InstrumentationScope
-                {
-                    ScopeName = span.ScopeName,
-                    ScopeVersion = span.ScopeVersion,
-                    ScopeAttributes = AttributeModels(span.ScopeAttributesJson),
-                    SchemaUrl = span.ScopeSchemaUrl,
-                    DroppedAttributesCount = span.ScopeDroppedAttributesCount
-                }
+            }),
+            InstrumentationScope = span.ScopeName is not null || span.ScopeVersion is not null || span.ScopeAttributesJson is not null
+                ? ModelMappings.ToModel(span, new ScopeApiValues { ScopeAttributes = AttributeModels(span.ScopeAttributesJson) })
                 : null,
             Events = SpanChildStorage.DeserializeEvents(span.EventsJson)?.Select(static value =>
-                new SpanEvent
-                {
-                    Name = value.Name,
-                    TimeUnixNano = value.TimeUnixNano,
-                    Attributes = AttributeModels(value.AttributesJson),
-                    DroppedAttributesCount = value.DroppedAttributesCount
-                }).ToArray(),
+                ModelMappings.ToModel(value, new EventApiValues { Attributes = AttributeModels(value.AttributesJson) })).ToArray(),
             Links = SpanChildStorage.DeserializeLinks(span.LinksJson)?.Select(static value =>
-                new SpanLink
-                {
-                    TraceId = value.TraceId,
-                    SpanId = value.SpanId,
-                    TraceState = value.TraceState,
-                    Attributes = AttributeModels(value.AttributesJson),
-                    DroppedAttributesCount = value.DroppedAttributesCount,
-                    Flags = value.Flags
-                }).ToArray()
-        };
+                ModelMappings.ToModel(value, new LinkApiValues { Attributes = AttributeModels(value.AttributesJson) })).ToArray()
+        });
     }
 }

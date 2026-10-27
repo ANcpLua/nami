@@ -1,3 +1,4 @@
+using StorageSnapshot = Nami.Collector.Storage.TelemetrySnapshot;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -16,7 +17,7 @@ public sealed class ToolEdgeTests(TestContext context)
 {
     private static readonly int[] s_descendingIds = [3, 2, 1];
 
-    private static ToolRunResult Run(ISnapshot snapshot, string name, string json)
+    private static ToolRunResult Run(StorageSnapshot snapshot, string name, string json)
     {
         using var input = JsonDocument.Parse(json);
         return ToolDispatcher.Run(name, snapshot, input.RootElement);

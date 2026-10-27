@@ -1,11 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>14</LangVersion>
+    <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>15</LangVersion>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+    <Reference Include="Microsoft.CodeAnalysis" HintPath="$(RoslynTargetsPath)/bincore/Microsoft.CodeAnalysis.dll" Private="true" />
+    <Reference Include="Microsoft.CodeAnalysis.CSharp" HintPath="$(RoslynTargetsPath)/bincore/Microsoft.CodeAnalysis.CSharp.dll" Private="true" />
     <Compile Include="$(FixtureSourceDirectory)ProbeAnalyzers.cs" />
     <AdditionalFiles Include="$(FixtureSourceDirectory)AnalyzerReleases.*.md" />
   </ItemGroup>

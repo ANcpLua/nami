@@ -1,10 +1,22 @@
 import "../common/values.tsp";
+import "./ingestion.tsp";
 import "../emitters/csharp/lib/main.tsp";
 using Nami.Api.Schema.Emit.CSharp;
 namespace Nami.Models.Storage.Rows;
 
-@duckDbTable(#{ name: "spans", indexes: "ProjectId;ProjectId,TraceId;ProjectId,SessionId;ProjectId,StartTimeUnixNano;ProjectId,TraceId,ParentSpanId;ProjectId,ServiceName;ProjectId,GenAiProviderName;ProjectId,GenAiRequestModel;ProjectId,GenAiResponseModel;ProjectId,GenAiOperationName;TraceId;SessionId;StartTimeUnixNano;EndTimeUnixNano;ServiceName;GenAiProviderName;GenAiRequestModel;GenAiResponseModel;GenAiOperationName", onConflict: "ON CONFLICT (project_id, trace_id, span_id) DO UPDATE SET\n    end_time_unix_nano = EXCLUDED.end_time_unix_nano,\n    duration_ns = EXCLUDED.duration_ns,\n    status_code = EXCLUDED.status_code,\n    service_name = COALESCE(EXCLUDED.service_name, service_name),\n    gen_ai_provider_name = EXCLUDED.gen_ai_provider_name,\n    gen_ai_operation_name = EXCLUDED.gen_ai_operation_name,\n    gen_ai_output_type = EXCLUDED.gen_ai_output_type,\n    gen_ai_request_model = EXCLUDED.gen_ai_request_model,\n    gen_ai_response_model = EXCLUDED.gen_ai_response_model,\n    gen_ai_input_tokens = EXCLUDED.gen_ai_input_tokens,\n    gen_ai_output_tokens = EXCLUDED.gen_ai_output_tokens,\n    gen_ai_cache_read_input_tokens = EXCLUDED.gen_ai_cache_read_input_tokens,\n    gen_ai_cache_write_input_tokens = EXCLUDED.gen_ai_cache_write_input_tokens,\n    gen_ai_reasoning_tokens = EXCLUDED.gen_ai_reasoning_tokens,\n    attributes_json = EXCLUDED.attributes_json,\n    resource_json = EXCLUDED.resource_json,\n    resource_entity_refs_json = EXCLUDED.resource_entity_refs_json,\n    schema_url = EXCLUDED.schema_url,\n    status_message = EXCLUDED.status_message,\n    events_json = EXCLUDED.events_json,\n    links_json = EXCLUDED.links_json,\n    scope_name = EXCLUDED.scope_name,\n    scope_version = EXCLUDED.scope_version,\n    scope_schema_url = EXCLUDED.scope_schema_url,\n    scope_attributes_json = EXCLUDED.scope_attributes_json,\n    scope_dropped_attributes_count = EXCLUDED.scope_dropped_attributes_count,\n    resource_schema_url = EXCLUDED.resource_schema_url,\n    resource_dropped_attributes_count = EXCLUDED.resource_dropped_attributes_count,\n    trace_state = EXCLUDED.trace_state,\n    flags = EXCLUDED.flags,\n    dropped_attributes_count = EXCLUDED.dropped_attributes_count,\n    dropped_events_count = EXCLUDED.dropped_events_count,\n    dropped_links_count = EXCLUDED.dropped_links_count" })
+@duckDbTable(#{ name: "nami_schema_meta", bootstrap: true, conflict: "update" })
+model SchemaMetadataRow {
+  @duckDbColumn(#{ order: 0, primaryKeyOrdinal: 0 })
+  singleton: uint8 = 0;
+  @duckDbColumn(#{ order: 1, merge: "replace" })
+  authoritativeSchemaHash: string;
+  @duckDbColumn(#{ order: 2, merge: "replace" })
+  derivedSchemaHash: string;
+}
+
+@duckDbTable(#{ name: "spans", indexes: "ProjectId;ProjectId,TraceId;ProjectId,SessionId;ProjectId,StartTimeUnixNano;ProjectId,TraceId,ParentSpanId;ProjectId,ServiceName;ProjectId,GenAiProviderName;ProjectId,GenAiRequestModel;ProjectId,GenAiResponseModel;ProjectId,GenAiOperationName;TraceId;SessionId;StartTimeUnixNano;EndTimeUnixNano;ServiceName;GenAiProviderName;GenAiRequestModel;GenAiResponseModel;GenAiOperationName", conflict: "update" })
 model SpanStorageRow {
+  @csharpInternal attributeRenames: Nami.Models.Ingestion.AttributeRename[] = #[];
   @duckDbColumn(#{ order: 0, primaryKeyOrdinal: 0, sqlType: "VARCHAR(128)" })
   projectId: Nami.Models.Values.ProjectId;
   @duckDbColumn(#{ order: 1, primaryKeyOrdinal: 2 })
@@ -21,131 +33,132 @@ model SpanStorageRow {
   kind: uint8;
   @duckDbColumn(#{ order: 7 })
   startTimeUnixNano: uint64;
-  @duckDbColumn(#{ order: 8 })
+  @duckDbColumn(#{ order: 8, merge: "replace" })
   endTimeUnixNano: uint64;
-  @duckDbColumn(#{ order: 9 })
+  @duckDbColumn(#{ order: 9, merge: "replace" })
   durationNs: uint64;
-  @duckDbColumn(#{ order: 10 })
+  @duckDbColumn(#{ order: 10, merge: "replace" })
   statusCode: uint8;
-  @duckDbColumn(#{ order: 11 })
+  @duckDbColumn(#{ order: 11, merge: "coalesce" })
   serviceName?: string | null;
-  @duckDbColumn(#{ order: 12 })
+  @duckDbColumn(#{ order: 12, merge: "replace" })
   genAiProviderName?: string | null;
-  @duckDbColumn(#{ order: 13 })
+  @duckDbColumn(#{ order: 13, merge: "replace" })
   genAiOperationName?: string | null;
-  @duckDbColumn(#{ order: 14 })
+  @duckDbColumn(#{ order: 14, merge: "replace" })
   genAiOutputType?: string | null;
-  @duckDbColumn(#{ order: 15 })
+  @duckDbColumn(#{ order: 15, merge: "replace" })
   genAiRequestModel?: string | null;
-  @duckDbColumn(#{ order: 16 })
+  @duckDbColumn(#{ order: 16, merge: "replace" })
   genAiResponseModel?: string | null;
-  @duckDbColumn(#{ order: 17 })
+  @duckDbColumn(#{ order: 17, merge: "replace" })
   genAiInputTokens?: int64 | null;
-  @duckDbColumn(#{ order: 18 })
+  @duckDbColumn(#{ order: 18, merge: "replace" })
   genAiOutputTokens?: int64 | null;
-  @duckDbColumn(#{ order: 19 })
+  @duckDbColumn(#{ order: 19, merge: "replace" })
   genAiCacheReadInputTokens?: int64 | null;
-  @duckDbColumn(#{ order: 20 })
+  @duckDbColumn(#{ order: 20, merge: "replace" })
   genAiCacheWriteInputTokens?: int64 | null;
-  @duckDbColumn(#{ order: 21 })
+  @duckDbColumn(#{ order: 21, merge: "replace" })
   genAiReasoningTokens?: int64 | null;
-  @duckDbColumn(#{ order: 22, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 22, sqlType: "JSON", merge: "replace" })
   attributesJson?: string | null;
-  @duckDbColumn(#{ order: 23, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 23, sqlType: "JSON", merge: "replace" })
   resourceJson?: string | null;
-  @duckDbColumn(#{ order: 24, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 24, sqlType: "JSON", merge: "replace" })
   resourceEntityRefsJson?: string | null;
-  @duckDbColumn(#{ order: 25, sqlType: "VARCHAR(256)" })
+  @duckDbColumn(#{ order: 25, sqlType: "VARCHAR(256)", merge: "replace" })
   schemaUrl?: string | null;
-  @duckDbColumn(#{ order: 26, sqlType: "VARCHAR" })
+  @duckDbColumn(#{ order: 26, sqlType: "VARCHAR", merge: "replace" })
   statusMessage?: string | null;
-  @duckDbColumn(#{ order: 27, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 27, sqlType: "JSON", merge: "replace" })
   eventsJson?: string | null;
-  @duckDbColumn(#{ order: 28, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 28, sqlType: "JSON", merge: "replace" })
   linksJson?: string | null;
-  @duckDbColumn(#{ order: 29, sqlType: "VARCHAR(256)" })
+  @duckDbColumn(#{ order: 29, sqlType: "VARCHAR(256)", merge: "replace" })
   scopeName?: string | null;
-  @duckDbColumn(#{ order: 30, sqlType: "VARCHAR(64)" })
+  @duckDbColumn(#{ order: 30, sqlType: "VARCHAR(64)", merge: "replace" })
   scopeVersion?: string | null;
-  @duckDbColumn(#{ order: 31 })
+  @duckDbColumn(#{ order: 31, merge: "replace" })
   scopeSchemaUrl?: string | null;
-  @duckDbColumn(#{ order: 32, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 32, sqlType: "JSON", merge: "replace" })
   scopeAttributesJson?: string | null;
-  @duckDbColumn(#{ order: 33 })
+  @duckDbColumn(#{ order: 33, merge: "replace" })
   scopeDroppedAttributesCount?: uint32 | null;
-  @duckDbColumn(#{ order: 34 })
+  @duckDbColumn(#{ order: 34, merge: "replace" })
   resourceSchemaUrl?: string | null;
-  @duckDbColumn(#{ order: 35 })
+  @duckDbColumn(#{ order: 35, merge: "replace" })
   resourceDroppedAttributesCount?: uint32 | null;
-  @duckDbColumn(#{ order: 36 })
+  @duckDbColumn(#{ order: 36, merge: "replace" })
   traceState?: string | null;
-  @duckDbColumn(#{ order: 37 })
+  @duckDbColumn(#{ order: 37, merge: "replace" })
   flags?: uint32 | null;
-  @duckDbColumn(#{ order: 38 })
+  @duckDbColumn(#{ order: 38, merge: "replace" })
   droppedAttributesCount?: uint32 | null;
-  @duckDbColumn(#{ order: 39 })
+  @duckDbColumn(#{ order: 39, merge: "replace" })
   droppedEventsCount?: uint32 | null;
-  @duckDbColumn(#{ order: 40 })
+  @duckDbColumn(#{ order: 40, merge: "replace" })
   droppedLinksCount?: uint32 | null;
 }
 
-@duckDbTable(#{ name: "logs", indexes: "ProjectId,TimeUnixNano;ProjectId,IngestSequence;ProjectId,TraceId;ProjectId,SessionId;TimeUnixNano", onConflict: "ON CONFLICT (project_id, log_id) DO UPDATE SET\n    trace_id = EXCLUDED.trace_id,\n    span_id = EXCLUDED.span_id,\n    event_name = EXCLUDED.event_name,\n    session_id = EXCLUDED.session_id,\n    time_unix_nano = EXCLUDED.time_unix_nano,\n    observed_time_unix_nano = least(observed_time_unix_nano, EXCLUDED.observed_time_unix_nano),\n    severity_number = EXCLUDED.severity_number,\n    severity_text = EXCLUDED.severity_text,\n    body = EXCLUDED.body,\n    service_name = EXCLUDED.service_name,\n    attributes_json = EXCLUDED.attributes_json,\n    resource_json = EXCLUDED.resource_json,\n    resource_entity_refs_json = EXCLUDED.resource_entity_refs_json,\n    scope_name = EXCLUDED.scope_name,\n    scope_version = EXCLUDED.scope_version,\n    scope_schema_url = EXCLUDED.scope_schema_url,\n    scope_attributes_json = EXCLUDED.scope_attributes_json,\n    scope_dropped_attributes_count = EXCLUDED.scope_dropped_attributes_count,\n    resource_schema_url = EXCLUDED.resource_schema_url,\n    resource_dropped_attributes_count = EXCLUDED.resource_dropped_attributes_count,\n    flags = EXCLUDED.flags,\n    dropped_attributes_count = EXCLUDED.dropped_attributes_count,\n    received_time_unix_nano = coalesce(least(received_time_unix_nano, EXCLUDED.received_time_unix_nano), received_time_unix_nano, EXCLUDED.received_time_unix_nano)" })
+@duckDbTable(#{ name: "logs", indexes: "ProjectId,TimeUnixNano;ProjectId,IngestSequence;ProjectId,TraceId;ProjectId,SessionId;TimeUnixNano", conflict: "update" })
 model LogStorageRow {
+  @csharpInternal attributeRenames: Nami.Models.Ingestion.AttributeRename[] = #[];
   @duckDbColumn(#{ order: 0, primaryKeyOrdinal: 0, sqlType: "VARCHAR(128)" })
   projectId: Nami.Models.Values.ProjectId;
   @duckDbColumn(#{ order: 1, primaryKeyOrdinal: 1 })
   logId: string;
-  @duckDbColumn(#{ order: 2 })
+  @duckDbColumn(#{ order: 2, merge: "replace" })
   traceId?: string | null;
-  @duckDbColumn(#{ order: 3 })
+  @duckDbColumn(#{ order: 3, merge: "replace" })
   spanId?: string | null;
-  @duckDbColumn(#{ order: 4 })
+  @duckDbColumn(#{ order: 4, merge: "replace" })
   eventName?: string | null;
-  @duckDbColumn(#{ order: 5 })
+  @duckDbColumn(#{ order: 5, merge: "replace" })
   sessionId?: string | null;
-  @duckDbColumn(#{ order: 6 })
+  @duckDbColumn(#{ order: 6, merge: "replace" })
   timeUnixNano?: uint64 | null;
-  @duckDbColumn(#{ order: 7 })
+  @duckDbColumn(#{ order: 7, merge: "min" })
   observedTimeUnixNano?: uint64 | null;
-  @duckDbColumn(#{ order: 8 })
+  @duckDbColumn(#{ order: 8, merge: "replace" })
   severityNumber: uint8;
-  @duckDbColumn(#{ order: 9 })
+  @duckDbColumn(#{ order: 9, merge: "replace" })
   severityText?: string | null;
-  @duckDbColumn(#{ order: 10 })
+  @duckDbColumn(#{ order: 10, merge: "replace" })
   body?: string | null;
-  @duckDbColumn(#{ order: 11 })
+  @duckDbColumn(#{ order: 11, merge: "replace" })
   serviceName?: string | null;
-  @duckDbColumn(#{ order: 12, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 12, sqlType: "JSON", merge: "replace" })
   attributesJson?: string | null;
-  @duckDbColumn(#{ order: 13, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 13, sqlType: "JSON", merge: "replace" })
   resourceJson?: string | null;
-  @duckDbColumn(#{ order: 14, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 14, sqlType: "JSON", merge: "replace" })
   resourceEntityRefsJson?: string | null;
-  @duckDbColumn(#{ order: 15, excludeFromInsert: true, defaultSql: "nextval('logs_ingest_sequence')", privateInit: true })
+  @duckDbColumn(#{ order: 15, excludeFromInsert: true, sequenceName: "logs_ingest_sequence", privateInit: true })
   ingestSequence?: int64;
-  @duckDbColumn(#{ order: 16 })
+  @duckDbColumn(#{ order: 16, merge: "replace" })
   scopeName?: string | null;
-  @duckDbColumn(#{ order: 17 })
+  @duckDbColumn(#{ order: 17, merge: "replace" })
   scopeVersion?: string | null;
-  @duckDbColumn(#{ order: 18 })
+  @duckDbColumn(#{ order: 18, merge: "replace" })
   scopeSchemaUrl?: string | null;
-  @duckDbColumn(#{ order: 19, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 19, sqlType: "JSON", merge: "replace" })
   scopeAttributesJson?: string | null;
-  @duckDbColumn(#{ order: 20 })
+  @duckDbColumn(#{ order: 20, merge: "replace" })
   scopeDroppedAttributesCount?: uint32 | null;
-  @duckDbColumn(#{ order: 21 })
+  @duckDbColumn(#{ order: 21, merge: "replace" })
   resourceSchemaUrl?: string | null;
-  @duckDbColumn(#{ order: 22 })
+  @duckDbColumn(#{ order: 22, merge: "replace" })
   resourceDroppedAttributesCount?: uint32 | null;
-  @duckDbColumn(#{ order: 23 })
+  @duckDbColumn(#{ order: 23, merge: "replace" })
   flags?: uint32 | null;
-  @duckDbColumn(#{ order: 24 })
+  @duckDbColumn(#{ order: 24, merge: "replace" })
   droppedAttributesCount?: uint32 | null;
-  @duckDbColumn(#{ order: 25 })
+  @duckDbColumn(#{ order: 25, merge: "minPresent" })
   receivedTimeUnixNano?: uint64 | null;
 }
 
-@duckDbTable(#{ name: "signal_watermarks", onConflict: "ON CONFLICT (project_id, signal, service_name) DO UPDATE SET\n  last_seen_unix_nano = greatest(last_seen_unix_nano, EXCLUDED.last_seen_unix_nano),\n  watermark_unix_nano = greatest(watermark_unix_nano, EXCLUDED.watermark_unix_nano)" })
+@duckDbTable(#{ name: "signal_watermarks", conflict: "update" })
 model SignalWatermarkRow {
   @duckDbColumn(#{ order: 0, primaryKeyOrdinal: 0 })
   projectId: Nami.Models.Values.ProjectId;
@@ -153,9 +166,9 @@ model SignalWatermarkRow {
   signal: string;
   @duckDbColumn(#{ order: 2, primaryKeyOrdinal: 2 })
   serviceName: string;
-  @duckDbColumn(#{ order: 3 })
+  @duckDbColumn(#{ order: 3, merge: "max" })
   lastSeenUnixNano: uint64;
-  @duckDbColumn(#{ order: 4 })
+  @duckDbColumn(#{ order: 4, merge: "max" })
   watermarkUnixNano: uint64;
 }
 
@@ -188,83 +201,84 @@ model ReadSnapshotRow {
   payload: bytes;
 }
 
-@duckDbTable(#{ name: "attribute_stability", onConflict: "ON CONFLICT (project_id, attribute_key) DO UPDATE SET stability = EXCLUDED.stability" })
+@duckDbTable(#{ name: "attribute_stability", conflict: "update" })
 model AttributeStabilityRow {
   @duckDbColumn(#{ order: 0, primaryKeyOrdinal: 0 })
   projectId: Nami.Models.Values.ProjectId;
   @duckDbColumn(#{ order: 1, primaryKeyOrdinal: 1 })
   attributeKey: string;
-  @duckDbColumn(#{ order: 2 })
+  @duckDbColumn(#{ order: 2, merge: "replace" })
   stability: string;
 }
 
-@duckDbTable(#{ name: "attribute_discovery", onConflict: "ON CONFLICT (project_id, original_key) DO UPDATE SET\n  canonical_key = EXCLUDED.canonical_key,\n  last_seen_unix_nano = greatest(last_seen_unix_nano, EXCLUDED.last_seen_unix_nano)" })
+@duckDbTable(#{ name: "attribute_discovery", conflict: "update" })
 model AttributeDiscoveryRow {
   @duckDbColumn(#{ order: 0, primaryKeyOrdinal: 0 })
   projectId: Nami.Models.Values.ProjectId;
   @duckDbColumn(#{ order: 1, primaryKeyOrdinal: 1 })
   originalKey: string;
-  @duckDbColumn(#{ order: 2 })
+  @duckDbColumn(#{ order: 2, merge: "replace" })
   canonicalKey?: string | null;
   @duckDbColumn(#{ order: 3 })
   `namespace`: string;
   @duckDbColumn(#{ order: 4 })
   firstSeenUnixNano: uint64;
-  @duckDbColumn(#{ order: 5 })
+  @duckDbColumn(#{ order: 5, merge: "max" })
   lastSeenUnixNano: uint64;
 }
 
-@duckDbTable(#{ name: "metric_series", indexes: "ProjectId,MetricName", onConflict: "ON CONFLICT (project_id, series_id) DO UPDATE SET\n    metric_kind = EXCLUDED.metric_kind,\n    temporality = EXCLUDED.temporality,\n    is_monotonic = EXCLUDED.is_monotonic,\n    unit = EXCLUDED.unit,\n    description = CASE\n        WHEN length(coalesce(EXCLUDED.description, '')) > length(coalesce(description, '')) THEN EXCLUDED.description\n        WHEN length(coalesce(EXCLUDED.description, '')) < length(coalesce(description, '')) THEN description\n        ELSE greatest(description, EXCLUDED.description) END,\n    schema_url = EXCLUDED.schema_url,\n    attributes_json = EXCLUDED.attributes_json,\n    resource_json = EXCLUDED.resource_json,\n    resource_entity_refs_json = EXCLUDED.resource_entity_refs_json,\n    first_seen_unix_nano = least(first_seen_unix_nano, EXCLUDED.first_seen_unix_nano),\n    last_seen_unix_nano = greatest(last_seen_unix_nano, EXCLUDED.last_seen_unix_nano),\n    scope_name = EXCLUDED.scope_name,\n    scope_version = EXCLUDED.scope_version,\n    scope_schema_url = EXCLUDED.scope_schema_url,\n    scope_attributes_json = EXCLUDED.scope_attributes_json,\n    scope_dropped_attributes_count = EXCLUDED.scope_dropped_attributes_count,\n    resource_schema_url = EXCLUDED.resource_schema_url,\n    resource_dropped_attributes_count = EXCLUDED.resource_dropped_attributes_count,\n    instrument_id = EXCLUDED.instrument_id" })
+@duckDbTable(#{ name: "metric_series", indexes: "ProjectId,MetricName", conflict: "update" })
 model MetricSeriesRow {
+  @csharpInternal attributeRenames: Nami.Models.Ingestion.AttributeRename[] = #[];
   @duckDbColumn(#{ order: 0, primaryKeyOrdinal: 0, sqlType: "VARCHAR(128)" })
   projectId: Nami.Models.Values.ProjectId;
   @duckDbColumn(#{ order: 1, primaryKeyOrdinal: 1 })
   seriesId: Nami.Models.Values.SeriesId;
   @duckDbColumn(#{ order: 2 })
   metricName: string;
-  @duckDbColumn(#{ order: 3 })
+  @duckDbColumn(#{ order: 3, merge: "replace" })
   metricKind: uint8;
-  @duckDbColumn(#{ order: 4 })
+  @duckDbColumn(#{ order: 4, merge: "replace" })
   temporality: uint8;
-  @duckDbColumn(#{ order: 5 })
+  @duckDbColumn(#{ order: 5, merge: "replace" })
   isMonotonic: uint8;
-  @duckDbColumn(#{ order: 6 })
+  @duckDbColumn(#{ order: 6, merge: "replace" })
   unit?: string | null;
-  @duckDbColumn(#{ order: 7 })
+  @duckDbColumn(#{ order: 7, merge: "longest" })
   description?: string | null;
   @duckDbColumn(#{ order: 8 })
   serviceName?: string | null;
-  @duckDbColumn(#{ order: 9, sqlType: "VARCHAR(256)" })
+  @duckDbColumn(#{ order: 9, sqlType: "VARCHAR(256)", merge: "replace" })
   schemaUrl?: string | null;
-  @duckDbColumn(#{ order: 10, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 10, sqlType: "JSON", merge: "replace" })
   attributesJson?: string | null;
-  @duckDbColumn(#{ order: 11, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 11, sqlType: "JSON", merge: "replace" })
   resourceJson?: string | null;
-  @duckDbColumn(#{ order: 12, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 12, sqlType: "JSON", merge: "replace" })
   resourceEntityRefsJson?: string | null;
-  @duckDbColumn(#{ order: 13 })
+  @duckDbColumn(#{ order: 13, merge: "min" })
   firstSeenUnixNano: uint64;
-  @duckDbColumn(#{ order: 14 })
+  @duckDbColumn(#{ order: 14, merge: "max" })
   lastSeenUnixNano: uint64;
-  @duckDbColumn(#{ order: 15 })
+  @duckDbColumn(#{ order: 15, merge: "replace" })
   scopeName?: string | null;
-  @duckDbColumn(#{ order: 16 })
+  @duckDbColumn(#{ order: 16, merge: "replace" })
   scopeVersion?: string | null;
-  @duckDbColumn(#{ order: 17 })
+  @duckDbColumn(#{ order: 17, merge: "replace" })
   scopeSchemaUrl?: string | null;
-  @duckDbColumn(#{ order: 18, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 18, sqlType: "JSON", merge: "replace" })
   scopeAttributesJson?: string | null;
-  @duckDbColumn(#{ order: 19 })
+  @duckDbColumn(#{ order: 19, merge: "replace" })
   scopeDroppedAttributesCount?: uint32 | null;
-  @duckDbColumn(#{ order: 20 })
+  @duckDbColumn(#{ order: 20, merge: "replace" })
   resourceSchemaUrl?: string | null;
-  @duckDbColumn(#{ order: 21 })
+  @duckDbColumn(#{ order: 21, merge: "replace" })
   resourceDroppedAttributesCount?: uint32 | null;
-  @duckDbColumn(#{ order: 22 })
-  instrumentId?: string | null;
+  @duckDbColumn(#{ order: 22, merge: "replace" })
+  instrumentId: string;
 }
 
-@duckDbTable(#{ name: "metric_points", derived: true, indexes: "ProjectId,TimeUnixNano", onConflict: "ON CONFLICT (project_id, series_id, time_unix_nano) DO UPDATE SET\n    start_time_unix_nano = EXCLUDED.start_time_unix_nano,\n    value = EXCLUDED.value,\n    histogram_count = EXCLUDED.histogram_count,\n    histogram_sum = EXCLUDED.histogram_sum,\n    histogram_min = EXCLUDED.histogram_min,\n    histogram_max = EXCLUDED.histogram_max,\n    bucket_bounds_json = EXCLUDED.bucket_bounds_json,\n    bucket_counts_json = EXCLUDED.bucket_counts_json,\n    has_conflict = EXCLUDED.has_conflict,\n    projection_unavailable_reason = EXCLUDED.projection_unavailable_reason" })
+@duckDbTable(#{ name: "metric_points", derived: true, indexes: "ProjectId,TimeUnixNano", conflict: "update" })
 model MetricPointRow {
   @duckDbColumn(#{ order: 0, primaryKeyOrdinal: 0, sqlType: "VARCHAR(128)" })
   projectId: Nami.Models.Values.ProjectId;
@@ -272,29 +286,29 @@ model MetricPointRow {
   seriesId: Nami.Models.Values.SeriesId;
   @duckDbColumn(#{ order: 2, primaryKeyOrdinal: 2 })
   timeUnixNano: uint64;
-  @duckDbColumn(#{ order: 3 })
+  @duckDbColumn(#{ order: 3, merge: "replace" })
   startTimeUnixNano?: uint64 | null;
-  @duckDbColumn(#{ order: 4 })
+  @duckDbColumn(#{ order: 4, merge: "replace" })
   value?: float64 | null;
-  @duckDbColumn(#{ order: 5 })
+  @duckDbColumn(#{ order: 5, merge: "replace" })
   histogramCount?: uint64 | null;
-  @duckDbColumn(#{ order: 6 })
+  @duckDbColumn(#{ order: 6, merge: "replace" })
   histogramSum?: float64 | null;
-  @duckDbColumn(#{ order: 7 })
+  @duckDbColumn(#{ order: 7, merge: "replace" })
   histogramMin?: float64 | null;
-  @duckDbColumn(#{ order: 8 })
+  @duckDbColumn(#{ order: 8, merge: "replace" })
   histogramMax?: float64 | null;
-  @duckDbColumn(#{ order: 9, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 9, sqlType: "JSON", merge: "replace" })
   bucketBoundsJson?: string | null;
-  @duckDbColumn(#{ order: 10, sqlType: "JSON" })
+  @duckDbColumn(#{ order: 10, sqlType: "JSON", merge: "replace" })
   bucketCountsJson?: string | null;
-  @duckDbColumn(#{ order: 11 })
+  @duckDbColumn(#{ order: 11, merge: "replace" })
   hasConflict?: uint8;
-  @duckDbColumn(#{ order: 12 })
+  @duckDbColumn(#{ order: 12, merge: "replace" })
   projectionUnavailableReason?: string | null;
 }
 
-@duckDbTable(#{ name: "metric_observations", indexes: "ProjectId,SeriesId,TimeUnixNano;ProjectId,TimeUnixNano", onConflict: "ON CONFLICT (project_id, series_id, observation_id) DO NOTHING" })
+@duckDbTable(#{ name: "metric_observations", indexes: "ProjectId,SeriesId,TimeUnixNano;ProjectId,TimeUnixNano", conflict: "ignore" })
 model MetricObservationRow {
   @duckDbColumn(#{ order: 0, primaryKeyOrdinal: 0, sqlType: "VARCHAR(128)" })
   projectId: Nami.Models.Values.ProjectId;
@@ -311,22 +325,18 @@ model MetricObservationRow {
   @duckDbColumn(#{ order: 6 })
   flags?: uint32 | null;
   @duckDbColumn(#{ order: 7, sqlType: "JSON" })
-  dataJson?: string | null;
+  dataJson: string;
   @duckDbColumn(#{ order: 8, sqlType: "JSON" })
   exemplarsJson?: string | null;
   @duckDbColumn(#{ order: 9, sqlType: "JSON" })
   instrumentMetadataJson?: string | null;
-  @duckDbColumn(#{ order: 10, sqlType: "JSON" })
-  historicalProjectionJson?: string | null;
-  @duckDbColumn(#{ order: 11, sqlType: "JSON" })
-  historicalExemplarTraceIdsJson?: string | null;
   @duckDbColumn(#{ order: 12 })
   resourceDroppedAttributesCount?: uint32 | null;
   @duckDbColumn(#{ order: 13 })
   scopeDroppedAttributesCount?: uint32 | null;
 }
 
-@duckDbTable(#{ name: "metric_exemplars", derived: true, indexes: "ProjectId,TimeUnixNano", onConflict: "ON CONFLICT DO NOTHING" })
+@duckDbTable(#{ name: "metric_exemplars", derived: true, indexes: "ProjectId,TimeUnixNano", conflict: "ignore" })
 model MetricExemplarRow {
   @duckDbColumn(#{ order: 0, primaryKeyOrdinal: 0, sqlType: "VARCHAR(128)" })
   projectId: Nami.Models.Values.ProjectId;

@@ -2,9 +2,12 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 namespace Nami.Collector.Storage;
 
-[DuckDbTable("spans", Indexes = "ProjectId;ProjectId,TraceId;ProjectId,SessionId;ProjectId,StartTimeUnixNano;ProjectId,TraceId,ParentSpanId;ProjectId,ServiceName;ProjectId,GenAiProviderName;ProjectId,GenAiRequestModel;ProjectId,GenAiResponseModel;ProjectId,GenAiOperationName;TraceId;SessionId;StartTimeUnixNano;EndTimeUnixNano;ServiceName;GenAiProviderName;GenAiRequestModel;GenAiResponseModel;GenAiOperationName", OnConflict = "ON CONFLICT (project_id, trace_id, span_id) DO UPDATE SET\n    end_time_unix_nano = EXCLUDED.end_time_unix_nano,\n    duration_ns = EXCLUDED.duration_ns,\n    status_code = EXCLUDED.status_code,\n    service_name = COALESCE(EXCLUDED.service_name, service_name),\n    gen_ai_provider_name = EXCLUDED.gen_ai_provider_name,\n    gen_ai_operation_name = EXCLUDED.gen_ai_operation_name,\n    gen_ai_output_type = EXCLUDED.gen_ai_output_type,\n    gen_ai_request_model = EXCLUDED.gen_ai_request_model,\n    gen_ai_response_model = EXCLUDED.gen_ai_response_model,\n    gen_ai_input_tokens = EXCLUDED.gen_ai_input_tokens,\n    gen_ai_output_tokens = EXCLUDED.gen_ai_output_tokens,\n    gen_ai_cache_read_input_tokens = EXCLUDED.gen_ai_cache_read_input_tokens,\n    gen_ai_cache_write_input_tokens = EXCLUDED.gen_ai_cache_write_input_tokens,\n    gen_ai_reasoning_tokens = EXCLUDED.gen_ai_reasoning_tokens,\n    attributes_json = EXCLUDED.attributes_json,\n    resource_json = EXCLUDED.resource_json,\n    resource_entity_refs_json = EXCLUDED.resource_entity_refs_json,\n    schema_url = EXCLUDED.schema_url,\n    status_message = EXCLUDED.status_message,\n    events_json = EXCLUDED.events_json,\n    links_json = EXCLUDED.links_json,\n    scope_name = EXCLUDED.scope_name,\n    scope_version = EXCLUDED.scope_version,\n    scope_schema_url = EXCLUDED.scope_schema_url,\n    scope_attributes_json = EXCLUDED.scope_attributes_json,\n    scope_dropped_attributes_count = EXCLUDED.scope_dropped_attributes_count,\n    resource_schema_url = EXCLUDED.resource_schema_url,\n    resource_dropped_attributes_count = EXCLUDED.resource_dropped_attributes_count,\n    trace_state = EXCLUDED.trace_state,\n    flags = EXCLUDED.flags,\n    dropped_attributes_count = EXCLUDED.dropped_attributes_count,\n    dropped_events_count = EXCLUDED.dropped_events_count,\n    dropped_links_count = EXCLUDED.dropped_links_count")]
+[DuckDbTable("spans", Indexes = "ProjectId;ProjectId,TraceId;ProjectId,SessionId;ProjectId,StartTimeUnixNano;ProjectId,TraceId,ParentSpanId;ProjectId,ServiceName;ProjectId,GenAiProviderName;ProjectId,GenAiRequestModel;ProjectId,GenAiResponseModel;ProjectId,GenAiOperationName;TraceId;SessionId;StartTimeUnixNano;EndTimeUnixNano;ServiceName;GenAiProviderName;GenAiRequestModel;GenAiResponseModel;GenAiOperationName", OnConflict = "ON CONFLICT (\"project_id\", \"trace_id\", \"span_id\") DO UPDATE SET\n    \"end_time_unix_nano\" = EXCLUDED.\"end_time_unix_nano\",\n    \"duration_ns\" = EXCLUDED.\"duration_ns\",\n    \"status_code\" = EXCLUDED.\"status_code\",\n    \"service_name\" = coalesce(EXCLUDED.\"service_name\", \"service_name\"),\n    \"gen_ai_provider_name\" = EXCLUDED.\"gen_ai_provider_name\",\n    \"gen_ai_operation_name\" = EXCLUDED.\"gen_ai_operation_name\",\n    \"gen_ai_output_type\" = EXCLUDED.\"gen_ai_output_type\",\n    \"gen_ai_request_model\" = EXCLUDED.\"gen_ai_request_model\",\n    \"gen_ai_response_model\" = EXCLUDED.\"gen_ai_response_model\",\n    \"gen_ai_input_tokens\" = EXCLUDED.\"gen_ai_input_tokens\",\n    \"gen_ai_output_tokens\" = EXCLUDED.\"gen_ai_output_tokens\",\n    \"gen_ai_cache_read_input_tokens\" = EXCLUDED.\"gen_ai_cache_read_input_tokens\",\n    \"gen_ai_cache_write_input_tokens\" = EXCLUDED.\"gen_ai_cache_write_input_tokens\",\n    \"gen_ai_reasoning_tokens\" = EXCLUDED.\"gen_ai_reasoning_tokens\",\n    \"attributes_json\" = EXCLUDED.\"attributes_json\",\n    \"resource_json\" = EXCLUDED.\"resource_json\",\n    \"resource_entity_refs_json\" = EXCLUDED.\"resource_entity_refs_json\",\n    \"schema_url\" = EXCLUDED.\"schema_url\",\n    \"status_message\" = EXCLUDED.\"status_message\",\n    \"events_json\" = EXCLUDED.\"events_json\",\n    \"links_json\" = EXCLUDED.\"links_json\",\n    \"scope_name\" = EXCLUDED.\"scope_name\",\n    \"scope_version\" = EXCLUDED.\"scope_version\",\n    \"scope_schema_url\" = EXCLUDED.\"scope_schema_url\",\n    \"scope_attributes_json\" = EXCLUDED.\"scope_attributes_json\",\n    \"scope_dropped_attributes_count\" = EXCLUDED.\"scope_dropped_attributes_count\",\n    \"resource_schema_url\" = EXCLUDED.\"resource_schema_url\",\n    \"resource_dropped_attributes_count\" = EXCLUDED.\"resource_dropped_attributes_count\",\n    \"trace_state\" = EXCLUDED.\"trace_state\",\n    \"flags\" = EXCLUDED.\"flags\",\n    \"dropped_attributes_count\" = EXCLUDED.\"dropped_attributes_count\",\n    \"dropped_events_count\" = EXCLUDED.\"dropped_events_count\",\n    \"dropped_links_count\" = EXCLUDED.\"dropped_links_count\"")]
 internal sealed partial record SpanStorageRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
@@ -61,9 +64,20 @@ internal sealed partial record SpanStorageRow
     public uint? DroppedAttributesCount { get; init; }
     public uint? DroppedEventsCount { get; init; }
     public uint? DroppedLinksCount { get; init; }
+    [JsonIgnore]
+    internal IReadOnlyList<Nami.Collector.Ingestion.AttributeRename> AttributeRenames { get; init; } = [];
 }
 
-[DuckDbTable("logs", Indexes = "ProjectId,TimeUnixNano;ProjectId,IngestSequence;ProjectId,TraceId;ProjectId,SessionId;TimeUnixNano", OnConflict = "ON CONFLICT (project_id, log_id) DO UPDATE SET\n    trace_id = EXCLUDED.trace_id,\n    span_id = EXCLUDED.span_id,\n    event_name = EXCLUDED.event_name,\n    session_id = EXCLUDED.session_id,\n    time_unix_nano = EXCLUDED.time_unix_nano,\n    observed_time_unix_nano = least(observed_time_unix_nano, EXCLUDED.observed_time_unix_nano),\n    severity_number = EXCLUDED.severity_number,\n    severity_text = EXCLUDED.severity_text,\n    body = EXCLUDED.body,\n    service_name = EXCLUDED.service_name,\n    attributes_json = EXCLUDED.attributes_json,\n    resource_json = EXCLUDED.resource_json,\n    resource_entity_refs_json = EXCLUDED.resource_entity_refs_json,\n    scope_name = EXCLUDED.scope_name,\n    scope_version = EXCLUDED.scope_version,\n    scope_schema_url = EXCLUDED.scope_schema_url,\n    scope_attributes_json = EXCLUDED.scope_attributes_json,\n    scope_dropped_attributes_count = EXCLUDED.scope_dropped_attributes_count,\n    resource_schema_url = EXCLUDED.resource_schema_url,\n    resource_dropped_attributes_count = EXCLUDED.resource_dropped_attributes_count,\n    flags = EXCLUDED.flags,\n    dropped_attributes_count = EXCLUDED.dropped_attributes_count,\n    received_time_unix_nano = coalesce(least(received_time_unix_nano, EXCLUDED.received_time_unix_nano), received_time_unix_nano, EXCLUDED.received_time_unix_nano)")]
+[DuckDbTable("nami_schema_meta", Bootstrap = true, OnConflict = "ON CONFLICT (\"singleton\") DO UPDATE SET\n    \"authoritative_schema_hash\" = EXCLUDED.\"authoritative_schema_hash\",\n    \"derived_schema_hash\" = EXCLUDED.\"derived_schema_hash\"")]
+internal sealed partial record SchemaMetadataRow
+{
+    [DuckDbColumn(PrimaryKeyOrdinal = 0)]
+    public byte Singleton { get; init; } = 0;
+    public required string AuthoritativeSchemaHash { get; init; }
+    public required string DerivedSchemaHash { get; init; }
+}
+
+[DuckDbTable("logs", Indexes = "ProjectId,TimeUnixNano;ProjectId,IngestSequence;ProjectId,TraceId;ProjectId,SessionId;TimeUnixNano", OnConflict = "ON CONFLICT (\"project_id\", \"log_id\") DO UPDATE SET\n    \"trace_id\" = EXCLUDED.\"trace_id\",\n    \"span_id\" = EXCLUDED.\"span_id\",\n    \"event_name\" = EXCLUDED.\"event_name\",\n    \"session_id\" = EXCLUDED.\"session_id\",\n    \"time_unix_nano\" = EXCLUDED.\"time_unix_nano\",\n    \"observed_time_unix_nano\" = least(\"observed_time_unix_nano\", EXCLUDED.\"observed_time_unix_nano\"),\n    \"severity_number\" = EXCLUDED.\"severity_number\",\n    \"severity_text\" = EXCLUDED.\"severity_text\",\n    \"body\" = EXCLUDED.\"body\",\n    \"service_name\" = EXCLUDED.\"service_name\",\n    \"attributes_json\" = EXCLUDED.\"attributes_json\",\n    \"resource_json\" = EXCLUDED.\"resource_json\",\n    \"resource_entity_refs_json\" = EXCLUDED.\"resource_entity_refs_json\",\n    \"scope_name\" = EXCLUDED.\"scope_name\",\n    \"scope_version\" = EXCLUDED.\"scope_version\",\n    \"scope_schema_url\" = EXCLUDED.\"scope_schema_url\",\n    \"scope_attributes_json\" = EXCLUDED.\"scope_attributes_json\",\n    \"scope_dropped_attributes_count\" = EXCLUDED.\"scope_dropped_attributes_count\",\n    \"resource_schema_url\" = EXCLUDED.\"resource_schema_url\",\n    \"resource_dropped_attributes_count\" = EXCLUDED.\"resource_dropped_attributes_count\",\n    \"flags\" = EXCLUDED.\"flags\",\n    \"dropped_attributes_count\" = EXCLUDED.\"dropped_attributes_count\",\n    \"received_time_unix_nano\" = coalesce(least(\"received_time_unix_nano\", EXCLUDED.\"received_time_unix_nano\"), \"received_time_unix_nano\", EXCLUDED.\"received_time_unix_nano\")")]
 internal sealed partial record LogStorageRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
@@ -86,7 +100,7 @@ internal sealed partial record LogStorageRow
     public string? ResourceJson { get; init; }
     [DuckDbColumn(SqlType = "JSON")]
     public string? ResourceEntityRefsJson { get; init; }
-    [DuckDbColumn(ExcludeFromInsert = true, DefaultSql = "nextval('logs_ingest_sequence')")]
+    [DuckDbColumn(ExcludeFromInsert = true, SequenceName = "logs_ingest_sequence", DefaultSql = "nextval('logs_ingest_sequence')")]
     public long IngestSequence { get; private init; }
     public string? ScopeName { get; init; }
     public string? ScopeVersion { get; init; }
@@ -99,9 +113,11 @@ internal sealed partial record LogStorageRow
     public uint? Flags { get; init; }
     public uint? DroppedAttributesCount { get; init; }
     public ulong? ReceivedTimeUnixNano { get; init; }
+    [JsonIgnore]
+    internal IReadOnlyList<Nami.Collector.Ingestion.AttributeRename> AttributeRenames { get; init; } = [];
 }
 
-[DuckDbTable("signal_watermarks", OnConflict = "ON CONFLICT (project_id, signal, service_name) DO UPDATE SET\n  last_seen_unix_nano = greatest(last_seen_unix_nano, EXCLUDED.last_seen_unix_nano),\n  watermark_unix_nano = greatest(watermark_unix_nano, EXCLUDED.watermark_unix_nano)")]
+[DuckDbTable("signal_watermarks", OnConflict = "ON CONFLICT (\"project_id\", \"signal\", \"service_name\") DO UPDATE SET\n    \"last_seen_unix_nano\" = greatest(\"last_seen_unix_nano\", EXCLUDED.\"last_seen_unix_nano\"),\n    \"watermark_unix_nano\" = greatest(\"watermark_unix_nano\", EXCLUDED.\"watermark_unix_nano\")")]
 internal sealed partial record SignalWatermarkRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
@@ -140,7 +156,7 @@ internal sealed partial record ReadSnapshotRow
     public required byte[] Payload { get; init; }
 }
 
-[DuckDbTable("attribute_stability", OnConflict = "ON CONFLICT (project_id, attribute_key) DO UPDATE SET stability = EXCLUDED.stability")]
+[DuckDbTable("attribute_stability", OnConflict = "ON CONFLICT (\"project_id\", \"attribute_key\") DO UPDATE SET\n    \"stability\" = EXCLUDED.\"stability\"")]
 internal sealed partial record AttributeStabilityRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
@@ -150,7 +166,7 @@ internal sealed partial record AttributeStabilityRow
     public required string Stability { get; init; }
 }
 
-[DuckDbTable("attribute_discovery", OnConflict = "ON CONFLICT (project_id, original_key) DO UPDATE SET\n  canonical_key = EXCLUDED.canonical_key,\n  last_seen_unix_nano = greatest(last_seen_unix_nano, EXCLUDED.last_seen_unix_nano)")]
+[DuckDbTable("attribute_discovery", OnConflict = "ON CONFLICT (\"project_id\", \"original_key\") DO UPDATE SET\n    \"canonical_key\" = EXCLUDED.\"canonical_key\",\n    \"last_seen_unix_nano\" = greatest(\"last_seen_unix_nano\", EXCLUDED.\"last_seen_unix_nano\")")]
 internal sealed partial record AttributeDiscoveryRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0)]
@@ -163,7 +179,7 @@ internal sealed partial record AttributeDiscoveryRow
     public required ulong LastSeenUnixNano { get; init; }
 }
 
-[DuckDbTable("metric_series", Indexes = "ProjectId,MetricName", OnConflict = "ON CONFLICT (project_id, series_id) DO UPDATE SET\n    metric_kind = EXCLUDED.metric_kind,\n    temporality = EXCLUDED.temporality,\n    is_monotonic = EXCLUDED.is_monotonic,\n    unit = EXCLUDED.unit,\n    description = CASE\n        WHEN length(coalesce(EXCLUDED.description, '')) > length(coalesce(description, '')) THEN EXCLUDED.description\n        WHEN length(coalesce(EXCLUDED.description, '')) < length(coalesce(description, '')) THEN description\n        ELSE greatest(description, EXCLUDED.description) END,\n    schema_url = EXCLUDED.schema_url,\n    attributes_json = EXCLUDED.attributes_json,\n    resource_json = EXCLUDED.resource_json,\n    resource_entity_refs_json = EXCLUDED.resource_entity_refs_json,\n    first_seen_unix_nano = least(first_seen_unix_nano, EXCLUDED.first_seen_unix_nano),\n    last_seen_unix_nano = greatest(last_seen_unix_nano, EXCLUDED.last_seen_unix_nano),\n    scope_name = EXCLUDED.scope_name,\n    scope_version = EXCLUDED.scope_version,\n    scope_schema_url = EXCLUDED.scope_schema_url,\n    scope_attributes_json = EXCLUDED.scope_attributes_json,\n    scope_dropped_attributes_count = EXCLUDED.scope_dropped_attributes_count,\n    resource_schema_url = EXCLUDED.resource_schema_url,\n    resource_dropped_attributes_count = EXCLUDED.resource_dropped_attributes_count,\n    instrument_id = EXCLUDED.instrument_id")]
+[DuckDbTable("metric_series", Indexes = "ProjectId,MetricName", OnConflict = "ON CONFLICT (\"project_id\", \"series_id\") DO UPDATE SET\n    \"metric_kind\" = EXCLUDED.\"metric_kind\",\n    \"temporality\" = EXCLUDED.\"temporality\",\n    \"is_monotonic\" = EXCLUDED.\"is_monotonic\",\n    \"unit\" = EXCLUDED.\"unit\",\n    \"description\" = CASE WHEN length(coalesce(EXCLUDED.\"description\", '')) > length(coalesce(\"description\", '')) THEN EXCLUDED.\"description\" WHEN length(coalesce(EXCLUDED.\"description\", '')) < length(coalesce(\"description\", '')) THEN \"description\" ELSE greatest(\"description\", EXCLUDED.\"description\") END,\n    \"schema_url\" = EXCLUDED.\"schema_url\",\n    \"attributes_json\" = EXCLUDED.\"attributes_json\",\n    \"resource_json\" = EXCLUDED.\"resource_json\",\n    \"resource_entity_refs_json\" = EXCLUDED.\"resource_entity_refs_json\",\n    \"first_seen_unix_nano\" = least(\"first_seen_unix_nano\", EXCLUDED.\"first_seen_unix_nano\"),\n    \"last_seen_unix_nano\" = greatest(\"last_seen_unix_nano\", EXCLUDED.\"last_seen_unix_nano\"),\n    \"scope_name\" = EXCLUDED.\"scope_name\",\n    \"scope_version\" = EXCLUDED.\"scope_version\",\n    \"scope_schema_url\" = EXCLUDED.\"scope_schema_url\",\n    \"scope_attributes_json\" = EXCLUDED.\"scope_attributes_json\",\n    \"scope_dropped_attributes_count\" = EXCLUDED.\"scope_dropped_attributes_count\",\n    \"resource_schema_url\" = EXCLUDED.\"resource_schema_url\",\n    \"resource_dropped_attributes_count\" = EXCLUDED.\"resource_dropped_attributes_count\",\n    \"instrument_id\" = EXCLUDED.\"instrument_id\"")]
 internal sealed partial record MetricSeriesRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
@@ -195,10 +211,12 @@ internal sealed partial record MetricSeriesRow
     public uint? ScopeDroppedAttributesCount { get; init; }
     public string? ResourceSchemaUrl { get; init; }
     public uint? ResourceDroppedAttributesCount { get; init; }
-    public string? InstrumentId { get; init; }
+    public required string InstrumentId { get; init; }
+    [JsonIgnore]
+    internal IReadOnlyList<Nami.Collector.Ingestion.AttributeRename> AttributeRenames { get; init; } = [];
 }
 
-[DuckDbTable("metric_points", Derived = true, Indexes = "ProjectId,TimeUnixNano", OnConflict = "ON CONFLICT (project_id, series_id, time_unix_nano) DO UPDATE SET\n    start_time_unix_nano = EXCLUDED.start_time_unix_nano,\n    value = EXCLUDED.value,\n    histogram_count = EXCLUDED.histogram_count,\n    histogram_sum = EXCLUDED.histogram_sum,\n    histogram_min = EXCLUDED.histogram_min,\n    histogram_max = EXCLUDED.histogram_max,\n    bucket_bounds_json = EXCLUDED.bucket_bounds_json,\n    bucket_counts_json = EXCLUDED.bucket_counts_json,\n    has_conflict = EXCLUDED.has_conflict,\n    projection_unavailable_reason = EXCLUDED.projection_unavailable_reason")]
+[DuckDbTable("metric_points", Derived = true, Indexes = "ProjectId,TimeUnixNano", OnConflict = "ON CONFLICT (\"project_id\", \"series_id\", \"time_unix_nano\") DO UPDATE SET\n    \"start_time_unix_nano\" = EXCLUDED.\"start_time_unix_nano\",\n    \"value\" = EXCLUDED.\"value\",\n    \"histogram_count\" = EXCLUDED.\"histogram_count\",\n    \"histogram_sum\" = EXCLUDED.\"histogram_sum\",\n    \"histogram_min\" = EXCLUDED.\"histogram_min\",\n    \"histogram_max\" = EXCLUDED.\"histogram_max\",\n    \"bucket_bounds_json\" = EXCLUDED.\"bucket_bounds_json\",\n    \"bucket_counts_json\" = EXCLUDED.\"bucket_counts_json\",\n    \"has_conflict\" = EXCLUDED.\"has_conflict\",\n    \"projection_unavailable_reason\" = EXCLUDED.\"projection_unavailable_reason\"")]
 internal sealed partial record MetricPointRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
@@ -221,7 +239,7 @@ internal sealed partial record MetricPointRow
     public string? ProjectionUnavailableReason { get; init; }
 }
 
-[DuckDbTable("metric_observations", Indexes = "ProjectId,SeriesId,TimeUnixNano;ProjectId,TimeUnixNano", OnConflict = "ON CONFLICT (project_id, series_id, observation_id) DO NOTHING")]
+[DuckDbTable("metric_observations", Indexes = "ProjectId,SeriesId,TimeUnixNano;ProjectId,TimeUnixNano", OnConflict = "ON CONFLICT DO NOTHING")]
 internal sealed partial record MetricObservationRow
 {
     [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
@@ -235,15 +253,11 @@ internal sealed partial record MetricObservationRow
     public ulong? StartTimeUnixNano { get; init; }
     public uint? Flags { get; init; }
     [DuckDbColumn(SqlType = "JSON")]
-    public string? DataJson { get; init; }
+    public required string DataJson { get; init; }
     [DuckDbColumn(SqlType = "JSON")]
     public string? ExemplarsJson { get; init; }
     [DuckDbColumn(SqlType = "JSON")]
     public string? InstrumentMetadataJson { get; init; }
-    [DuckDbColumn(SqlType = "JSON")]
-    public string? HistoricalProjectionJson { get; init; }
-    [DuckDbColumn(SqlType = "JSON")]
-    public string? HistoricalExemplarTraceIdsJson { get; init; }
     public uint? ResourceDroppedAttributesCount { get; init; }
     public uint? ScopeDroppedAttributesCount { get; init; }
 }

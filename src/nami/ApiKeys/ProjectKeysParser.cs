@@ -34,24 +34,22 @@ internal static class ProjectKeysParser
 
         try
         {
-            using var document = JsonDocument.Parse(json);
-            if (document.RootElement.ValueKind != JsonValueKind.Object)
-                throw new InvalidOperationException($"{CollectorConfigurationKeys.ProjectKeys} must be a JSON object.");
+            var document = JsonSerializer.Deserialize(json, CredentialJsonContext.Default.ProjectKeyDocument)
+                ?? throw new InvalidOperationException($"{CollectorConfigurationKeys.ProjectKeys} must be a JSON object.");
 
             var keys = new List<ProjectApiKey>();
-            var projects = new HashSet<string>(StringComparer.Ordinal);
             var credentials = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var project in document.RootElement.EnumerateObject())
+            foreach (var project in document)
             {
-                if (string.IsNullOrWhiteSpace(project.Name) || project.Name != project.Name.Trim() ||
-                    !projects.Add(project.Name) || project.Value.ValueKind != JsonValueKind.Array)
+                if (string.IsNullOrWhiteSpace(project.Key) || project.Key != project.Key.Trim() ||
+                    project.Value is null)
                 {
                     throw new InvalidOperationException(
                         $"{CollectorConfigurationKeys.ProjectKeys} has an invalid or duplicate project.");
                 }
 
                 var count = 0;
-                foreach (var entry in project.Value.EnumerateArray())
+                foreach (var entry in project.Value)
                 {
                     var (value, roles) = ParseCredential(entry);
                     if (!credentials.Add(value))
@@ -60,7 +58,7 @@ internal static class ProjectKeysParser
                             $"{CollectorConfigurationKeys.ProjectKeys} has an invalid or duplicate credential.");
                     }
 
-                    keys.Add(new ProjectApiKey(project.Name, value, roles));
+                    keys.Add(new ProjectApiKey(project.Key, value, roles));
                     count++;
                 }
 
@@ -80,28 +78,19 @@ internal static class ProjectKeysParser
     }
 
     // Every credential declares its permissions; no implicit roles are granted.
-    private static (string Key, ApiKeyRoles Roles) ParseCredential(JsonElement entry)
+    private static (string Key, ApiKeyRoles Roles) ParseCredential(CredentialDefinition entry)
     {
-        if (entry.ValueKind is not JsonValueKind.Object ||
-            !entry.TryGetProperty("key", out var keyElement) || keyElement.ValueKind is not JsonValueKind.String ||
-            string.IsNullOrWhiteSpace(keyElement.GetString()) ||
-            !entry.TryGetProperty("roles", out var rolesElement) || rolesElement.ValueKind is not JsonValueKind.Array ||
-            entry.EnumerateObject().Count() is not 2 ||
-            entry.EnumerateObject().Any(static property => property.Name is not ("key" or "roles")))
-        {
-            throw new InvalidOperationException(
-                $"{CollectorConfigurationKeys.ProjectKeys} credentials must be {{\"key\": string, \"roles\": [...]}} objects.");
-        }
+        if (entry is null || string.IsNullOrWhiteSpace(entry.Key))
+            throw new InvalidOperationException($"{CollectorConfigurationKeys.ProjectKeys} has an empty credential.");
 
         var roles = ApiKeyRoles.None;
-        foreach (var roleElement in rolesElement.EnumerateArray())
+        foreach (var roleElement in entry.Roles)
         {
-            if (roleElement.ValueKind is not JsonValueKind.String ||
-                !ApiKeyRoleNames.TryParse(roleElement.GetString(), out var role) ||
+            if (!ApiKeyRolesNames.TryParse(roleElement, out var role) ||
                 (roles & role) is not ApiKeyRoles.None)
             {
                 throw new InvalidOperationException(
-                    $"{CollectorConfigurationKeys.ProjectKeys} roles must be distinct values of ingest, read, write and delete.");
+                    $"{CollectorConfigurationKeys.ProjectKeys} roles must be distinct values of ingest and read.");
             }
 
             roles |= role;
@@ -110,6 +99,6 @@ internal static class ProjectKeysParser
         return roles is ApiKeyRoles.None
             ? throw new InvalidOperationException(
                 $"{CollectorConfigurationKeys.ProjectKeys} has a credential without roles.")
-            : (keyElement.GetString()!, roles);
+            : (entry.Key, roles);
     }
 }

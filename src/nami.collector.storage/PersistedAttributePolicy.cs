@@ -11,50 +11,6 @@ internal static class PersistedAttributePolicy
     internal static string? SerializeAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
         Serialize(attributes, AttributeKeySets.IsPersistable);
 
-    internal static string? SerializeSpanAttributes(
-        IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
-        SpanHotAttributeProjection projection) =>
-        SerializeSpanAttributesCore(attributes, projection);
-
-    private static string? SerializeSpanAttributesCore(
-        IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
-        SpanHotAttributeProjection projection)
-    {
-        var persisted = attributes
-            .Where(static item => AttributeKeySets.IsPersistable(item.Key))
-            .Where(item =>
-                item.Key != CollectorSemanticAttributeCatalog.GenAiOperationName ||
-                projection.GenAiOperationName is not null)
-            .Where(item =>
-                item.Key != CollectorSemanticAttributeCatalog.GenAiOutputType ||
-                projection.GenAiOutputType is not null)
-            .OrderBy(static item => item.Key, StringComparer.Ordinal)
-            .ToArray();
-
-        if (persisted.Length is 0)
-            return null;
-
-        var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer))
-        {
-            writer.WriteStartObject();
-            foreach (var (key, value) in persisted)
-            {
-                writer.WritePropertyName(key);
-                switch (key)
-                {
-                    case CollectorSemanticAttributeCatalog.GenAiOperationName: writer.WriteStringValue(projection.GenAiOperationName); break;
-                    case CollectorSemanticAttributeCatalog.GenAiOutputType: writer.WriteStringValue(projection.GenAiOutputType); break;
-                    default: WriteValue(writer, value); break;
-                }
-            }
-
-            writer.WriteEndObject();
-        }
-
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
-    }
-
     private static string? Serialize(
         IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
         Func<string, bool> shouldPersist)

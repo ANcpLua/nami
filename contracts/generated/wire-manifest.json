@@ -19,6 +19,17 @@
     "DatabaseThreads": "NAMI_DB_THREADS",
     "DatabaseTempDirectory": "NAMI_DB_TEMP_DIR"
   },
+  "configurationDefaults": {
+    "AuthMode": "Unsecured",
+    "BindAddress": "127.0.0.1",
+    "DataPath": "nami.duckdb",
+    "GrpcPort": "4317",
+    "OtlpPort": "4318",
+    "Port": "5100",
+    "RetentionDays": "30",
+    "RetentionIntervalMinutes": "60",
+    "StorageMinimumFreeMegabytes": "2048"
+  },
   "roots": [
     "Common.ToolError",
     "Engine.EngineCommand",

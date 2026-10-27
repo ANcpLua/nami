@@ -5,6 +5,32 @@ import "../common/values.tsp";
 using Nami.Api.Schema.Emit.CSharp;
 namespace Nami.Models.Ingestion.Records;
 @csharpForm("internal sealed record")
+model ResourceProjection {
+  attributes: Nami.Models.Ingestion.NormalizedAttributes;
+  entityRefs: ResourceEntityRefIngestionRecord[];
+}
+@csharpForm("internal readonly record struct")
+model MetricStreamMetadata {
+  projectIdHint: string | null;
+  metricName: string;
+  unit: string | null;
+  description: string | null;
+  serviceName: string;
+  schemaUrl: string | null;
+  resourceAttributes: Nami.Models.Ingestion.NormalizedAttributes;
+  resourceEntityRefs: ResourceEntityRefIngestionRecord[];
+  resourceSchemaUrl: string | null;
+  resourceDroppedAttributesCount: uint32;
+  scopeName: string | null;
+  scopeVersion: string | null;
+  scopeSchemaUrl: string | null;
+  scopeAttributes: Nami.Models.Ingestion.NormalizedAttributes;
+  scopeDroppedAttributesCount: uint32;
+  instrumentMetadata: Nami.Models.Ingestion.NormalizedContractAttributes;
+  resourceIdentity: string;
+  scopeIdentity: string;
+}
+@csharpForm("internal sealed record")
 model TraceIngestionBatch { spans: SpanIngestionRecord[]; rejectedSpans: int64 = 0; rejectionMessage?: string; }
 @csharpForm("internal sealed record")
 model LogIngestionBatch { logs: LogIngestionRecord[]; rejectedLogRecords: int64 = 0; rejectionMessage?: string; }

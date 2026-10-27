@@ -4,14 +4,6 @@ using System.Text.Json.Serialization;
 
 namespace Nami.Api.Contracts;
 
-/// <summary>A failed assertion in the TypeSpec-generated wire schema.</summary>
-public sealed record ContractIssue(
-    string Field,
-    string Keyword,
-    string Message,
-    IReadOnlyList<string>? Allowed = null,
-    string? Hint = null);
-
 /// <summary>
 ///     Validates both sides of serialization against the same normalized JSON Schemas as the MCP.
 ///     The emitter rejects unsupported schema assertions. No reflection-based serialization is used.

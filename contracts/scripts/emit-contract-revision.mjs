@@ -35,6 +35,7 @@ await writeFile(join(typescriptGeneratedDirectory, "manifest.ts"),
   `export const PRODUCT_VERSION = ${JSON.stringify(version)};\n` +
   `export const TOOLS = ${JSON.stringify(toolEntries, null, 2)} as const;\n` +
   `export const CONFIG = ${JSON.stringify(configuration, null, 2)} as const;\n` +
+  `export const CONFIG_DEFAULTS = ${JSON.stringify(wire.configurationDefaults, null, 2)} as const;\n` +
   `export const ENGINE_LIMITS = ${JSON.stringify(Object.fromEntries(Object.entries(schemas["Engine.EngineLimits"].properties).map(([name, value]) => [name, value.default])), null, 2)} as const;\n`);
 
 await writeFile(join(typescriptGeneratedDirectory, "tool-contracts.ts"),
