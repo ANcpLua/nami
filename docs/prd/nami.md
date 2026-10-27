@@ -2,13 +2,18 @@
 
 Oct 24, 2026 · @Alexander Nachtmann
 
+Status 2026-10-27: Vom Nutzer als Produktziel und Prüfbasis genehmigt, zusammen mit
+[nami-request-response-review.md](nami-request-response-review.md). Die Freigabe ist kein
+Nachweis einer vollständigen Implementierung oder Veröffentlichung. Ausdrücklich offene
+Entscheidungen bleiben offen; spätere ausdrückliche Nutzerentscheidungen haben Vorrang.
+
 ## 1. Zweck und Nutzer
 
 nami ist ein Stack für **agentengesteuertes Debugging**: Instrumentierung erfasst die Ausführung einer Anwendung, eine C#/.NET-11-NativeAOT-Engine nimmt Telemetrie an und speichert sie in DuckDB, und ein TypeScript-MCP-Server liefert Agenten begrenzte, typisierte Antworten. Die Produktoberfläche besteht aus Tools. Es gibt kein Dashboard und keine für Menschen bestimmte Analyseoberfläche.
 
 Ein Entwickler beauftragt einen Agenten mit der Untersuchung seiner Anwendung. Der Agent nutzt nami über einen **Claude.ai-Connector und/oder ein OpenAI-Plugin mit gebündelter MCP-Anbindung**. Lokale agentische Clients wie Claude Code können denselben MCP-Vertrag nutzen. Menschen konfigurieren und autorisieren den Zugang; die Debugging-Aufrufe und ihre Auswertung erfolgen durch Agenten.
 
-**Beispiel:** tomo ist hier ein Rust-Entwickler, der seine Anwendung mit dem nami-Stack durch einen Agenten debuggen lässt. tomo bezeichnet weder eine vorgeschriebene Runtime noch die einzige Zielanwendung. Die Produktanforderungen gelten für alle unterstützten Anwendungen und Agentenhosts.
+**Beispiel:** tomo ist hier ein Entwickler, der seine Anwendung mit dem nami-Stack durch einen Agenten debuggen lässt. tomo bezeichnet weder eine vorgeschriebene Runtime noch die einzige Zielanwendung. Die Produktanforderungen gelten für alle unterstützten Anwendungen und Agentenhosts.
 
 nami implementiert Collector, Analyse und TypeScript-MCP in diesem Repository. TypeSpec bleibt die gemeinsame Quelle für Nachrichten, Typen und JSON-Schemas; Weaver bleibt die Quelle für semantische Definitionen und Persistenzregeln. Die Herkunft schränkt weder Zielsprachen noch Connectoren ein.
 
@@ -35,7 +40,7 @@ Agenten benötigen Belege darüber, was eine Anwendung tatsächlich ausgeführt 
 | Öffentliche REST-Analyse-API | Entfällt | Agenten nutzen MCP; die lokale Engine-Anbindung braucht keine zusätzliche Produkt-API |
 | Interne HTTP-Anbindung | Wird lokal durch private, langlebige Streams/Pipes ersetzt | Gemeinsam gestartete Prozesse brauchen keinen internen REST-Endpunkt; keine unbelegte Performancebehauptung |
 | Projektbindung, geprüfte Credentials und Vertragsrevision | Bleiben an allen Grenzen | Transportwechsel darf Mandantentrennung und Validierung nicht abschwächen |
-| Weaver-Registry, C#/Rust-Generierung und Persistenzregeln | Bleiben im Repository | Semantische Definitionen sind unabhängig von der Sprache des MCP-Servers |
+| Weaver-Registry, C#-Generierung und Persistenzregeln | Bleiben im Repository | Semantische Definitionen sind unabhängig von der Sprache des MCP-Servers |
 | Compile-Time-Interception und konfigurierte Beobachtung | Gehören zum Produktumfang | Unterstützte Aufrufstellen werden beim Build gebunden; Laufzeitcode verwaltet Dauer, Export und Abschluss |
 | Skills und Connector-/Plugin-Bundles | Gehören zur Agentenintegration | Claude.ai und OpenAI sollen denselben Toolvertrag verwenden können |
 | Schreibende Analyse-Tools und Telemetrie-Löschung durch Tools | Entfallen | Die sechs Analyse-Tools sind lesend; Retention bleibt der einzige Telemetrie-Löschpfad |
@@ -84,7 +89,7 @@ XML beschreibt die konfigurierte Lebenszeitregel; ausführbarer Laufzeitcode set
 
 Skills können Builds orchestrieren und vorhandene Tools ausführen. Ein bereits veröffentlichtes NativeAOT-Artefakt erhält durch einen Skill keine neuen kompilierten Interceptors. Neue Konfiguration im vorbereiteten Umfang ist möglich; neue generierte Implementierung benötigt einen neuen Build. C#-Interceptors benötigen keinen CLR-Profiler und keinen JIT; benötigte .NET-Laufzeitbestandteile bleiben im nativen Artefakt enthalten.
 
-C#-Interception erfasst C#-Aufrufstellen der jeweiligen Compilation. Andere Zielsprachen verwenden passende Instrumentierung und denselben semantischen Vertrag; Rust kann beispielsweise `tracing`, `#[instrument]` und OTLP verwenden. Ein externer C#-Collector instrumentiert keine Rust-Funktionen durch seine bloße Existenz.
+C#-Interception erfasst C#-Aufrufstellen der jeweiligen Compilation. Andere Zielsprachen können über ihre eigene Instrumentierung OTLP liefern. Ein externer C#-Collector instrumentiert deren Funktionen nicht durch seine bloße Existenz.
 
 ### 4.4 Definitionsarten und Signalabdeckung
 
@@ -121,7 +126,7 @@ dependencies:
 - Stable-Keys werden typisierte Spalten; Development-Keys werden persistiert und tragen ihre Stabilität im Katalog, damit ein Tool-Ergebnis sagen kann, welcher Key sich noch umbenennen darf.
 - Deprecated Keys werden beim Ingest auf ihren Nachfolger normalisiert (`DeprecatedAttributeNormalizer`); die Tabelle dafür kommt aus der Registry, nie aus Code.
 - `weaver registry diff --baseline-registry <alter Pin>` läuft bei jedem Pin-Wechsel und schreibt sein Markdown ins Änderungsprotokoll der Registry.
-- Templates: `templates/registry/csharp/*.j2` (Konstanten, Policy, Katalog), `templates/registry/rust/*.j2` (Rust-Artefakte für unterstützte Anwendungen), `templates/registry/markdown/*.j2` (Dokumentation). Weaver liefert keine C#-Templates mit; nami schreibt eigene, wie GenAI seine.
+- Templates: `templates/registry/csharp/*.j2` (Konstanten, Policy, Katalog), `templates/registry/markdown/*.j2` (Dokumentation). Weaver liefert keine C#-Templates mit; nami schreibt eigene, wie GenAI seine.
 
 ## G: Registry und Generierung
 
@@ -130,15 +135,14 @@ Diese Invarianten laufen ohne nami-Prozess: Weaver gegen die Registry, Roslyn ge
 | ID | Invariante | Beweis |
 | --- | --- | --- |
 | G1 | `weaver registry check --future -r registry` ist grün; die verschachtelte Abhängigkeit nami → genai → core löst sich ohne doppelte Core-Definition auf. | Exit-Code 0; aufgelöstes Schema enthält `http.request.method` genau einmal |
-| G2 | `weaver registry generate` ist eine reine Funktion: dieselbe Registry liefert byte-identische Ausgaben für C#, Rust und Markdown; das Gate regeneriert und vergleicht. | `git diff --exit-code` nach Regeneration |
+| G2 | `weaver registry generate` ist eine reine Funktion: dieselbe Registry liefert byte-identische Ausgaben für C# und Markdown; das Gate regeneriert und vergleicht. | `git diff --exit-code` nach Regeneration |
 | G3 | Der generierte Katalog spiegelt das aufgelöste Schema: Stable-Zähler 121/8/51/1/5 aus Core, jede Definition mit ihrer Stabilität; kein Key ohne Herkunft. | Katalog gegen `weaver registry resolve --format json` (bis zur Entfernung des Kommandos; danach `package`) |
-| G4 | Jeder `nami.*`-Key ist in der nami-Registry definiert; kein `nami.*`-Literal im C#- oder Rust-Code außerhalb generierter Dateien. | Prüfung aller handgeschriebenen Produkt- und Instrumentierungsquellen ohne Treffer |
+| G4 | Jeder `nami.*`-Key ist in der nami-Registry definiert; kein `nami.*`-Literal im C#-Code außerhalb generierter Dateien. | Prüfung aller handgeschriebenen Produkt- und Instrumentierungsquellen ohne Treffer |
 | G5 | Deprecated Keys (`exception.escaped`, `db.query.parameter`, `http.request.body.size` u. a.) haben einen Nachfolger-Eintrag in der Normalisierungstabelle oder sind als „drop" markiert; kein deprecated Key wird als Spalte angelegt. | Tabelle ⊇ `deprecated`-Einträge des Schemas |
 | G6 | Enum-Attribute kennen nur Werte des Schemas: `db.system.name` ∈ {mariadb, microsoft.sql\_server, mysql, postgresql} stable, alle anderen Werte development; `http.request.method` ohne `QUERY`. | Generierte Werteklassen gegen Schema |
 | G7 | Generierter C#-Code ist AOT-sauber: keine Reflection, kein `dynamic`; `IsAotCompatible=true` mit Warnungen als Fehler. | 0 × IL2xxx/IL3xxx im Build |
 | G8 | Die Persistenz-Policy (`nami.persisted`, `nami.token_exempt`) wird aus Annotationen der Registry generiert; eine Policy-Datei, die einen nicht persistierten Key nennt, bricht die Generierung (Registry-Regel). | Negativtest mit erfundenem Key |
 | G9 | Ein Pin-Wechsel von Core oder GenAI erzeugt einen `weaver registry diff`-Eintrag im Änderungsprotokoll der Registry, sonst schlägt das Gate fehl. | Protokoll-Datei enthält den neuen Commit |
-| G10 | Die Rust-Crate exportiert exakt die Keys des Katalogs; eine unterstützte Rust-Anwendung referenziert die generierten Konstanten, sodass unbekannte Keys beim Build auffallen. | Crate-Konstanten == Katalog-Keys |
 
 ## R: Ingest und Store
 
@@ -152,7 +156,7 @@ Diese Invarianten brauchen den laufenden Collector mit In-Memory-DuckDB; Eingabe
 | R4 | Deprecated Keys werden beim Ingest auf den Nachfolger umgeschrieben; der Originalname bleibt nur in `nami.attribute.key` für Discovery. | `exception.escaped` → nicht gespeichert; `db.query.parameter.*` → Nachfolger |
 | R5 | Stable-Keys landen in typisierten Spalten, Development-Keys im Attribut-Store mit Stabilitätsmarke; beide sind abfragbar. | `gen_ai.usage.input_tokens` abfragbar und als development markiert |
 | R6 | Sanitizer-Grenzen: `exception.message` und `exception.stacktrace` über 128 Ki UTF-16 → `[SANITIZATION_FAILED]`, Ausgabe auf 32 KiB UTF-8 gekürzt. | Grenzwerte ±1 |
-| R7 | Exceptions werden aus **beiden** Quellen erkannt: Log-Record mit `event_name == exception` (stabil) und Span-Event `exception` (zum Beispiel aus Rust-`tracing`); `errors_recent` gruppiert sie gleich. | Zwei Sendewege, eine Gruppe |
+| R7 | Exceptions werden aus **beiden** Quellen erkannt: Log-Record mit `event_name == exception` (stabil) und Span-Event `exception`; `errors_recent` gruppiert sie gleich. | Zwei Sendewege, eine Gruppe |
 | R8 | Resource-Pflicht: `service.name` und `telemetry.sdk.name/version/language`; eine Resource ohne `service.name` wird als eigenes Projekt-Problem gezählt, nicht verworfen. | Zähler `resource.missing_service_name` steigt |
 | R9 | Projekt-Scoping: Der authentifizierte Ingest-Key bestimmt die Ablage; ein `nami.project.id` in der Resource muss zu dieser Bindung passen. Reads bleiben in der authentifizierten Projektbindung; Toolargumente und unbestätigte Metadaten wählen kein Projekt. | Cross-Project-Read liefert 0 Zeilen |
 | R10 | Retention ist der einzige Löschpfad; kein Tool und kein Endpunkt löscht Telemetrie. | Kein Delete-Handler außerhalb von Retention |
@@ -165,7 +169,7 @@ Der Vertrag ist spec-first: Records (Produkttypen) und Unions (Summentypen, disk
 | --- | --- | --- |
 | S1 | Jede Union ist exhaustiv: C# `switch` und TypeScript-Exhaustiveness-Check decken alle Cases ab; eine zusätzliche Variante bricht nicht aktualisierte Verbraucher beim Build. | Compile-Time-Test über `CSharpCompilation` |
 | S2 | Der Diskriminator heißt `kind`, trägt den Variantennamen aus der Spezifikation und steht auf oberster Ebene (kein Envelope). | JSON enthält `"kind":"<variant>"` top-level |
-| S3 | Round-Trip erhält die Bedeutung über C#, TypeScript und unterstützte Rust-Implementierungen. Kanonische Ausgabe ist innerhalb einer Implementierung deterministisch; Property-Reihenfolge ist keine sprachübergreifende Semantik. | Gemeinsame Fixtures strukturell vergleichen; kanonische Ausgabe separat bytegenau prüfen |
+| S3 | Round-Trip erhält die Bedeutung über C# und TypeScript. Kanonische Ausgabe ist innerhalb einer Implementierung deterministisch; Property-Reihenfolge ist keine sprachübergreifende Semantik. | Gemeinsame Fixtures strukturell vergleichen; kanonische Ausgabe separat bytegenau prüfen |
 | S4 | C#-Produktserialisierung läuft über generiertes `JsonSerializerContext`/`JsonTypeInfo<T>` ohne Reflection-Fallback. TypeScript validiert mit den generierten Schemas. | Jeder C#-Vertragstyp hat Metadaten; beide Seiten validieren dieselben Fixtures |
 | S5 | Zeit ist Wire-Text: RFC 3339 mit `T` und `Z` in beliebiger Schreibung, Offset mit Doppelpunkt, keine Schaltsekunde; Schreibweise, Offset und Nachkommastellen bleiben erhalten (`ContractDateTime`). Relative Angaben (`-15m`) werden an der Tool-Grenze in dieselbe Form aufgelöst. | `[DataRow]` über Schreibweisen; `-15m` → absolutes Fenster |
 | S6 | `OptionalValue<T>` unterscheidet Abwesenheit von explizitem `null`; `default` heißt abwesend. | Drei Zustände, drei Serialisierungen |
@@ -265,7 +269,7 @@ Namensschema `Subjekt_Bedingung_ErwartetesErgebnis`; eine Klasse pro Invarianten
 | --- | --- | --- |
 | `Registry_Check_PassesWithFuture` | G1 | Exit-Code 0, keine `violation` |
 | `Registry_NestedCoreDependency_ResolvesOnce` | G1 | `http.request.method` genau einmal im aufgelösten Schema |
-| `Generate_TwiceSameRegistry_IsByteIdentical` | G2 | `Assert.AreSequenceEqual(bytes1, bytes2)` für C#, Rust, Markdown |
+| `Generate_TwiceSameRegistry_IsByteIdentical` | G2 | `Assert.AreSequenceEqual(bytes1, bytes2)` für C# und Markdown |
 | `Catalog_MatchesResolvedRegistry` | G3 | Zähler 121/8/51/1/5; jede Definition mit `stability` |
 | `NamiKeys_AppearOnlyInGeneratedFiles` | G4 | Alle handgeschriebenen Produkt-/Instrumentierungsquellen ohne `nami.`-Literal |
 | `DeprecatedKeys_HaveSuccessorOrDrop` | G5 | `[DataRow]` über `exception.escaped`, `db.query.parameter`, `http.request.body.size` |
@@ -273,7 +277,6 @@ Namensschema `Subjekt_Bedingung_ErwartetesErgebnis`; eine Klasse pro Invarianten
 | `GeneratedCode_AotAnalyzers_ReportNothing` | G7 | 0 × IL2xxx/IL3xxx |
 | `PolicyNamingUnpersistedKey_FailsGeneration` | G8 | `Assert.ThrowsExactly<InvalidOperationException>` |
 | `PinChange_WithoutDiffEntry_FailsGate` | G9 | Fehlermeldung nennt den neuen Commit |
-| `RustCrate_Constants_EqualCatalogKeys` | G10 | Mengen gleich |
 
 **`IngestStoreTests` (R)**
 
@@ -340,7 +343,7 @@ Diese Kriterien gelten für den ausdrücklich unterstützten Umfang. Jede Modell
 | I5 | `Interceptor_ObservesCompletionIncludingAwaitAndEnumeration` | Async-Beobachtung endet nach tatsächlichem Abschluss. Unterstützte Streams/deferred Enumerationen werden während ihrer vereinbarten Enumerationslebenszeit beobachtet. Jeder Abschlussweg beendet genau einmal. |
 | I6 | `ConcurrentOperations_PreserveParentageAndRestoreAmbientContext` | Verschachtelte Aufrufe erhalten ihre Parent-Beziehung; parallele Aufrufe übernehmen keinen fremden Kontext. Erfolg, Fehler und Abbruch stellen den vorherigen Kontext wieder her. |
 | I7 | `EveryModel_EmitsItsDeclaredTelemetryShape` | Alle unterstützten Modelle erzeugen die deklarierte Signalform, Span-Kind/Instrumenttyp, Einheit, Attributtypen sowie Resource-/Scope-Zuordnung. Log-Ereignis und Span-Ereignis bleiben unterscheidbar; Resource-Modelle erzeugen kein eigenes Signal. |
-| I8 | `DiscriminatedContracts_RoundTripAcrossEnabledImplementations` | Gemeinsame Fixtures werden von C#, TypeScript und den aktivierten Rust-Implementierungen gleich interpretiert: `kind`, Pflichtfelder, Zahlenbereiche, Abwesenheit/null und unbekannte Varianten. Property-Reihenfolge ist kein Unterschied. |
+| I8 | `DiscriminatedContracts_RoundTripAcrossEnabledImplementations` | Gemeinsame Fixtures werden von C# und TypeScript gleich interpretiert: `kind`, Pflichtfelder, Zahlenbereiche, Abwesenheit/null und unbekannte Varianten. Property-Reihenfolge ist kein Unterschied. |
 | I9 | `UnionBoundaries_HandleDefaultAndUnknownCasesExplicitly` | Leerer/default Union-Zustand, fehlender Discriminator und unbekannte Variante werden nach Vertrag abgewiesen oder ausdrücklich modelliert; nie stillschweigend zu Erfolg oder einer anderen Signalform umgewandelt. |
 | I10 | `PublishedNativeAotBinary_CompletesTheObservationPipeline` | Die veröffentlichte Engine startet ohne installiertes .NET und CLR-Profiler. Ein echter Tool-Aufruf durch den veröffentlichten TypeScript-MCP-Prozess belegt Instrumentierung, Export, Ingestion und Abfrage einschließlich aller benötigten JSON-Fälle. |
 | I11 | `ObservationLifetime_IsIsolatedAndReferencedExplicitly` | Zugehörige Requests adressieren die Beobachtung per expliziter projektgebundener Kennung. Andere Clients/Projekte erhalten keinen fremden Zustand; Reconnects und konkurrierende Requests verändern die Zuordnung nicht. |
@@ -427,5 +430,5 @@ Historische Herkunft:
 - [MCP 2026-07-28 Key Changes](https://modelcontextprotocol.io/specification/2026-07-28/changelog)
 - [MCP C# SDK v2: Stateless and stateful mode](https://csharp.sdk.modelcontextprotocol.io/v2/concepts/stateless/stateless.html), [Beta SDKs for the 2026-07-28 release candidate](https://blog.modelcontextprotocol.io/posts/sdk-betas-2026-07-28/)
 - [OTel Semantic Conventions for MCP](https://opentelemetry.io/docs/specs/semconv/gen-ai/mcp)
-- OpenTelemetry Spec Compliance Matrix (beiliegend; Spalten .NET und Rust, Abschnitt Logs)
+- OpenTelemetry Spec Compliance Matrix (beiliegend; Spalte .NET, Abschnitt Logs)
 - MSTest 4.5.1 API-Referenz (modern-mstest Skill)
