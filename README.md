@@ -20,7 +20,9 @@ Nami's existing self-instrumentation covers its own operations and does not repl
 Nami has no product SDK or public CLI; launcher arguments and engineering scripts operate the
 service and its tests. The binding I1–I18 and D1–D6 requirements and their limits are in the
 [request/response review](docs/prd/nami-request-response-review.md); implementation and actual
-Claude.ai/OpenAI distribution evidence remain tracked in the checklist.
+test evidence, limits and remaining work are mapped per requirement in the
+[I1–I18 / D1–D6 evidence matrix](docs/integration/requirement-evidence.md). The checklist
+summarizes progress, including the outstanding Claude.ai/OpenAI distribution evidence.
 
 ## Two surfaces
 
@@ -138,18 +140,25 @@ ingest lag; it never means "no errors". A window that ends past the watermark is
 | Path | What it is |
 | --- | --- |
 | `src/nami` | Native OTLP/analysis engine, private stream transport, self-telemetry and container definition. |
-| `src/nami.mcp` | TypeScript MCP server, generated tool manifest, authentication and native-engine supervisor. |
+| `src/nami.mcp` | TypeScript/Bun MCP server, generated tool manifest, authentication and native-engine supervisor; `nami.mcp.esproj` is an enabled build project in `nami.slnx`. |
 | `src/nami.collector.ingestion` | OTLP decoding over HTTP and gRPC, attribute normalization against the registry, sanitizer limits, watermarks. |
 | `src/nami.collector.storage` | DuckDB storage per project and the read-only snapshots the tools run on. |
 | `registry/` | The canonical Weaver registry and policies; editable definitions and pinned imports live in `registry/source/`. |
 | `templates/registry/` | Jinja templates that generate C# (`internal/nami.semconv`) and Markdown (`docs/semconv/`) from the registry. |
-| `contracts/` | TypeSpec for every tool input and result. It generates C# types in `internal/nami.contracts`, JSON Schema in `contracts/json-schema/`, and TypeScript types and tool metadata in `src/nami.mcp/src/contracts/generated`. |
+| `contracts/` | TypeSpec definitions and emitters for Nami ingestion models, stored JSON, DuckDB rows, configuration, tools and the private engine protocol. Outputs include C# contracts and consumer-specific types/mappings, wire JSON Schemas, and TypeScript types, codecs and tool metadata. |
 | `internal/` | Generated contracts and conventions, nami's self-telemetry defaults, and the source generators. |
 | `eng/` | The Fallout build. |
 | `tests/` | Shared test support plus MSTest Unit, Integration and EndToEnd suites; EndToEnd drives the NativeAOT host. |
 | `docs/` | The PRD, the architecture, the implementation checklist and the integration notes. |
-| `claude/debugging-tomo.md` | Agent debugging workflow and the developer example. |
 | `.railway/railway.ts` | The Railway service `nami`. |
+
+Generated C# lives in `internal/nami.contracts` and the relevant consumer projects, including
+`src/nami.collector.ingestion/Generated` and `src/nami.collector.storage/Generated`.
+TypeScript contracts live in `src/nami.mcp/src/contracts/generated`; wire schemas live in
+`contracts/json-schema/`. For persistence, TypeSpec emits C# rows with DuckDB metadata, then
+the Roslyn generator in `internal/nami.collector.storage.generators` produces DDL, binders
+and readers. Identity algorithms, query execution and other runtime behavior have their own
+implementations; the [model inventory](contracts/model-migration.csv) records migration status.
 
 ## Build
 
@@ -157,12 +166,17 @@ ingest lag; it never means "no errors". A window that ends past the watermark is
 pinned in `global.json` too), Weaver `0.28.0`, Bun and Node. The build is Fallout, and
 `./eng/build.sh --help` lists every target.
 
+`nami.slnx` builds eleven .NET projects and `src/nami.mcp/nami.mcp.esproj`. The JavaScript SDK
+is pinned in `global.json`; the MCP project restores with `bun install --frozen-lockfile`
+when its inputs change and invokes the existing `bun run build`. `Compile` builds MCP through
+the solution once; the separate `Mcp` target delegates to the same `.esproj`.
+
 | Command | Does |
 | --- | --- |
 | `./eng/build.sh Check --Configuration Release` | The gate before every push, and in CI on every push and pull request: Registry, contract parity, compilation, MSTest suites and the published NativeAOT conformance proof. |
 | `./eng/build.sh Registry` | Runs `weaver registry check --future -r registry`, regenerates the C# and Markdown outputs, and fails if they differ from the commit. |
 | `./eng/build.sh Contracts` | Regenerates C#/TypeScript contracts, shared metadata and `contracts/json-schema/` from TypeSpec; commit them with the TypeSpec change. |
-| `./eng/build.sh Compile` | Checks/builds TypeScript MCP and the .NET solution. |
+| `./eng/build.sh Compile` | Builds `nami.slnx`, including the .NET projects and TypeScript/Bun MCP `.esproj`. |
 | `./eng/test.sh --suite Unit` | Runs the fast MSTest contract suite. `Integration`, `EndToEnd` and `All` select the other scopes. |
 | `./eng/inspect.sh` | Builds and inspects `nami.slnx` with pinned tools and bounded findings; retains only the current external result. |
 | `./eng/build.sh InspectCode --Configuration Release` | Runs the same inspection entry point; findings and invalid analysis remain distinct. |
@@ -185,9 +199,9 @@ TypeSpec, and regenerate.
 
 - [Product spec](docs/prd/nami.md) (German): purpose, architecture, the invariants, decisions and risks
 - [Architecture](docs/architecture.yaml): TypeScript MCP, native engine, one shared contract
-- [Agent debugging workflow](claude/debugging-tomo.md)
 - [Semantic conventions](docs/semconv/): generated from the registry, one page per namespace
 - [Implementation checklist](docs/checklist.md) and [integration notes](docs/integration/README.md)
+- [I1–I18 / D1–D6 evidence matrix](docs/integration/requirement-evidence.md): implementation, concrete test evidence, limits and remaining work per requirement
 
 ## License
 
