@@ -1,6 +1,12 @@
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)../Directory.Build.props"/>
   <PropertyGroup>
+    <!-- Tests and their generated process probes execute on the build host. Let NuGet select
+         that RID's assets, while preserving an explicitly requested cross-platform RID. -->
+    <UseCurrentRuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(UseCurrentRuntimeIdentifier)' == ''">true</UseCurrentRuntimeIdentifier>
+    <!-- Managed test code remains portable IL; the RID selects the apphost/native assets.
+         This also preserves compatibility with the pinned SDK's MSBuild/Roslyn assemblies. -->
+    <PlatformTarget Condition="'$(PlatformTarget)' == ''">AnyCPU</PlatformTarget>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CA1707;CA2007;CS1591</NoWarn>

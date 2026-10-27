@@ -3,6 +3,7 @@
     <RootNamespace>Nami</RootNamespace>
     <AssemblyName>nami</AssemblyName>
     <PublishAot>true</PublishAot>
+    <UseCurrentRuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(UseCurrentRuntimeIdentifier)' == ''">true</UseCurrentRuntimeIdentifier>
     <InvariantGlobalization>true</InvariantGlobalization>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>

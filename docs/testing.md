@@ -25,6 +25,21 @@ there is no separate hand-written conformance runner.
 The script also sets the .NET test driver's Minimal/Normal/Detailed output and forwards the suite's
 result selection explicitly: the driver's display is separate from the test application's config.
 
+Local engine and test builds select the current SDK runtime identifier, so NuGet copies native
+assets for the build host. An explicitly supplied `RuntimeIdentifier` takes precedence. Managed
+test assemblies stay `AnyCPU`; the RID selects their apphost and native dependencies. Library
+projects outside the test harness remain RID-independent.
+
+The shared `Nami.Tests` project uses ingestion's upstream OTLP types but does not reference storage.
+Database seeding belongs to `Nami.IntegrationTests/StorageTestData.cs`. Generated BuildEvidence and
+Invocation probes reference the support project through ordinary `ProjectReference` items; they
+do not copy its complete output directory. Their actual runtime outputs and declared fixture inputs
+are collected by `GeneratedFixtures.targets` after the support graph has been built.
+
+`nami.slnx` lists the shared build files as solution items and includes `eng/build/build.csproj`.
+Analyzer configurations remain compiler inputs, with explicit virtual links in the project tree.
+Local Rider index preferences are separate from solution membership and build dependencies.
+
 `nami.slnx` is the authoritative build scope. A `.slnf` is optional for IDE loading; suite selection
 does not require one. MSBuild follows the projects' `ProjectReference` dependencies for build
 ordering. Repository commands default to two MSBuild workers and `DOTNET_PROCESSOR_COUNT=2`;

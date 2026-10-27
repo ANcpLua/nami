@@ -15,7 +15,7 @@ public sealed class StorageSchemaTests(TestContext context)
     {
         var path = Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("No test directory"), "unidentified.duckdb");
         await using (var store = new DuckDbStore(path))
-            await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now)), context.CancellationToken);
+            await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now)), context.CancellationToken);
         using (var connection = Open(path))
         using (var command = connection.CreateCommand())
         {
@@ -47,7 +47,7 @@ public sealed class StorageSchemaTests(TestContext context)
             command.ExecuteNonQuery();
         }
         await using var store = new DuckDbStore(path);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now)), context.CancellationToken);
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now)), context.CancellationToken);
         Assert.ContainsSingle((await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
     }
 
@@ -61,14 +61,14 @@ public sealed class StorageSchemaTests(TestContext context)
         long firstSequence;
         await using (var store = new DuckDbStore(path, timeProvider: clock))
         {
-            await TestData.SeedLogs(store, firstPayload, clock, context.CancellationToken);
+            await StorageTestData.SeedLogs(store, firstPayload, clock, context.CancellationToken);
             firstSequence = Assert.ContainsSingle((await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Logs).IngestSequence;
             Assert.AreEqual(1L, firstSequence);
         }
         await using (var store = new DuckDbStore(path, timeProvider: clock))
         {
-            await TestData.SeedLogs(store, firstPayload, clock, context.CancellationToken);
-            await TestData.SeedLogs(store, OtlpData.Logs(time, body: "second"), clock, context.CancellationToken);
+            await StorageTestData.SeedLogs(store, firstPayload, clock, context.CancellationToken);
+            await StorageTestData.SeedLogs(store, OtlpData.Logs(time, body: "second"), clock, context.CancellationToken);
             var rows = (await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Logs;
             Assert.HasCount(2, rows);
             Assert.AreEqual(firstSequence, Assert.ContainsSingle(row => row.Body == "\"first\"", rows).IngestSequence);
@@ -86,8 +86,8 @@ public sealed class StorageSchemaTests(TestContext context)
         await using var store = new DuckDbStore(":memory:");
         var earlier = TestData.Nanos(TestData.s_now.AddSeconds(-20));
         var later = TestData.Nanos(TestData.s_now.AddSeconds(-10));
-        await TestData.SeedMetrics(store, Payload(later, first), context.CancellationToken);
-        await TestData.SeedMetrics(store, Payload(earlier, second), context.CancellationToken);
+        await StorageTestData.SeedMetrics(store, Payload(later, first), context.CancellationToken);
+        await StorageTestData.SeedMetrics(store, Payload(earlier, second), context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var series = Assert.ContainsSingle(snapshot.Metrics);
         Assert.AreEqual(expected, series.Description);
@@ -108,9 +108,9 @@ public sealed class StorageSchemaTests(TestContext context)
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
         var payload = OtlpData.Logs(TestData.Nanos(TestData.s_now.AddMinutes(-1)));
-        await TestData.SeedLogs(store, payload, clock, context.CancellationToken);
+        await StorageTestData.SeedLogs(store, payload, clock, context.CancellationToken);
         clock.Advance(TimeSpan.FromMinutes(1));
-        await TestData.SeedLogs(store, payload, clock, context.CancellationToken);
+        await StorageTestData.SeedLogs(store, payload, clock, context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         Assert.AreEqual(TestData.Nanos(TestData.s_now), Assert.ContainsSingle(snapshot.Logs).ReceivedTimeUnixNano);
     }
@@ -120,7 +120,7 @@ public sealed class StorageSchemaTests(TestContext context)
     {
         await using var store = new DuckDbStore(":memory:");
         var time = TestData.Nanos(TestData.s_now.AddSeconds(-10));
-        await TestData.SeedTraces(store, OtlpData.Traces(time, service: "checkout"), context.CancellationToken);
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(time, service: "checkout"), context.CancellationToken);
         var before = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var original = Assert.ContainsSingle(before.Spans);
         await store.EnqueueAsync(new SpanBatch([original with { ServiceName = null }]), context.CancellationToken);
@@ -134,7 +134,7 @@ public sealed class StorageSchemaTests(TestContext context)
         var path = Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("No test directory"),
             "schema.duckdb");
         await using (var store = new DuckDbStore(path))
-            await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now)), context.CancellationToken);
+            await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now)), context.CancellationToken);
 
         using (var connection = Open(path))
         using (var command = connection.CreateCommand())
@@ -164,7 +164,7 @@ public sealed class StorageSchemaTests(TestContext context)
         var path = Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("No test directory"),
             "metric-schema.duckdb");
         await using (var store = new DuckDbStore(path))
-            await TestData.SeedMetrics(store, OtlpData.Metrics(TestData.Nanos(TestData.s_now)), context.CancellationToken);
+            await StorageTestData.SeedMetrics(store, OtlpData.Metrics(TestData.Nanos(TestData.s_now)), context.CancellationToken);
         using var connection = Open(path);
         using var command = connection.CreateCommand();
         command.CommandText = """

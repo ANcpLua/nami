@@ -16,15 +16,12 @@
         <OutputDirectory>%(_GeneratedFixture.ProjectDirectory)output/</OutputDirectory>
       </_GeneratedFixture>
     </ItemGroup>
-    <PropertyGroup>
-      <_FixtureSupportDirectory>@(_FixtureSupportReference->'%(RootDir)%(Directory)')</_FixtureSupportDirectory>
-    </PropertyGroup>
-    <Error Condition="'@(_GeneratedFixture->WithMetadataValue('RequiresSupport', 'true'))' != '' and '$(_FixtureSupportDirectory)' == ''"
+    <Error Condition="'@(_GeneratedFixture->WithMetadataValue('RequiresSupport', 'true'))' != '' and '@(_FixtureSupportReference)' == ''"
            Text="The support project must be resolved before materializing this fixture." />
     <MakeDir Directories="%(_GeneratedFixture.ProjectDirectory)" />
     <Copy SourceFiles="%(_GeneratedFixture.FullPath)" DestinationFiles="%(_GeneratedFixture.ProjectPath)" SkipUnchangedFiles="true" />
     <WriteLinesToFile File="%(_GeneratedFixture.ProjectDirectory)Directory.Build.props"
-                      Lines="&lt;Project&gt;&lt;PropertyGroup&gt;&lt;FixtureRepositoryRoot&gt;$(_FixtureRepositoryRoot)&lt;/FixtureRepositoryRoot&gt;&lt;FixtureSupportDirectory&gt;$(_FixtureSupportDirectory)&lt;/FixtureSupportDirectory&gt;&lt;FixtureSourceDirectory&gt;%(_GeneratedFixture.SourceDirectory)&lt;/FixtureSourceDirectory&gt;&lt;/PropertyGroup&gt;&lt;Import Project=&quot;$(_FixtureRepositoryRoot)Directory.Build.props&quot; /&gt;&lt;PropertyGroup&gt;&lt;UseArtifactsOutput&gt;false&lt;/UseArtifactsOutput&gt;&lt;BaseIntermediateOutputPath&gt;%(_GeneratedFixture.ProjectDirectory)obj/&lt;/BaseIntermediateOutputPath&gt;&lt;MSBuildProjectExtensionsPath&gt;%(_GeneratedFixture.ProjectDirectory)obj/&lt;/MSBuildProjectExtensionsPath&gt;&lt;OutputPath&gt;%(_GeneratedFixture.OutputDirectory)&lt;/OutputPath&gt;&lt;AppendTargetFrameworkToOutputPath&gt;false&lt;/AppendTargetFrameworkToOutputPath&gt;&lt;AppendRuntimeIdentifierToOutputPath&gt;false&lt;/AppendRuntimeIdentifierToOutputPath&gt;&lt;/PropertyGroup&gt;&lt;/Project&gt;"
+                      Lines="&lt;Project&gt;&lt;PropertyGroup&gt;&lt;FixtureRepositoryRoot&gt;$(_FixtureRepositoryRoot)&lt;/FixtureRepositoryRoot&gt;&lt;FixtureSourceDirectory&gt;%(_GeneratedFixture.SourceDirectory)&lt;/FixtureSourceDirectory&gt;&lt;/PropertyGroup&gt;&lt;Import Project=&quot;$(_FixtureRepositoryRoot)Directory.Build.props&quot; /&gt;&lt;PropertyGroup&gt;&lt;UseArtifactsOutput&gt;false&lt;/UseArtifactsOutput&gt;&lt;BaseIntermediateOutputPath&gt;%(_GeneratedFixture.ProjectDirectory)obj/&lt;/BaseIntermediateOutputPath&gt;&lt;MSBuildProjectExtensionsPath&gt;%(_GeneratedFixture.ProjectDirectory)obj/&lt;/MSBuildProjectExtensionsPath&gt;&lt;OutputPath&gt;%(_GeneratedFixture.OutputDirectory)&lt;/OutputPath&gt;&lt;AppendTargetFrameworkToOutputPath&gt;false&lt;/AppendTargetFrameworkToOutputPath&gt;&lt;AppendRuntimeIdentifierToOutputPath&gt;false&lt;/AppendRuntimeIdentifierToOutputPath&gt;&lt;/PropertyGroup&gt;&lt;/Project&gt;"
                       Overwrite="true" WriteOnlyWhenDifferent="true" />
     <WriteLinesToFile File="%(_GeneratedFixture.ProjectDirectory)Directory.Packages.props"
                       Lines="&lt;Project&gt;&lt;Import Project=&quot;$(_FixtureRepositoryRoot)Directory.Packages.props&quot; /&gt;&lt;/Project&gt;"
@@ -44,8 +41,10 @@
              Properties="Configuration=$(Configuration);ShouldUnsetParentConfigurationAndPlatform=false;_NamiFixtureRestore=true"
              RemoveProperties="BuildingSolutionFile;CurrentSolutionConfigurationContents;TargetFramework;RuntimeIdentifier;SelfContained;PublishAot;OutputPath;BaseOutputPath;IntermediateOutputPath;BaseIntermediateOutputPath;ArtifactsPath;UseArtifactsOutput;$(_GlobalPropertiesToRemoveFromProjectReferences);$(_JetBrainsProjectReferenceGlobalPropertiesToRemove)"
              BuildInParallel="false" />
+    <!-- ResolveProjectReferences has already built the support graph. The child uses ordinary
+         ProjectReference asset resolution without recursively rebuilding that graph. -->
     <MSBuild Projects="%(_GeneratedFixture.ProjectPath)" Targets="Build"
-             Properties="Configuration=$(Configuration);ShouldUnsetParentConfigurationAndPlatform=false;BuildProjectReferences=true;BuildingInsideVisualStudio=false"
+             Properties="Configuration=$(Configuration);ShouldUnsetParentConfigurationAndPlatform=false;BuildProjectReferences=false;BuildingInsideVisualStudio=false"
              RemoveProperties="BuildingSolutionFile;CurrentSolutionConfigurationContents;TargetFramework;RuntimeIdentifier;SelfContained;PublishAot;OutputPath;BaseOutputPath;IntermediateOutputPath;BaseIntermediateOutputPath;ArtifactsPath;UseArtifactsOutput;$(_GlobalPropertiesToRemoveFromProjectReferences);$(_JetBrainsProjectReferenceGlobalPropertiesToRemove)"
              BuildInParallel="false" />
     <ItemGroup>

@@ -33,11 +33,11 @@ public sealed class ToolContractTests(TestContext context)
         var tracePayload = JsonNode.Parse(OtlpData.Traces(time, error: true, exceptionEvent: true))!;
         tracePayload["resourceSpans"]![0]!["resource"]!["attributes"]!.AsArray()
             .Add((JsonNode)OtlpData.Attribute("service.version", "1.0.0"));
-        await TestData.SeedTraces(store, tracePayload.ToJsonString(), context.CancellationToken);
-        await TestData.SeedLogs(store,
+        await StorageTestData.SeedTraces(store, tracePayload.ToJsonString(), context.CancellationToken);
+        await StorageTestData.SeedLogs(store,
             OtlpData.Logs(time, exception: true, trace: 1.ToString("x32", CultureInfo.InvariantCulture),
                 span: 1.ToString("x16", CultureInfo.InvariantCulture)), clock, context.CancellationToken);
-        await TestData.SeedMetrics(store, OtlpData.Metrics(time), context.CancellationToken);
+        await StorageTestData.SeedMetrics(store, OtlpData.Metrics(time), context.CancellationToken);
         clock.Advance(TimeSpan.FromSeconds(1));
         return await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
     }
@@ -161,7 +161,7 @@ public sealed class ToolContractTests(TestContext context)
         var query = scenario switch { "quote" => "\"", "backslash" => "\\", "unicode" => "ü", _ => ".*" };
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedLogs(store,
+        await StorageTestData.SeedLogs(store,
             OtlpData.Logs(TestData.Nanos(TestData.s_now.AddSeconds(-2)), "prefix " + query + " suffix"), clock,
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
@@ -192,7 +192,7 @@ public sealed class ToolContractTests(TestContext context)
     {
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedLogs(store, OtlpData.Logs(TestData.Nanos(TestData.s_now.AddSeconds(-2)), "one"), clock,
+        await StorageTestData.SeedLogs(store, OtlpData.Logs(TestData.Nanos(TestData.s_now.AddSeconds(-2)), "one"), clock,
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var result = Run("logs_search", snapshot, "{\"query\":\"absent\"}");
@@ -208,12 +208,12 @@ public sealed class ToolContractTests(TestContext context)
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
         var start = TestData.s_now.AddMinutes(-15);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(start), offset: 0), context.CancellationToken);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(start) - 1, offset: 1),
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(start), offset: 0), context.CancellationToken);
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(start) - 1, offset: 1),
             context.CancellationToken);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now), offset: 2),
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now), offset: 2),
             context.CancellationToken);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now) + 1, offset: 3),
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now) + 1, offset: 3),
             context.CancellationToken);
         var result = Run("traces_slowest", await store.ReadSnapshotAsync("default", ct: context.CancellationToken),
             "{\"since\":\"-15m\"}");
@@ -247,7 +247,7 @@ public sealed class ToolContractTests(TestContext context)
         {
             var attrs = new JsonArray(OtlpData.Attribute("error.type",
                 "Failure-" + (offset / BatchSize).ToString("D3", CultureInfo.InvariantCulture)));
-            await TestData.SeedTraces(store,
+            await StorageTestData.SeedTraces(store,
                 OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-2)), BatchSize, offset, attributes: attrs,
                     error: true), context.CancellationToken);
             if ((offset + BatchSize) % 100000 == 0)

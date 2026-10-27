@@ -73,7 +73,7 @@ public sealed class ToolEdgeTests(TestContext context)
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store =
             new DuckDbStore(":memory:", timeProvider: clock, snapshotLifetime: TimeSpan.FromMinutes(1));
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 30),
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 30),
             context.CancellationToken);
         var service = new NamiToolService(store);
         using var initial = JsonDocument.Parse("{\"limit\":100,\"max_bytes\":1024}");
@@ -127,7 +127,7 @@ public sealed class ToolEdgeTests(TestContext context)
     {
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1))),
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1))),
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var result = Run(snapshot, "traces_get",
@@ -148,7 +148,7 @@ public sealed class ToolEdgeTests(TestContext context)
     {
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 40),
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 40),
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var input = new JsonObject { ["limit"] = 100, ["max_bytes"] = 1024 };
@@ -175,7 +175,7 @@ public sealed class ToolEdgeTests(TestContext context)
     {
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 30),
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 30),
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var first = Run(snapshot, "traces_slowest", "{\"limit\":100,\"max_bytes\":1024}");
@@ -197,7 +197,7 @@ public sealed class ToolEdgeTests(TestContext context)
     {
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 3),
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 3),
             context.CancellationToken);
         var result = Run(await store.ReadSnapshotAsync("default", ct: context.CancellationToken), "traces_slowest",
             "{}");
@@ -213,11 +213,11 @@ public sealed class ToolEdgeTests(TestContext context)
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
         var start = TestData.Nanos(TestData.s_now.AddSeconds(-2));
-        await TestData.SeedTraces(store, OtlpData.Traces(start, 3), context.CancellationToken);
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(start, 3), context.CancellationToken);
         var other = JsonNode.Parse(OtlpData.Traces(start, offset: 99, operation: "POST /other"))!;
         other["resourceSpans"]![0]!["scopeSpans"]![0]!["spans"]![0]!["endTimeUnixNano"] =
             (start + 1000000000).ToString(CultureInfo.InvariantCulture);
-        await TestData.SeedTraces(store, other.ToJsonString(), context.CancellationToken);
+        await StorageTestData.SeedTraces(store, other.ToJsonString(), context.CancellationToken);
         var result = Run(await store.ReadSnapshotAsync("default", ct: context.CancellationToken), "traces_slowest",
             "{\"operation\":\"GET /orders\",\"limit\":2}");
         Assert.IsFalse(result.IsError);
@@ -250,7 +250,7 @@ public sealed class ToolEdgeTests(TestContext context)
             var input = JsonNode.Parse(OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), offset: id))!;
             input["resourceSpans"]![0]!["resource"]!["attributes"]!.AsArray()
                 .Add((JsonNode)OtlpData.Attribute("service.version", version));
-            await TestData.SeedTraces(target, input.ToJsonString(), context.CancellationToken);
+            await StorageTestData.SeedTraces(target, input.ToJsonString(), context.CancellationToken);
             _ = await target.ReadSnapshotAsync("default", ct: context.CancellationToken);
         }
     }

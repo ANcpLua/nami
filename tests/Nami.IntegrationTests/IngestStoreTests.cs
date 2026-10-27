@@ -33,10 +33,10 @@ public sealed class IngestStoreTests(TestContext context)
     {
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1))),
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1))),
             context.CancellationToken);
         var before = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddDays(-2)), offset: 1),
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddDays(-2)), offset: 1),
             context.CancellationToken);
         var after = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         Assert.AreEqual(before.Signals[0].WatermarkUnixNano, after.Signals[0].WatermarkUnixNano);
@@ -49,7 +49,7 @@ public sealed class IngestStoreTests(TestContext context)
     {
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedLogs(store, OtlpData.Logs(TestData.Nanos(TestData.s_now.AddYears(3))), clock,
+        await StorageTestData.SeedLogs(store, OtlpData.Logs(TestData.Nanos(TestData.s_now.AddYears(3))), clock,
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         Assert.AreEqual(TestData.Nanos(TestData.s_now), Assert.ContainsSingle(snapshot.Signals).LastSeenUnixNano);
@@ -62,7 +62,7 @@ public sealed class IngestStoreTests(TestContext context)
     {
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store,
+        await StorageTestData.SeedTraces(store,
             OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)),
                 attributes: new JsonArray(OtlpData.Attribute("http.method", "POST"))), context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
@@ -89,7 +89,7 @@ public sealed class IngestStoreTests(TestContext context)
             "discovery.duckdb");
         await using (var store = new DuckDbStore(path, timeProvider: clock))
         {
-            await TestData.SeedTraces(store,
+            await StorageTestData.SeedTraces(store,
                 OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)),
                     attributes: new JsonArray(OtlpData.Attribute("http.method", "POST"),
                         OtlpData.Attribute("exception.escaped", "true"))), context.CancellationToken);
@@ -126,7 +126,7 @@ public sealed class IngestStoreTests(TestContext context)
                     { ["values"] = new JsonArray(new JsonObject { ["stringValue"] = "sample" }) }
             }
         };
-        await TestData.SeedTraces(store,
+        await StorageTestData.SeedTraces(store,
             OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), attributes: new JsonArray(metadata)),
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
@@ -146,7 +146,7 @@ public sealed class IngestStoreTests(TestContext context)
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
         var attrs = new JsonArray(new JsonObject
             { ["key"] = "gen_ai.usage.input_tokens", ["value"] = new JsonObject { ["intValue"] = "42" } });
-        await TestData.SeedTraces(store,
+        await StorageTestData.SeedTraces(store,
             OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), attributes: attrs), context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var mark = Assert.ContainsSingle(snapshot.AttributeStabilities
@@ -219,7 +219,7 @@ public sealed class IngestStoreTests(TestContext context)
         listener.Start();
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), service: null),
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), service: null),
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         Assert.HasCount(1, snapshot.Spans);
@@ -233,7 +233,7 @@ public sealed class IngestStoreTests(TestContext context)
     {
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store,
+        await StorageTestData.SeedTraces(store,
             OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), project: "tenant-a"),
             context.CancellationToken);
         var first = await store.ReadSnapshotAsync("tenant-a", ct: context.CancellationToken);
@@ -263,9 +263,9 @@ public sealed class IngestStoreTests(TestContext context)
     {
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddDays(-2)), offset: 0),
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddDays(-2)), offset: 0),
             context.CancellationToken);
-        await TestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddHours(-1)), offset: 1),
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddHours(-1)), offset: 1),
             context.CancellationToken);
         _ = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         Assert.AreEqual(1,

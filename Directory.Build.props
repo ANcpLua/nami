@@ -1,9 +1,4 @@
 <Project>
-  <PropertyGroup>
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-  </PropertyGroup>
-
   <!-- Centralize build output to artifacts/ for most projects.
        Exception: eng/ projects need local bin/obj for NuGet pack paths. -->
   <PropertyGroup Condition="!$(MSBuildProjectDirectory.Contains('eng'))">
@@ -39,6 +34,14 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+
+  <!-- Compiler-discovered configs otherwise expose their parent directory as an IDE link.
+       Explicit links supplied by an SDK override this default; compiler inputs stay unchanged. -->
+  <ItemDefinitionGroup>
+    <EditorConfigFiles>
+      <Link>Build/Configuration/%(Filename)%(Extension)</Link>
+    </EditorConfigFiles>
+  </ItemDefinitionGroup>
 
 
   <!-- Audit direct and transitive dependencies; Directory.Packages.props owns security overrides. -->

@@ -1,9 +1,5 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
-using Nami.Collector.Ingestion;
-using Nami.Collector.Storage;
-using OpenTelemetry.Proto.Collector.Logs.V1;
-using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 
 namespace Nami.Tests.Infrastructure;
@@ -55,24 +51,5 @@ internal static class TestData
     internal static ulong Nanos(DateTimeOffset value)
     {
         return checked((ulong)((value.UtcTicks - DateTimeOffset.UnixEpoch.UtcTicks) * 100));
-    }
-
-    internal static async Task SeedTraces(DuckDbStore store, string json, CancellationToken token)
-    {
-        var batch = OtlpConverter.ConvertTraceRequest(ParseTraces(json));
-        await store.EnqueueAsync(new SpanBatch(IngestionStorageMapper.ToSpanStorageRows(batch)), token);
-    }
-
-    internal static async Task SeedLogs(DuckDbStore store, string json, TimeProvider clock, CancellationToken token)
-    {
-        var batch = OtlpConverter.ConvertLogs(ExportLogsServiceRequest.Parser.ParseJson(ProtobufJson(json)), clock);
-        await store.InsertLogsAsync(IngestionStorageMapper.ToLogStorageRows(batch), token);
-    }
-
-    internal static async Task SeedMetrics(DuckDbStore store, string json, CancellationToken token)
-    {
-        var batch = OtlpConverter.ConvertMetrics(ExportMetricsServiceRequest.Parser.ParseJson(json));
-        var rows = MetricStorageMapper.ToStorageRows(batch);
-        await store.InsertMetricsAsync(rows.Series, rows.Observations, token);
     }
 }

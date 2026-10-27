@@ -14,8 +14,8 @@
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
     <PackageReference Include="NuGet.Versioning"/>
     <Protobuf Include="Protos/**/*.proto" ProtoRoot="Protos" GrpcServices="None" Access="Internal"/>
+    <ProjectReference Include="../../internal/nami.contracts/Nami.Api.Contracts.csproj"/>
     <ProjectReference Include="../../src/nami.collector.ingestion/nami.collector.ingestion.csproj"/>
-    <ProjectReference Include="../../src/nami.collector.storage/nami.collector.storage.csproj"/>
     <PackageReference Include="Google.Protobuf"/>
     <PackageReference Include="ModelContextProtocol"/>
     <InternalsVisibleTo Include="Nami.UnitTests"/>
