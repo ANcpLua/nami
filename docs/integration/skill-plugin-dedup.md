@@ -39,7 +39,10 @@ independently maintained source copies. Nami's product-specific
 
 ## Deferred investigation
 
-Qyl and the playground remain. The user explicitly retained Qyl for examination
+Qyl and the playground were retained during this cleanup. Subsequently, after consolidation,
+the user explicitly authorized deleting the playground; its directory was removed on 27 October
+2026 while its verified archive was retained. See [workspace-handoff.md](workspace-handoff.md).
+The user explicitly retained Qyl for examination
 of `qyl.telemetry.autoinstrumentation`. Local sources found so far include
 `qyl/internal/qyl.instrumentation` and `qyl/internal/qyl.instrumentation.generators`;
 this is not yet a confirmed mapping to the named package. Follow the approved

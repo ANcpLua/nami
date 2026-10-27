@@ -18,8 +18,10 @@ D1–D6 with their limits in
 Self-instrumentation covers Nami's operations; it does not replace application instrumentation.
 An unimplemented requirement remains open. Keep snapshot completeness, producer capture and
 loss-free delivery distinct. Do not reopen the Collector choice or infer a product SDK/CLI from
-build and launcher scripts. Qyl and `nami.playground` are retained by the latest user instruction;
-no contract change authorizes their deletion or another prototype migration.
+build and launcher scripts. Qyl remains retained. After consolidation, the user explicitly authorized
+deleting `nami.playground`; its directory was removed on 27 October 2026 and its verified archive
+remains under `artifacts/migration-checkpoints/`. See `docs/integration/workspace-handoff.md`.
+No contract change authorizes deleting Qyl or starting another prototype migration.
 
 TypeSpec owns Nami data structures, representation metadata and structural mappings. Weaver owns
 SemConv keys, successors, stability and persistence/redaction policy. Upstream OTLP protocol types

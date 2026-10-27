@@ -17,7 +17,7 @@ Eine vorhandene Datei beweist nicht, dass ihre komplette Implementierung optimal
 | `~/RiderProjects/nami` | Implementierung der Konsolidierung in `02181a0`; aktive Branch `codex/playground-consolidation-20261027`. | Produktimplementierung, vier Testprojekte und gemeinsame Build-Dateien. |
 | Downloads-Prototyp und seine alte Sicherung | Laut ausdrücklicher Nutzerbestätigung gelöscht; dokumentiert in [skill-plugin-dedup.md](skill-plugin-dedup.md). | Keine aktive Abhängigkeit und kein neuer Importauftrag. |
 | `~/RiderProjects/qyl` | Separates Produkt mit eigenständigen verschachtelten Repositories. | **Bleibt erhalten.** Die lesende Instrumentierungsberatung ist kein Migrationsauftrag. |
-| `~/RiderProjects/nami.playground` | Kandidaten geprüft; sinnvolle Fähigkeiten in vorhandene Nami-Eigentümer übernommen. | **Bleibt nach neuerer Nutzerentscheidung erhalten.** Kein Produkt-, Build- oder Test-Verweis erforderlich. |
+| `~/RiderProjects/nami.playground` | Kandidaten geprüft; sinnvolle Fähigkeiten in vorhandene Nami-Eigentümer übernommen. | **Am 27. Oktober 2026 auf ausdrücklichen Nutzerauftrag gelöscht.** Geprüfte Sicherung bleibt unter `artifacts/migration-checkpoints/`; kein Produkt-, Build- oder Test-Verweis. |
 | `~/RiderProjects/nami-plugin` | Portable Skill-Distribution; Eigentum in [skill-plugin-dedup.md](skill-plugin-dedup.md). | Separate Plugin-Arbeit; nicht zusammen mit Prototypen entfernen. |
 | `~/RiderProjects/nami-architecture-review` | Entscheidungsarbeit. | Keine Produktlaufzeit und keine zweite Implementierung. |
 
@@ -102,8 +102,13 @@ Die Testnamen bezeichnen die zuständigen Nachweise. Der endgültige Gesamtprüf
 Der Playground wurde vor der Konsolidierung vollständig nach
 `artifacts/migration-checkpoints/nami.playground-2026-10-27.tar.gz` gesichert. Das zugehörige
 `.tar.manifest.json` hält Quell-Hashes fest. Das Archiv ist kein Build- oder Test-Eingang.
-Die neuere ausdrückliche Nutzeranweisung behält **Qyl und Playground**; es gibt hier keinen offenen
-Löschauftrag. Downloads-Prototyp und seine alte Sicherung wurden gesondert ausdrücklich gelöscht.
+Nach Abschluss der Konsolidierung hat der Nutzer die Löschung von `~/RiderProjects/nami.playground`
+ausdrücklich beauftragt. Der Ordner wurde am 27. Oktober 2026 gelöscht; seine Abwesenheit wurde
+geprüft. Vorher wurden die archivierten Quelldateien erneut abgeglichen; Änderungen betrafen nur
+`.DS_Store`. Das Archiv bleibt erhalten (SHA256:
+`15071ed3c0de32426cc0fc1a0c0736a37e606f6aa2f12c4ec9a4b3b857418aef`).
+**Qyl bleibt erhalten.** Downloads-Prototyp und seine alte Sicherung wurden zuvor gesondert
+ausdrücklich gelöscht. Diese Entscheidungen eröffnen keinen weiteren Migrationsauftrag.
 
 ## 6. Abschlussumfang
 
