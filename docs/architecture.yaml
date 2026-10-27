@@ -41,7 +41,8 @@ instrumentation:
 acceptance:
   required: [I1-I18, D1-D6]
   definitions_and_limits: docs/prd/nami-request-response-review.md
-  implementation_evidence: docs/checklist.md
+  implementation_checklist: docs/checklist.md
+  implementation_evidence: docs/integration/requirement-evidence.md
 components:
   contracts/: TypeSpec sources, CSharp/TypeScript emitters and wire schemas
   registry/: Generated canonical publication of pinned semantic definitions and policies

@@ -388,7 +388,7 @@ Die Nutzerkorrektur vom 24.10.2026 ersetzt widersprechende frühere Architekture
 
 | Risiko / offene Arbeit | Nachweis / Behandlung |
 | --- | --- |
-| Bisheriger C#-MCP-Host erfüllt den neuen Zielstand nicht. | Migration und Status in der Checkliste; G/R/S/T-Beweise erhalten und um I/D ergänzen. |
+| Der TypeScript-MCP-/NativeAOT-Stack ist implementiert; Anwendungsinstrumentierung, Beobachtungslebenszeit und vollständige I/D-Nachweise sind noch offen. | [Checkliste](../checklist.md) und [Anforderungsmatrix](../integration/requirement-evidence.md) trennen vorhandene Implementierung, konkrete Beweise und fehlenden Abschluss. |
 | Zwei Artefakte können inkompatibel veröffentlicht werden. | Gemeinsamer Release, deterministische Generierung und Revisionsprüfung vor Dispatch; D2. |
 | Private Streams können blockieren, Frames vermischen oder verwaiste Prozesse hinterlassen. | D3/D4/D6 prüfen Framing, Speichergrenzen, Cancellation und Prozess-Lifecycle. |
 | Connector-/Plugin-Paketierung und Authentifizierung unterscheiden sich zwischen Hosts. | Hostbezogene Integration und D1; keine hypothetische Single-Binary- oder C#-Pflicht. |

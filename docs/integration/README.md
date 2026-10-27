@@ -1,6 +1,23 @@
 # Nami integration decisions
 
-The product requirements are `docs/prd/nami.md`; `docs/checklist.md` owns implementation scope.
+The product requirements are [the PRD](../prd/nami.md) and its
+[request/response review](../prd/nami-request-response-review.md).
+[The checklist](../checklist.md) and [I1–I18 / D1–D6 evidence matrix](requirement-evidence.md)
+record implementation status and proof limits. Entries below are dated history, not current gate results.
+
+## 2026-10-27: requirement evidence reconciled with the actual implementation
+
+All I1–I18 and D1–D6 now name existing source/test evidence and their remaining scope. Contract
+codecs, native union writers, local MCP/OTLP, snapshots and test-harness ownership have concrete
+proofs. Application instrumentation, observation lifetimes and hosted integration remain open;
+private-stream adversarial cases and full recording/delivery claims are only partly evidenced.
+The last executed code gate at `00523cc` passed 744 MTP cases with existing native publish
+diagnostics. Later documentation fingerprints are stale, not new passing runtime results.
+
+The old inline contract questions are retained in [review notes](checklist-review-notes.md).
+Configuration metadata ownership now points to TypeSpec and its generated consumers. Build
+documentation distinguishes the .NET solution graph from the Bun MCP target run by the orchestrator;
+`nami.mcp` is currently not a `.esproj` solution member. No product code or tests changed in this review.
 
 ## 2026-10-24: contract change signals
 

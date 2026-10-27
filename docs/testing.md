@@ -40,8 +40,12 @@ are collected by `GeneratedFixtures.targets` after the support graph has been bu
 Analyzer configurations remain compiler inputs, with explicit virtual links in the project tree.
 Local Rider index preferences are separate from solution membership and build dependencies.
 
-`nami.slnx` is the authoritative build scope. A `.slnf` is optional for IDE loading; suite selection
-does not require one. MSBuild follows the projects' `ProjectReference` dependencies for build
+`nami.slnx` is the authoritative .NET project graph. The TypeScript/Bun MCP adapter is a separate
+`package.json` project, currently without a `.esproj` solution member. `eng/build/Build.cs` runs
+its frozen dependency install and build through `Mcp` before `Compile`; `PublishNative` includes
+the resulting `mcp/main.js`. A direct solution build alone does not build that adapter.
+A `.slnf` is optional for IDE loading; suite selection does not require one.
+MSBuild follows the projects' `ProjectReference` dependencies for build
 ordering. Repository commands default to two MSBuild workers and `DOTNET_PROCESSOR_COUNT=2`;
 `NAMI_BUILD_WORKERS` explicitly overrides the command budget when needed. The test runner separately
 orders the three suites and uses two MSTest workers within each suite. The two registry checks that
@@ -53,6 +57,9 @@ complete solution. Deleting `.idea` or running `dotnet clean` does not enable we
 
 The completed prototype handover and file dispositions are documented in
 [test-harness.md](integration/test-harness.md). No Downloads checkout or parent repository is required.
+The [I1–I18 / D1–D6 evidence matrix](integration/requirement-evidence.md) distinguishes actual
+product proofs, test-harness proofs and the remaining product scope. Its recorded 744-test
+baseline is tied to code commit `00523cc`; it is not a fresh result for later source fingerprints.
 
 ## Project roles and generated fixtures
 
