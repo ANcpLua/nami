@@ -4,7 +4,7 @@ nami is an agent-operated application debugging stack: compile-time instrumentat
 configured observation lifetimes, its own OpenTelemetry collector, DuckDB-backed analysis
 and six read-only MCP tools. Agents use it through a Claude.ai connector
 and/or an OpenAI plugin with bundled MCP integration; local clients are also supported. There is
-no dashboard or human-facing analysis UI. Tomo is an example developer whose application an
+no dashboard or human-facing analysis UI. Tomo(not yet build rust app) is an example developer whose application an
 agent investigates, not the only supported application.
 
 The runtime is **TypeScript/Bun MCP + C#/.NET 11 NativeAOT engine**, connected locally by
