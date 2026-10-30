@@ -4,10 +4,10 @@
   "packages": [
     {
       "package": "@typespec/compiler",
-      "version": "1.17.0",
+      "version": "1.18.0-dev.13",
       "role": "compiler",
-      "tag": "latest",
-      "integrity": "sha512-Prj9o2bjoWNS9wJ6sUk532jGm8h2AtpQ/lCFH6dhcywiP7UTj9cJtNlDAHptAS9Irh3YJM2g5D4/7S/u/vcG8Q==",
+      "tag": "next",
+      "integrity": "sha512-01VfozYjYs3CxVyv6y3sJnTNK1eCvRpiJuw82oq9FCdYdcEAQWHApbMK55ka1XtA8kc3JThGhx63Ti7/qfLx0A==",
       "peerDependencies": {},
       "entrypoints": {
         "./experimental/typekit:types": {
@@ -48,7 +48,7 @@
         ".:types": {
           "path": "contracts/node_modules/@typespec/compiler/dist/src/index.d.ts",
           "exists": true,
-          "sha256": "96da8c12dd47a56e5ee4574db576032cef16eea311378568f8f159e39dd79d5c"
+          "sha256": "e1de360e8a09e9f8070a3eeba53ea5f4dc337307d1d44df44d91f25c4ae359dc"
         },
         ".:typespec": {
           "path": "contracts/node_modules/@typespec/compiler/lib/std/main.tsp",
@@ -64,27 +64,27 @@
     },
     {
       "package": "@typespec/emitter-framework",
-      "version": "0.21.0",
+      "version": "0.22.0-dev.1",
       "role": "required TypeSpec peer",
-      "tag": "latest",
-      "integrity": "sha512-ACVZ6cUpO+dmzA0xbBxYuYAWwkPp59kABxIES5BRvhKg873hyI7o3vM3Ni+m5FK4JWlBdw1oR4QINSNUt5rDCw==",
+      "tag": "next",
+      "integrity": "sha512-SlI11JrJjaEEu+u5WosVqIH6xccT+Dp4LpfyMWkAWJ1Qxuk6hEdHAx/zPCHYnVY4hXxk8FyZv2HJGjrUvE+vDA==",
       "peerDependencies": {
-        "@alloy-js/core": "^0.24.1",
-        "@alloy-js/csharp": "^0.24.0",
-        "@alloy-js/python": "^0.5.0",
-        "@typespec/compiler": "^1.16.0",
-        "@alloy-js/typescript": "^0.24.0"
+        "@alloy-js/core": "^0.25.0",
+        "@alloy-js/csharp": "^0.25.0",
+        "@alloy-js/python": "^0.6.0",
+        "@typespec/compiler": "^1.17.0 || >= 1.18.0-dev.2",
+        "@alloy-js/typescript": "^0.25.0"
       },
       "entrypoints": {}
     },
     {
       "package": "@typespec/events",
-      "version": "0.87.0",
+      "version": "0.88.0-dev.0",
       "role": "preview library",
-      "tag": "latest",
-      "integrity": "sha512-LZHZHnrqOZrQT9bokd9InaXpG35XoChHK4lZqAfJtTTx8zq0kzm5WIZ8fnXttUj332mjjgSNVtZyyrrZFzpKQw==",
+      "tag": "next",
+      "integrity": "sha512-yhCZkHzIy7qZRCNGU0Gv1sEQI1WhWRUjDenbZo5O0KycrwE7szXshG5xewqp0RafN+lTGbFuwJIeZ08LAja9YQ==",
       "peerDependencies": {
-        "@typespec/compiler": "^1.17.0"
+        "@typespec/compiler": "^1.17.0 || >= 1.18.0-dev.0"
       },
       "entrypoints": {
         "./experimental:types": {
@@ -106,15 +106,15 @@
     },
     {
       "package": "@typespec/graphql",
-      "version": "0.4.0",
+      "version": "0.5.0-dev.1",
       "role": "preview emitter",
-      "tag": "latest",
-      "integrity": "sha512-rW5OkomsZjTXvBwzI8TGL25PClJIrBEd5Mj1IyPOb8Vwi+yyoeKTkg815zI31jCK0peRZ9OSqnxPrzxbQz5hmw==",
+      "tag": "next",
+      "integrity": "sha512-feaUWV7byt1Jpk8fsbx66AGQrA40FmKNJIbvSl5XkfS/d8iPUVuZIY8unRTyIx6rn0r4U3s1tR5I2IWbstyabQ==",
       "peerDependencies": {
-        "@typespec/http": "~1.17.0",
-        "@typespec/compiler": "~1.17.0",
-        "@typespec/emitter-framework": "~0.21.0",
-        "@typespec/mutator-framework": "~0.17.1"
+        "@typespec/http": "~1.17.0 || >= 1.18.0-dev.2",
+        "@typespec/compiler": "~1.17.0 || >= 1.18.0-dev.5",
+        "@typespec/emitter-framework": "~0.21.0 || >= 0.22.0-dev.1",
+        "@typespec/mutator-framework": "~0.17.1 || >= 0.17.2-dev.1"
       },
       "entrypoints": {
         "./mutation-engine:types": {
@@ -141,13 +141,13 @@
     },
     {
       "package": "@typespec/http",
-      "version": "1.17.0",
+      "version": "1.18.0-dev.6",
       "role": "core library",
-      "tag": "latest",
-      "integrity": "sha512-XLwL+NvkQ4hWhnIwZms2CNoxCULFt/jMa+QGaKg4hDwPFLvrXsUm7JWPHi1QOcwzGFG8Z1NglqRPzKl2der2ww==",
+      "tag": "next",
+      "integrity": "sha512-07zzIJOk4fItREYyZZaiwxnpAXOfydjc9XIiLjf+kxe+nOAOTl+OoYoKR9Rmbo00xGhx2LnDeB9UfVJCCs6elQ==",
       "peerDependencies": {
-        "@typespec/streams": "^0.87.0",
-        "@typespec/compiler": "^1.17.0"
+        "@typespec/streams": "^0.87.0 || >= 0.88.0-dev.0",
+        "@typespec/compiler": "^1.17.0 || >= 1.18.0-dev.5"
       },
       "entrypoints": {
         "./experimental/typekit:types": {
@@ -194,12 +194,12 @@
     },
     {
       "package": "@typespec/json-schema",
-      "version": "1.17.0",
+      "version": "1.18.0-dev.2",
       "role": "schema emitter",
-      "tag": "latest",
-      "integrity": "sha512-sqetPUc6mat4e5eD53lCRyIMM1FgcSjAcS94bg1/p8u9m/G1k61ebuiHLIAdXhCr1wmYHy425m0Q6kYR5oPo1A==",
+      "tag": "next",
+      "integrity": "sha512-91ZPmW34sjECuedCh7XT5/RO3zVKoSjJ1WAHcCYhRJOhJ6aWJX7IW6k4/QW+4izLxaz+uJCcW5ZgHp6LifL2XQ==",
       "peerDependencies": {
-        "@typespec/compiler": "^1.17.0"
+        "@typespec/compiler": "^1.17.0 || >= 1.18.0-dev.11"
       },
       "entrypoints": {
         "./testing:types": {
@@ -226,24 +226,24 @@
     },
     {
       "package": "@typespec/mutator-framework",
-      "version": "0.17.1",
+      "version": "0.17.2-dev.5",
       "role": "required TypeSpec peer",
-      "tag": "latest",
-      "integrity": "sha512-Xv5FVjgt00hVEEyg8P4LMCp8mOS6Ue0efxtjIcSPjGbXJqJkQA2KXX97DwnyUrAjC2v5uKyXVJsgD2t91UDyHw==",
+      "tag": "next",
+      "integrity": "sha512-Lry6j/1sMrML5Z42rVGtaKY8r8X/T7nxGNMvJ0rUS9u6vMXBFFF96Bdu/ajG1UovQN9IBwm+UmOIKCLf4ndzdA==",
       "peerDependencies": {
-        "@typespec/compiler": "^1.16.0"
+        "@typespec/compiler": "^1.17.0 || >= 1.18.0-dev.5"
       },
       "entrypoints": {}
     },
     {
       "package": "@typespec/openapi",
-      "version": "1.17.0",
+      "version": "1.18.0-dev.1",
       "role": "core library",
-      "tag": "latest",
-      "integrity": "sha512-0ScXsaovyFZWJv0nnokGI25vK5nRvJ8KfxiKokyXyQrwzK51eb61P/yZr/cZDGjk/w/qKHz2Vz1OvVC4ztdQdA==",
+      "tag": "next",
+      "integrity": "sha512-eXFZeFLSKdKNapGELXYpVPKakJ01S4kF5SzIyDHJm8wxR9MyqR//xi8ox9Ecv0UDdIhCXZUNhHiQJ2dozWgU6A==",
       "peerDependencies": {
-        "@typespec/http": "^1.17.0",
-        "@typespec/compiler": "^1.17.0"
+        "@typespec/http": "^1.17.0 || >= 1.18.0-dev.2",
+        "@typespec/compiler": "^1.17.0 || >= 1.18.0-dev.5"
       },
       "entrypoints": {
         "./testing:types": {
@@ -270,19 +270,19 @@
     },
     {
       "package": "@typespec/openapi3",
-      "version": "1.17.0",
+      "version": "1.18.0-dev.7",
       "role": "schema emitter",
-      "tag": "latest",
-      "integrity": "sha512-BC5zSemNfyFWIgJOj0TrwVA3KULIvCmlrDhqESMbzmN4h3byhXR/PENxPP4TlPKfu3M1KE44esnxSDQ5Py3WnA==",
+      "tag": "next",
+      "integrity": "sha512-BaQE0SQ7rIZG4trtgz18vcKJFjD1Ln1aZaZRtIrz5xygS3IK4HXLsFndX3h47SFW6xfuvtKdUFMa39fXjPxGEQ==",
       "peerDependencies": {
-        "@typespec/sse": "^0.87.0",
-        "@typespec/http": "^1.17.0",
-        "@typespec/events": "^0.87.0",
-        "@typespec/openapi": "^1.17.0",
-        "@typespec/streams": "^0.87.0",
-        "@typespec/compiler": "^1.17.0",
-        "@typespec/versioning": "^0.87.0",
-        "@typespec/json-schema": "^1.17.0"
+        "@typespec/sse": "^0.87.0 || >= 0.88.0-dev.0",
+        "@typespec/http": "^1.17.0 || >= 1.18.0-dev.6",
+        "@typespec/events": "^0.87.0 || >= 0.88.0-dev.0",
+        "@typespec/openapi": "^1.17.0 || >= 1.18.0-dev.1",
+        "@typespec/streams": "^0.87.0 || >= 0.88.0-dev.0",
+        "@typespec/compiler": "^1.17.0 || >= 1.18.0-dev.12",
+        "@typespec/versioning": "^0.87.0 || >= 0.88.0-dev.2",
+        "@typespec/json-schema": "^1.17.0 || >= 1.18.0-dev.2"
       },
       "entrypoints": {
         "./testing:types": {
@@ -293,7 +293,7 @@
         ".:types": {
           "path": "contracts/node_modules/@typespec/openapi3/dist/src/index.d.ts",
           "exists": true,
-          "sha256": "1b4850c354341c36fd593c8dbbdd603d255aaf85d72762e84df5b07d9b06980b"
+          "sha256": "e56a5f5241b28af9a224d1d5fa21d71937d455110fe68082fe85f8473b95bf54"
         },
         ".:typespec": {
           "path": "contracts/node_modules/@typespec/openapi3/lib/main.tsp",
@@ -309,40 +309,40 @@
     },
     {
       "package": "@typespec/protobuf",
-      "version": "0.87.0",
+      "version": "0.88.0-dev.2",
       "role": "preview emitter",
-      "tag": "latest",
-      "integrity": "sha512-fy1sZ+/JlB8gc60ospB3/RDSr7l+mfHFznAZAVEXXcf023VOkhqz6K7ww6GZrKnkxyDHXKNLliD5w9E7ffmAIw==",
+      "tag": "next",
+      "integrity": "sha512-5SzOJDrls7d8rjIxqvq2vydq7mI7Wp/Dkc161OYwjDadWJGzOz7T+KCvnxlPHZtnnsqmQdOqWP/IjtmNGqBBBg==",
       "peerDependencies": {
-        "@typespec/compiler": "^1.17.0"
+        "@typespec/compiler": "^1.17.0 || >= 1.18.0-dev.5"
       },
       "entrypoints": {
         ".:types": {
           "path": "contracts/node_modules/@typespec/protobuf/dist/src/index.d.ts",
           "exists": true,
-          "sha256": "ff55536d34626dd38d1bda6202a07b1252d54da1080eea057fc502e5629c6ed6"
+          "sha256": "8cf55270abc176543a3f50f33c7646f62aea4aabbb176609d6d1aee3a9508c59"
         },
         ".:typespec": {
           "path": "contracts/node_modules/@typespec/protobuf/lib/proto.tsp",
           "exists": true,
-          "sha256": "e4467a56912bf88d157a564a9a96c557c7d26a37713266bbb74b87d2cb2c801d"
+          "sha256": "97536967f9bad1abc973df51d90027375db1418369e23bb8c36c1ac33f6aeab9"
         },
         "tspMain": {
           "path": "contracts/node_modules/@typespec/protobuf/lib/proto.tsp",
           "exists": true,
-          "sha256": "e4467a56912bf88d157a564a9a96c557c7d26a37713266bbb74b87d2cb2c801d"
+          "sha256": "97536967f9bad1abc973df51d90027375db1418369e23bb8c36c1ac33f6aeab9"
         }
       }
     },
     {
       "package": "@typespec/rest",
-      "version": "0.87.0",
+      "version": "0.88.0-dev.0",
       "role": "preview library",
-      "tag": "latest",
-      "integrity": "sha512-Oi47F6IJWyP/efMXf+OUwJTKRrfPpsXPzFZIxG5x2HpAgTwQ0xAUPkrQ6XoQ4rdmwN3XPm0nV54lw5GKljB9LQ==",
+      "tag": "next",
+      "integrity": "sha512-b++BCQEiupw/L+VFwjAk1tKS2cibqK8wuKj24SzHQuNY1J3iyLmpiUiXrMgZFTg9OgNgK/bnPz5xL4EDWv3J7Q==",
       "peerDependencies": {
-        "@typespec/http": "^1.17.0",
-        "@typespec/compiler": "^1.17.0"
+        "@typespec/http": "^1.17.0 || >= 1.18.0-dev.0",
+        "@typespec/compiler": "^1.17.0 || >= 1.18.0-dev.0"
       },
       "entrypoints": {
         "./testing:types": {
@@ -369,15 +369,15 @@
     },
     {
       "package": "@typespec/sse",
-      "version": "0.87.0",
+      "version": "0.88.0-dev.0",
       "role": "preview library",
-      "tag": "latest",
-      "integrity": "sha512-6bAe4zlL+ZYzPCbAXSurTnZ9Jkze1/FAlK2d0i8L81syDtyDs2xWm8quElLzyVks2LkttsO14vFdN2ek5vUJ+g==",
+      "tag": "next",
+      "integrity": "sha512-w3e6gxaRAjqDg7ZmMuuXZZqkd1dNzbNs3cZCmf7HyJho/jfbrd0BYH3KQlS1+owTouOyAL5XojsTDOlPkGJ33A==",
       "peerDependencies": {
-        "@typespec/http": "^1.17.0",
-        "@typespec/events": "^0.87.0",
-        "@typespec/streams": "^0.87.0",
-        "@typespec/compiler": "^1.17.0"
+        "@typespec/http": "^1.17.0 || >= 1.18.0-dev.0",
+        "@typespec/events": "^0.87.0 || >= 0.88.0-dev.0",
+        "@typespec/streams": "^0.87.0 || >= 0.88.0-dev.0",
+        "@typespec/compiler": "^1.17.0 || >= 1.18.0-dev.0"
       },
       "entrypoints": {
         ".:typespec": {
@@ -394,12 +394,12 @@
     },
     {
       "package": "@typespec/streams",
-      "version": "0.87.0",
+      "version": "0.88.0-dev.0",
       "role": "preview library",
-      "tag": "latest",
-      "integrity": "sha512-m7QLb6VuJiVNM4xuQZMTxoL5xyseLsgmOhUMpmg5HGtAp8toDWaT2N9fxen9BJ3swqdB4P5huQJSVO2BcFB96A==",
+      "tag": "next",
+      "integrity": "sha512-klcHBTXDl2EUikEKE1Swy0mzAVZinoDCzV9JXXSYRtjvvTLqBs4bRYkGVjPBRZ8ViYCYMRuX6sMZayPuk2Stuw==",
       "peerDependencies": {
-        "@typespec/compiler": "^1.17.0"
+        "@typespec/compiler": "^1.17.0 || >= 1.18.0-dev.0"
       },
       "entrypoints": {
         "./testing:types": {
@@ -426,18 +426,18 @@
     },
     {
       "package": "@typespec/versioning",
-      "version": "0.87.0",
+      "version": "0.88.0-dev.2",
       "role": "preview library",
-      "tag": "latest",
-      "integrity": "sha512-GPL92BH29XAh10o0stg1LfW6RZyyQnlt8LAQ1i1Bfgnf6W0S32nCwbtVgHy8WX1u/g4sXWq74O3xi6Ng5+i68w==",
+      "tag": "next",
+      "integrity": "sha512-bonvRnYHI/NE6O+Q+XAqYD9GDKka/5GGHu3z5YZemGaoXxBHC9pF5Ejd71GcC7xXov1+Y5cLRi1yo+luVRg3VQ==",
       "peerDependencies": {
-        "@typespec/compiler": "^1.17.0"
+        "@typespec/compiler": "^1.17.0 || >= 1.18.0-dev.7"
       },
       "entrypoints": {
         "./testing:types": {
           "path": "contracts/node_modules/@typespec/versioning/dist/src/testing/index.d.ts",
           "exists": true,
-          "sha256": "6a77e34b2c530c75991aa79511736c42b1831a7d08492430346e3d4ba7934520"
+          "sha256": "7ba914069250a8651688b98a64fa7596902b7937872c4dcd7e4568cbcd1a6fc2"
         },
         ".:types": {
           "path": "contracts/node_modules/@typespec/versioning/dist/src/index.d.ts",

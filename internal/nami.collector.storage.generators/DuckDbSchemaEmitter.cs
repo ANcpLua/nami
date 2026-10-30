@@ -1,4 +1,5 @@
-using System.Security.Cryptography;
+using ANcpLua.Roslyn.Utilities.Security;
+using SourceString = ANcpLua.Roslyn.Utilities.StringExtensions;
 
 namespace Nami.Collector.Storage.Generators;
 
@@ -45,7 +46,7 @@ internal static class DuckDbSchemaEmitter
         sb.BeginBlock();
         foreach (var name in authoritative.SelectMany(static table => table.Columns).Select(static column => column.SequenceName)
                      .OfType<string>().Distinct(StringComparer.Ordinal).OrderBy(static name => name, StringComparer.Ordinal))
-            sb.AppendLine($"\"{Escape("DROP SEQUENCE IF EXISTS \"" + name.Replace("\"", "\"\"") + "\"")}\",");
+            sb.AppendLine($"\"{SourceString.EscapeCSharpString("DROP SEQUENCE IF EXISTS \"" + name.Replace("\"", "\"\"") + "\"")}\",");
         sb.EndBlock("};");
         EmitExpectedTables(sb, "BootstrapTables", bootstrap);
         EmitExpectedTables(sb, "AuthoritativeTables", authoritative);
@@ -62,7 +63,7 @@ internal static class DuckDbSchemaEmitter
     {
         sb.AppendLine($"public static readonly string[] {name} =");
         sb.BeginBlock();
-        foreach (var sequence in sequences) sb.AppendLine($"\"{Escape(sequence)}\",");
+        foreach (var sequence in sequences) sb.AppendLine($"\"{SourceString.EscapeCSharpString(sequence)}\",");
         foreach (var table in tables)
         {
             var qualifiedType = Qualify(table);
@@ -83,7 +84,7 @@ internal static class DuckDbSchemaEmitter
         sb.AppendLine($"public static readonly string[] {name} =");
         sb.BeginBlock();
         foreach (var table in tables)
-            sb.AppendLine($"\"{Escape(table.TableName)}\",");
+            sb.AppendLine($"\"{SourceString.EscapeCSharpString(table.TableName)}\",");
         sb.EndBlock("};");
         sb.AppendLine();
     }
@@ -97,13 +98,13 @@ internal static class DuckDbSchemaEmitter
         sb.BeginBlock();
         foreach (var table in tables)
         {
-            sb.AppendLine($"new(\"{Escape(table.TableName)}\",");
+            sb.AppendLine($"new(\"{SourceString.EscapeCSharpString(table.TableName)}\",");
             sb.AppendLine("new DuckDbExpectedColumn[]");
             sb.BeginBlock();
             foreach (var column in table.Columns)
             {
                 sb.AppendLine(
-                    $"new(\"{Escape(column.ColumnName)}\", \"{Escape(DuckDbEmitter.ResolveSqlType(column))}\", " +
+                    $"new(\"{SourceString.EscapeCSharpString(column.ColumnName)}\", \"{SourceString.EscapeCSharpString(DuckDbEmitter.ResolveSqlType(column))}\", " +
                     $"{Bool(!column.IsNullable)}, {NullableString(column.DefaultSql)}, {column.PrimaryKeyOrdinal}),");
             }
 
@@ -112,9 +113,9 @@ internal static class DuckDbSchemaEmitter
             sb.BeginBlock();
             foreach (var index in table.Indexes)
             {
-                var columns = string.Join(", ", index.ColumnNames.Select(static column => $"\"{Escape(column)}\""));
+                var columns = string.Join(", ", index.ColumnNames.Select(static column => $"\"{SourceString.EscapeCSharpString(column)}\""));
                 sb.AppendLine(
-                    $"new(\"{Escape(index.Name)}\", {Bool(index.IsUnique)}, [{columns}]),");
+                    $"new(\"{SourceString.EscapeCSharpString(index.Name)}\", {Bool(index.IsUnique)}, [{columns}]),");
             }
 
             sb.EndBlock("}),");
@@ -131,7 +132,7 @@ internal static class DuckDbSchemaEmitter
         .ToArray();
 
     private static string ComputeHash(IReadOnlyList<DuckDbTableInfo> tables, IReadOnlyList<string> sequences) =>
-        Sha256Hex("nami-duckdb-generated-ddl/v2\n" + string.Concat(sequences.Select(static ddl => ddl + "\n")) +
+        Sha256Hex.Hash("nami-duckdb-generated-ddl/v2\n" + string.Concat(sequences.Select(static ddl => ddl + "\n")) +
                   string.Concat(tables.OrderBy(static table => table.TableName, StringComparer.Ordinal).Select(CanonicalTable)));
 
     private static string CanonicalTable(DuckDbTableInfo table)
@@ -144,26 +145,14 @@ internal static class DuckDbSchemaEmitter
         return canonical.ToString();
     }
 
-    private static string Sha256Hex(string canonical)
-    {
-        using var sha = SHA256.Create();
-        var digest = sha.ComputeHash(Encoding.UTF8.GetBytes(canonical));
-        var hex = new StringBuilder(digest.Length * 2);
-        foreach (var value in digest)
-            hex.Append(value.ToString("x2", CultureInfo.InvariantCulture));
-        return hex.ToString();
-    }
-
     private static string Qualify(DuckDbTableInfo table) =>
         string.IsNullOrEmpty(table.Namespace) || table.Namespace == "<global namespace>"
             ? $"global::{table.TypeName}"
             : $"global::{table.Namespace}.{table.TypeName}";
 
     private static string NullableString(string? value) =>
-        value is null ? "null" : $"\"{Escape(value)}\"";
+        value is null ? "null" : $"\"{SourceString.EscapeCSharpString(value)}\"";
 
     private static string Bool(bool value) => value ? "true" : "false";
 
-    private static string Escape(string value) =>
-        value.Replace("\\", @"\\").Replace("\"", "\\\"");
 }

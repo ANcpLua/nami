@@ -15,13 +15,16 @@ root as shown below. The scripts resolve `nami.slnx`, the SDK in `global.json`, 
 | `./eng/inspect.sh --project nami.collector.storage` | Inspect one project with the full solution reference graph. |
 | `./eng/inspect.sh --file src/nami.collector.ingestion/OtlpConverter.MetricIdentity.cs` | Report findings for one file; build and reference context remain solution-wide. |
 
-The .NET test applications use MSTest 4.5.1 and native Microsoft.Testing.Platform. `tests/Nami.Tests` is a support
+The .NET test applications use MSTest 4.5.2 and native Microsoft.Testing.Platform. `tests/Nami.Tests` is a support
 library, not a fourth test application. `Nami.UnitTests`, `Nami.IntegrationTests` and
 `Nami.EndToEndTests` each own their `testconfig.json`: cooperative test deadlines are 30, 120 and
 300 seconds respectively, with existing test-specific overrides retained, including 600 seconds
 for the real 500,000-span proof. Unit enables
 MSTest's generated discovery. EndToEnd starts the bundled TypeScript MCP entry and published native `nami` engine;
 there is no separate hand-written conformance runner.
+The test package graph prunes the adapter's optional usage-reporting extension and its Application
+Insights dependency. Test discovery, execution and reports remain enabled. Review the prune bound in
+`tests/Directory.Packages.props` whenever the MSTest adapter changes its telemetry dependency.
 The script also sets the .NET test driver's Minimal/Normal/Detailed output and forwards the suite's
 result selection explicitly: the driver's display is separate from the test application's config.
 

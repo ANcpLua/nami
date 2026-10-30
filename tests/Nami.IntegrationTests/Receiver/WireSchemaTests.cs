@@ -23,14 +23,12 @@ public sealed class WireSchemaTests
         await using var receiver = await OtlpReceiver.StartAsync(TestContext.CancellationToken);
         using var source = new ActivitySource("wire-" + Guid.NewGuid().ToString("N"), "1.2.3");
         var sourceName = source.Name;
-#pragma warning disable Nami0006
         var resource = ResourceBuilder.CreateEmpty().AddAttributes(
             new Dictionary<string, object>
             {
                 [ServiceAttributes.Name] = "schema-producer", ["telemetry.schema_url"] = MisleadingSchemaUrlAttribute
             },
             resourceSchema);
-#pragma warning restore Nami0006
         using var provider = Sdk.CreateTracerProviderBuilder().SetResourceBuilder(resource).AddSource(sourceName)
             .AddOtlpCapture(receiver.Endpoint).Build();
         using var activity = source.CreateActivity("wire.operation", ActivityKind.Server)!.Start();

@@ -13,16 +13,19 @@ internal sealed partial class DuckDbStore : INamiStore
     private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(5);
     private readonly Func<CancellationToken, ValueTask>? _beforeWrite;
 
-    private readonly CancellationTokenSource _cts = new();
+    private readonly CancellationTokenSource _cts;
     private readonly string _databasePath;
     private readonly bool _isInMemory;
     private readonly Channel<WriteJob> _jobs;
     private readonly ILogger<DuckDbStore> _logger;
+    private readonly DuckDBConnection[] _readerConnections;
     private readonly Task[] _readerTasks;
     private readonly Channel<IReadJob>? _reads;
+    private readonly Lock _shutdownLock = new();
     private readonly TimeSpan _snapshotLifetime;
     private readonly TimeProvider _timeProvider;
     private readonly Task _writerTask;
+    private Task<List<Exception>?>? _shutdownTask;
     private int _disposed;
 
 
@@ -38,7 +41,46 @@ internal sealed partial class DuckDbStore : INamiStore
         ILoggerFactory? loggerFactory = null,
         TimeProvider? timeProvider = null,
         TimeSpan? snapshotLifetime = null)
+        : this(static value => new DuckDBConnection(value), databasePath, jobQueueCapacity, maxConcurrentReads,
+            readQueueCapacity, memoryLimit, threads, tempDirectory, beforeWrite, loggerFactory, timeProvider,
+            snapshotLifetime)
     {
+    }
+
+    internal static DuckDbStore CreateForTesting(
+        Func<string, DuckDBConnection> connectionFactory,
+        string databasePath,
+        int jobQueueCapacity = 1000,
+        int maxConcurrentReads = 8,
+        int readQueueCapacity = 1000,
+        string? memoryLimit = null,
+        int? threads = null,
+        string? tempDirectory = null,
+        Func<CancellationToken, ValueTask>? beforeWrite = null,
+        ILoggerFactory? loggerFactory = null,
+        TimeProvider? timeProvider = null,
+        TimeSpan? snapshotLifetime = null) =>
+        new(connectionFactory, databasePath, jobQueueCapacity, maxConcurrentReads, readQueueCapacity,
+            memoryLimit, threads, tempDirectory, beforeWrite, loggerFactory, timeProvider, snapshotLifetime);
+
+    private DuckDbStore(
+        Func<string, DuckDBConnection> connectionFactory,
+        string databasePath,
+        int jobQueueCapacity,
+        int maxConcurrentReads,
+        int readQueueCapacity,
+        string? memoryLimit,
+        int? threads,
+        string? tempDirectory,
+        Func<CancellationToken, ValueTask>? beforeWrite,
+        ILoggerFactory? loggerFactory,
+        TimeProvider? timeProvider,
+        TimeSpan? snapshotLifetime)
+    {
+        ArgumentNullException.ThrowIfNull(connectionFactory);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(jobQueueCapacity);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxConcurrentReads);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(readQueueCapacity);
         _timeProvider = timeProvider ?? TimeProvider.System;
         _snapshotLifetime = snapshotLifetime ?? TimeSpan.FromMinutes(30);
         var resolvedLoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
@@ -46,32 +88,13 @@ internal sealed partial class DuckDbStore : INamiStore
         _isInMemory = databasePath == ":memory:";
         _databasePath = _isInMemory ? databasePath : Path.GetFullPath(databasePath);
         var connectionString = $"DataSource={_databasePath};vacuum_rebuild_indexes={ulong.MaxValue}";
-        var boundedJobQueueCapacity = Math.Max(1, jobQueueCapacity);
         _beforeWrite = beforeWrite;
-        var connection = new DuckDBConnection(connectionString);
-        try
-        {
-            connection.Open();
-            ConfigureDatabase(connection, memoryLimit, threads, tempDirectory);
-            var resetDerived = InitializeSchema(connection);
-            if (resetDerived || MetricProjectionsNeedRebuild(connection))
-                RebuildMetricProjections(connection);
-        }
-        catch
-        {
-            connection.Dispose();
-            throw;
-        }
-
-        Connection = connection;
-
-        _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(boundedJobQueueCapacity)
+        _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(jobQueueCapacity)
         {
             FullMode = BoundedChannelFullMode.Wait,
             SingleReader = true,
             SingleWriter = false
         });
-        _writerTask = Task.Run(WriterLoopAsync, CancellationToken.None);
 
         // DuckDB.NET's *Async methods are synchronous-over-async: the embedded engine has no IO to
         // await, so every read blocks its calling thread for the full query. To keep that blocking
@@ -82,12 +105,12 @@ internal sealed partial class DuckDbStore : INamiStore
         // single writer connection instead.
         if (_isInMemory)
         {
+            _readerConnections = [];
             _readerTasks = [];
             _reads = null;
         }
         else
         {
-            var concurrency = Math.Max(1, maxConcurrentReads);
             _reads = Channel.CreateBounded<IReadJob>(new BoundedChannelOptions(readQueueCapacity)
             {
                 FullMode = BoundedChannelFullMode.Wait,
@@ -95,36 +118,82 @@ internal sealed partial class DuckDbStore : INamiStore
                 SingleWriter = false
             });
 
+            _readerConnections = new DuckDBConnection[maxConcurrentReads];
+            _readerTasks = new Task[maxConcurrentReads];
+        }
+
+        _cts = new CancellationTokenSource();
+        var acquiredConnections = new List<DuckDBConnection>();
+        var startedWorkers = new List<Task>();
+        try
+        {
+            Connection = OpenConnection();
+            ConfigureDatabase(Connection, memoryLimit, threads, tempDirectory);
+            var resetDerived = InitializeSchema(Connection);
+            if (resetDerived || MetricProjectionsNeedRebuild(Connection))
+                RebuildMetricProjections(Connection);
+
             // Reader connections use the same connection string as the writer on purpose: DuckDB.NET
             // keys its native-instance cache by file path alone, so an ACCESS_MODE=READ_ONLY token
             // here would be silently ignored on reuse (the writer already opened the instance
             // read-write). Sharing that one instance is exactly what makes these reads MVCC-concurrent.
             // Open every reader connection up front (on this thread) so a failure surfaces loudly and
             // immediately as a startup error, not asynchronously on a background thread.
-            var connections = new DuckDBConnection[concurrency];
-            for (var i = 0; i < concurrency; i++)
-            {
-                var con = new DuckDBConnection(connectionString);
-                con.Open();
-                connections[i] = con;
-            }
+            for (var i = 0; i < _readerConnections.Length; i++)
+                _readerConnections[i] = OpenConnection();
 
-            _readerTasks = new Task[concurrency];
-            for (var i = 0; i < concurrency; i++)
+            // No worker may outlive a failed connection initialization.
+            _writerTask = Task.Run(WriterLoopAsync, CancellationToken.None);
+            startedWorkers.Add(_writerTask);
+            for (var i = 0; i < _readerTasks.Length; i++)
             {
-                var con = connections[i];
                 _readerTasks[i] = Task.Factory.StartNew(
                         static state =>
                         {
                             var owner = ((DuckDbStore Store, DuckDBConnection Connection))state!;
-                            return owner.Store.ReaderLoopAsync(owner.Connection);
+                            owner.Store.ReaderLoop(owner.Connection);
                         },
-                        (Store: this, Connection: con),
+                        (Store: this, Connection: _readerConnections[i]),
                         CancellationToken.None,
                         TaskCreationOptions.LongRunning,
-                        TaskScheduler.Default)
-                    .Unwrap();
+                        TaskScheduler.Default);
+                startedWorkers.Add(_readerTasks[i]);
             }
+        }
+        catch (Exception error)
+        {
+            // This also covers a worker-start failure after all connections opened.
+            var errors = new List<Exception> { error };
+            _jobs.Writer.TryComplete();
+            _reads?.Writer.TryComplete();
+            try { _cts.Cancel(); }
+            catch (Exception cancellationError) { errors.Add(cancellationError); }
+            foreach (var worker in startedWorkers)
+            {
+                try { worker.GetAwaiter().GetResult(); }
+                catch (OperationCanceledException) when (_cts.IsCancellationRequested)
+                {
+                    // Startup rollback intentionally cancels every already-started worker.
+                }
+                catch (Exception workerError) { errors.Add(workerError); }
+            }
+            foreach (var connection in acquiredConnections)
+            {
+                try { connection.Dispose(); }
+                catch (Exception disposalError) { errors.Add(disposalError); }
+            }
+            _cts.Dispose();
+            if (errors.Count > 1)
+                throw new AggregateException("DuckDB store initialization and cleanup failed.", errors);
+            throw;
+        }
+
+        DuckDBConnection OpenConnection()
+        {
+            var connection = connectionFactory(connectionString);
+            acquiredConnections.Add(connection);
+            connection.Open();
+            return connection;
         }
     }
 
@@ -133,47 +202,60 @@ internal sealed partial class DuckDbStore : INamiStore
 
     public async ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) is not 0)
-            return;
+        Task<List<Exception>?> shutdown;
+        lock (_shutdownLock)
+        {
+            Write(ref _disposed, 1);
+            shutdown = _shutdownTask ??= ShutdownAsync();
+        }
 
+        List<Exception>? shutdownErrors;
+        try
+        {
+            shutdownErrors = await shutdown.WaitAsync(s_shutdownTimeout, _timeProvider).ConfigureAwait(false);
+        }
+        catch (TimeoutException error)
+        {
+            // The retained task still owns every connection and observes/logs cleanup errors.
+            // A later DisposeAsync joins that same task instead of disposing underneath it.
+            var timeout = new TimeoutException("DuckDB workers did not stop before shutdown timeout.", error);
+            DuckDbStoreLog.ShutdownFailed(_logger, timeout);
+            throw new AggregateException("DuckDB store did not shut down cleanly.", timeout);
+        }
+
+        if (shutdownErrors is { Count: > 0 })
+            throw new AggregateException("DuckDB store did not shut down cleanly.", shutdownErrors);
+    }
+
+    private async Task<List<Exception>?> ShutdownAsync()
+    {
+        // Always dispatch cleanup to the thread pool before touching native resources. The
+        // retained task owns cleanup even when DisposeAsync stops waiting after its deadline.
+        await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
         List<Exception>? shutdownErrors = null;
 
         _jobs.Writer.TryComplete();
         _reads?.Writer.TryComplete();
-        await _cts.CancelAsync().ConfigureAwait(false);
-
         try
         {
-            await _writerTask.WaitAsync(s_shutdownTimeout).ConfigureAwait(false);
-        }
-        catch (TimeoutException ex)
-        {
-            AddShutdownError(ref shutdownErrors,
-                new TimeoutException("DuckDB writer did not stop before shutdown timeout.", ex));
-        }
-        catch (OperationCanceledException) when (_cts.IsCancellationRequested)
-        {
-            _jobs.Writer.TryComplete();
+            await _cts.CancelAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             AddShutdownError(ref shutdownErrors, ex);
         }
 
-        foreach (var readerTask in _readerTasks)
+        var workers = new[] { _writerTask }.Concat(_readerTasks).ToArray();
+        try
         {
-            try
-            {
-                await readerTask.WaitAsync(s_shutdownTimeout).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (_cts.IsCancellationRequested)
-            {
-                // Shutdown cancelled this reader on purpose; only unexpected failures are shutdown errors.
-            }
-            catch (Exception ex)
-            {
-                AddShutdownError(ref shutdownErrors, ex);
-            }
+            await Task.WhenAll(workers).ConfigureAwait(false);
+        }
+        catch
+        {
+            foreach (var worker in workers)
+                if (worker.Exception is { } failure)
+                    foreach (var error in failure.InnerExceptions)
+                        AddShutdownError(ref shutdownErrors, error);
         }
 
         if (_reads is not null)
@@ -190,9 +272,9 @@ internal sealed partial class DuckDbStore : INamiStore
             {
                 await using var checkpoint = Connection.CreateCommand();
                 checkpoint.CommandText = "CHECKPOINT";
-                await checkpoint.ExecuteNonQueryAsync().ConfigureAwait(false);
+                checkpoint.ExecuteNonQuery();
             }
-            catch (DuckDBException ex)
+            catch (Exception ex)
             {
                 // A failed final checkpoint is not data loss (the WAL is replayed on next open), but
                 // it must surface and must not abort the rest of teardown — route it into the
@@ -203,11 +285,13 @@ internal sealed partial class DuckDbStore : INamiStore
             }
         }
 
-        Connection.Dispose();
+        foreach (var connection in _readerConnections.Append(Connection))
+        {
+            try { connection.Dispose(); }
+            catch (Exception error) { AddShutdownError(ref shutdownErrors, error); }
+        }
         _cts.Dispose();
-
-        if (shutdownErrors is { Count: > 0 })
-            throw new AggregateException("DuckDB store did not shut down cleanly.", shutdownErrors);
+        return shutdownErrors;
     }
 
 
@@ -291,7 +375,8 @@ internal sealed partial class DuckDbStore : INamiStore
         // In-memory mode shares the single writer connection (not safe for concurrent use), so its
         // reads are serialized through the writer queue rather than the dedicated reader pool.
         if (_reads is null)
-            return await ExecuteWriteAsync((con, _) => new ValueTask<T>(read(con)), ct).ConfigureAwait(false);
+            return await ExecuteWriteAsync((con, _) => new ValueTask<T>(read(con)),
+                cancelAfterClaim: true, ct).ConfigureAwait(false);
 
         var job = new ReadJob<T>(read, ct);
         await _reads.Writer.WriteAsync(job, ct).ConfigureAwait(false);
@@ -299,11 +384,11 @@ internal sealed partial class DuckDbStore : INamiStore
     }
 
     private async Task<T> ExecuteWriteAsync<T>(Func<DuckDBConnection, CancellationToken, ValueTask<T>> operation,
-        CancellationToken ct = default)
+        bool cancelAfterClaim = false, CancellationToken ct = default)
     {
         ThrowIfDisposed();
         ct.ThrowIfCancellationRequested();
-        var job = new WriteJob<T>(operation, ct);
+        var job = new WriteJob<T>(operation, cancelAfterClaim, ct);
         if (!_jobs.Writer.TryWrite(job))
             throw new NamiStoreUnavailableException("DuckDB write queue is at capacity.");
         job.ArmCancellation();
@@ -319,7 +404,7 @@ internal sealed partial class DuckDbStore : INamiStore
         {
             await operation(con, token).ConfigureAwait(false);
             return 0;
-        }, ct);
+        }, cancelAfterClaim: false, ct);
         if (!_jobs.Writer.TryWrite(job))
             throw new NamiStoreUnavailableException("DuckDB write queue is at capacity.");
         job.ArmCancellation();
@@ -332,7 +417,7 @@ internal sealed partial class DuckDbStore : INamiStore
     {
         ThrowIfDisposed();
         ct.ThrowIfCancellationRequested();
-        var job = new WriteJob<T>(operation, ct);
+        var job = new WriteJob<T>(operation, cancelAfterClaim: true, ct);
         await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
         job.ArmCancellation();
         return await job.Task.ConfigureAwait(false);
@@ -375,9 +460,7 @@ internal sealed partial class DuckDbStore : INamiStore
                     continue;
                 try
                 {
-                    if (_beforeWrite is not null)
-                        await _beforeWrite(_cts.Token).ConfigureAwait(false);
-                    await job.ExecuteAsync(Connection, _cts.Token).ConfigureAwait(false);
+                    await job.ExecuteAsync(Connection, _beforeWrite, _cts.Token).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -402,21 +485,20 @@ internal sealed partial class DuckDbStore : INamiStore
         }
     }
 
-    // One long-running reader task per slot owns a private connection. Synchronous
-    // point reads begin on its dedicated thread; Arrow jobs may yield between
-    // batches without blocking a request thread or sharing the connection.
-    private async Task ReaderLoopAsync(DuckDBConnection con)
+    // The channel wait and query both stay on this dedicated thread. Shutdown joins
+    // every worker before disposing its connection.
+    private void ReaderLoop(DuckDBConnection con)
     {
         var reader = _reads!.Reader;
         try
         {
-            while (await reader.WaitToReadAsync(_cts.Token).ConfigureAwait(false))
+            while (reader.WaitToReadAsync(_cts.Token).AsTask().GetAwaiter().GetResult())
             {
                 while (reader.TryRead(out var job))
                 {
                     try
                     {
-                        await job.ExecuteAsync(con).ConfigureAwait(false);
+                        job.Execute(con, _cts.Token);
                     }
                     catch (OperationCanceledException oce)
                     {
@@ -429,9 +511,9 @@ internal sealed partial class DuckDbStore : INamiStore
                 }
             }
         }
-        finally
+        catch (OperationCanceledException) when (_cts.IsCancellationRequested)
         {
-            con.Dispose();
+            // Store disposal cancels idle readers and active native operations.
         }
     }
 
@@ -873,7 +955,8 @@ internal sealed partial class DuckDbStore : INamiStore
     {
         public abstract bool TryClaim();
 
-        public abstract ValueTask ExecuteAsync(DuckDBConnection con, CancellationToken ct);
+        public abstract ValueTask ExecuteAsync(DuckDBConnection con, Func<CancellationToken, ValueTask>? beforeWrite,
+            CancellationToken ct);
 
         public virtual void OnAborted(Exception error)
         {
@@ -882,6 +965,7 @@ internal sealed partial class DuckDbStore : INamiStore
 
     private sealed class WriteJob<TResult>(
         Func<DuckDBConnection, CancellationToken, ValueTask<TResult>> action,
+        bool cancelAfterClaim,
         CancellationToken cancellationToken)
         : WriteJob
     {
@@ -914,12 +998,28 @@ internal sealed partial class DuckDbStore : INamiStore
             return true;
         }
 
-        public override async ValueTask ExecuteAsync(DuckDBConnection con, CancellationToken ct)
+        public override async ValueTask ExecuteAsync(DuckDBConnection con, Func<CancellationToken, ValueTask>? beforeWrite,
+            CancellationToken ct)
         {
+            // Accepted ingestion finishes independently of the caller; reads and maintenance
+            // retain request cancellation while they own the writer connection.
+            using var linkedCancellation = cancelAfterClaim
+                ? CancellationTokenSource.CreateLinkedTokenSource(ct, cancellationToken)
+                : null;
+            var token = linkedCancellation?.Token ?? ct;
             try
             {
-                var result = await action(con, ct).ConfigureAwait(false);
+                await using var interrupt = token.Register(con.NativeConnection.Interrupt);
+                token.ThrowIfCancellationRequested();
+                if (beforeWrite is not null)
+                    await beforeWrite(token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+                var result = await action(con, token).ConfigureAwait(false);
                 _tcs.TrySetResult(result);
+            }
+            catch (Exception) when (token.IsCancellationRequested)
+            {
+                _tcs.TrySetCanceled(token);
             }
             catch (OperationCanceledException oce)
             {
@@ -953,7 +1053,7 @@ internal sealed partial class DuckDbStore : INamiStore
 
     private interface IReadJob
     {
-        ValueTask ExecuteAsync(DuckDBConnection con);
+        void Execute(DuckDBConnection con, CancellationToken shutdownToken);
         void Cancel();
         void Abort(Exception error);
     }
@@ -967,17 +1067,21 @@ internal sealed partial class DuckDbStore : INamiStore
 
         // Runs on a dedicated reader thread. RunContinuationsAsynchronously guarantees the awaiting
         // caller's continuation resumes on the thread pool, never inline on this reader thread.
-        public ValueTask ExecuteAsync(DuckDBConnection con)
+        public void Execute(DuckDBConnection con, CancellationToken shutdownToken)
         {
-            if (ct.IsCancellationRequested)
-            {
-                _tcs.TrySetCanceled(ct);
-                return ValueTask.CompletedTask;
-            }
-
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(ct, shutdownToken);
+            var token = linkedCancellation.Token;
             try
             {
-                _tcs.TrySetResult(read(con));
+                using var interrupt = token.Register(con.NativeConnection.Interrupt);
+                token.ThrowIfCancellationRequested();
+                var result = read(con);
+                token.ThrowIfCancellationRequested();
+                _tcs.TrySetResult(result);
+            }
+            catch (Exception) when (token.IsCancellationRequested)
+            {
+                _tcs.TrySetCanceled(token);
             }
             catch (OperationCanceledException oce)
             {
@@ -987,8 +1091,6 @@ internal sealed partial class DuckDbStore : INamiStore
             {
                 _tcs.TrySetException(ex);
             }
-
-            return ValueTask.CompletedTask;
         }
 
         public void Cancel() => _tcs.TrySetCanceled();

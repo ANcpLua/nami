@@ -10,29 +10,25 @@
        shared lines (a runtime, a release train) cannot drift apart by being typed twice. -->
 
   <PropertyGroup Label="Platform">
-    <!-- One .NET servicing line for every runtime package, including the transitive
-         System.Security.Cryptography pins (10.0.14 includes the out-of-band security fixes of 2026-10-25). -->
-    <!-- renovate: datasource=nuget depName=Microsoft.AspNetCore.OpenApi -->
-    <DotNetRuntimeVersion>10.0.14</DotNetRuntimeVersion>
-    <!-- renovate: datasource=nuget depName=Microsoft.Extensions.Http.Resilience -->
+    <!-- The build host and product use the pinned .NET 11 runtime line. -->
+    <!-- renovate: datasource=nuget depName=System.Security.Cryptography.Pkcs -->
+    <DotNetRuntimeVersion>11.0.0-rc.3.26522.148</DotNetRuntimeVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.Extensions.TimeProvider.Testing -->
     <MicrosoftExtensionsVersion>10.11.0</MicrosoftExtensionsVersion>
-    <!-- Transitive-only pin. Microsoft.AspNetCore.OpenApi 10.0.13 declares Microsoft.OpenApi
-         [2.12.2, 3.0.0), and its source generator fails to compile against 3.x with CS0012
-         (the type it emits lives in an assembly the generated code does not reference).
-         3.x arrives with the .NET release that widens the declared range. -->
-    <!-- renovate: datasource=nuget depName=Microsoft.OpenApi -->
-    <MicrosoftOpenApiVersion>2.12.2</MicrosoftOpenApiVersion>
     <!-- renovate: datasource=nuget depName=Microsoft.CodeAnalysis.CSharp -->
     <RoslynVersion>5.9.0</RoslynVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="Generator tooling">
-    <ANcpLuaRoslynUtilitiesVersion>3.0.1</ANcpLuaRoslynUtilitiesVersion>
+    <!-- renovate: datasource=nuget depName=ANcpLua.Roslyn.Utilities.Sources -->
+    <ANcpLuaRoslynUtilitiesVersion>5.0.0-preview.1</ANcpLuaRoslynUtilitiesVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.VisualStudio.Threading.Analyzers -->
+    <VisualStudioThreadingAnalyzersVersion>18.12.1</VisualStudioThreadingAnalyzersVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="Telemetry and wire">
     <!-- renovate: datasource=nuget depName=OpenTelemetry -->
-    <OpenTelemetryVersion>1.20.0</OpenTelemetryVersion>
+    <OpenTelemetryVersion>1.21.0-rc.1</OpenTelemetryVersion>
     <!-- The earlier "1.5.4+ grows without limit" finding was wrong; a CLI repro disproved
          it (2026-07-26). Retention's space reuse rides the experimental
          vacuum_rebuild_indexes option in DuckDbStore's connection string, and 1.5.4/1.5.5
@@ -46,32 +42,75 @@
     <!-- renovate: datasource=nuget depName=DuckDB.NET.Data.Full -->
     <DuckDBVersion>1.5.6.1</DuckDBVersion>
     <!-- renovate: datasource=nuget depName=Google.Protobuf -->
-    <GoogleProtobufVersion>3.36.2</GoogleProtobufVersion>
-    <!-- renovate: datasource=nuget depName=Grpc.AspNetCore -->
-    <GrpcAspNetCoreVersion>2.84.0</GrpcAspNetCoreVersion>
+    <GoogleProtobufVersion>3.37.0-rc1</GoogleProtobufVersion>
+    <!-- renovate: datasource=nuget depName=Grpc.AspNetCore.Server -->
+    <GrpcAspNetCoreVersion>2.85.0</GrpcAspNetCoreVersion>
     <!-- renovate: datasource=nuget depName=Grpc.Tools -->
-    <GrpcToolsVersion>2.84.0</GrpcToolsVersion>
+    <GrpcToolsVersion>2.85.0</GrpcToolsVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="Build and test tooling">
-    <!-- Stay on 10.x. Fallout's 11.0.x packages on nuget.org are unlisted builds from May 2026, older than 10.4.0. -->
+    <!-- Fallout's 11.0.x packages are older unlisted builds, not the active release line. -->
     <!-- renovate: datasource=nuget depName=Fallout.Common -->
-    <FalloutVersion>10.4.0</FalloutVersion>
-    <!-- renovate: datasource=nuget depName=Spectre.Console -->
-    <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
-    <!-- The code coverage extension MSTest.Sdk's AllMicrosoft profile adds to every test project. -->
-    <!-- renovate: datasource=nuget depName=Microsoft.Testing.Extensions.CodeCoverage -->
-    <MicrosoftTestingExtensionsCodeCoverageVersion>18.12.0</MicrosoftTestingExtensionsCodeCoverageVersion>
-    <!-- renovate: datasource=nuget depName=Microsoft.NETFramework.ReferenceAssemblies -->
-    <NetFrameworkReferenceAssembliesVersion>1.0.3</NetFrameworkReferenceAssembliesVersion>
-    <!-- Build host dependency used by Fallout. Microsoft.Build 18.10.1 and 18.11.0 ship
-         net11.0/net472 assets, with no compatible modern asset for this host.
-         https://www.nuget.org/packages/Microsoft.Build/18.11.0#supportedframeworks-body-tab
-         Move this pin only with a verified build-host framework migration. -->
+    <FalloutVersion>10.5.0-rc.3</FalloutVersion>
+    <!-- Fallout's build host targets net11.0 and uses the installed SDK's MSBuild at runtime. -->
     <!-- renovate: datasource=nuget depName=Microsoft.Build -->
-    <MicrosoftBuildVersion>18.9.6</MicrosoftBuildVersion>
-    <!-- Match the NuGet libraries used by the pinned .NET SDK. -->
-    <!-- renovate: datasource=nuget depName=NuGet.Packaging -->
-    <NuGetPackagingVersion>7.9.0</NuGetPackagingVersion>
+    <MicrosoftBuildVersion>18.11.0</MicrosoftBuildVersion>
+    <!-- Fixture helpers consume Versioning; the build host compiles against Frameworks. -->
+    <!-- renovate: datasource=nuget depName=NuGet.Versioning -->
+    <NuGetVersion>7.9.0</NuGetVersion>
+  </PropertyGroup>
+  <PropertyGroup Label="Verified transitive compatibility">
+    <!-- Package bytes/API compatibility reviewed in the 2026-10-30 modernization. -->
+    <!-- renovate: datasource=nuget depName=Microsoft.DiaSymReader -->
+    <MicrosoftDiaSymReaderVersion>3.0.0-rc.3.26522.148</MicrosoftDiaSymReaderVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.Build.Locator -->
+    <MicrosoftBuildLocatorVersion>1.11.2</MicrosoftBuildLocatorVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.Testing.Extensions.Fakes -->
+    <MicrosoftTestingExtensionsFakesVersion>18.10.0</MicrosoftTestingExtensionsFakesVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.Diagnostics.NETCore.Client -->
+    <MicrosoftDiagnosticsClientVersion>0.2.750501</MicrosoftDiagnosticsClientVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.NETCore.Platforms -->
+    <MicrosoftNetCorePlatformsVersion>8.0.0-preview.7.23375.6</MicrosoftNetCorePlatformsVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.TestPlatform.ObjectModel -->
+    <MicrosoftTestPlatformObjectModelVersion>18.11.0</MicrosoftTestPlatformObjectModelVersion>
+    <!-- renovate: datasource=nuget depName=Newtonsoft.Json -->
+    <NewtonsoftJsonVersion>14.0.1-beta2</NewtonsoftJsonVersion>
+  </PropertyGroup>
+  <!-- Actual Fallout 10.5.0-rc.3 consumers verified against these dependency versions. -->
+  <PropertyGroup Label="Fallout transitive dependencies">
+    <!-- The newer Azure family requires MSAL versions whose cache-file creation fails on
+         macOS arm64. Keep the coherent Azure family while independently updating its clients. -->
+    <!-- renovate: datasource=nuget depName=Azure.Core -->
+    <AzureCoreVersion>1.50.0</AzureCoreVersion>
+    <!-- renovate: datasource=nuget depName=Azure.Identity -->
+    <AzureIdentityVersion>1.17.1</AzureIdentityVersion>
+    <!-- renovate: datasource=nuget depName=Azure.Security.KeyVault.Certificates -->
+    <AzureKeyVaultCertificatesVersion>4.8.0</AzureKeyVaultCertificatesVersion>
+    <!-- renovate: datasource=nuget depName=Azure.Security.KeyVault.Keys -->
+    <AzureKeyVaultKeysVersion>4.8.0</AzureKeyVaultKeysVersion>
+    <!-- renovate: datasource=nuget depName=Azure.Security.KeyVault.Secrets -->
+    <AzureKeyVaultSecretsVersion>4.8.0</AzureKeyVaultSecretsVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.Identity.Client -->
+    <MicrosoftIdentityClientVersion>4.92.0</MicrosoftIdentityClientVersion>
+    <!-- 4.83.1 is the newest verified working cache implementation on this platform. -->
+    <!-- renovate: datasource=nuget depName=Microsoft.Identity.Client.Extensions.Msal -->
+    <MicrosoftIdentityClientExtensionsMsalVersion>4.83.1</MicrosoftIdentityClientExtensionsMsalVersion>
+    <!-- renovate: datasource=nuget depName=Microsoft.IdentityModel.Abstractions -->
+    <MicrosoftIdentityModelAbstractionsVersion>8.23.0</MicrosoftIdentityModelAbstractionsVersion>
+    <!-- renovate: datasource=nuget depName=System.ClientModel -->
+    <SystemClientModelVersion>1.16.0</SystemClientModelVersion>
+    <!-- renovate: datasource=nuget depName=Glob -->
+    <GlobVersion>1.2.0-alpha0037</GlobVersion>
+    <!-- renovate: datasource=nuget depName=Serilog -->
+    <SerilogVersion>4.4.1-dev-02453</SerilogVersion>
+    <!-- renovate: datasource=nuget depName=Serilog.Formatting.Compact.Reader -->
+    <SerilogCompactReaderVersion>4.1.0-dev-00085</SerilogCompactReaderVersion>
+    <!-- renovate: datasource=nuget depName=Serilog.Sinks.File -->
+    <SerilogFileSinkVersion>8.0.0-nblumhardt-02322</SerilogFileSinkVersion>
+    <!-- renovate: datasource=nuget depName=SharpCompress -->
+    <SharpCompressVersion>0.51.0-beta.174</SharpCompressVersion>
+    <!-- renovate: datasource=nuget depName=YamlDotNet -->
+    <YamlDotNetVersion>18.1.0</YamlDotNetVersion>
   </PropertyGroup>
 </Project>

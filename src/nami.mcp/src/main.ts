@@ -77,6 +77,8 @@ async function close() {
 }
 process.once("SIGINT", () => { void close().catch(report); });
 process.once("SIGTERM", () => { void close().catch(report); });
-process.stdin.once("end", () => { void close().catch(report); });
-process.stdin.resume();
+if (stdio) {
+  process.stdin.once("end", () => { void close().catch(report); });
+  process.stdin.resume();
+}
 function report(error: unknown) { console.error(error instanceof Error ? error.message : "MCP transport failure."); }

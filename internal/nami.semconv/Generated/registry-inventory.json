@@ -2,6 +2,48 @@
   "attributes": [
     {
       "deprecated": null,
+      "key": "a2a.message.id",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "a2a.message.reference_task_ids",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "a2a.method.name",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "a2a.protocol.version",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "a2a.task.id",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "a2a.task.state",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "a2a.tenant",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "android.app.state",
       "source_schema": "https://opentelemetry.io/schemas/1.44.0",
       "stability": "development"
@@ -2378,6 +2420,12 @@
     },
     {
       "deprecated": null,
+      "key": "gen_ai.input.messages_ref",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "gen_ai.main_agent.description",
       "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
       "stability": "development"
@@ -2433,6 +2481,12 @@
     {
       "deprecated": null,
       "key": "gen_ai.output.messages",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.output.messages_ref",
       "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
       "stability": "development"
     },
@@ -2636,6 +2690,12 @@
     },
     {
       "deprecated": null,
+      "key": "gen_ai.system_instructions_ref",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "gen_ai.token.modality",
       "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
       "stability": "development"
@@ -2666,6 +2726,12 @@
     },
     {
       "deprecated": null,
+      "key": "gen_ai.tool.definitions_ref",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "gen_ai.tool.description",
       "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
       "stability": "development"
@@ -2679,6 +2745,18 @@
     {
       "deprecated": null,
       "key": "gen_ai.tool.type",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.transfer.mode",
+      "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "gen_ai.transfer.target.name",
       "source_schema": "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev",
       "stability": "development"
     },
@@ -4392,25 +4470,25 @@
     {
       "deprecated": null,
       "key": "nami.attribute.key",
-      "source_schema": "https://ancplua.github.io/nami/schemas/0.1.0",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.2.0",
       "stability": "development"
     },
     {
       "deprecated": null,
       "key": "nami.attribute.namespace",
-      "source_schema": "https://ancplua.github.io/nami/schemas/0.1.0",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.2.0",
       "stability": "development"
     },
     {
       "deprecated": null,
       "key": "nami.gen_ai.tool.call.arguments_hash",
-      "source_schema": "https://ancplua.github.io/nami/schemas/0.1.0",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.2.0",
       "stability": "development"
     },
     {
       "deprecated": null,
       "key": "nami.project.id",
-      "source_schema": "https://ancplua.github.io/nami/schemas/0.1.0",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.2.0",
       "stability": "development"
     },
     {
@@ -6277,7 +6355,7 @@
     "attributes": {
       "stable": 121,
       "stable_refinements": 0,
-      "total": 960
+      "total": 973
     },
     "entities": {
       "stable": 5,
@@ -6292,15 +6370,15 @@
     "metrics": {
       "stable": 51,
       "stable_refinements": 51,
-      "total": 557
+      "total": 559
     },
     "spans": {
       "stable": 4,
       "stable_refinements": 8,
-      "total": 58
+      "total": 60
     }
   },
-  "genai_commit": "9ffc7e00c639be7712e544e3e54331e885dccf84",
-  "schema_url": "https://ancplua.github.io/nami/schemas/0.1.0",
+  "genai_commit": "3fe84604a581b3d50dd5b4bd29383b462d2a5018",
+  "schema_url": "https://ancplua.github.io/nami/schemas/0.2.0",
   "weaver": "0.28.0"
 }

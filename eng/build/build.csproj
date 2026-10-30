@@ -7,4 +7,8 @@
     <FalloutExcludeConfig>true</FalloutExcludeConfig>
   </PropertyGroup>
   <ItemGroup><PackageReference Include="Fallout.Common"/><PackageReference Include="Fallout.Components"/></ItemGroup>
+  <ItemGroup>
+    <!-- MSBuildLocator loads the SDK's Frameworks assembly together with MSBuild. -->
+    <PackageReference Include="NuGet.Frameworks" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
 </Project>

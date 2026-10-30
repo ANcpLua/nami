@@ -17,16 +17,23 @@ public static class RegistryInfo
 {
     public const string CoreSchemaUrl = "https://opentelemetry.io/schemas/1.44.0";
     public const string GenAiSchemaUrl = "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev";
-    public const string NamiSchemaUrl = "https://ancplua.github.io/nami/schemas/0.1.0";
+    public const string NamiSchemaUrl = "https://ancplua.github.io/nami/schemas/0.2.0";
     public const string WeaverVersion = "0.28.0";
     public const string CoreCommit = "e10a930844c6951757a43b849d364f7d056ac32b";
-    public const string GenAiCommit = "9ffc7e00c639be7712e544e3e54331e885dccf84";
+    public const string GenAiCommit = "3fe84604a581b3d50dd5b4bd29383b462d2a5018";
 }
 
 public static class AttributeCatalog
 {
     private static readonly AttributeDefinition[] Definitions =
     [
+        new("a2a.message.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
+        new("a2a.message.reference_task_ids", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
+        new("a2a.method.name", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
+        new("a2a.protocol.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
+        new("a2a.task.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
+        new("a2a.task.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
+        new("a2a.tenant", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("android.app.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
         new("android.os.api_level", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
         new("android.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "android.app.state"),
@@ -389,6 +396,7 @@ public static class AttributeCatalog
         new("gen_ai.evaluation.score.label", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.evaluation.score.value", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.input.messages", "any", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
+        new("gen_ai.input.messages_ref", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.main_agent.description", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.main_agent.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.main_agent.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
@@ -399,6 +407,7 @@ public static class AttributeCatalog
         new("gen_ai.memory.store.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.operation.name", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.output.messages", "any", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
+        new("gen_ai.output.messages_ref", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.output.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.prompt.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.prompt.variable", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
@@ -432,14 +441,18 @@ public static class AttributeCatalog
         new("gen_ai.skill.resource.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.skill.source.uri", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.system_instructions", "any", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
+        new("gen_ai.system_instructions_ref", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.token.modality", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.tool.call.arguments", "any", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.tool.call.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.tool.call.result", "any", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.tool.definitions", "any", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
+        new("gen_ai.tool.definitions_ref", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.tool.description", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.tool.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.tool.type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
+        new("gen_ai.transfer.mode", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
+        new("gen_ai.transfer.target.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.usage.audio.cache_read.input_tokens", "int", Stability.Development, true, true, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.usage.audio.input_tokens", "int", Stability.Development, true, true, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.usage.audio.output_tokens", "int", Stability.Development, true, true, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
@@ -706,10 +719,10 @@ public static class AttributeCatalog
         new("messaging.servicebus.message.delivery_count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
         new("messaging.servicebus.message.enqueued_time", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
         new("messaging.system", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("nami.attribute.key", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.1.0", null),
-        new("nami.attribute.namespace", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.1.0", null),
-        new("nami.gen_ai.tool.call.arguments_hash", "string", Stability.Development, true, true, "https://ancplua.github.io/nami/schemas/0.1.0", null),
-        new("nami.project.id", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.1.0", null),
+        new("nami.attribute.key", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.2.0", null),
+        new("nami.attribute.namespace", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.2.0", null),
+        new("nami.gen_ai.tool.call.arguments_hash", "string", Stability.Development, true, true, "https://ancplua.github.io/nami/schemas/0.2.0", null),
+        new("nami.project.id", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.2.0", null),
         new("net.host.ip", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "network.local.address"),
         new("net.host.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "server.address"),
         new("net.host.port", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "server.port"),
@@ -1012,6 +1025,34 @@ public static class AttributeStability
     public static Stability Of(string key) => AttributeCatalog.Find(key)?.Stability ?? Stability.Unknown;
     public static Stability ValueOf(string key, string value) => key switch
     {
+        "a2a.method.name" => value switch
+        {
+            "SendMessage" => Stability.Development,
+            "SendStreamingMessage" => Stability.Development,
+            "GetTask" => Stability.Development,
+            "CancelTask" => Stability.Development,
+            "SubscribeToTask" => Stability.Development,
+            "ListTasks" => Stability.Development,
+            "CreateTaskPushNotificationConfig" => Stability.Development,
+            "GetTaskPushNotificationConfig" => Stability.Development,
+            "ListTaskPushNotificationConfigs" => Stability.Development,
+            "DeleteTaskPushNotificationConfig" => Stability.Development,
+            "GetExtendedAgentCard" => Stability.Development,
+            _ => Stability.Unknown
+        },
+        "a2a.task.state" => value switch
+        {
+            "TASK_STATE_SUBMITTED" => Stability.Development,
+            "TASK_STATE_WORKING" => Stability.Development,
+            "TASK_STATE_INPUT_REQUIRED" => Stability.Development,
+            "TASK_STATE_COMPLETED" => Stability.Development,
+            "TASK_STATE_CANCELED" => Stability.Development,
+            "TASK_STATE_FAILED" => Stability.Development,
+            "TASK_STATE_REJECTED" => Stability.Development,
+            "TASK_STATE_AUTH_REQUIRED" => Stability.Development,
+            "TASK_STATE_UNSPECIFIED" => Stability.Development,
+            _ => Stability.Unknown
+        },
         "android.app.state" => value switch
         {
             "created" => Stability.Development,
@@ -1732,6 +1773,12 @@ public static class AttributeStability
             "image" => Stability.Development,
             "audio" => Stability.Development,
             "unknown" => Stability.Development,
+            _ => Stability.Unknown
+        },
+        "gen_ai.transfer.mode" => value switch
+        {
+            "return_to_caller" => Stability.Development,
+            "pass_control" => Stability.Development,
             _ => Stability.Unknown
         },
         "geo.continent.code" => value switch
@@ -2676,6 +2723,43 @@ public static class AttributeStability
 public static class DeprecatedAttributes
 {
     public static string? SuccessorOf(string key) => AttributeCatalog.Find(key)?.Successor;
+}
+
+public static class A2aAttributes
+{
+    public const string MessageId = "a2a.message.id";
+    public const string MessageReferenceTaskIds = "a2a.message.reference_task_ids";
+    public const string MethodName = "a2a.method.name";
+    public static class MethodNameValues
+    {
+        public const string SendMessage = "SendMessage";
+        public const string SendStreamingMessage = "SendStreamingMessage";
+        public const string GetTask = "GetTask";
+        public const string CancelTask = "CancelTask";
+        public const string SubscribeToTask = "SubscribeToTask";
+        public const string ListTasks = "ListTasks";
+        public const string CreateTaskPushNotificationConfig = "CreateTaskPushNotificationConfig";
+        public const string GetTaskPushNotificationConfig = "GetTaskPushNotificationConfig";
+        public const string ListTaskPushNotificationConfigs = "ListTaskPushNotificationConfigs";
+        public const string DeleteTaskPushNotificationConfig = "DeleteTaskPushNotificationConfig";
+        public const string GetExtendedAgentCard = "GetExtendedAgentCard";
+    }
+    public const string ProtocolVersion = "a2a.protocol.version";
+    public const string TaskId = "a2a.task.id";
+    public const string TaskState = "a2a.task.state";
+    public static class TaskStateValues
+    {
+        public const string TaskStateSubmitted = "TASK_STATE_SUBMITTED";
+        public const string TaskStateWorking = "TASK_STATE_WORKING";
+        public const string TaskStateInputRequired = "TASK_STATE_INPUT_REQUIRED";
+        public const string TaskStateCompleted = "TASK_STATE_COMPLETED";
+        public const string TaskStateCanceled = "TASK_STATE_CANCELED";
+        public const string TaskStateFailed = "TASK_STATE_FAILED";
+        public const string TaskStateRejected = "TASK_STATE_REJECTED";
+        public const string TaskStateAuthRequired = "TASK_STATE_AUTH_REQUIRED";
+        public const string TaskStateUnspecified = "TASK_STATE_UNSPECIFIED";
+    }
+    public const string Tenant = "a2a.tenant";
 }
 
 public static class AndroidAttributes
@@ -3758,6 +3842,7 @@ public static class GenAiAttributes
     public const string EvaluationScoreLabel = "gen_ai.evaluation.score.label";
     public const string EvaluationScoreValue = "gen_ai.evaluation.score.value";
     public const string InputMessages = "gen_ai.input.messages";
+    public const string InputMessagesRef = "gen_ai.input.messages_ref";
     public const string MainAgentDescription = "gen_ai.main_agent.description";
     public const string MainAgentId = "gen_ai.main_agent.id";
     public const string MainAgentName = "gen_ai.main_agent.name";
@@ -3789,6 +3874,7 @@ public static class GenAiAttributes
         public const string DeleteMemoryStore = "delete_memory_store";
     }
     public const string OutputMessages = "gen_ai.output.messages";
+    public const string OutputMessagesRef = "gen_ai.output.messages_ref";
     public const string OutputType = "gen_ai.output.type";
     public static class OutputTypeValues
     {
@@ -3857,6 +3943,7 @@ public static class GenAiAttributes
     public const string SkillResourceName = "gen_ai.skill.resource.name";
     public const string SkillSourceUri = "gen_ai.skill.source.uri";
     public const string SystemInstructions = "gen_ai.system_instructions";
+    public const string SystemInstructionsRef = "gen_ai.system_instructions_ref";
     public const string TokenModality = "gen_ai.token.modality";
     public static class TokenModalityValues
     {
@@ -3869,9 +3956,17 @@ public static class GenAiAttributes
     public const string ToolCallId = "gen_ai.tool.call.id";
     public const string ToolCallResult = "gen_ai.tool.call.result";
     public const string ToolDefinitions = "gen_ai.tool.definitions";
+    public const string ToolDefinitionsRef = "gen_ai.tool.definitions_ref";
     public const string ToolDescription = "gen_ai.tool.description";
     public const string ToolName = "gen_ai.tool.name";
     public const string ToolType = "gen_ai.tool.type";
+    public const string TransferMode = "gen_ai.transfer.mode";
+    public static class TransferModeValues
+    {
+        public const string ReturnToCaller = "return_to_caller";
+        public const string PassControl = "pass_control";
+    }
+    public const string TransferTargetName = "gen_ai.transfer.target.name";
     public const string UsageAudioCacheReadInputTokens = "gen_ai.usage.audio.cache_read.input_tokens";
     public const string UsageAudioInputTokens = "gen_ai.usage.audio.input_tokens";
     public const string UsageAudioOutputTokens = "gen_ai.usage.audio.output_tokens";
@@ -5567,6 +5662,8 @@ public static class Metrics
         new("faas.mem_usage", "By", Instrument.Histogram, Stability.Development),
         new("faas.net_io", "By", Instrument.Histogram, Stability.Development),
         new("faas.timeouts", "{timeout}", Instrument.Counter, Stability.Development),
+        new("gen_ai.client.embeddings.duration", "s", Instrument.Histogram, Stability.Development),
+        new("gen_ai.client.embeddings.operation.input_tokens", "{token}", Instrument.Histogram, Stability.Development),
         new("gen_ai.client.inference.duration", "s", Instrument.Histogram, Stability.Development),
         new("gen_ai.client.inference.operation.input_tokens", "{token}", Instrument.Histogram, Stability.Development),
         new("gen_ai.client.inference.operation.output_tokens", "{token}", Instrument.Histogram, Stability.Development),
@@ -6763,6 +6860,20 @@ public static class Metrics
         public const string Name = "faas.timeouts";
         public const string Unit = "{timeout}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class GenAiClientEmbeddingsDuration
+    {
+        public const string Name = "gen_ai.client.embeddings.duration";
+        public const string Unit = "s";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class GenAiClientEmbeddingsOperationInputTokens
+    {
+        public const string Name = "gen_ai.client.embeddings.operation.input_tokens";
+        public const string Unit = "{token}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
     public static class GenAiClientInferenceDuration
@@ -9907,6 +10018,10 @@ public static class Spans
 {
     public static IReadOnlyList<SpanDefinition> All { get; } = Array.AsReadOnly(new SpanDefinition[]
     {
+        new("a2a.client", "a2a.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "a2a.method.name" })),
+        new("a2a.grpc.server", "rpc.grpc.call.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "a2a.method.name", "rpc.response.status_code" })),
+        new("a2a.http.server", "http.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "a2a.method.name", "http.request.method", "url.path", "url.scheme" })),
+        new("a2a.server", "a2a.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "a2a.method.name" })),
         new("anthropic.gen_ai.client.inference", "gen_ai.client.inference", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" })),
         new("aws.bedrock.gen_ai.client.inference", "gen_ai.client.inference", "Client", Stability.Development, Array.AsReadOnly(new string[] { "aws.bedrock.guardrail.id", "gen_ai.operation.name", "gen_ai.provider.name" })),
         new("aws.client", "aws.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "rpc.system" })),
@@ -9953,13 +10068,14 @@ public static class Spans
         new("faas.datasource.server", "faas.datasource.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "faas.document.collection", "faas.document.operation", "faas.trigger" })),
         new("faas.server", "faas.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "faas.trigger" })),
         new("faas.timer.server", "faas.timer.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "faas.trigger" })),
+        new("gen_ai.client.embeddings", "gen_ai.client.embeddings", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" })),
         new("gen_ai.client.inference", "gen_ai.client.inference", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" })),
         new("gen_ai.create_agent.client", "gen_ai.create_agent.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" })),
-        new("gen_ai.embeddings.client", "gen_ai.embeddings.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" })),
         new("gen_ai.execute_tool.command.internal", "gen_ai.execute_tool.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
         new("gen_ai.execute_tool.internal", "gen_ai.execute_tool.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
         new("gen_ai.execute_tool.load_skill.internal", "gen_ai.execute_tool.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
         new("gen_ai.execute_tool.read_skill_resource.internal", "gen_ai.execute_tool.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
+        new("gen_ai.execute_tool.transfer.internal", "gen_ai.execute_tool.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
         new("gen_ai.fetch_response.client", "gen_ai.fetch_response.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name", "gen_ai.response.id" })),
         new("gen_ai.invoke_agent.client", "gen_ai.invoke_agent.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" })),
         new("gen_ai.invoke_agent.internal", "gen_ai.invoke_agent.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name" })),
@@ -10028,6 +10144,34 @@ public static class Spans
         new("rpc.jsonrpc.call.client", "rpc.jsonrpc.call.client", "Client", Stability.Development, Array.AsReadOnly(new string[] {  })),
         new("rpc.jsonrpc.call.server", "rpc.jsonrpc.call.server", "Server", Stability.Development, Array.AsReadOnly(new string[] {  })),
     });
+    public static class A2aClient
+    {
+        public const string Id = "a2a.client";
+        public const string Name = "a2a.client";
+        public const string Kind = "Client";
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "a2a.method.name" });
+    }
+    public static class A2aGrpcServer
+    {
+        public const string Id = "a2a.grpc.server";
+        public const string Name = "rpc.grpc.call.server";
+        public const string Kind = "Server";
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "a2a.method.name", "rpc.response.status_code" });
+    }
+    public static class A2aHttpServer
+    {
+        public const string Id = "a2a.http.server";
+        public const string Name = "http.server";
+        public const string Kind = "Server";
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "a2a.method.name", "http.request.method", "url.path", "url.scheme" });
+    }
+    public static class A2aServer
+    {
+        public const string Id = "a2a.server";
+        public const string Name = "a2a.server";
+        public const string Kind = "Server";
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "a2a.method.name" });
+    }
     public static class AnthropicGenAiClientInference
     {
         public const string Id = "anthropic.gen_ai.client.inference";
@@ -10350,6 +10494,13 @@ public static class Spans
         public const string Kind = "Server";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "faas.trigger" });
     }
+    public static class GenAiClientEmbeddings
+    {
+        public const string Id = "gen_ai.client.embeddings";
+        public const string Name = "gen_ai.client.embeddings";
+        public const string Kind = "Client";
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" });
+    }
     public static class GenAiClientInference
     {
         public const string Id = "gen_ai.client.inference";
@@ -10361,13 +10512,6 @@ public static class Spans
     {
         public const string Id = "gen_ai.create_agent.client";
         public const string Name = "gen_ai.create_agent.client";
-        public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" });
-    }
-    public static class GenAiEmbeddingsClient
-    {
-        public const string Id = "gen_ai.embeddings.client";
-        public const string Name = "gen_ai.embeddings.client";
         public const string Kind = "Client";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" });
     }
@@ -10395,6 +10539,13 @@ public static class Spans
     public static class GenAiExecuteToolReadSkillResourceInternal
     {
         public const string Id = "gen_ai.execute_tool.read_skill_resource.internal";
+        public const string Name = "gen_ai.execute_tool.internal";
+        public const string Kind = "Internal";
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" });
+    }
+    public static class GenAiExecuteToolTransferInternal
+    {
+        public const string Id = "gen_ai.execute_tool.transfer.internal";
         public const string Name = "gen_ai.execute_tool.internal";
         public const string Kind = "Internal";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" });

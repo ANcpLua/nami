@@ -40,16 +40,14 @@ internal sealed class McpHarness : IAsyncDisposable
         {
             if (!_process.HasExited)
             {
-                _process.StandardInput.Close();
                 using var shutdown = new CancellationTokenSource(TimeSpan.FromSeconds(10));
                 try
                 {
-                    await _process.WaitForExitAsync(shutdown.Token).ConfigureAwait(false);
+                    await _process.TerminateAsync(shutdown.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (shutdown.IsCancellationRequested)
                 {
                     await _process.KillAsync(CancellationToken.None).ConfigureAwait(false);
-                    await _process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
                 }
             }
 

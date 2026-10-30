@@ -46,8 +46,18 @@ internal sealed class OtlpExportMethodProvider<
                 Marshallers.Create<TRequest>(
                     static (message, serialization) => Serialize(message, serialization),
                     deserialization =>
-                        OtlpPayloadParser.ParseProtobuf(parser, descriptor,
-                            deserialization.PayloadAsReadOnlySequence())),
+                    {
+                        try
+                        {
+                            return OtlpPayloadParser.ParseProtobuf(parser, descriptor,
+                                deserialization.PayloadAsReadOnlySequence());
+                        }
+                        catch (InvalidProtocolBufferException)
+                        {
+                            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                                "The OTLP request contains invalid protobuf."));
+                        }
+                    }),
                 Marshallers.Create<TResponse>(
                     static (message, serialization) => Serialize(message, serialization),
                     static deserialization =>

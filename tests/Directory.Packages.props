@@ -2,8 +2,10 @@
   <Import Project="$(MSBuildThisFileDirectory)../Directory.Packages.props" />
   <ItemGroup>
     <PackageVersion Include="JetBrains.Annotations" Version="2026.2.0" />
-    <PackageVersion Include="Grpc.AspNetCore.Server" Version="$(GrpcAspNetCoreVersion)" />
     <PackageVersion Include="Google.Api.CommonProtos" Version="2.17.0" />
-    <PackageVersion Include="NuGet.Versioning" Version="$(NuGetPackagingVersion)" />
+    <PackageVersion Include="NuGet.Versioning" Version="$(NuGetVersion)" />
+    <!-- Optional MSTest usage reporting; pruning it also removes Application Insights.
+         Review this bound when the owning adapter advances its telemetry dependency. -->
+    <PrunePackageReference Include="Microsoft.Testing.Extensions.Telemetry" Version="2.5.2" />
   </ItemGroup>
 </Project>

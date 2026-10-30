@@ -1,9 +1,10 @@
 # Nami semantic conventions
 
-Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schemas/0.1.0`).
+Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schemas/0.2.0`).
 
 | Namespace | Attributes | Stable attributes | Metrics | Stable metrics |
 | --- | --- | --- | --- | --- |
+| [`a2a`](a2a.md) | 7 | 0 | 0 | 0 |
 | [`android`](android.md) | 3 | 0 | 0 | 0 |
 | [`app`](app.md) | 12 | 0 | 0 | 0 |
 | [`artifact`](artifact.md) | 7 | 0 | 0 | 0 |
@@ -38,7 +39,7 @@ Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schem
 | [`feature_flag`](feature_flag.md) | 13 | 0 | 0 | 0 |
 | [`file`](file.md) | 21 | 0 | 0 | 0 |
 | [`gcp`](gcp.md) | 27 | 0 | 0 | 0 |
-| [`gen_ai`](gen_ai.md) | 79 | 0 | 19 | 0 |
+| [`gen_ai`](gen_ai.md) | 85 | 0 | 21 | 0 |
 | [`geo`](geo.md) | 7 | 0 | 0 | 0 |
 | [`go`](go.md) | 4 | 0 | 12 | 0 |
 | [`graphql`](graphql.md) | 3 | 0 | 0 | 0 |
@@ -96,5 +97,5 @@ Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schem
 | [`vcs`](vcs.md) | 21 | 0 | 10 | 0 |
 | [`webengine`](webengine.md) | 3 | 0 | 0 | 0 |
 
-Total attributes: 960; stable and not deprecated: 121.
-Total metrics: 557; stable and not deprecated: 51.
+Total attributes: 973; stable and not deprecated: 121.
+Total metrics: 559; stable and not deprecated: 51.

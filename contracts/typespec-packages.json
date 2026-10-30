@@ -1,6 +1,6 @@
 {
   "registry": "https://registry.npmjs.org",
-  "tag": "latest",
+  "tag": "next",
   "packages": {
     "@typespec/compiler": "compiler",
     "@typespec/http": "core library",

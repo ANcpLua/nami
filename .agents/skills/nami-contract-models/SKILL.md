@@ -19,8 +19,9 @@ Self-instrumentation covers Nami's operations; it does not replace application i
 An unimplemented requirement remains open. Keep snapshot completeness, producer capture and
 loss-free delivery distinct. Do not reopen the Collector choice or infer a product SDK/CLI from
 build and launcher scripts. Qyl remains retained. After consolidation, the user explicitly authorized
-deleting `nami.playground`; its directory was removed on 27 October 2026 and its verified archive
-remains under `artifacts/migration-checkpoints/`. See `docs/integration/workspace-handoff.md`.
+deleting `nami.playground`; its directory was removed on 27 October 2026. Temporary migration
+archives and audit reports were removed at the user’s request on 30 October 2026. See
+`docs/integration/workspace-handoff.md`.
 No contract change authorizes deleting Qyl or starting another prototype migration.
 
 TypeSpec owns Nami data structures, representation metadata and structural mappings. Weaver owns
@@ -31,23 +32,16 @@ Do not preserve unreleased compatibility paths merely because they already exist
 
 ## Current evidence and navigation
 
-Source baseline: `02181a00e401393f83929c99ab8336b8c1990235`, 27 October 2026.
-The refreshed audit covers **156** existing tracked/nonignored files under `internal/` and `src/`,
-including **117 C# files and 1,282 syntax declarations**, with zero parser errors. The consumer
-manifest has **99 roots**. The migration inventory has **193 entries**, preserving historical
-locations, recording moves/replacements, and distinguishing generated data from authored partial
-behavior. Entries outside the scoped C# inventory remain explicitly unverified.
+Use the current source and generated manifests. Historical audit counts are not a current verification result.
 
-- `/Users/alexandernachtmann/RiderProjects/nami/contracts/model-migration.csv`: candidates, current declarations, TypeSpec owner and authored portions.
-- `/Users/alexandernachtmann/RiderProjects/nami/artifacts/contract-audit-2026-10-27/files.csv`: ownership, SHA256, observed mtime and last Git commit/timestamps for every scoped file.
-- `/Users/alexandernachtmann/RiderProjects/nami/artifacts/contract-audit-2026-10-27/verification.json`: separately recorded verification; inspect its fingerprint and status before claiming a current pass.
-- `/Users/alexandernachtmann/RiderProjects/nami/contracts/generated/model-manifest.json`: consumer roots, forms and properties.
-- `/Users/alexandernachtmann/RiderProjects/nami/contracts/generated/consumer-files.json`: generated consumer file ownership.
-- `/Users/alexandernachtmann/RiderProjects/nami/contracts/emit-config.tsp`: output selection.
+- `contracts/model-migration.csv`: candidates, current declarations, TypeSpec owner and authored portions.
+- `contracts/generated/model-manifest.json`: consumer roots, forms and properties.
+- `contracts/generated/consumer-files.json`: generated consumer file ownership.
+- `contracts/emit-config.tsp`: output selection.
 
-The audit is syntax/provenance evidence, not proof that every behavior is correct. Parity verifies
-regeneration, not the absence of handwritten models. Read actual consumers before migrating a
-candidate. Paths below are relative to `/Users/alexandernachtmann/RiderProjects/nami` unless absolute.
+Regeneration verifies parity, not the absence of handwritten models. Read actual consumers before
+migrating a candidate. Use the repository verification entry points for the current source.
+Paths below are relative to `/Users/alexandernachtmann/RiderProjects/nami` unless absolute.
 
 Already implemented; do not restart these migrations:
 
@@ -185,19 +179,22 @@ Streams/SSE do not implement framing, backpressure, cancellation or delivery. Te
 do not represent simultaneous storage/API projections or infer safe database migrations.
 
 Read [references/typespec-packages.json](references/typespec-packages.json) for resolved entry points
-and hashes. At this update compiler/http/json-schema/openapi/openapi3 are 1.17.0; protobuf/streams/
-sse/events/rest/versioning are 0.87.0; GraphQL is 0.4.0. The separate preview reference at
-`/Users/alexandernachtmann/.local/share/nami/sources/typespec-preview-1.18.0-dev.8/node_modules`
-is not the active compiler. `resolveEncodedEnumMemberValue` is not an active 1.17.0 API.
+and hashes. The active `next` set pins compiler 1.18.0-dev.13, HTTP 1.18.0-dev.6, JSON Schema
+1.18.0-dev.2, OpenAPI 1.18.0-dev.1 and OpenAPI3 1.18.0-dev.7. The exact preview-library
+and framework pins are in `contracts/package.json` and the installed-entry reference. The
+2026-10-30 reference was collected from an isolated frozen-lockfile install; the parent shared
+workspace gate must validate the merged sources. Earlier 1.17.0 and separate dev.8 preview
+observations are historical, not evidence about the active APIs.
 
 Use `/Users/alexandernachtmann/RiderProjects/nami/eng/typespec.sh --check` for current registry
 metadata and `--apply` for an authorized update; `--check --offline` uses cached knowledge.
-`contracts/typespec-packages.json` defaults to npm `latest`; `--tag next` explicitly changes channel.
+`contracts/typespec-packages.json` selects npm `next`; `--tag` explicitly overrides the channel.
 The updater uses six concurrent conditional version-document requests, resolves compatible peers,
-validates combined library imports and checks generated parity. Failure or changed generated output
-restores package/lock/reference files and performs a frozen reinstall. It does not silently migrate
-schemas or install a scheduler. Compiler 1.17.0's missing secondary module-resolver declaration is
-recorded; primary entries/imports are checked separately.
+synchronizes exact compiler peers in local workspaces, validates their other managed TypeSpec
+constraints and combined library imports, and checks generated parity. Failure or changed generated
+output restores package, local workspace manifest, lock and reference files before a frozen reinstall.
+It does not silently migrate schemas or install a scheduler. Compiler 1.18.0-dev.13 still lacks its
+declared secondary module-resolver declaration; primary entries/imports are checked separately.
 
 `getVersioningMutators` and `unsafe_mutateSubgraphWithNamespace` were exercised against the separate
 preview installation, not established as Nami multi-version delivery. Select one view centrally and

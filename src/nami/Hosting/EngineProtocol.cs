@@ -106,6 +106,8 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
     private async Task Execute(EngineRequest request, PendingCall cancellation)
     {
         var entered = false;
+        var previous = Activity.Current;
+        Activity? activity = null;
         try
         {
             await _execution.WaitAsync(cancellation.Token);
@@ -125,11 +127,9 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
                 return;
             }
 
-            var previous = Activity.Current;
             if (!ActivityContext.TryParse(request.Traceparent.Value, request.Tracestate.Value, out var parent))
                 Activity.Current = null;
-            using var activity =
-                NamiTelemetry.Source.StartActivity("tools/call " + request.Name.Value, ActivityKind.Server, parent);
+            activity = NamiTelemetry.Source.StartActivity("tools/call " + request.Name.Value, ActivityKind.Server, parent);
             activity?.SetTag("mcp.method.name", "tools/call");
             activity?.SetTag("gen_ai.tool.name", request.Name.Value);
             var started = Stopwatch.GetTimestamp();
@@ -153,7 +153,6 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
                 NamiTelemetry.Duration.Record(Stopwatch.GetElapsedTime(started).TotalSeconds,
                     new KeyValuePair<string, object?>("mcp.method.name", "tools/call"),
                     new KeyValuePair<string, object?>("gen_ai.tool.name", request.Name.Value));
-                Activity.Current = previous;
             }
         }
         catch (OperationCanceledException) when (cancellation.Token.IsCancellationRequested)
@@ -161,12 +160,15 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
         }
         catch (Exception error)
         {
+            activity?.SetStatus(ActivityStatusCode.Error);
             NamiTelemetry.RecordException(error, services.GetRequiredService<ILoggerFactory>().CreateLogger("nami"));
             var failure = ToolDispatcher.Error("internal_error", "The engine could not complete the request.");
             await Respond(request.Id, failure.Content, true);
         }
         finally
         {
+            activity?.Dispose();
+            Activity.Current = previous;
             if (entered) _execution.Release();
             _pending.TryRemove(request.Id, out _);
             cancellation.Dispose();

@@ -138,7 +138,7 @@ internal sealed partial class RetentionService(
             return;
         }
 
-        using var checkpointTimeout = new CancellationTokenSource(s_shutdownCheckpointTimeout);
+        using var checkpointTimeout = new CancellationTokenSource(s_shutdownCheckpointTimeout, timeProvider);
         await store.CheckpointAsync(checkpointTimeout.Token).ConfigureAwait(false);
     }
 

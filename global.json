@@ -5,8 +5,8 @@
     "allowPrerelease": true
   },
   "msbuild-sdks": {
-    "Microsoft.VisualStudio.JavaScript.Sdk": "1.0.7173973",
-    "MSTest.Sdk": "4.5.1",
+    "Microsoft.VisualStudio.JavaScript.Sdk": "1.0.7204101",
+    "MSTest.Sdk": "4.5.2",
     "ANcpLua.NET.Sdk": "3.4.51"
   },
   "test": {

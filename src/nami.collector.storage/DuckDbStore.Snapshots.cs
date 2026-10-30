@@ -7,20 +7,20 @@ internal sealed partial class DuckDbStore
 {
     public Task<TelemetrySnapshot> ReadSnapshotAsync(string projectId, string? snapshotId = null,
         CancellationToken ct = default) =>
-        ExecuteWriteAsync<TelemetrySnapshot>((connection, token) =>
+        ExecuteWriteAsync<TelemetrySnapshot>(async (connection, token) =>
         {
             var capturedAt = _timeProvider.GetUtcNow();
             var now = NamiTimeConversions.ToUnixNanoUnsigned(capturedAt);
-            using var transaction = connection.BeginTransaction();
+            await using var transaction = connection.BeginTransaction();
             if (snapshotId is not null)
             {
-                using var read = connection.CreateCommand();
+                await using var read = connection.CreateCommand();
                 read.Transaction = transaction;
                 read.CommandText =
                     "SELECT payload FROM read_snapshots WHERE project_id = $1 AND snapshot_id = $2 AND expires_unix_nano > $3";
                 AddParameters(read, projectId, snapshotId, (decimal)now);
                 byte[] payload;
-                using (var rows = read.ExecuteReader())
+                await using (var rows = read.ExecuteReader())
                 {
                     if (!rows.Read()) throw new SnapshotUnavailableException();
                     // DuckDB exposes BLOBs as provider-owned streams, not necessarily byte[].
@@ -28,18 +28,20 @@ internal sealed partial class DuckDbStore
                     payload = DuckDbValueReader.ReadBytes(rows, 0);
                 }
 
-                using var compressed = new MemoryStream(payload, false);
-                using var decoded = new BrotliStream(compressed, CompressionMode.Decompress);
+                await using var compressed = new MemoryStream(payload, false);
+                await using var decoded = new BrotliStream(compressed, CompressionMode.Decompress);
                 var restored =
-                    JsonSerializer.Deserialize(decoded, StorageJsonSerializerContext.Default.TelemetrySnapshot)
+                    await JsonSerializer.DeserializeAsync(decoded,
+                        StorageJsonSerializerContext.Default.TelemetrySnapshot, token).ConfigureAwait(false)
                     ?? throw new SnapshotUnavailableException();
+                token.ThrowIfCancellationRequested();
                 transaction.Commit();
-                return ValueTask.FromResult(restored);
+                return restored;
             }
 
             // This writer-queue barrier observes every earlier accepted ingest job committed. Advance
             // the receipt frontier for signals we have actually seen; last_seen remains unchanged.
-            using (var frontier = connection.CreateCommand())
+            await using (var frontier = connection.CreateCommand())
             {
                 frontier.Transaction = transaction;
                 frontier.CommandText =
@@ -61,9 +63,11 @@ internal sealed partial class DuckDbStore
                     AttributeStabilityRow.MapFromReader),
                 Read("attribute_discovery", AttributeDiscoveryRow.SelectColumnList, "original_key",
                     AttributeDiscoveryRow.MapFromReader));
-            using var compressedPayload = new MemoryStream();
-            using (var encoder = new BrotliStream(compressedPayload, CompressionLevel.Fastest, true))
-                JsonSerializer.Serialize(encoder, snapshot, StorageJsonSerializerContext.Default.TelemetrySnapshot);
+            await using var compressedPayload = new MemoryStream();
+            await using (var encoder = new BrotliStream(compressedPayload, CompressionLevel.Fastest, true))
+                await JsonSerializer.SerializeAsync(encoder, snapshot,
+                    StorageJsonSerializerContext.Default.TelemetrySnapshot, token).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
             var stored = new ReadSnapshotRow
             {
                 ProjectId = projectId,
@@ -71,7 +75,7 @@ internal sealed partial class DuckDbStore
                 ExpiresUnixNano = NamiTimeConversions.ToUnixNanoUnsigned(capturedAt + _snapshotLifetime),
                 Payload = compressedPayload.ToArray()
             };
-            using (var write = connection.CreateCommand())
+            await using (var write = connection.CreateCommand())
             {
                 write.Transaction = transaction;
                 write.CommandText = ReadSnapshotRow.InsertSql;
@@ -79,7 +83,7 @@ internal sealed partial class DuckDbStore
                 write.ExecuteNonQuery();
             }
 
-            using (var sweep = connection.CreateCommand())
+            await using (var sweep = connection.CreateCommand())
             {
                 sweep.Transaction = transaction;
                 sweep.CommandText = "DELETE FROM read_snapshots WHERE expires_unix_nano <= $1";
@@ -87,8 +91,9 @@ internal sealed partial class DuckDbStore
                 sweep.ExecuteNonQuery();
             }
 
+            token.ThrowIfCancellationRequested();
             transaction.Commit();
-            return ValueTask.FromResult(snapshot);
+            return snapshot;
 
             List<T> Read<T>(string table, string columns, string order, Func<DbDataReader, T> mapper)
             {
@@ -96,7 +101,6 @@ internal sealed partial class DuckDbStore
                 read.Transaction = transaction;
                 read.CommandText = "SELECT " + columns + " FROM " + table + " WHERE project_id = $1 ORDER BY " + order;
                 AddParameters(read, projectId);
-                using var cancellation = token.Register(read.Cancel);
                 using var rows = read.ExecuteReader();
                 var result = new List<T>();
                 while (rows.Read())
@@ -107,7 +111,7 @@ internal sealed partial class DuckDbStore
 
                 return result;
             }
-        }, ct);
+        }, cancelAfterClaim: true, ct);
 
     private void RecordIngestion(DuckDBConnection connection, DbTransaction transaction, string signal,
         IEnumerable<ArrivingResource> arriving, CancellationToken cancellationToken)

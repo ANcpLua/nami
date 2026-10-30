@@ -118,7 +118,6 @@ internal static class OtlpPayloadParser
 
     private static async Task<MemoryStream> ReadBoundedPayloadAsync(HttpRequest request, CancellationToken ct)
     {
-        request.EnableBuffering();
         var contentEncoding = request.Headers.ContentEncoding.ToString().Trim();
         var isIdentity = contentEncoding.Length is 0 ||
                          string.Equals(contentEncoding, "identity", StringComparison.OrdinalIgnoreCase);
@@ -128,25 +127,17 @@ internal static class OtlpPayloadParser
         if (request.ContentLength is > MaxPayloadBytes)
             throw new OtlpPayloadTooLargeException();
 
-        try
+        if (isIdentity)
         {
-            if (isIdentity)
-            {
-                var capacity = request.ContentLength is > 0 and <= int.MaxValue
-                    ? (int)request.ContentLength.Value
-                    : 0;
-                return await ReadBoundedStreamAsync(request.Body, capacity, ct).ConfigureAwait(false);
-            }
+            var capacity = request.ContentLength is > 0 and <= int.MaxValue
+                ? (int)request.ContentLength.Value
+                : 0;
+            return await ReadBoundedStreamAsync(request.Body, capacity, ct).ConfigureAwait(false);
+        }
 
-            await using var wire = new OtlpWireLimitStream(request.Body, MaxPayloadBytes);
-            await using var gzip = new GZipStream(wire, CompressionMode.Decompress, true);
-            return await ReadBoundedStreamAsync(gzip, 0, ct).ConfigureAwait(false);
-        }
-        finally
-        {
-            if (request.Body.CanSeek)
-                request.Body.Position = 0;
-        }
+        await using var wire = new OtlpWireLimitStream(request.Body, MaxPayloadBytes);
+        await using var gzip = new GZipStream(wire, CompressionMode.Decompress, true);
+        return await ReadBoundedStreamAsync(gzip, 0, ct).ConfigureAwait(false);
     }
 
     private static async Task<MemoryStream> ReadBoundedStreamAsync(

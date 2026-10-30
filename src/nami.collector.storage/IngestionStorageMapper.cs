@@ -32,7 +32,7 @@ internal static class IngestionStorageMapper
             ]),
             ProjectId = ProjectScope.ForIngest(span.ProjectIdHint, authenticatedProjectId),
             ParentSpanId = string.IsNullOrEmpty(span.ParentSpanId) ? null : span.ParentSpanId,
-            SessionId = span.Attributes.GetSessionId(span.ScopeName, span.ServiceName),
+            SessionId = span.Attributes.GetSessionId(),
             Kind = (byte)(span.Kind ?? 0),
             DurationNs = durationNs,
             StatusCode = (byte)(span.StatusCode ?? 0),
@@ -50,7 +50,7 @@ internal static class IngestionStorageMapper
         var projectId = ProjectScope.ForIngest(log.ProjectIdHint, authenticatedProjectId);
         var severityText = log.SeverityText;
         var severityNumber = (byte)log.SeverityNumber;
-        var sessionId = log.Attributes.GetSessionId(log.ScopeName, log.ServiceName);
+        var sessionId = log.Attributes.GetSessionId();
         // Identity uses complete canonical content; the retention rendering may be bounded.
         // Omitted suffixes contribute only to the digest and are never stored.
         var storedBody = StoredRecordMapper.ToStored(log.Body);

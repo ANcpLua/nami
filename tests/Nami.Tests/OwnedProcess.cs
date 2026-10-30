@@ -11,6 +11,7 @@ internal sealed partial class OwnedProcess : IAsyncDisposable
 {
     private readonly NamedPipeServerStream _control;
     private readonly Task<int> _exit;
+    private readonly Lazy<Task> _gracefulTermination;
     private readonly Process _host;
     private readonly Lazy<Task> _termination;
     private readonly TimeProvider _time;
@@ -25,6 +26,7 @@ internal sealed partial class OwnedProcess : IAsyncDisposable
         _time = time;
         _exit = ReadExitAsync();
         _termination = new Lazy<Task>(KillCoreAsync);
+        _gracefulTermination = new Lazy<Task>(TerminateCoreAsync);
     }
 
     internal int Id { get; }
@@ -163,6 +165,33 @@ internal sealed partial class OwnedProcess : IAsyncDisposable
     internal Task KillAsync(CancellationToken cancellationToken)
     {
         return _termination.Value.WaitAsync(cancellationToken);
+    }
+
+    /// <summary>Requests command shutdown and waits for exit; disposal still owns descendant cleanup.</summary>
+    internal Task TerminateAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return _gracefulTermination.Value.WaitAsync(cancellationToken);
+    }
+
+    private async Task TerminateCoreAsync()
+    {
+        // Windows console processes have no equivalent to SIGTERM. Keep their existing job cleanup.
+        if (OperatingSystem.IsWindows())
+        {
+            await _termination.Value.ConfigureAwait(false);
+            return;
+        }
+
+        // Signal only the command: the ownership host must remain alive to report its exit and
+        // retain descendants until KillAsync/DisposeAsync releases the complete process group.
+        if (!_exit.IsCompleted && Kill(Id, 15) != 0)
+        {
+            var error = Marshal.GetLastPInvokeError();
+            if (error != 3) throw new Win32Exception(error); // ESRCH: the command exited concurrently.
+        }
+
+        _ = await _exit.ConfigureAwait(false);
     }
 
     private async Task KillCoreAsync()

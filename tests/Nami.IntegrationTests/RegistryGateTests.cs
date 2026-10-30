@@ -58,6 +58,7 @@ public sealed partial class RegistryGateTests(TestContext context)
         using var resolved =
             JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(Root, "registry/resolved.json"),
                 context.CancellationToken));
+        Assert.AreEqual(RegistryInfo.NamiSchemaUrl, resolved.RootElement.GetProperty("schema_url").GetString());
         var catalog = resolved.RootElement.GetProperty("attribute_catalog");
         var keys = resolved.RootElement.GetProperty("registry").GetProperty("attributes").EnumerateArray()
             .Select(i => catalog[i.GetInt32()].GetProperty("key").GetString()!).Order(StringComparer.Ordinal).ToArray();
@@ -208,12 +209,124 @@ public sealed partial class RegistryGateTests(TestContext context)
             StringComparison.Ordinal);
         await File.WriteAllTextAsync(script, code, context.CancellationToken);
         var changelog = Path.Combine(temp, "registry/CHANGELOG.md");
-        await File.WriteAllTextAsync(changelog,
-            (await File.ReadAllTextAsync(changelog, context.CancellationToken)).Replace(RegistryInfo.CoreCommit,
-                Changed, StringComparison.Ordinal), context.CancellationToken);
+        var notes = (await File.ReadAllTextAsync(changelog, context.CancellationToken)).Replace(
+            RegistryInfo.CoreCommit, Changed, StringComparison.Ordinal);
+        notes = string.Join('\n', notes.Split('\n').Where(static line =>
+            !line.StartsWith("- Diff:", StringComparison.Ordinal)));
+        await File.WriteAllTextAsync(changelog, notes, context.CancellationToken);
         var result = await ProcessRunner.RunAsync("python3", [script, "--check"], temp, context.CancellationToken);
         Assert.AreNotEqual(0, result.ExitCode);
         Assert.Contains("pin change", result.Error);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public async Task InitialBaseline_WeaverOnlyChangeWithoutDiff_FailsBeforeSourceResolution()
+    {
+        var temp = Path.Combine(
+            context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
+            "weaver-pin-change");
+        const string script = """
+            from pathlib import Path
+            from types import SimpleNamespace
+            import os, sys
+            sys.dont_write_bytecode = True
+            source = Path(sys.argv[1])
+            sys.path.insert(0, str(source / 'registry'))
+            import generate as gate
+            scratch = Path(sys.argv[2])
+            (scratch / 'registry/source').mkdir(parents=True, exist_ok=True)
+            manifest = (source / 'registry/source/manifest.yaml').read_text()
+            manifest = manifest.replace(gate.GENAI_COMMIT, gate.INITIAL_PIN_BASELINE[1])
+            (scratch / 'registry/source/manifest.yaml').write_text(manifest)
+            notes = (source / 'registry/CHANGELOG.md').read_text()
+            notes = notes[notes.index('## 0.1.0'):].replace('Weaver: `0.28.0`', 'Weaver: `0.29.0`')
+            (scratch / 'registry/CHANGELOG.md').write_text('# Registry changes\n\n' + notes)
+            gate.ROOT = scratch
+            gate.CORE_COMMIT, gate.GENAI_COMMIT = gate.INITIAL_PIN_BASELINE[:2]
+            gate.WEAVER_VERSION = '0.29.0'
+            os.environ['WEAVER'] = 'weaver-version-probe'
+            gate.run = lambda *args, **kwargs: SimpleNamespace(stdout='weaver ' + gate.WEAVER_VERSION)
+            def unexpected_source_resolution(*args, **kwargs):
+                raise RuntimeError('Unexpected upstream source resolution')
+            gate.pinned_model = unexpected_source_resolution
+            sys.argv = ['generate.py', '--check']
+            try:
+                gate.main()
+            except RuntimeError as error:
+                print(error, file=sys.stderr)
+                sys.exit(1)
+            """;
+        var result = await ProcessRunner.RunAsync("python3", ["-c", script, Root, temp], Root,
+            context.CancellationToken);
+        Assert.AreEqual(1, result.ExitCode, result.Output + result.Error);
+        Assert.Contains("pin change requires", result.Error);
+        Assert.DoesNotContain("Unexpected upstream", result.Error);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public async Task DiffReceipt_ChangeOrderDoesNotMatterButContentMustMatch()
+    {
+        const string script = """
+            import copy, sys
+            from pathlib import Path
+            sys.dont_write_bytecode = True
+            sys.path.insert(0, str(Path(sys.argv[1]) / 'registry'))
+            import generate as gate
+            expected = {
+                'head': {'semconv_version': '0.2.0'},
+                'baseline': {'semconv_version': '0.1.0'},
+                'changes': {
+                    'registry_attributes': [{'type': 'added', 'name': 'a'}, {'type': 'added', 'name': 'b'}],
+                    'attribute_groups': [], 'resources': [], 'events': [], 'metrics': [], 'spans': []
+                }
+            }
+            reordered = copy.deepcopy(expected)
+            reordered['changes']['registry_attributes'].reverse()
+            assert gate.normalize_diff(expected) == gate.normalize_diff(reordered), 'Ordering must not change the diff'
+            missing = copy.deepcopy(reordered)
+            missing['changes']['registry_attributes'].pop()
+            assert gate.normalize_diff(expected) != gate.normalize_diff(missing), 'Missing changes must be rejected'
+            modified = copy.deepcopy(expected)
+            modified['changes']['registry_attributes'][0]['type'] = 'removed'
+            assert gate.normalize_diff(expected) != gate.normalize_diff(modified), 'Altered changes must be rejected'
+            duplicate = copy.deepcopy(expected)
+            duplicate['changes']['registry_attributes'].append(duplicate['changes']['registry_attributes'][0])
+            assert gate.normalize_diff(expected) != gate.normalize_diff(duplicate), 'Duplicate changes must be retained'
+            wrong_head = copy.deepcopy(expected)
+            wrong_head['head']['semconv_version'] = '0.3.0'
+            assert gate.normalize_diff(expected) != gate.normalize_diff(wrong_head), 'Version metadata must match'
+            """;
+        var result = await ProcessRunner.RunAsync("python3", ["-c", script, Root], Root,
+            context.CancellationToken);
+        Assert.AreEqual(0, result.ExitCode, result.Output + result.Error);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public async Task A2aMigrationExceptions_RequireExactPinnedSource()
+    {
+        const string script = """
+            import sys
+            from pathlib import Path
+            sys.dont_write_bytecode = True
+            sys.path.insert(0, str(Path(sys.argv[1]) / 'registry'))
+            import generate as gate
+            workspace = Path(sys.argv[1]) / 'artifacts/a2a-warning-probe'
+            for group in ('span.a2a.client', 'span.a2a.server'):
+                exact = {'group_id': group, 'path_or_url': str(workspace / 'genai/model/a2a/spans.yaml')}
+                assert gate.migration_diagnostic('MissingRequirementLevelWarning', exact, workspace), group
+                other_file = {**exact, 'path_or_url': str(workspace / 'nami/a2a/spans.yaml')}
+                assert not gate.migration_diagnostic('MissingRequirementLevelWarning', other_file, workspace), group
+                other_group = {**exact, 'group_id': 'span.a2a.unrecognized'}
+                assert not gate.migration_diagnostic('MissingRequirementLevelWarning', other_group, workspace), group
+            gate.GENAI_COMMIT = '0' * 40
+            assert not gate.migration_diagnostic('MissingRequirementLevelWarning', exact, workspace), 'Other pins must fail'
+            """;
+        var result = await ProcessRunner.RunAsync("python3", ["-c", script, Root], Root,
+            context.CancellationToken);
+        Assert.AreEqual(0, result.ExitCode, result.Output + result.Error);
     }
 
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]

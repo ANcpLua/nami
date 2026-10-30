@@ -9,7 +9,8 @@
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Grpc.AspNetCore"/>
+    <PackageReference Include="Grpc.AspNetCore.Server"/>
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" PrivateAssets="all"/>
     <PackageReference Include="OpenTelemetry.Extensions.Hosting"/>
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
   </ItemGroup>

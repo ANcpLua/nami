@@ -18,10 +18,11 @@ from materialize import materialize
 
 ROOT = Path(__file__).resolve().parent.parent
 CORE_COMMIT = 'e10a930844c6951757a43b849d364f7d056ac32b'
-GENAI_COMMIT = '9ffc7e00c639be7712e544e3e54331e885dccf84'
+GENAI_COMMIT = '3fe84604a581b3d50dd5b4bd29383b462d2a5018'
+WEAVER_VERSION = '0.28.0'
 CORE_URL = 'https://github.com/open-telemetry/semantic-conventions.git'
 GENAI_URL = 'https://github.com/open-telemetry/semantic-conventions-genai.git'
-INITIAL_PIN_BASELINE = ('e10a930844c6951757a43b849d364f7d056ac32b', '9ffc7e00c639be7712e544e3e54331e885dccf84')
+INITIAL_PIN_BASELINE = ('e10a930844c6951757a43b849d364f7d056ac32b', '9ffc7e00c639be7712e544e3e54331e885dccf84', '0.28.0')
 
 
 def run(args, **kwargs):
@@ -67,6 +68,11 @@ def migration_diagnostic(kind, value, workspace):
     if kind == 'MissingManifestFileFormat':
         return value.get('expected_format') == 'definition_manifest/2.0' and any(value.get('path','').endswith('/'+p+'/model/manifest.yaml') for p in ('core','genai'))
     if kind == 'MissingRequirementLevelWarning':
+        if value.get('group_id') in ('span.a2a.client','span.a2a.server'):
+            # This immutable GenAI revision omits the signal requirement level.
+            # Do not accept this exception for arbitrary revisions or source files.
+            authored=Path(workspace)/'genai/model/a2a/spans.yaml'
+            return GENAI_COMMIT == '3fe84604a581b3d50dd5b4bd29383b462d2a5018' and value.get('path_or_url') in (str(authored),str(authored.resolve()))
         return value.get('group_id') in ('span.gen_ai.fetch_response.client','entity.gen_ai.main_agent','metric.gen_ai.invoke_agent.inference_calls','metric.gen_ai.invoke_agent.tool_calls') and '/genai/model/' in value.get('path_or_url','')
     if kind == 'InvalidAttributeWarning':
         return value.get('attribute_id') == 'gen_ai.main_agent.id' and value.get('group_id') == 'entity.gen_ai.main_agent' and value.get('error') == "Identity attributes are always required. Setting 'requirement_level' on an identity attribute is deprecated and has no effect." and '/genai/model/' in value.get('path_or_url','')
@@ -99,14 +105,14 @@ def read_change_report(relative, current_release, changelog):
     if not report.is_relative_to(registry_root/'changes') or not report.is_file():
         raise RuntimeError('Registry diff reports must be committed under registry/changes: '+relative)
     value=json.loads(report.read_text())
-    head={'core':CORE_COMMIT,'genai':GENAI_COMMIT,'weaver':'0.28.0'}
+    head={'core':CORE_COMMIT,'genai':GENAI_COMMIT,'weaver':WEAVER_VERSION}
     if value.get('head_pins') != head:
         raise RuntimeError('Registry diff head_pins do not match the current pins: '+relative)
     baseline=value.get('baseline_pins',{})
     if baseline==head or set(baseline) != set(head) or any(not re.fullmatch(r'[0-9a-f]{40}',str(baseline.get(k,''))) for k in ('core','genai')):
         raise RuntimeError('Registry diff must name distinct, exact baseline pins: '+relative)
     history=changelog.split(current_release,1)[-1]
-    if not all(baseline[k] in history for k in ('core','genai')):
+    if not all(baseline[k] in history for k in ('core','genai','weaver')):
         raise RuntimeError('Registry diff baseline pins must be recorded in an earlier CHANGELOG entry: '+relative)
     baseline_path=(registry_root/str(value.get('baseline_registry',''))).resolve()
     if not baseline_path.is_relative_to(registry_root/'changes') or not (baseline_path/'manifest.yaml').is_file():
@@ -121,17 +127,25 @@ def read_change_report(relative, current_release, changelog):
     return value,baseline_path
 
 
+
+def normalize_diff(value):
+    """Weaver changes are a multiset; its HashMap traversal order is unstable."""
+    return {**value, 'changes': {
+        kind: sorted(entries, key=lambda entry: json.dumps(entry, sort_keys=True, separators=(',', ':')))
+        for kind, entries in value['changes'].items()
+    }}
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true', help='regenerate in a temporary directory and compare without editing tracked outputs')
     args=parser.parse_args()
     weaver=os.environ.get('WEAVER') or shutil.which('weaver')
     if not weaver:
-        candidates=[Path.home()/'.local/share/mise/installs/github-open-telemetry-weaver/0.28.0/weaver']
+        candidates=[Path.home()/f'.local/share/mise/installs/github-open-telemetry-weaver/{WEAVER_VERSION}/weaver']
         weaver=next((str(p) for p in candidates if p.is_file()),None)
-    if not weaver: raise RuntimeError('Weaver 0.28.0 is required; run mise install.')
+    if not weaver: raise RuntimeError(f'Weaver {WEAVER_VERSION} is required; run mise install.')
     version=run([weaver,'--version']).stdout.strip()
-    if version != 'weaver 0.28.0': raise RuntimeError('Expected weaver 0.28.0, got '+version)
+    if version != 'weaver '+WEAVER_VERSION: raise RuntimeError('Expected weaver '+WEAVER_VERSION+', got '+version)
     manifest=(ROOT/'registry/source/manifest.yaml').read_text()
     expected=GENAI_URL+'@'+GENAI_COMMIT+'[model]'
     paths=re.findall(r'^\s*registry_path:\s*(\S+)\s*$',manifest,re.M)
@@ -139,9 +153,9 @@ def main():
         raise RuntimeError('Registry dependencies must match the current pinned GenAI commit; core is transitive.')
     changelog=(ROOT/'registry/CHANGELOG.md').read_text()
     current_release=changelog.split('\n## ',1)[-1].split('\n## ',1)[0]
-    if CORE_COMMIT not in current_release or GENAI_COMMIT not in current_release:
-        raise RuntimeError('The current registry CHANGELOG entry must record both exact pinned commits.')
-    baseline=(CORE_COMMIT,GENAI_COMMIT)==INITIAL_PIN_BASELINE and 'Initial pin baseline' in current_release
+    if CORE_COMMIT not in current_release or GENAI_COMMIT not in current_release or f'Weaver: `{WEAVER_VERSION}`' not in current_release:
+        raise RuntimeError('The current registry CHANGELOG entry must record both exact pinned commits and the Weaver version.')
+    baseline=(CORE_COMMIT,GENAI_COMMIT,WEAVER_VERSION)==INITIAL_PIN_BASELINE and 'Initial pin baseline' in current_release
     if not baseline and not re.search(r'Diff: `changes/[^`]+`',current_release):
         raise RuntimeError('A registry pin change requires a committed Weaver diff reference in the current CHANGELOG entry.')
     change_reports=[read_change_report(relative,current_release,changelog) for relative in re.findall(r'Diff: `(changes/[^`]+)`',current_release)]
@@ -181,9 +195,9 @@ def main():
         run([weaver,'--future','registry','check','--v2','-r',str(materialized),'-p',str(ROOT/'registry/policies')])
         for report,baseline_path in change_reports:
             observed=run([weaver,'registry','diff','--v2','-r',str(materialized),'--baseline-registry',str(baseline_path),'--format','json'])
-            if json.loads(observed.stdout) != report['weaver_diff']:
+            if normalize_diff(json.loads(observed.stdout)) != normalize_diff(report['weaver_diff']):
                 raise RuntimeError('Committed Weaver diff does not describe the current and baseline registry publications.')
-        (materialized/'source-pins.json').write_text(json.dumps({'core':core,'genai':genai,'weaver':'0.28.0'},sort_keys=True,indent=2)+'\n')
+        (materialized/'source-pins.json').write_text(json.dumps({'core':core,'genai':genai,'weaver':WEAVER_VERSION},sort_keys=True,indent=2)+'\n')
         # Publish the checked self-contained schema at the canonical registry root.
         # Source authoring remains below source/ and is not loaded by this manifest.
         for name in ('manifest.yaml','resolved.json','source-pins.json'):
@@ -209,7 +223,7 @@ def main():
                     counts[kind]={'total':len(values),'stable':sum(v.get('stability')=='stable' and not v.get('deprecated') for v in values)}
                     shapes=normalized.get('refinements',{}).get(kind,[])
                     counts[kind]['stable_refinements']=sum(v.get('stability')=='stable' and not v.get('deprecated') for v in shapes)
-                inventory={'core_commit':core,'genai_commit':genai,'weaver':'0.28.0','schema_url':normalized['schema_url'],'counts':counts,'attributes':[{'key':v['key'],'stability':v.get('stability'),'deprecated':v.get('deprecated'),'source_schema':v.get('annotations',{}).get('nami.source_schema')} for v in attributes]}
+                inventory={'core_commit':core,'genai_commit':genai,'weaver':WEAVER_VERSION,'schema_url':normalized['schema_url'],'counts':counts,'attributes':[{'key':v['key'],'stability':v.get('stability'),'deprecated':v.get('deprecated'),'source_schema':v.get('annotations',{}).get('nami.source_schema')} for v in attributes]}
                 files[Path('registry-inventory.json')]=(json.dumps(inventory,sort_keys=True,ensure_ascii=False,indent=2)+'\n').encode()
             if args.check:
                 differences=[str(actual/name) for name,data in files.items() if not (actual/name).exists() or (actual/name).read_bytes()!=data]

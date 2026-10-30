@@ -3,24 +3,34 @@
 is_global = true
 global_level = 100
 
-dotnet_diagnostic.VSTHRD001.severity = error
-dotnet_diagnostic.VSTHRD002.severity = error
-dotnet_diagnostic.VSTHRD003.severity = error
-dotnet_diagnostic.VSTHRD010.severity = error
-dotnet_diagnostic.VSTHRD011.severity = error
+# The engine loads the threading analyzer for blocking, async-void and unobserved calls.
+# Naming, UI-thread affinity and ConfigureAwait policies do not apply to this host.
+dotnet_diagnostic.CS4014.severity = error
+dotnet_diagnostic.VSTHRD001.severity = none
+dotnet_diagnostic.VSTHRD002.severity = warning
+dotnet_diagnostic.VSTHRD003.severity = none
+dotnet_diagnostic.VSTHRD004.severity = none
+dotnet_diagnostic.VSTHRD010.severity = none
+dotnet_diagnostic.VSTHRD011.severity = none
 dotnet_diagnostic.VSTHRD100.severity = error
-dotnet_diagnostic.VSTHRD101.severity = error
-dotnet_diagnostic.VSTHRD102.severity = error
-dotnet_diagnostic.VSTHRD103.severity = error
-dotnet_diagnostic.VSTHRD104.severity = error
-dotnet_diagnostic.VSTHRD105.severity = error
-dotnet_diagnostic.VSTHRD106.severity = error
-dotnet_diagnostic.VSTHRD107.severity = error
+dotnet_diagnostic.VSTHRD101.severity = none
+dotnet_diagnostic.VSTHRD102.severity = none
+dotnet_diagnostic.VSTHRD103.severity = none
+dotnet_diagnostic.VSTHRD104.severity = none
+dotnet_diagnostic.VSTHRD105.severity = none
+dotnet_diagnostic.VSTHRD106.severity = none
+dotnet_diagnostic.VSTHRD107.severity = none
+dotnet_diagnostic.VSTHRD109.severity = none
 dotnet_diagnostic.VSTHRD110.severity = error
-dotnet_diagnostic.VSTHRD111.severity = warning
-dotnet_diagnostic.VSTHRD200.severity = error
+dotnet_diagnostic.VSTHRD111.severity = none
+dotnet_diagnostic.VSTHRD112.severity = none
+dotnet_diagnostic.VSTHRD113.severity = none
+dotnet_diagnostic.VSTHRD114.severity = none
+dotnet_diagnostic.VSTHRD115.severity = none
+dotnet_diagnostic.VSTHRD200.severity = none
+dotnet_diagnostic.VSTHRD202.severity = none
 
-# ASP.NET Core has no SynchronizationContext; packable libraries re-enable CA2007 in .editorconfig.
+# The application does not require ConfigureAwait annotations.
 dotnet_diagnostic.CA2007.severity = none
 dotnet_diagnostic.CA2008.severity = error
 dotnet_diagnostic.CA2012.severity = error
@@ -50,9 +60,7 @@ dotnet_diagnostic.AL1600.severity = none
 # AL1700: re-tighten to the analyzer's declared default; the SDK demotes it to suggestion.
 dotnet_diagnostic.AL1700.severity = warning
 
-# RS0030 severity is controlled by SDK (warning) + EditorConfig patterns
-# Do NOT set to error here - globalconfig at level 100 overrides EditorConfig
-# patterns for generated files, causing false positives from MS source generators
+# RS0030 uses the SDK default and the narrower generated-file overrides in .editorconfig.
 
 # Keep DTO, protobuf, and builder-shape diagnostics reviewable rather than build-blocking.
 

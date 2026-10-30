@@ -13,13 +13,17 @@ import { CONTRACT_REVISION, ENGINE_LIMITS } from "./contracts/generated/manifest
 
 /** One supervised native engine, with bounded complete JSONL frames and request correlation. */
 export class EngineError extends Error {
-  constructor(readonly code: "collector_unavailable" | "collector_contract_mismatch", message: string) { super(message); }
+  constructor(readonly code: "collector_unavailable" | "collector_contract_mismatch" | "invalid_argument", message: string) { super(message); }
 }
 export class Engine {
   private readonly child;
+  private readonly exited: Promise<void>;
+  private readonly writesClosed = new AbortController();
   private readonly pending = new Map<string, { resolve: (reply: EngineResponse) => void; reject: (error: Error) => void; cleanup: () => void }>();
   private sequence = 0;
   private stopped = false;
+  private hasExited = false;
+  private shutdown: Promise<void> | undefined;
   readonly ready: Promise<EngineResponse>;
 
   constructor(path: string) {
@@ -27,7 +31,11 @@ export class Engine {
       path.endsWith(".dll") ? [path, "--engine"] : ["--engine"], { stdio: ["pipe", "pipe", "inherit"] });
     const stopChild = () => { this.child.kill("SIGKILL"); };
     process.once("exit", stopChild);
-    this.child.once("exit", () => process.removeListener("exit", stopChild));
+    this.exited = new Promise(resolve => this.child.once("close", () => {
+      this.hasExited = true;
+      process.removeListener("exit", stopChild);
+      resolve();
+    }));
     this.ready = new Promise((resolve, reject) => this.pending.set("ready", { resolve, reject, cleanup() {} }));
     const startup = setTimeout(() => this.fail(new Error("Native engine startup timed out.")), 30000);
     startup.unref();
@@ -62,18 +70,20 @@ export class Engine {
     signal?.throwIfAborted();
     const id = String(++this.sequence);
     const request: EngineCommand = method === "health" ? { id, revision: CONTRACT_REVISION, method } : { id, revision: CONTRACT_REVISION, method, name: name ?? "", input, credential, traceparent, tracestate };
+    // Refuse this request before it owns pending state or can affect the shared child.
+    const frame = encode(request);
     const result = new Promise<EngineResponse>((resolve, reject) => {
       const abort = () => {
         this.pending.delete(id);
         signal?.removeEventListener("abort", abort);
         reject(new Error("Engine request cancelled."));
-        void this.write({ id, revision: CONTRACT_REVISION, method: "cancel" }).catch((error: unknown) => this.fail(asError(error)));
+        void this.write(encode({ id, revision: CONTRACT_REVISION, method: "cancel" })).catch((error: unknown) => this.fail(asError(error)));
       };
       this.pending.set(id, { resolve, reject, cleanup: () => signal?.removeEventListener("abort", abort) });
       signal?.addEventListener("abort", abort, { once: true });
     });
-    try { await this.write(request); }
-    catch (error) { this.fail(asError(error)); }
+    // The response promise must be observed even while the pipe is waiting for drain.
+    void this.write(frame).catch((error: unknown) => this.fail(asError(error)));
     return result;
   }
 
@@ -87,29 +97,48 @@ export class Engine {
     return {isError: reply.isError, result: checked.value} as ToolReply<N>;
   }
 
-  async close(): Promise<void> {
-    if (this.stopped) return;
-    const exit = once(this.child, "exit");
+  close(): Promise<void> {
+    if (this.shutdown) return this.shutdown;
+    this.stopped = true;
+    this.writesClosed.abort();
+    this.rejectPending(new EngineError("collector_unavailable", "Engine is closing."));
+    this.shutdown = this.stopChild();
+    return this.shutdown;
+  }
+
+  private async stopChild(): Promise<void> {
+    if (this.hasExited) return;
     this.child.stdin.end();
     const graceful = setTimeout(() => this.child.kill("SIGTERM"), 5000);
     const forced = setTimeout(() => this.child.kill("SIGKILL"), 8000);
     graceful.unref(); forced.unref();
-    try { await exit; } finally { clearTimeout(graceful); clearTimeout(forced); }
+    try { await this.exited; } finally { clearTimeout(graceful); clearTimeout(forced); }
   }
 
-  private async write(request: EngineCommand): Promise<void> {
-    const frame = JSON.stringify(EngineCommandJson.toJson(request)) + "\n";
-    if (Buffer.byteLength(frame) > ENGINE_LIMITS.max_frame_bytes) throw new Error("Engine request exceeds its bound.");
-    if (!this.child.stdin.write(frame)) await once(this.child.stdin, "drain");
+  private async write(frame: string): Promise<void> {
+    if (!this.child.stdin.write(frame)) await once(this.child.stdin, "drain", { signal: this.writesClosed.signal });
   }
 
   private fail(error: Error): void {
     if (this.stopped) return;
     this.stopped = true;
+    this.writesClosed.abort();
+    this.rejectPending(error);
+    this.child.kill("SIGTERM");
+    void this.close();
+  }
+
+  private rejectPending(error: Error): void {
     for (const request of this.pending.values()) { request.cleanup(); request.reject(error); }
     this.pending.clear();
-    this.child.kill("SIGTERM");
   }
+}
+
+function encode(request: EngineCommand): string {
+  const frame = JSON.stringify(EngineCommandJson.toJson(request)) + "\n";
+  if (Buffer.byteLength(frame) > ENGINE_LIMITS.max_frame_bytes)
+    throw new EngineError("invalid_argument", "The encoded request exceeds the engine frame limit.");
+  return frame;
 }
 
 function isReply(value: unknown): value is EngineResponseJson {

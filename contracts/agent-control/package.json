@@ -26,7 +26,7 @@
     }
   },
   "peerDependencies": {
-    "@typespec/compiler": "1.17.0"
+    "@typespec/compiler": "1.18.0-dev.13"
   },
   "dependencies": {
     "@ancplua/typespec-nami-lint": "workspace:*"

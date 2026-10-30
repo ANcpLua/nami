@@ -15,12 +15,8 @@ internal static class AttributeKeySets
 
 internal static class AttributeLookupExtensions
 {
-    internal static string? GetSessionId(this IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
-        string? scopeName, string? serviceName)
+    internal static string? GetSessionId(this IReadOnlyDictionary<string, OtlpAttributeValue> attributes)
     {
-        // Retain the decoder's call signature; session identity is now the registered key alone.
-        _ = scopeName;
-        _ = serviceName;
         return attributes.GetValueOrDefault(CollectorSemanticAttributeCatalog.SessionId)?.AsString() is
             { Length: > 0 } value
             ? value

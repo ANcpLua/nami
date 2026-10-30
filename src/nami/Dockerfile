@@ -1,4 +1,4 @@
-FROM oven/bun:1.4.3 AS mcp
+FROM oven/bun:1.4.4 AS mcp
 WORKDIR /source
 COPY src/nami.mcp/package.json src/nami.mcp/bun.lock ./
 RUN bun install --frozen-lockfile

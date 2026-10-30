@@ -17,7 +17,7 @@ Eine vorhandene Datei beweist nicht, dass ihre komplette Implementierung optimal
 | `~/RiderProjects/nami` | Konsolidierung einschließlich MSBuild-Bereinigung bis `00523cc` auf `main` übernommen. `main` ist der einzige lokale und Remote-Branch. | Produktimplementierung, vier Testprojekte und gemeinsame Build-Dateien. |
 | Downloads-Prototyp und seine alte Sicherung | Laut ausdrücklicher Nutzerbestätigung gelöscht; dokumentiert in [skill-plugin-dedup.md](skill-plugin-dedup.md). | Keine aktive Abhängigkeit und kein neuer Importauftrag. |
 | `~/RiderProjects/qyl` | Separates Produkt mit eigenständigen verschachtelten Repositories. | **Bleibt erhalten.** Die lesende Instrumentierungsberatung ist kein Migrationsauftrag. |
-| `~/RiderProjects/nami.playground` | Kandidaten geprüft; sinnvolle Fähigkeiten in vorhandene Nami-Eigentümer übernommen. | **Am 27. Oktober 2026 auf ausdrücklichen Nutzerauftrag gelöscht.** Geprüfte Sicherung bleibt unter `artifacts/migration-checkpoints/`; kein Produkt-, Build- oder Test-Verweis. |
+| `~/RiderProjects/nami.playground` | Kandidaten geprüft; sinnvolle Fähigkeiten in vorhandene Nami-Eigentümer übernommen. | **Am 27. Oktober 2026 auf ausdrücklichen Nutzerauftrag gelöscht.** Temporäre Sicherungen wurden am 30. Oktober 2026 auf Nutzerauftrag entfernt; kein Produkt-, Build- oder Test-Verweis. |
 | `~/RiderProjects/nami-plugin` | Portable Skill-Distribution; Eigentum in [skill-plugin-dedup.md](skill-plugin-dedup.md). | Separate Plugin-Arbeit; nicht zusammen mit Prototypen entfernen. |
 | `~/RiderProjects/nami-architecture-review` | Entscheidungsarbeit. | Keine Produktlaufzeit und keine zweite Implementierung. |
 
@@ -57,13 +57,13 @@ Die Pfade dieser Tabelle liegen unter der alten Downloads-Kopie. Verzeichnisse w
 | `Nami.Telemetry.EndToEndTests/AGENTS.md` und `skills/qyl-telemetry-end-to-end/SKILL.md` | Stilllegen, nicht kopieren. | Verweist auf alte REST-/Package-Delivery-Pfade. Der AGENTS-Link nennt sogar einen anderen Skill-Ordner. Nami prüft den tatsächlichen TypeScript-MCP und die native Engine. |
 | EndToEnd-Skill: `agents/openai.yaml` und Elternverzeichnisse | Nicht separat übernehmen. | Qyl-Ordnername und Nami-Skillname sind historische Rename-Reste, kein neues Architekturkonzept. |
 | Die drei `testconfig.json` | Bereits funktional übernommen und in Nami weiterentwickelt. **Nicht überschreiben.** | Siehe den direkten Vergleich unten. |
-| Root-`global.json` | Nicht übernehmen. | Alt: SDK `10.0.402`. Nami pinnt `11.0.100-rc.3.26522.148`; MSTest.Sdk `4.5.1`. |
+| Root-`global.json` | Nicht übernehmen. | Alt: SDK `10.0.402`. Nami pinnt `11.0.100-rc.3.26522.148`; MSTest.Sdk `4.5.2`. |
 | Root-`NuGet.Config` | Nicht übernehmen. | Der Feed `artifacts/product/current/feed` für `Nami.MaterializedTestSnapshot.*` gehört zum alten Produkt-Snapshot-Modell. Nami hat aktuell keine Root-NuGet.Config; temporäre Consumer haben ihre eigene Isolation. Aus dieser Abwesenheit folgt kein fehlender Import. |
 | `Nami.Telemetry.EndToEndTests/Delivery/inputs.json` | Als historische Delivery-Eingabe archivieren, nicht aktivieren. | Pinnt Collector `daf9ae1…` und npm-Paket `nami-mcp-server@17.0.14`. Das ist nicht die heutige lokale C#-Engine-/TypeScript-MCP-Kette. Eine spätere veröffentlichte Paket-Abnahme braucht ein ausdrücklich neues Ziel. |
 
 ### Die vorhandenen Nami-Testkonfigurationen sind weiter
 
-Alle drei aktiven Dateien verweisen wie der Prototyp auf das MSTest-4.5.1-Schema. In Nami setzen sie zusätzlich `captureAssertionFailureDiagnostics: true` und `treatDiscoveryWarningsAsErrors: true`.
+Alle drei aktiven Dateien verweisen auf das MSTest-4.5.2-Schema; der Prototyp bleibt beim historischen 4.5.1-Schema. In Nami setzen sie zusätzlich `captureAssertionFailureDiagnostics: true` und `treatDiscoveryWarningsAsErrors: true`.
 
 | Suite | Gemeinsam beibehalten | Heutige Unterschiede zum Prototyp |
 | --- | --- | --- |
@@ -97,26 +97,14 @@ Die vorhandenen Nami-Eigentümer wurden erweitert; es gibt keine zweite Fixture-
 
 Die Testnamen bezeichnen die zuständigen Nachweise. Der endgültige Gesamtprüfstand steht erst nach Abschluss des aktuellen Gates fest.
 
-## 5. Sicherung und aktuelle Aufräumgrenze
+## 5. Aktuelle Aufräumgrenze
 
-Der Playground wurde vor der Konsolidierung vollständig nach
-`artifacts/migration-checkpoints/nami.playground-2026-10-27.tar.gz` gesichert. Das zugehörige
-`.tar.manifest.json` hält Quell-Hashes fest. Das Archiv ist kein Build- oder Test-Eingang.
-Nach Abschluss der Konsolidierung hat der Nutzer die Löschung von `~/RiderProjects/nami.playground`
-ausdrücklich beauftragt. Der Ordner wurde am 27. Oktober 2026 gelöscht; seine Abwesenheit wurde
-geprüft. Vorher wurden die archivierten Quelldateien erneut abgeglichen; Änderungen betrafen nur
-`.DS_Store`. Das Archiv bleibt erhalten (SHA256:
-`15071ed3c0de32426cc0fc1a0c0736a37e606f6aa2f12c4ec9a4b3b857418aef`).
-**Qyl bleibt erhalten.** Downloads-Prototyp und seine alte Sicherung wurden zuvor gesondert
-ausdrücklich gelöscht. Diese Entscheidungen eröffnen keinen weiteren Migrationsauftrag.
-
-Die drei zusätzlichen Branches wurden am 27. Oktober 2026 auf Nutzerauftrag lokal und auf
-`origin` gelöscht. Ihre vollständigen Git-Stände sind im geprüften Bundle
-`artifacts/migration-checkpoints/branches-before-cleanup-2026-10-27.bundle` gesichert;
-die benachbarte JSON-Datei enthält Referenzen, Commit-IDs und SHA256. Der einzige nicht in
-`main` enthaltene Commit war `e3b7ead` (Entfernung der `.blackboard/`-Ignore-Regel);
-er bleibt im Bundle archiviert und wurde nicht in den Produktstand übernommen.
-Der vorhandene Checkpoint-Tag bleibt als historische Sicherung erhalten.
+Der Playground wurde nach der Konsolidierung am 27. Oktober 2026 auf ausdrücklichen Nutzerauftrag gelöscht.
+Die temporären Dateiarchive, Git-Bundles und alten Audit-Berichte wurden am 30. Oktober 2026 ebenfalls auf
+Nutzerauftrag entfernt. Sie sind keine aktuelle Abhängigkeit oder verfügbare Sicherung.
+**Qyl bleibt erhalten.** Die abgeschlossene Konsolidierung eröffnet keinen weiteren Migrationsauftrag.
+Die drei zusätzlichen Branches wurden bereits am 27. Oktober 2026 lokal und auf `origin` gelöscht.
+Für neue Änderungen gelten die aktuellen Quellen und die Prüfkommandos in `AGENTS.md`.
 
 ## 6. Abschlussumfang
 

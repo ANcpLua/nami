@@ -17,7 +17,7 @@ public static class RegistryInfo
 {
     public const string CoreSchemaUrl = "https://opentelemetry.io/schemas/1.44.0";
     public const string GenAiSchemaUrl = "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev";
-    public const string NamiSchemaUrl = "https://ancplua.github.io/nami/schemas/0.1.0";
+    public const string NamiSchemaUrl = "{{ ctx.schema_url }}";
     public const string WeaverVersion = "0.28.0";
     public const string CoreCommit = "{{ params.core_commit }}";
     public const string GenAiCommit = "{{ params.genai_commit }}";

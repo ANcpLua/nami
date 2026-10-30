@@ -12,7 +12,7 @@ internal static class DuckDbAttributeSource
 
                                  /// <summary>
                                  /// Marks a partial type for DuckDB helper generation.
-                                 /// Generator creates schema, parameter, reader, and eligible appender helpers.
+                                 /// Generator creates schema, parameter, and reader helpers.
                                  /// </summary>
                                  [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false)]
                                  internal sealed class DuckDbTableAttribute : System.Attribute
@@ -24,12 +24,6 @@ internal static class DuckDbAttributeSource
                                      public string? OnConflict { get; set; }
 
                                      /// <summary>
-                                     /// Generate a reusable-row appender for an append-only table whose writes need no
-                                     /// conflict clause, returned key, compare-and-swap predicate, or per-row result.
-                                     /// </summary>
-                                     public bool AppenderEligible { get; set; }
-
-                                     /// <summary>
                                      /// Marks storage that can be discarded and reconstructed from authoritative data.
                                      /// Derived tables are reset automatically when their generated schema identity changes.
                                      /// </summary>
@@ -37,9 +31,6 @@ internal static class DuckDbAttributeSource
 
                                      /// <summary>Metadata needed before authoritative schema validation.</summary>
                                      public bool Bootstrap { get; set; }
-
-                                     /// <summary>Generate a bounded-memory Apache Arrow reader for bulk scans.</summary>
-                                     public bool ArrowEligible { get; set; }
 
                                      /// <summary>
                                      /// Semicolon-separated index column groups. Use CLR property names, e.g. "ProjectId;ProjectId,TraceId".

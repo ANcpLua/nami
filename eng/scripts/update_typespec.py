@@ -100,9 +100,11 @@ def collect_packages(registry, policy, tag):
     return dict(sorted(packages.items())), roles
 
 
-def constraints(packages):
+def constraints(packages, workspaces=None):
     checks = []
-    for name, package in packages.items():
+    sources = list(packages.items())
+    sources.extend((package.get("name", str(path)), package) for path, package in (workspaces or {}).items())
+    for name, package in sources:
         for relationship in ("dependencies", "peerDependencies"):
             for dependency, version_range in package.get(relationship, {}).items():
                 if dependency in packages:
@@ -111,13 +113,13 @@ def constraints(packages):
     return checks
 
 
-def verify_constraints(packages, bun):
-    checks = constraints(packages)
+def verify_constraints(packages, bun, workspaces=None):
+    checks = constraints(packages, workspaces)
     script = "const xs = await Bun.stdin.json(); console.log(JSON.stringify(xs.filter(x => !Bun.semver.satisfies(x.version, x.range))));"
     result = subprocess.run([bun, "-e", script], input=json.dumps(checks), text=True, capture_output=True, check=True)
     failures = json.loads(result.stdout)
     if failures:
-        raise UpdateError("Incompatible latest TypeSpec packages: " + "; ".join(
+        raise UpdateError("Incompatible selected TypeSpec packages: " + "; ".join(
             f"{x['source']} requires {x['dependency']} {x['range']}, selected {x['version']}" for x in failures))
 
 
@@ -127,6 +129,25 @@ def package_update(current, packages):
     for name, metadata in packages.items():
         dependencies[name] = metadata["version"]
     return result
+
+
+def workspace_updates(root, manifest, packages):
+    updates = {}
+    contracts = root / "contracts"
+    for pattern in manifest.get("workspaces", []):
+        for directory in sorted(contracts.glob(pattern)):
+            path = directory / "package.json"
+            if not path.is_file():
+                continue
+            if not path.resolve().is_relative_to(contracts.resolve()):
+                raise UpdateError(f"Workspace manifest is outside contracts: {path}")
+            current = json.loads(path.read_text())
+            peers = current.get("peerDependencies", {})
+            if "@typespec/compiler" in peers and "@typespec/compiler" in packages:
+                # Local compiler extensions are built and checked against this exact compiler.
+                peers["@typespec/compiler"] = packages["@typespec/compiler"]["version"]
+            updates[path] = current
+    return updates
 
 
 def installed_reference(root, packages, roles, tag):
@@ -176,11 +197,16 @@ def validate_imports(root, packages, node, run=subprocess.run):
              "--no-emit", "--warn-as-error"], cwd=root / "contracts", check=True)
 
 
-def apply_update(root, updated, packages, roles, tag, bun, node, run=subprocess.run):
-    tracked = [root / "contracts/package.json", root / "contracts/bun.lock", root / REFERENCE]
+def apply_update(root, updated, packages, roles, tag, bun, node, run=subprocess.run, workspaces=None):
+    if workspaces is None:
+        workspaces = workspace_updates(root, updated, packages)
+    tracked = [root / "contracts/package.json", root / "contracts/bun.lock", root / REFERENCE, *workspaces]
     original = {p: p.read_bytes() if p.exists() else None for p in tracked}
     try:
         write_json(tracked[0], updated)
+        for path, manifest in workspaces.items():
+            if json.loads(path.read_text()) != manifest:
+                write_json(path, manifest)
         run([bun, "install"], cwd=root / "contracts", check=True)
         reference = installed_reference(root, packages, roles, tag)
         for package in reference["packages"]:
@@ -219,13 +245,19 @@ def main():
     registry = Registry(policy["registry"], ROOT / "artifacts/typespec/metadata", args.offline)
     packages, roles = collect_packages(registry, policy, tag)
     bun, node = resolve(ROOT, "bun"), resolve(ROOT, "node")
-    verify_constraints(packages, bun)
     current = json.loads((ROOT / "contracts/package.json").read_text())
     updated = package_update(current, packages)
-    changed = current != updated
+    workspaces = workspace_updates(ROOT, updated, packages)
+    verify_constraints(packages, bun, workspaces)
+    changed = current != updated or any(json.loads(path.read_text()) != value for path, value in workspaces.items())
     for name, metadata in packages.items():
         old = current.get("devDependencies", {}).get(name, "not installed")
         print(f"{name}: {old} -> {metadata['version']} [{tag}; {roles[name]}]", flush=True)
+    for path, manifest in workspaces.items():
+        old = json.loads(path.read_text()).get("peerDependencies", {}).get("@typespec/compiler")
+        new = manifest.get("peerDependencies", {}).get("@typespec/compiler")
+        if old != new:
+            print(f"{path.relative_to(ROOT)}: compiler peer {old} -> {new}", flush=True)
     try:
         expected = installed_reference(ROOT, packages, roles, tag)
         actual = json.loads((ROOT / REFERENCE).read_text()) if (ROOT / REFERENCE).exists() else None
@@ -237,7 +269,7 @@ def main():
     except (OSError, ValueError, UpdateError):
         changed = True
     if args.apply and changed:
-        apply_update(ROOT, updated, packages, roles, tag, bun, node)
+        apply_update(ROOT, updated, packages, roles, tag, bun, node, workspaces=workspaces)
         print("TypeSpec packages and installed entry-point reference updated; contract parity verified.")
         return 0
     print(("CACHED " if args.offline else "") + ("UPDATE AVAILABLE: eng/typespec.sh --apply" if changed else "CURRENT"))

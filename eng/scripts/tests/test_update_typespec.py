@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from update_typespec import Registry, UpdateError, REFERENCE, apply_update, collect_packages, constraints, package_update, installed_reference
+from update_typespec import Registry, UpdateError, REFERENCE, apply_update, collect_packages, constraints, package_update, installed_reference, workspace_updates
 
 
 def package(name="@typespec/compiler", version="1.17.0", **extra):
@@ -110,6 +110,60 @@ class PackagePlanTests(unittest.TestCase):
             with self.assertRaisesRegex(UpdateError, r"graphql requires @typespec/compiler ~1.18.0, selected 1.17.0"):
                 verify_constraints(packages, "bun")
 
+    def test_workspace_compiler_peer_tracks_exact_selection_and_preserves_other_settings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "contracts/libraries/extension/package.json"
+            path.parent.mkdir(parents=True)
+            original = {"name": "local-extension", "peerDependencies": {
+                "@typespec/compiler": "1.17.0", "@typespec/http": "^1.17.0"},
+                "scripts": {"custom": "keep"}}
+            path.write_text(json.dumps(original))
+            selected = {"@typespec/compiler": package(version="1.18.0-dev.13")}
+            updated = workspace_updates(root, {"workspaces": ["libraries/*"]}, selected)
+            self.assertEqual({**original, "peerDependencies": {
+                "@typespec/compiler": "1.18.0-dev.13", "@typespec/http": "^1.17.0"}}, updated[path])
+            self.assertEqual(original, json.loads(path.read_text()))
+            self.assertEqual([{"source": "local-extension", "dependency": "@typespec/compiler",
+                               "version": "1.18.0-dev.13", "range": "1.18.0-dev.13"}],
+                             constraints(selected, updated))
+
+    def test_incompatible_local_workspace_peer_is_reported_before_apply(self):
+        from update_typespec import verify_constraints
+        selected = {"@typespec/http": package("@typespec/http", "1.18.0-dev.6")}
+        workspaces = {Path("extension/package.json"): {"name": "local-extension", "peerDependencies": {
+            "@typespec/http": "1.17.0"}}}
+        failure = [{"source": "local-extension", "dependency": "@typespec/http",
+                    "version": "1.18.0-dev.6", "range": "1.17.0"}]
+        with patch("update_typespec.subprocess.run", return_value=subprocess.CompletedProcess([], 0, json.dumps(failure))) as run:
+            with self.assertRaisesRegex(UpdateError, r"local-extension requires @typespec/http 1.17.0, selected 1.18.0-dev.6"):
+                verify_constraints(selected, "bun", workspaces)
+        self.assertEqual(failure, json.loads(run.call_args.kwargs["input"]))
+
+    def test_check_reports_stale_workspace_peer_when_root_and_reference_are_current(self):
+        import update_typespec
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            workspace = root / "contracts/extension/package.json"
+            workspace.parent.mkdir(parents=True)
+            compiler = package(version="1.18.0-dev.13")
+            manifest = {"workspaces": ["extension"], "devDependencies": {"@typespec/compiler": compiler["version"]}}
+            (root / "contracts/package.json").write_text(json.dumps(manifest))
+            (root / update_typespec.POLICY).write_text(json.dumps({"registry": "https://registry.example", "tag": "next"}))
+            original = '{"name":"extension","peerDependencies":{"@typespec/compiler":"1.17.0"}}\n'
+            workspace.write_text(original)
+            reference = root / REFERENCE
+            reference.parent.mkdir(parents=True)
+            reference.write_text('{"packages":[]}')
+            with patch.object(update_typespec, "ROOT", root), patch.object(sys, "argv", ["update_typespec.py", "--check"]), \
+                 patch("update_typespec.collect_packages", return_value=({"@typespec/compiler": compiler}, {"@typespec/compiler": "compiler"})), \
+                 patch("update_typespec.resolve", side_effect=["bun", "node"]), patch("update_typespec.verify_constraints") as verify, \
+                 patch("update_typespec.installed_reference", return_value={"packages": []}), patch("sys.stdout", new_callable=io.StringIO) as output:
+                self.assertEqual(1, update_typespec.main())
+            self.assertIn("compiler peer 1.17.0 -> 1.18.0-dev.13", output.getvalue())
+            self.assertEqual("1.18.0-dev.13", verify.call_args.args[2][workspace]["peerDependencies"]["@typespec/compiler"])
+            self.assertEqual(original, workspace.read_text())
+
 
 class UpdateTransactionTests(unittest.TestCase):
     def test_keyboard_interrupt_restores_the_original_manifest(self):
@@ -155,6 +209,61 @@ class UpdateTransactionTests(unittest.TestCase):
                     apply_update(root, {"devDependencies": {}}, {}, {}, "latest", "bun", "node", run)
             self.assertEqual(originals, {path: path.read_bytes() for path in originals})
             self.assertEqual(["bun", "install", "--frozen-lockfile"], calls[-1])
+
+    def test_failed_contract_validation_restores_exact_workspace_compiler_peer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / "contracts/package.json"
+            workspace = root / "contracts/extension/package.json"
+            lock = root / "contracts/bun.lock"
+            reference = root / REFERENCE
+            workspace.parent.mkdir(parents=True)
+            reference.parent.mkdir(parents=True)
+            originals = {manifest: b'{"workspaces":["extension"]}\n',
+                         workspace: b'{ "name": "extension", "peerDependencies": { "@typespec/compiler": "1.17.0" } }\n',
+                         lock: b"original lock\n", reference: b"original reference\n"}
+            for path, content in originals.items():
+                path.write_bytes(content)
+            calls = []
+
+            def run(command, **kwargs):
+                calls.append(command)
+                if command == ["bun", "install"]:
+                    self.assertEqual("1.18.0-dev.13", json.loads(workspace.read_text())["peerDependencies"]["@typespec/compiler"])
+                    lock.write_text("changed lock")
+                if command[0] == "bash":
+                    raise subprocess.CalledProcessError(1, command)
+                if command == ["bun", "install", "--frozen-lockfile"]:
+                    self.assertEqual(originals, {path: path.read_bytes() for path in originals})
+
+            selected = {"@typespec/compiler": package(version="1.18.0-dev.13")}
+            with patch("update_typespec.installed_reference", return_value={"packages": []}), patch("update_typespec.validate_imports"):
+                with self.assertRaises(subprocess.CalledProcessError):
+                    apply_update(root, {"workspaces": ["extension"]}, selected, {}, "next", "bun", "node", run)
+            self.assertEqual(originals, {path: path.read_bytes() for path in originals})
+            self.assertEqual(["bun", "install", "--frozen-lockfile"], calls[-1])
+
+    def test_success_updates_workspace_compiler_peer_before_install(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / "contracts/package.json"
+            workspace = root / "contracts/extension/package.json"
+            workspace.parent.mkdir(parents=True)
+            manifest.write_text('{"workspaces":["extension"]}\n')
+            workspace.write_text('{"peerDependencies":{"@typespec/compiler":"1.17.0"}}\n')
+            calls = []
+
+            def run(command, **kwargs):
+                calls.append(command)
+                if command == ["bun", "install"]:
+                    self.assertEqual("1.18.0-dev.13", json.loads(workspace.read_text())["peerDependencies"]["@typespec/compiler"])
+
+            selected = {"@typespec/compiler": package(version="1.18.0-dev.13")}
+            with patch("update_typespec.installed_reference", return_value={"packages": []}), patch("update_typespec.validate_imports"):
+                apply_update(root, {"workspaces": ["extension"]}, selected, {}, "next", "bun", "node", run)
+            self.assertEqual(["bun", "install"], calls[0])
+            self.assertEqual(["bash", str(root / "eng/contracts.sh"), "verify"], calls[1])
+            self.assertEqual({"packages": []}, json.loads((root / REFERENCE).read_text()))
 
     def test_failed_initial_install_removes_previously_absent_generated_files(self):
         with tempfile.TemporaryDirectory() as directory:

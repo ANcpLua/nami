@@ -1,3 +1,5 @@
+using SourceString = ANcpLua.Roslyn.Utilities.StringExtensions;
+
 namespace Nami.Collector.Storage.Generators;
 
 internal static class DuckDbEmitter
@@ -12,15 +14,7 @@ internal static class DuckDbEmitter
         sb.AppendLine(GeneratedCodeHelpers.NullableEnable);
         sb.AppendLine();
         sb.AppendLine("using System;");
-        if (table.ArrowEligible)
-        {
-            sb.AppendLine("using System.IO;");
-            sb.AppendLine("using System.Threading;");
-            sb.AppendLine("using Apache.Arrow;");
-        }
-
-        if (!table.AppenderEligible)
-            sb.AppendLine("using System.Collections.Concurrent;");
+        sb.AppendLine("using System.Collections.Concurrent;");
         sb.AppendLine("using System.Data.Common;");
         sb.AppendLine("using System.Runtime.CompilerServices;");
         sb.AppendLine("using System.Text;");
@@ -32,11 +26,8 @@ internal static class DuckDbEmitter
 
         var insertColumns = table.Columns.Where(static c => !c.ExcludeFromInsert).ToArray();
 
-        if (!table.AppenderEligible)
-        {
-            sb.AppendLine("private static readonly ConcurrentDictionary<int, string> s_insertSqlCache = new();");
-            sb.AppendLine();
-        }
+        sb.AppendLine("private static readonly ConcurrentDictionary<int, string> s_insertSqlCache = new();");
+        sb.AppendLine();
 
         EmitColumnLists(sb, table.TableName, insertColumns, [.. table.Columns]);
 
@@ -47,13 +38,8 @@ internal static class DuckDbEmitter
         EmitIndexesDdl(sb, table);
         EmitAddParameters(sb, table.TypeName, insertColumns);
         EmitParameterSets(sb, table.ParameterSets.ToArray());
-        if (table.AppenderEligible)
-            EmitAppender(sb, table, [.. table.Columns]);
         EmitMapFromReader(sb, table, [.. table.Columns]);
-        if (table.ArrowEligible)
-            EmitArrowReader(sb, table, [.. table.Columns]);
-        if (!table.AppenderEligible)
-            EmitBuildMultiRowInsertSql(sb, table);
+        EmitBuildMultiRowInsertSql(sb, table);
 
         sb.EndBlock();
 
@@ -68,25 +54,11 @@ internal static class DuckDbEmitter
     {
         sb.AppendLine($"public const string TableName = \"{tableName}\";");
         sb.AppendLine(
-            $"private const string QuotedTableName = \"{EscapeCSharpString(SqlIdentifier.Quote(tableName))}\";");
+            $"private const string QuotedTableName = \"{SourceString.EscapeCSharpString(SqlIdentifier.Quote(tableName))}\";");
         sb.AppendLine();
 
-        EmitColumnNameConstants(sb, selectColumns);
         EmitColumnListConstant(sb, "ColumnList", insertColumns);
         EmitColumnListConstant(sb, "SelectColumnList", selectColumns);
-    }
-
-    private static void EmitColumnNameConstants(
-        IndentedStringBuilder sb,
-        IReadOnlyList<DuckDbColumnInfo> columns)
-    {
-        foreach (var column in columns)
-        {
-            sb.AppendLine(
-                $"public const string {column.PropertyName}ColumnName = \"{EscapeCSharpString(SqlIdentifier.Quote(column.ColumnName))}\";");
-        }
-
-        sb.AppendLine();
     }
 
     private static void EmitColumnListConstant(IndentedStringBuilder sb, string name, DuckDbColumnInfo[] columns)
@@ -246,9 +218,6 @@ internal static class DuckDbEmitter
         };
     }
 
-    private static string EscapeCSharpString(string value) =>
-        value.Replace("\\", @"\\").Replace("\"", "\\\"");
-
     private static void EmitAddParameters(IndentedStringBuilder sb, string typeName, DuckDbColumnInfo[] columns)
     {
         sb.AppendLine("/// <summary>");
@@ -341,39 +310,6 @@ internal static class DuckDbEmitter
         return names;
     }
 
-    private static void EmitAppender(
-        IndentedStringBuilder sb,
-        DuckDbTableInfo table,
-        IReadOnlyList<DuckDbColumnInfo> columns)
-    {
-        if (!string.IsNullOrEmpty(table.OnConflict))
-        {
-            throw new InvalidOperationException(
-                $"Table {table.TableName} cannot generate an appender because it declares ON CONFLICT behavior.");
-        }
-
-        sb.AppendLine("/// <summary>Creates the generated reusable-row appender for this table.</summary>");
-        sb.AppendLine("public static DuckDBAppender CreateAppender(DuckDBConnection connection) =>");
-        sb.AppendLine("    connection.CreateAppender(TableName);");
-        sb.AppendLine();
-
-        sb.AppendLine(
-            "/// <summary>Appends one row in generated physical-column order without a per-row allocation.</summary>");
-        sb.AppendLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"public static void AppendRow(DuckDBAppender appender, {table.TypeName} state) =>");
-        sb.AppendLine("    appender.AppendRow(state, static (row, value) =>");
-        sb.BeginBlock();
-        foreach (var column in columns)
-        {
-            sb.AppendLine(column.ExcludeFromInsert
-                ? "row.AppendDefault();"
-                : $"row.AppendValue(value.{column.PropertyName});");
-        }
-
-        sb.EndBlock("});");
-        sb.AppendLine();
-    }
-
     private static void EmitMapFromReader(IndentedStringBuilder sb, DuckDbTableInfo table,
         IReadOnlyList<DuckDbColumnInfo> columns)
     {
@@ -443,76 +379,6 @@ internal static class DuckDbEmitter
                 $"DuckDbValueReader.Read<DateTimeOffset>(reader, {ordinal}) ?? {missing}",
             _ => $"reader.IsDBNull({ordinal}) ? {missing} : reader.GetValue({ordinal})"
         };
-    }
-
-    private static void EmitArrowReader(
-        IndentedStringBuilder sb,
-        DuckDbTableInfo table,
-        IReadOnlyList<DuckDbColumnInfo> columns)
-    {
-        sb.AppendLine(
-            "/// <summary>Streams Arrow record batches and maps rows in generated physical-column order.</summary>");
-        sb.AppendLine(
-            $"public static async ValueTask<(long Rows, int Batches)> ReadArrowRowsAsync<TState>(DuckDBCommand command, TState state, Action<TState, {table.TypeName}> consume, CancellationToken cancellationToken)");
-        sb.BeginBlock();
-        sb.AppendLine("command.UseStreamingMode = true;");
-        sb.AppendLine("long rows = 0;");
-        sb.AppendLine("var batches = 0;");
-        sb.AppendLine(
-            "await foreach (var batch in command.ExecuteArrowBatchesAsync(cancellationToken).ConfigureAwait(false))");
-        sb.BeginBlock();
-        sb.AppendLine("using (batch)");
-        sb.BeginBlock();
-        sb.AppendLine("batches++;");
-        sb.AppendLine("for (var rowIndex = 0; rowIndex < batch.Length; rowIndex++)");
-        sb.BeginBlock();
-        sb.AppendLine("cancellationToken.ThrowIfCancellationRequested();");
-        sb.AppendLine($"consume(state, new {table.TypeName}");
-        sb.BeginBlock();
-        for (var i = 0; i < columns.Count; i++)
-        {
-            var separator = i < columns.Count - 1 ? "," : "";
-            sb.AppendLine($"{columns[i].PropertyName} = {BuildArrowAccessExpr(columns[i], i)}{separator}");
-        }
-
-        sb.EndBlock("});");
-        sb.AppendLine("rows++;");
-        sb.EndBlock();
-        sb.EndBlock();
-        sb.EndBlock();
-        sb.AppendLine("return (rows, batches);");
-        sb.EndBlock();
-        sb.AppendLine();
-    }
-
-    private static string BuildArrowAccessExpr(DuckDbColumnInfo column, int ordinal)
-    {
-        var type = column.PropertyType.TrimEnd('?');
-        var access = type switch
-        {
-            "string" or "System.String" => $"((StringArray)batch.Column({ordinal})).GetString(rowIndex)",
-            "byte" or "System.Byte" => $"((Int8Array)batch.Column({ordinal})).GetValue(rowIndex)",
-            "int" or "System.Int32" => $"((Int32Array)batch.Column({ordinal})).GetValue(rowIndex)",
-            "uint" or "System.UInt32" => $"((UInt32Array)batch.Column({ordinal})).GetValue(rowIndex)",
-            "long" or "System.Int64" => $"((Int64Array)batch.Column({ordinal})).GetValue(rowIndex)",
-            "ulong" or "System.UInt64" => $"((UInt64Array)batch.Column({ordinal})).GetValue(rowIndex)",
-            "double" or "System.Double" => $"((DoubleArray)batch.Column({ordinal})).GetValue(rowIndex)",
-            "byte[]" or "System.Byte[]" => $"((BinaryArray)batch.Column({ordinal})).GetBytes(rowIndex).ToArray()",
-            "System.DateTimeOffset" or "DateTimeOffset" =>
-                $"((TimestampArray)batch.Column({ordinal})).GetTimestamp(rowIndex)",
-            _ => throw new InvalidOperationException(
-                $"No Arrow mapping for {column.PropertyType} on {column.PropertyName}.")
-        };
-
-        if (column.IsNullable)
-            return access;
-
-        return type is "string" or "System.String" or "byte" or "System.Byte" or
-            "int" or "System.Int32" or "uint" or "System.UInt32" or "long" or "System.Int64" or
-            "ulong" or "System.UInt64" or "double" or "System.Double" or
-            "System.DateTimeOffset" or "DateTimeOffset"
-            ? $"{access} ?? throw new InvalidDataException(\"Arrow column '{column.ColumnName}' contains NULL.\")"
-            : access;
     }
 
     private static void EmitBuildMultiRowInsertSql(IndentedStringBuilder sb, DuckDbTableInfo table)

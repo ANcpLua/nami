@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/microsoft/testfx/v4.5.1/docs/testconfig.schema.json",
+  "$schema": "https://raw.githubusercontent.com/microsoft/testfx/v4.5.2/docs/testconfig.schema.json",
   "commandLineOptions": {
     "show-test-results": "failed",
     "show-stdout": "Failed",

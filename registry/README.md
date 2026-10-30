@@ -30,7 +30,7 @@ Edit files under `source/`, a template, or a pin; do not edit the publication by
 
 The raw authored upstream trees are not accepted by Weaver 0.28.0's `--future` check: Weaver
 promotes its v1/v2 migration notices to errors. Core and GenAI include `definition/2` files,
-omitted manifest format tags, and four signals whose requirement level is implicit. GenAI
+omitted manifest format tags, and six signals whose requirement level is implicit. GenAI
 also includes excluded legacy attributes beside their replacements, which Weaver's
 compatibility resolver reports as duplicate IDs.
 
@@ -63,7 +63,7 @@ metric instruments, eight stable span refinements (four base span types), one st
 and five stable entities. Development definitions and Nami additions retain explicit stability.
 
 The generation gate also verifies that the authored dependency URI and the current CHANGELOG
-entry match both exact pinned commits. A pin change beyond the initial baseline requires a
+entry match both exact pinned commits. A change to any of the three pins beyond the initial baseline requires a
 nonempty committed report under `changes/`, referenced by a `Diff:` line in that entry.
 
 A noninitial diff report is JSON containing `head_pins` and `baseline_pins` (each with
@@ -72,3 +72,12 @@ under `registry/changes/`), and `weaver_diff` (the JSON output of Weaver's diff 
 The baseline directory includes its generated `source-pins.json`. Baseline commit IDs
 must occur in an earlier changelog entry. The gate reruns Weaver's diff against that
 baseline and the current materialization and compares the complete result.
+
+The current GenAI pin is `3fe84604a581b3d50dd5b4bd29383b462d2a5018`, a development
+revision which still imports core v1.44.0. The 0.2.0 publication adds A2A and
+agent-transfer attributes, external content-reference attributes, and embeddings
+metrics. Its development embeddings span type is `gen_ai.client.embeddings`.
+`changes/0.2.0.json` records Weaver's machine-readable diff against the committed
+0.1.0 publication. Weaver's diff does not enumerate every refinement, description,
+annotation or external JSON-schema change; inspect the exact upstream comparison
+when reviewing the pin as well.

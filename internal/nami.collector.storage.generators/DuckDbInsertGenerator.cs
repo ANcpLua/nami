@@ -59,10 +59,8 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
 
         string? tableName = null;
         string? onConflict = null;
-        var appenderEligible = false;
         var derived = false;
         var bootstrap = false;
-        var arrowEligible = false;
         var indexes = "";
         var uniqueIndexes = "";
         var parameterSets = "";
@@ -77,17 +75,11 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                 case "OnConflict":
                     onConflict = named.Value.Value as string;
                     break;
-                case "AppenderEligible":
-                    appenderEligible = named.Value.Value is true;
-                    break;
                 case "Derived":
                     derived = named.Value.Value is true;
                     break;
                 case "Bootstrap":
                     bootstrap = named.Value.Value is true;
-                    break;
-                case "ArrowEligible":
-                    arrowEligible = named.Value.Value is true;
                     break;
                 case "Indexes":
                     indexes = named.Value.Value as string ?? "";
@@ -127,10 +119,8 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             typeDecl is RecordDeclarationSyntax ? "record" : "class",
             tableName,
             onConflict,
-            appenderEligible,
             derived,
             bootstrap,
-            arrowEligible,
             columns.ToArray().ToEquatableArray(),
             ParseIndexSpecs(tableName, indexes, columns, false)
                 .Concat(ParseIndexSpecs(tableName, uniqueIndexes, columns, true))
@@ -396,10 +386,8 @@ internal readonly record struct DuckDbTableInfo(
     string TypeKind,
     string TableName,
     string? OnConflict,
-    bool AppenderEligible,
     bool Derived,
     bool Bootstrap,
-    bool ArrowEligible,
     EquatableArray<DuckDbColumnInfo> Columns,
     EquatableArray<DuckDbIndexInfo> Indexes,
     EquatableArray<DuckDbParameterSetInfo> ParameterSets);

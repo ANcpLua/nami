@@ -9,7 +9,8 @@
     <PlatformTarget Condition="'$(PlatformTarget)' == ''">AnyCPU</PlatformTarget>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CA1707;CA2007;CS1591</NoWarn>
+    <!-- Test method names intentionally use underscores. -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
   </PropertyGroup>
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

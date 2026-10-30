@@ -10,12 +10,12 @@
     "start": "bun src/main.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/server": "2.3.1"
+    "@modelcontextprotocol/server": "2.4.0"
   },
   "devDependencies": {
-    "@types/bun": "1.4.3",
-    "@types/node": "26.6.5",
-    "typescript": "7.1.0-beta"
+    "@types/bun": "1.4.4",
+    "@types/node": "26.6.6",
+    "typescript": "7.1.0-dev.20261029.1"
   },
   "engines": {
     "bun": ">=1.4"

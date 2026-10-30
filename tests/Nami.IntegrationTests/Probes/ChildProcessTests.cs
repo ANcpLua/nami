@@ -40,6 +40,43 @@ public sealed class ChildProcessTests(TestContext context) : IAsyncDisposable
 
     [TestMethod]
     [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task OwnedProcess_TerminateAsync_AllowsTheCommandToFlushAndExit()
+    {
+        if (OperatingSystem.IsWindows()) Assert.Inconclusive("This test requires POSIX signals.");
+        await using var process = await OwnedProcess.StartAsync(Shell(
+            "trap 'printf shutdown-flushed; exit 23' TERM; printf 'ready\\n'; while :; do sleep 1; done"),
+            context.CancellationToken);
+        Assert.AreEqual("ready", await process.StandardOutput.ReadLineAsync(context.CancellationToken));
+
+        await process.TerminateAsync(context.CancellationToken);
+
+        Assert.AreEqual(23, process.ExitCode);
+        await process.KillAsync(context.CancellationToken);
+        Assert.AreEqual("shutdown-flushed", await process.StandardOutput.ReadToEndAsync(context.CancellationToken));
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task OwnedProcess_TerminateAsync_DeadlineStillAllowsForcedCleanup()
+    {
+        if (OperatingSystem.IsWindows()) Assert.Inconclusive("This test requires POSIX signals.");
+        await using var process = await OwnedProcess.StartAsync(Shell(
+            "trap '' TERM; printf 'ready\\n'; while :; do sleep 1; done"), context.CancellationToken);
+        Assert.AreEqual("ready", await process.StandardOutput.ReadLineAsync(context.CancellationToken));
+        using var deadline = new CancellationTokenSource(TimeSpan.FromMilliseconds(100), TimeProvider.System);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, deadline.Token);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => process.TerminateAsync(linked.Token));
+
+        Assert.IsFalse(process.HasExited);
+        await process.KillAsync(context.CancellationToken);
+        Assert.IsTrue(process.HasExited);
+        Assert.AreEqual(-1, process.ExitCode);
+        Assert.AreEqual("", await process.StandardOutput.ReadToEndAsync(context.CancellationToken));
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
     public async Task ChildProcess_NonzeroExit_RetainsBothOutputStreams()
     {
         var result = await ChildProcess.RunAsync(PowerShell(
@@ -147,6 +184,18 @@ public sealed class ChildProcessTests(TestContext context) : IAsyncDisposable
         var start = new ProcessStartInfo("pwsh");
         foreach (var argument in new[] { "-NoProfile", "-NonInteractive", "-Command", script })
             start.ArgumentList.Add(argument);
+        return start;
+    }
+
+    private static ProcessStartInfo Shell(string script)
+    {
+        var start = new ProcessStartInfo("/bin/sh")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+        start.ArgumentList.Add("-c");
+        start.ArgumentList.Add(script);
         return start;
     }
 }

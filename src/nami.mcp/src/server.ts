@@ -51,7 +51,7 @@ export function createServer(engine: Engine, credential: string | null = null): 
     } catch (failure) {
       context.mcpReq.signal.throwIfAborted();
       const code = failure instanceof EngineError ? failure.code : "collector_unavailable";
-      data = { code, message: code === "collector_contract_mismatch"
+      data = { code, message: code === "invalid_argument" && failure instanceof EngineError ? failure.message : code === "collector_contract_mismatch"
         ? "The native engine serves a different contract revision." : "The native engine is unavailable.",
         retryable: code === "collector_unavailable" };
       error = true;

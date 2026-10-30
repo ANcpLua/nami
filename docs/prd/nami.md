@@ -17,7 +17,7 @@ Ein Entwickler beauftragt einen Agenten mit der Untersuchung seiner Anwendung. D
 
 nami implementiert Collector, Analyse und TypeScript-MCP in diesem Repository. TypeSpec bleibt die gemeinsame Quelle für Nachrichten, Typen und JSON-Schemas; Weaver bleibt die Quelle für semantische Definitionen und Persistenzregeln. Die Herkunft schränkt weder Zielsprachen noch Connectoren ein.
 
-**Zielstand und Umsetzung:** Diese Fassung ersetzt die frühere Festlegung auf einen C#-MCP-Server in genau einem Prozess. Der vorhandene C#-Host ist ein bisheriger Implementierungsstand, kein Beleg für die Umsetzung des neuen Ziels. Die Migration, die Instrumentierung und die zusätzlichen Nachweise werden in [der Checkliste](../checklist.md) separat geführt. Bestehende grüne Tests belegen nur die von ihnen ausgeführten Pfade.
+**Zielstand und Umsetzung:** Diese Fassung ersetzt die frühere Festlegung auf einen C#-MCP-Server in genau einem Prozess. Die TypeScript-MCP-Schicht auf Bun und die private Verbindung zur C#-NativeAOT-Engine sind implementiert. Offene Instrumentierungs- und Produktanforderungen werden in [der Checkliste](../checklist.md) separat geführt. Bestehende grüne Tests belegen nur die von ihnen ausgeführten Pfade.
 
 Erfolg ist an überprüfbarer Ausführung erkennbar: Die Registry und Generierung sind reproduzierbar; eine deklarierte Operation wird genau einmal mit korrektem Kontext beobachtet; ihre angenommenen Daten werden unter kontrollierter Last innerhalb einer Sekunde abfragbar; jede Antwort bleibt unter `max_bytes`; ein leeres unvollständiges Fenster wird nie als Fehlerfreiheit ausgegeben. Abschnitt I definiert die Instrumentierungsnachweise, Abschnitt T die sechs Analyse-Tools.
 
@@ -220,8 +220,8 @@ freshness:
 
 ## E2E-Harness
 
-Der Harness verwendet ausschließlich MSTest.Sdk 4.5.1 auf der nativen Microsoft.Testing.Platform
-2.5.1, gesteuert durch `./eng/test.sh` und das Fallout-Gate. Gemeinsame Hilfen werden einmal in
+Der Harness verwendet ausschließlich MSTest.Sdk 4.5.2 auf der nativen Microsoft.Testing.Platform
+2.5.2, gesteuert durch `./eng/test.sh` und das Fallout-Gate. Gemeinsame Hilfen werden einmal in
 `Nami.Tests` kompiliert. Es gibt drei ausführbare Suiten nach Beweisart:
 
 | Projekt | Beweist | Läuft |

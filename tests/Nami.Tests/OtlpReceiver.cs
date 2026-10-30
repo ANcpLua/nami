@@ -123,8 +123,7 @@ public sealed partial class OtlpReceiver : IAsyncDisposable
         {
             options.MaxReceiveMessageSize = maxPayloadBytes;
             options.CompressionProviders.Clear();
-            options.CompressionProviders.Add(new BoundedGrpcCompressionProvider(
-                new GzipCompressionProvider(CompressionLevel.Fastest), maxPayloadBytes));
+            options.CompressionProviders.Add(new GzipCompressionProvider(CompressionLevel.Fastest));
         });
         builder.Services.AddSingleton(new OtlpGrpcService(receiver));
         builder.Services.AddSingleton<IServiceMethodProvider<OtlpGrpcService>, OtlpGrpcMethodProvider>();
