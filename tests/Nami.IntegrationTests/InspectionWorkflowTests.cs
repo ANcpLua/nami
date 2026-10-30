@@ -81,7 +81,7 @@ public sealed class InspectionWorkflowTests(TestContext context)
         Assert.Contains("--jobs=2", inspection);
         Assert.Contains("--disable-settings-layers=GlobalAll;GlobalPerProduct;SolutionPersonal;ProjectPersonal",
             inspection);
-        Assert.Contains("SDK 11.0.100-test; InspectCode 2026.3.0-eap07", result.Output);
+        Assert.Contains("SDK 11.0.100-test; InspectCode 2026.3.0-test", result.Output);
         Assert.IsFalse(File.Exists(Path.Combine(fixture.Root, "global-jb-called")));
     }
 
@@ -317,9 +317,12 @@ internal sealed class InspectionFixture(string root, TestContext context)
                  {
                      "eng/inspect.sh", "eng/scripts/inspect_code.py", "eng/scripts/inspect_report.py",
                      "eng/scripts/workspace_lock.py", "eng/scripts/diagnostics.py", "eng/scripts/toolchain.py",
-                     "eng/scripts/limits.sh", ".config/dotnet-tools.json"
+                     "eng/scripts/limits.sh"
                  })
             File.Copy(Path.Combine(ProcessRunner.RepositoryRoot, file), Path.Combine(root, file));
+        await File.WriteAllTextAsync(Path.Combine(root, ".config/dotnet-tools.json"),
+            """{"version":1,"isRoot":true,"tools":{"jetbrains.resharper.globaltools":{"version":"2026.3.0-test","commands":["jb"]}}}""",
+            context.CancellationToken);
         await File.WriteAllTextAsync(Path.Combine(root, ".gitignore"), "artifacts/\n__pycache__/\nignored.cs\n",
             context.CancellationToken);
         await File.WriteAllTextAsync(Path.Combine(root, "global.json"), """{"sdk":{"version":"11.0.100-test"}}""",

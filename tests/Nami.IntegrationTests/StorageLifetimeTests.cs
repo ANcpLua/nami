@@ -83,22 +83,15 @@ public sealed class StorageLifetimeTests(TestContext context)
     public async Task Reads_CanceledWhileQueueIsFull_DoNotExecuteOrShareTheConnection()
     {
         var connections = new Connections();
+        using var gate = new ReadGate(context.CancellationToken);
         await using var store = DuckDbStore.CreateForTesting(connections.Create,
             DatabasePath("reader-queue.duckdb"), maxConcurrentReads: 1, readQueueCapacity: 1);
-        using var release = new ManualResetEventSlim();
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var executions = 0;
-        connections.Items[1].BeforeRead = _ =>
-        {
-            if (Interlocked.Increment(ref executions) != 1) return;
-            entered.SetResult();
-            release.Wait(context.CancellationToken);
-        };
+        connections.Items[1].BeforeRead = gate.BlockFirstRead;
 
         var first = store.GetStorageStatsAsync("default", context.CancellationToken);
         try
         {
-            await entered.Task.WaitAsync(context.CancellationToken);
+            await gate.Entered.WaitAsync(context.CancellationToken);
             var second = store.GetStorageStatsAsync("default", context.CancellationToken);
             using var cancellation = new CancellationTokenSource();
             var rejected = store.GetStorageStatsAsync("default", cancellation.Token);
@@ -106,16 +99,16 @@ public sealed class StorageLifetimeTests(TestContext context)
             Assert.IsFalse(second.IsCompleted);
             await cancellation.CancelAsync();
             await Assert.ThrowsAsync<OperationCanceledException>(() => rejected);
-            Assert.AreEqual(1, Volatile.Read(ref executions));
+            Assert.AreEqual(1, gate.Executions);
 
-            release.Set();
+            gate.Release();
             Assert.AreEqual(0L, (await first).SpanCount);
             Assert.AreEqual(0L, (await second).SpanCount);
-            Assert.AreEqual(2, executions);
+            Assert.AreEqual(2, gate.Executions);
         }
         finally
         {
-            release.Set();
+            gate.Release();
         }
     }
 
@@ -125,25 +118,21 @@ public sealed class StorageLifetimeTests(TestContext context)
         var clock = new FakeTimeProvider(TestData.s_now);
         var connections = new Connections();
         var writeGate = new WriteGate();
+        using var readGate = new ReadGate(context.CancellationToken);
         var store = DuckDbStore.CreateForTesting(connections.Create, DatabasePath("shutdown.duckdb"),
             maxConcurrentReads: 1, beforeWrite: writeGate.WaitAsync, timeProvider: clock);
-        using var readRelease = new ManualResetEventSlim();
-        var readEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        connections.Items[1].BeforeRead = _ =>
-        {
-            readEntered.SetResult();
-            readRelease.Wait(context.CancellationToken);
-        };
+        connections.Items[1].BeforeRead = readGate.BlockRead;
 
         var write = SeedTrace(store, context.CancellationToken);
-        Task<StorageStats>? read = null;
+        Task<StorageStats> read;
         try
         {
             await writeGate.Entered.Task.WaitAsync(context.CancellationToken);
             read = store.GetStorageStatsAsync("default", context.CancellationToken);
-            await readEntered.Task.WaitAsync(context.CancellationToken);
+            await readGate.Entered.WaitAsync(context.CancellationToken);
             var firstDisposal = store.DisposeAsync().AsTask();
             var concurrentDisposal = store.DisposeAsync().AsTask();
+            await writeGate.Canceled.Task.WaitAsync(context.CancellationToken);
             clock.Advance(TimeSpan.FromMilliseconds(4999));
             Assert.IsFalse(firstDisposal.IsCompleted);
             Assert.IsFalse(concurrentDisposal.IsCompleted);
@@ -162,12 +151,11 @@ public sealed class StorageLifetimeTests(TestContext context)
         finally
         {
             writeGate.Release();
-            readRelease.Set();
+            readGate.Release();
             await store.DisposeAsync();
         }
 
         await Assert.ThrowsAsync<OperationCanceledException>(() => write);
-        Assert.IsNotNull(read);
         await Assert.ThrowsAsync<OperationCanceledException>(() => read);
         await Task.WhenAll(store.DisposeAsync().AsTask(), store.DisposeAsync().AsTask());
         foreach (var connection in connections.Items)
@@ -196,6 +184,7 @@ public sealed class StorageLifetimeTests(TestContext context)
         {
             await gate.Entered.Task.WaitAsync(context.CancellationToken);
             var disposal = store.DisposeAsync().AsTask();
+            await gate.Canceled.Task.WaitAsync(context.CancellationToken);
             clock.Advance(TimeSpan.FromSeconds(5));
             await Assert.ThrowsExactlyAsync<AggregateException>(() => disposal);
         }
@@ -223,29 +212,22 @@ public sealed class StorageLifetimeTests(TestContext context)
     {
         var clock = new FakeTimeProvider(TestData.s_now);
         var connections = new Connections();
+        using var gate = new ReadGate(context.CancellationToken);
         await using var store = DuckDbStore.CreateForTesting(connections.Create, ":memory:", timeProvider: clock);
         await SeedTrace(store, context.CancellationToken);
         clock.Advance(TimeSpan.FromMinutes(1));
-        using var release = new ManualResetEventSlim();
-        var inserted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var writer = connections.Items[0];
-        writer.AfterNonQuery = command =>
-        {
-            if (!command.CommandText.StartsWith("INSERT", StringComparison.Ordinal) ||
-                !command.CommandText.Contains("read_snapshots", StringComparison.Ordinal)) return;
-            inserted.SetResult();
-            release.Wait(context.CancellationToken);
-        };
+        writer.AfterNonQuery = gate.BlockSnapshotInsert;
         using var cancellation = new CancellationTokenSource();
         var snapshot = store.ReadSnapshotAsync("default", ct: cancellation.Token);
         try
         {
-            await inserted.Task.WaitAsync(context.CancellationToken);
+            await gate.Entered.WaitAsync(context.CancellationToken);
             await cancellation.CancelAsync();
         }
         finally
         {
-            release.Set();
+            gate.Release();
         }
 
         await Assert.ThrowsAsync<OperationCanceledException>(() => snapshot);
@@ -275,15 +257,14 @@ public sealed class StorageLifetimeTests(TestContext context)
     public async Task Snapshot_CanceledDuringNativeQuery_InterruptsAndAllowsNextOperation()
     {
         var connections = new Connections();
+        using var gate = new ReadGate(context.CancellationToken);
         await using var store = DuckDbStore.CreateForTesting(connections.Create, ":memory:");
         await SeedTrace(store, context.CancellationToken);
         var writer = connections.Items[0];
-        using var release = new ManualResetEventSlim();
-        var enteredNativeQuery = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Action waitForRelease = gate.Wait;
         writer.RegisterScalarFunction<int, int>("hold_snapshot", (_, output, count) =>
         {
-            enteredNativeQuery.TrySetResult();
-            release.Wait(context.CancellationToken);
+            waitForRelease();
             for (ulong row = 0; row < count; row++) output.WriteValue(1, row);
         }, new ScalarFunctionOptions { IsPureFunction = false });
         OperationCanceledException? nativeFailure = null;
@@ -306,12 +287,12 @@ public sealed class StorageLifetimeTests(TestContext context)
         var snapshot = store.ReadSnapshotAsync("default", ct: cancellation.Token);
         try
         {
-            await enteredNativeQuery.Task.WaitAsync(context.CancellationToken);
+            await gate.Entered.WaitAsync(context.CancellationToken);
             await cancellation.CancelAsync();
         }
         finally
         {
-            release.Set();
+            gate.Release();
         }
 
         await Assert.ThrowsAsync<OperationCanceledException>(() => snapshot);
@@ -401,6 +382,44 @@ public sealed class StorageLifetimeTests(TestContext context)
     private string DatabasePath(string name) =>
         Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("No test directory"), name);
 
+    private sealed class ReadGate(CancellationToken cancellationToken) : IDisposable
+    {
+        private readonly ManualResetEventSlim _released = new();
+        private readonly TaskCompletionSource _entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _executions;
+
+        public Task Entered => _entered.Task;
+        public int Executions => Volatile.Read(ref _executions);
+
+        public void BlockFirstRead(DuckDBCommand _)
+        {
+            if (Interlocked.Increment(ref _executions) != 1) return;
+            BlockRead(_);
+        }
+
+        public void BlockRead(DuckDBCommand _)
+        {
+            _entered.SetResult();
+            _released.Wait(cancellationToken);
+        }
+
+        public void BlockSnapshotInsert(DuckDBCommand command)
+        {
+            if (!command.CommandText.StartsWith("INSERT", StringComparison.Ordinal) ||
+                !command.CommandText.Contains("read_snapshots", StringComparison.Ordinal)) return;
+            BlockRead(command);
+        }
+
+        public void Wait()
+        {
+            _entered.TrySetResult();
+            _released.Wait(cancellationToken);
+        }
+
+        public void Release() => _released.Set();
+        public void Dispose() => _released.Dispose();
+    }
+
     private sealed class WriteGate
     {
         private readonly TaskCompletionSource _released = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -408,11 +427,14 @@ public sealed class StorageLifetimeTests(TestContext context)
 
         public TaskCompletionSource<CancellationToken> Entered { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Canceled { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int Calls => Volatile.Read(ref _calls);
 
         public async ValueTask WaitAsync(CancellationToken token)
         {
             if (Interlocked.Increment(ref _calls) != 1) return;
+            using var registration = token.Register(static state => ((TaskCompletionSource)state!).TrySetResult(), Canceled);
             Entered.SetResult(token);
             await _released.Task;
         }

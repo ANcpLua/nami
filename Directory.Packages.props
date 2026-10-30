@@ -60,11 +60,13 @@
     <PackageVersion Include="Newtonsoft.Json" Version="$(NewtonsoftJsonVersion)" />
     <PackageVersion Include="System.CodeDom" Version="$(DotNetRuntimeVersion)" />
     <PackageVersion Include="System.Configuration.ConfigurationManager" Version="$(DotNetRuntimeVersion)" />
-    <PackageVersion Include="System.Reflection.Metadata" Version="$(DotNetRuntimeVersion)" />
+    <!-- Generators run inside the compiler/IDE host. Keep Roslyn's own dependency baseline
+         there instead of requiring the application's newer runtime assemblies. -->
+    <PackageVersion Include="System.Reflection.Metadata" Version="$(DotNetRuntimeVersion)" Condition="'$(MSBuildProjectName)' != 'nami.collector.storage.generators'" />
     <PackageVersion Include="System.Reflection.MetadataLoadContext" Version="$(DotNetRuntimeVersion)" />
     <PackageVersion Include="System.Resources.Extensions" Version="$(DotNetRuntimeVersion)" />
     <PackageVersion Include="System.Security.Permissions" Version="$(DotNetRuntimeVersion)" />
-    <PackageVersion Include="System.Text.Encoding.CodePages" Version="$(DotNetRuntimeVersion)" />
+    <PackageVersion Include="System.Text.Encoding.CodePages" Version="$(DotNetRuntimeVersion)" Condition="'$(MSBuildProjectName)' != 'nami.collector.storage.generators'" />
   </ItemGroup>
   <ItemGroup Label="Fallout transitive dependencies">
     <PackageVersion Include="Azure.Core" Version="$(AzureCoreVersion)" />

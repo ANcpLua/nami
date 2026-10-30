@@ -10,7 +10,6 @@ the agreed architecture and product scope.
 The [I1–I18 / D1–D6 evidence matrix](integration/requirement-evidence.md) records actual source
 owners, existing tests and remaining proof for every requirement. A checked item below means
 only its stated scope is implemented and evidenced; it does not complete a broader I/D row.
-Historical inline user questions are preserved in [review notes](integration/checklist-review-notes.md).
 
 ## Current implementation versus target
 
