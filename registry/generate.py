@@ -22,7 +22,6 @@ GENAI_COMMIT = '3fe84604a581b3d50dd5b4bd29383b462d2a5018'
 WEAVER_VERSION = '0.28.0'
 CORE_URL = 'https://github.com/open-telemetry/semantic-conventions.git'
 GENAI_URL = 'https://github.com/open-telemetry/semantic-conventions-genai.git'
-INITIAL_PIN_BASELINE = ('e10a930844c6951757a43b849d364f7d056ac32b', '9ffc7e00c639be7712e544e3e54331e885dccf84', '0.28.0')
 
 
 def run(args, **kwargs):
@@ -99,42 +98,6 @@ def migration_diagnostic(kind, value, workspace):
 
 
 
-def read_change_report(relative, current_release, changelog):
-    registry_root=(ROOT/'registry').resolve()
-    report=(registry_root/relative).resolve()
-    if not report.is_relative_to(registry_root/'changes') or not report.is_file():
-        raise RuntimeError('Registry diff reports must be committed under registry/changes: '+relative)
-    value=json.loads(report.read_text())
-    head={'core':CORE_COMMIT,'genai':GENAI_COMMIT,'weaver':WEAVER_VERSION}
-    if value.get('head_pins') != head:
-        raise RuntimeError('Registry diff head_pins do not match the current pins: '+relative)
-    baseline=value.get('baseline_pins',{})
-    if baseline==head or set(baseline) != set(head) or any(not re.fullmatch(r'[0-9a-f]{40}',str(baseline.get(k,''))) for k in ('core','genai')):
-        raise RuntimeError('Registry diff must name distinct, exact baseline pins: '+relative)
-    history=changelog.split(current_release,1)[-1]
-    if not all(baseline[k] in history for k in ('core','genai','weaver')):
-        raise RuntimeError('Registry diff baseline pins must be recorded in an earlier CHANGELOG entry: '+relative)
-    baseline_path=(registry_root/str(value.get('baseline_registry',''))).resolve()
-    if not baseline_path.is_relative_to(registry_root/'changes') or not (baseline_path/'manifest.yaml').is_file():
-        raise RuntimeError('Registry diff must reference a committed baseline publication under registry/changes: '+relative)
-    if json.loads((baseline_path/'source-pins.json').read_text()) != baseline:
-        raise RuntimeError('Registry diff baseline metadata does not match its publication: '+relative)
-    diff=value.get('weaver_diff',{})
-    changes=diff.get('changes',{})
-    fields={'registry_attributes','attribute_groups','resources','events','metrics','spans'}
-    if not isinstance(diff.get('head',{}).get('semconv_version'),str) or not isinstance(diff.get('baseline',{}).get('semconv_version'),str) or set(changes)!=fields or not all(isinstance(changes[k],list) for k in fields):
-        raise RuntimeError('Registry diff is not a Weaver v2 JSON diff: '+relative)
-    return value,baseline_path
-
-
-
-def normalize_diff(value):
-    """Weaver changes are a multiset; its HashMap traversal order is unstable."""
-    return {**value, 'changes': {
-        kind: sorted(entries, key=lambda entry: json.dumps(entry, sort_keys=True, separators=(',', ':')))
-        for kind, entries in value['changes'].items()
-    }}
-
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true', help='regenerate in a temporary directory and compare without editing tracked outputs')
@@ -155,10 +118,6 @@ def main():
     current_release=changelog.split('\n## ',1)[-1].split('\n## ',1)[0]
     if CORE_COMMIT not in current_release or GENAI_COMMIT not in current_release or f'Weaver: `{WEAVER_VERSION}`' not in current_release:
         raise RuntimeError('The current registry CHANGELOG entry must record both exact pinned commits and the Weaver version.')
-    baseline=(CORE_COMMIT,GENAI_COMMIT,WEAVER_VERSION)==INITIAL_PIN_BASELINE and 'Initial pin baseline' in current_release
-    if not baseline and not re.search(r'Diff: `changes/[^`]+`',current_release):
-        raise RuntimeError('A registry pin change requires a committed Weaver diff reference in the current CHANGELOG entry.')
-    change_reports=[read_change_report(relative,current_release,changelog) for relative in re.findall(r'Diff: `(changes/[^`]+)`',current_release)]
     cache=ROOT/'artifacts/registry-source-cache'
     with tempfile.TemporaryDirectory(prefix='nami-registry-') as temp:
         temp=Path(temp)
@@ -193,10 +152,6 @@ def main():
         (materialized/'resolved.json').write_text(json.dumps(normalized,ensure_ascii=False,sort_keys=True,indent=2)+'\n')
         (materialized/'manifest.yaml').write_text('file_format: manifest/2.0\nschema_url: '+normalized['schema_url']+'\nstability: development\nresolved_registry_uri: resolved.json\n')
         run([weaver,'--future','registry','check','--v2','-r',str(materialized),'-p',str(ROOT/'registry/policies')])
-        for report,baseline_path in change_reports:
-            observed=run([weaver,'registry','diff','--v2','-r',str(materialized),'--baseline-registry',str(baseline_path),'--format','json'])
-            if normalize_diff(json.loads(observed.stdout)) != normalize_diff(report['weaver_diff']):
-                raise RuntimeError('Committed Weaver diff does not describe the current and baseline registry publications.')
         (materialized/'source-pins.json').write_text(json.dumps({'core':core,'genai':genai,'weaver':WEAVER_VERSION},sort_keys=True,indent=2)+'\n')
         # Publish the checked self-contained schema at the canonical registry root.
         # Source authoring remains below source/ and is not loaded by this manifest.

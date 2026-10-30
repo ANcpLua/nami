@@ -62,22 +62,14 @@ counts. The effective pinned inventory contains 121 stable nondeprecated attribu
 metric instruments, eight stable span refinements (four base span types), one stable event,
 and five stable entities. Development definitions and Nami additions retain explicit stability.
 
-The generation gate also verifies that the authored dependency URI and the current CHANGELOG
-entry match both exact pinned commits. A change to any of the three pins beyond the initial baseline requires a
-nonempty committed report under `changes/`, referenced by a `Diff:` line in that entry.
-
-A noninitial diff report is JSON containing `head_pins` and `baseline_pins` (each with
-`core`, `genai`, and `weaver`), `baseline_registry` (a committed publication directory
-under `registry/changes/`), and `weaver_diff` (the JSON output of Weaver's diff command).
-The baseline directory includes its generated `source-pins.json`. Baseline commit IDs
-must occur in an earlier changelog entry. The gate reruns Weaver's diff against that
-baseline and the current materialization and compares the complete result.
+The generation gate verifies that the authored dependency URI and the current CHANGELOG
+entry match both exact pinned commits and the selected Weaver version. It validates the
+current materialization, publication, policies, and generated outputs without requiring
+historical registry copies or stored diff reports. Earlier versions remain in Git history.
 
 The current GenAI pin is `3fe84604a581b3d50dd5b4bd29383b462d2a5018`, a development
 revision which still imports core v1.44.0. The 0.2.0 publication adds A2A and
 agent-transfer attributes, external content-reference attributes, and embeddings
 metrics. Its development embeddings span type is `gen_ai.client.embeddings`.
-`changes/0.2.0.json` records Weaver's machine-readable diff against the committed
-0.1.0 publication. Weaver's diff does not enumerate every refinement, description,
-annotation or external JSON-schema change; inspect the exact upstream comparison
-when reviewing the pin as well.
+Inspect the exact upstream comparison when reviewing a pin update, including refinements,
+descriptions, annotations, and external JSON-schema changes.

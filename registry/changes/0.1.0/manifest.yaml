@@ -1,4 +1,0 @@
-file_format: manifest/2.0
-schema_url: https://ancplua.github.io/nami/schemas/0.1.0
-stability: development
-resolved_registry_uri: resolved.json
