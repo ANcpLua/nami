@@ -8,6 +8,8 @@ tools. TypeSpec owns application contracts; Weaver owns semantic conventions.
 
 | Topic | Source |
 | --- | --- |
+| Permanent decisions (binding) | [Decisions](../decisions/README.md) |
+| The public "Ways to run nami" page and what a directory listing needs | [Distribution](../distribution.md) |
 | Product scope and acceptance requirements | [PRD](../prd/nami.md) and [request/response requirements](../prd/nami-request-response-review.md) |
 | Implemented scope and remaining work | [Checklist](../checklist.md) and [requirement evidence](requirement-evidence.md) |
 | Build, tests and inspection | [Testing](../testing.md) and [verification map](../verification.md) |

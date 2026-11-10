@@ -45,11 +45,13 @@ has no revenue from nami.
 The third option. nami is one container with one volume, served over HTTPS with
 sign-in. By default each user runs their own copy: locally for Claude Code and
 Cowork, through a tunnel, or at a host from a one-click template. A hosted service
-may follow, free up to a cap that rejects new records, with one paid plan above it.
+follows (decision 0003), free up to a cap that rejects new records, with one paid
+plan above it.
 
-Order of work: a private custom connector first, which needs no review and only
-requires sign-in on `/mcp`; a directory listing when nami serves other people; a
-plugin bundle with skills only, pointing at the same server, with the listing.
+Order of work: sign-in on `/mcp` (decision 0002); the owner's private custom
+connector, which needs no review; the template for copies other people run; the
+hosted service and its directory listing (decision 0003); a plugin bundle with
+skills only, pointing at the same server, with the listing.
 
 The public page puts the free local way first and states Railway's share in plain
 words under the deploy button. Its wording and editing rules are in
@@ -69,10 +71,3 @@ words under the deploy button. Its wording and editing rules are in
   Railway, set 10 Nov 2026). At that amount the owner's services there go offline.
 - Income from Railway's share is a bonus, not a plan: its own report of 5 Dec 2025
   names two authors above 100,000 USD, six above 10,000 and thirty above 1,000.
-
-## Reopen when
-
-- Claude chat starts to load local MCP servers, which would make the local way enough.
-- Measured cost per hosted project shows that a free hosted tier cannot be capped
-  cheaply enough.
-- Anthropic's listing rules change what a connector with per-user addresses needs.

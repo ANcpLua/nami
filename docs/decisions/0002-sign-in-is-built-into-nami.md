@@ -1,8 +1,8 @@
 # 0002. Sign-in is built into nami
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-10
-- Decided by: the owner (not yet; this record is the proposal)
+- Decided by: the owner
 
 ## Question
 
@@ -55,9 +55,9 @@ their own host?
 
 ## Decision
 
-Proposed: sign-in inside nami. The Auth0 tenant stays available as a fallback for the
-owner's own hosted copy until the built-in server passes against Claude on the web,
-in the desktop app, on the phone and in Claude Code.
+Sign-in is inside nami. nami uses no identity vendor: not for the owner's copy, not
+for copies other people run, not for the hosted service. The Auth0 tenant of the
+predecessor is not part of nami.
 
 ## Consequences
 
@@ -67,14 +67,9 @@ in the desktop app, on the phone and in Claude Code.
   the volume, and limits against guessing the owner secret.
 - The deployment template generates the owner secret; the page tells the user where
   to find it.
-- A hosted service for many users later needs accounts on top of this (who may sign
-  in to which project). That is a separate decision.
-- The effort is not estimated. What the MCP server SDK in use (2.4.0) already
-  provides for the authorization-server side has to be checked first.
-
-## Reopen when
-
-- The SDK check shows the authorization-server side is far larger than the
-  resource-server side that every option needs anyway.
-- Claude offers a simpler supported way for a self-hosted server to authenticate its
-  single owner.
+- The hosted service of decision 0003 adds accounts on top of this (who may sign in
+  to which project).
+- First task: read what the MCP server SDK in use (2.4.0) provides for the
+  authorization-server side, then size the work.
+- Done means: the built-in server passes against Claude on the web, in the desktop
+  app, on the phone and in Claude Code.

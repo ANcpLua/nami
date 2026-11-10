@@ -1,14 +1,14 @@
-# 0003. A directory listing, if wanted, is a capped hosted service
+# 0003. nami is listed in Claude's directory through one capped hosted service
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-10
-- Decided by: the owner (not yet; this record is the proposal)
+- Decided by: the owner
 
 ## Question
 
 Decision 0001 makes "each user runs their own copy" the default, so the owner pays for
-nobody. Being found inside Claude needs a listing in Anthropic's directory. Do the two
-fit together, and if not, which one gives way?
+nobody. Being found inside Claude needs a listing in Anthropic's directory. How does
+nami get listed without the owner paying for every user?
 
 ## What mattered
 
@@ -25,7 +25,6 @@ fit together, and if not, which one gives way?
   platforms", read 10 Nov 2026.)
 - Two products in the same field are listed or connectable through one hosted
   address and keep that free with a cap that rejects new records.
-- nami is still in development; nobody needs to find it today.
 
 ## Options
 
@@ -33,27 +32,27 @@ fit together, and if not, which one gives way?
   label the owner cannot request, so nami may stay unlisted.
 - **One hosted service only.** Listed by default. The owner pays for every user and
   stores their telemetry.
-- **Both, in sequence.** No listing while nami is in development. When being found
-  matters, one hosted service under one address, free up to a cap that rejects, is
-  submitted as the listing; running your own copy stays the way for anyone who
-  outgrows the cap or wants their data at home.
+- **Both.** One hosted service under one address, free up to a cap that rejects, is
+  the listing; running your own copy stays the way for anyone who outgrows the cap
+  or wants their data at home.
 
 ## Decision
 
-Proposed: both, in sequence. Until the owner decides that being found in Claude is
-worth it, there is no listing and nothing to host for others.
+Both. nami is listed in Anthropic's directory as one hosted service under one
+address. It is free up to a cap that rejects new records and has one paid plan above
+the cap. It is built after sign-in, the owner's private connector and the template
+(the order in decision 0001), and it is submitted as an MCP connector together with
+the skills-only plugin.
 
 ## Consequences
 
-- The hosted service is only built when the listing is wanted. It then needs
-  accounts, the caps of decision 0001 in the engine, a privacy policy, and care for
-  other people's telemetry.
+- The hosted service needs accounts, the caps of decision 0001 in the engine, a
+  privacy policy, a support contact, and care for other people's telemetry.
+- The caps and the price of the paid plan are set from measured cost per project
+  before launch. The reference points are 30,000 to 50,000 records a month, 14 to 30
+  days of retention and one project on the free tier, and 25 to 29 USD a month for
+  the paid plan.
 - The owner pays for hosted users, but only inside limits the owner sets: the cap per
   project and the spending limit at the host.
-- The self-run way and the template do not wait for any of this.
-
-## Reopen when
-
-- Anthropic publishes per-user-address listings without the Verified label, or
-  offers a way to request it.
-- Measured cost per capped project is too high to offer the hosted tier for free.
+- The self-run way and the template come first and do not wait for the hosted
+  service.

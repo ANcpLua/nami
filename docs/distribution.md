@@ -5,8 +5,8 @@ what a directory listing needs, so none of it depends on anyone's memory. Nothin
 is built yet except running nami locally; each part of the page lists what must be
 true before it is published.
 
-The decision behind this page, with its reasons and consequences, is
-[decision 0001](decisions/0001-remote-connector-and-who-pays.md).
+What is decided, and why, is in [decisions/](decisions/README.md). This file only
+holds the page.
 
 ## Rules for whoever edits the page
 
@@ -30,7 +30,7 @@ nami is free to run yourself. Where it has to run depends on where you use Claud
 | Claude Code or Cowork, on your own computer | On that computer. Claude starts it for you. | Free |
 | Claude chat on the web, in the desktop app or on your phone, and your computer is usually on | On your computer, reachable through a tunnel | Free. It works while the computer is on. |
 | Claude chat anywhere, at any time | Your own copy at a host | What the host charges: about `<measured amount>` a month for a small always-on service |
-| Anywhere, with no setup | The hosted service | Free up to `<cap>` records a month |
+| Anywhere, with no setup | The hosted service | Free up to `<cap>` records a month; `<price>` a month above it |
 
 Claude chat on the web, in the desktop app and on the phone can only reach a server
 on the internet, never a program on your computer. That is how Claude works, and it
@@ -93,7 +93,8 @@ the sentence above is checked against the program's current terms.
 We run nami for you. It is free up to `<cap>` records a month, keeps data for
 `<days>` days and holds one project. Above the cap nami stops accepting new records
 until the next month; it never bills you by surprise.
-`<paid plan, if one exists: price, records, days>`
+Above the cap there is one paid plan: `<price>` a month for `<records>` records and
+`<days>` days.
 
 Your telemetry is stored by us, in `<region>`. `<link to the privacy policy>`
 
@@ -140,15 +141,9 @@ From Anthropic's submission pages, read 10 November 2026:
 - The cost of a small always-on service at Railway was estimated at about 3 USD a
   month from its published rates. It has not been measured.
 
-## Open
+## Still to do before the page is published
 
-- Whether the hosted service is offered at all, and with which caps and price. Being
-  found inside Claude depends on it:
-  [decision 0003](decisions/0003-the-listing-is-a-capped-hosted-service.md).
-- The exact wording of the sentence under the deploy button: in the EU a commercial
-  tie has to be recognizable to the reader; the wording has not been checked by a
-  lawyer.
-- How a copy that someone else runs signs its owner in. Proposed in
-  [decision 0002](decisions/0002-sign-in-is-built-into-nami.md): sign-in inside nami,
-  as both reference products do. It decides how much work the "each user runs their
-  own copy" default is, and its effort is not estimated yet.
+- Measure the monthly cost of a small always-on copy and of one capped hosted
+  project, and fill the placeholders from the measurements.
+- Have the sentence under the deploy button checked: in the EU a commercial tie has
+  to be recognizable to the reader.

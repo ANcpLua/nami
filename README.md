@@ -11,7 +11,8 @@ The runtime is **TypeScript/Bun MCP + C#/.NET 11 NativeAOT engine**, connected l
 private streams/pipes. TypeSpec generates the shared C#/TypeScript wire contracts and JSON Schemas;
 Weaver supplies semantic definitions and persistence rules. A common release need not be one native file.
 See the [PRD](docs/prd/nami.md), [architecture](docs/architecture.yaml) and
-[migration checklist](docs/checklist.md).
+[migration checklist](docs/checklist.md). The permanent decisions are in
+[docs/decisions](docs/decisions/README.md).
 
 The transport migration is implemented; the EndToEnd suite runs through the TypeScript host
 and published native engine. Compile-time instrumentation of supported applications and
