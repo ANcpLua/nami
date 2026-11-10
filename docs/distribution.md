@@ -1,33 +1,12 @@
 # How nami reaches Claude, and who pays
 
-Decided on 10 November 2026. This file records the decisions, the reasons and the
-wording for the public page, so none of it depends on anyone's memory. Nothing here
+Written on 10 November 2026. This file holds the wording for the public page and
+what a directory listing needs, so none of it depends on anyone's memory. Nothing here
 is built yet except running nami locally; each part of the page lists what must be
 true before it is published.
 
-## Decisions
-
-1. **The product is a remote connector.** Claude chat on the web, in the desktop app
-   and on the phone can only reach a remote MCP server; a local server in a plugin
-   is ignored there. Cowork and Claude Code reach both. So nami is offered as one
-   server over HTTPS with sign-in, and local use stays as the free way for Claude
-   Code and Cowork.
-2. **Order of work.** First a private custom connector, added in Claude by URL, which
-   needs no review and only requires sign-in (OAuth) on `/mcp`. Then a listing in
-   Anthropic's directory once nami serves other people. A plugin bundle that holds
-   only skills and points at the same server comes with the listing, because skills
-   load on every surface.
-3. **Nobody is bound to a host.** nami is one container with one volume. Railway is
-   the host that is tested and has a one-click template; no decision depends on it.
-4. **Who pays when nami is popular.** Each user runs their own copy by default and
-   pays their own host. A hosted service, if it comes, is free up to a cap that
-   rejects new records instead of billing, with one paid plan above it. The owner's
-   own bill is limited by a hard spending limit at the host (20 USD on Railway, set
-   10 Nov 2026).
-5. **The page does not lean towards the option that pays.** Railway pays template
-   authors a share of what their deployments earn. The free local way comes first,
-   and the share is stated in plain words under the deploy button. The rules below
-   keep it that way.
+The decision behind this page, with its reasons and consequences, is
+[decision 0001](decisions/0001-remote-connector-and-who-pays.md).
 
 ## Rules for whoever edits the page
 
