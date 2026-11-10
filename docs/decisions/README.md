@@ -53,3 +53,4 @@ The chosen option and the reason in one or two sentences.
 | --- | --- | --- |
 | [0001](0001-remote-connector-and-who-pays.md) | nami reaches Claude as a remote connector; each user runs their own copy by default | accepted |
 | [0002](0002-sign-in-is-built-into-nami.md) | Sign-in is built into nami, so a copy needs no identity vendor | proposed |
+| [0003](0003-the-listing-is-a-capped-hosted-service.md) | A directory listing, if wanted, is a capped hosted service; no listing while in development | proposed |

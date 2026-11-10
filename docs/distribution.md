@@ -142,7 +142,9 @@ From Anthropic's submission pages, read 10 November 2026:
 
 ## Open
 
-- Whether the hosted service is offered at all, and with which caps and price.
+- Whether the hosted service is offered at all, and with which caps and price. Being
+  found inside Claude depends on it:
+  [decision 0003](decisions/0003-the-listing-is-a-capped-hosted-service.md).
 - The exact wording of the sentence under the deploy button: in the EU a commercial
   tie has to be recognizable to the reader; the wording has not been checked by a
   lawyer.
