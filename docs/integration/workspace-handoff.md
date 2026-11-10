@@ -47,7 +47,7 @@ Die Pfade dieser Tabelle liegen unter der alten Downloads-Kopie. Verzeichnisse w
 
 | Altdatei beziehungsweise Gruppe | Entscheidung | Heutiger Bezug / Begründung |
 | --- | --- | --- |
-| `Nami.Telemetry.Tests/AGENTS.md` | Als historische Vorgabe stilllegen, nicht kopieren. | Die Rolle der Supportbibliothek steht in Nami-`AGENTS.md` und [testing.md](../testing.md). |
+| `Nami.Telemetry.Tests/AGENTS.md` | Als historische Vorgabe stilllegen, nicht kopieren. | Die Rolle der Supportbibliothek steht in [testing.md](../testing.md). |
 | `Nami.Telemetry.Tests/skills/nami-telemetry-support/SKILL.md` | Fachlich nützliche Hinweise sind am bestehenden Harness zu prüfen; die Datei wird nicht als verbindlicher Skill übernommen. | Fixture-, Capture-, Compiler-, Prozess- und Evidenzfunktionen sind bereits vorhanden. Alte Parent-Checkout-, Push- und pauschale Umschreibregeln gelten nicht automatisch weiter. |
 | Support-Skill: `agents/openai.yaml` und Elternverzeichnisse | Nicht separat übernehmen. | UI-Metadaten aktivieren einen Skill; ohne übernommene Skill-Aufgabe besteht kein eigener Nutzen. |
 | `Nami.Telemetry.UnitTests/AGENTS.md` und `skills/nami-telemetry-unit/SKILL.md` | Stilllegen, nicht kopieren. | Die Forderungen nach unversiegelten Klassen und pauschalem `Fast`-Tag widersprechen der heutigen Anleitung. Deterministische Tests bleiben sinnvoll; die alte Ausgestaltung ist kein Zwang. |
@@ -75,7 +75,7 @@ Das ist ein Konfigurationsvergleich, keine erneute Bestätigung sämtlicher Runn
 
 ### Warum nicht vier alte Skills umbenennen?
 
-Gleiche Informationen an vielen Orten erzeugen konkurrierende Anweisungen. Für Nami reichen zurzeit die bestehenden Rollen in Root-`AGENTS.md`, [testing.md](../testing.md), die [.agents/skills/fixture-lifecycle/SKILL.md](../../.agents/skills/fixture-lifecycle/SKILL.md) und die jeweils fachlich zuständigen Skills. Ein zusätzlicher projektspezifischer Skill wird erst angelegt, wenn er einen eigenen, wiederkehrenden Arbeitsablauf beschreibt.
+Gleiche Informationen an vielen Orten erzeugen konkurrierende Anweisungen. Für Nami reichen zurzeit die bestehenden Rollen in [testing.md](../testing.md) und [test-harness.md](test-harness.md). Ein zusätzlicher projektspezifischer Skill wird erst angelegt, wenn er einen eigenen, wiederkehrenden Arbeitsablauf beschreibt.
 
 Die früheren gebrochenen Downloads-Skill-Verweise gehören zum abgeschlossenen Cleanup in
 [skill-plugin-dedup.md](skill-plugin-dedup.md). Sie werden nicht nach Nami repliziert.
@@ -104,7 +104,7 @@ Die temporären Dateiarchive, Git-Bundles und alten Audit-Berichte wurden am 30.
 Nutzerauftrag entfernt. Sie sind keine aktuelle Abhängigkeit oder verfügbare Sicherung.
 **Qyl bleibt erhalten.** Die abgeschlossene Konsolidierung eröffnet keinen weiteren Migrationsauftrag.
 Die drei zusätzlichen Branches wurden bereits am 27. Oktober 2026 lokal und auf `origin` gelöscht.
-Für neue Änderungen gelten die aktuellen Quellen und die Prüfkommandos in `AGENTS.md`.
+Für neue Änderungen gelten die aktuellen Quellen und die Prüfkommandos in [testing.md](../testing.md).
 
 ## 6. Abschlussumfang
 

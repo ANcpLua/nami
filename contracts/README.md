@@ -3,7 +3,7 @@
 ## Package maintenance
 
 `../eng/typespec.sh --check` checks the npm tag configured in `typespec-packages.json`
-(`latest` by default). `../eng/typespec.sh --apply` installs exact versions and refreshes
+(currently `next`; there is no fallback to `latest`). `../eng/typespec.sh --apply` installs exact versions and refreshes
 the package entry-point reference in
 `../.agents/skills/nami-contract-models/references/typespec-packages.json`.
 The equivalent repository tasks are `mise run typespec:check` and `mise run typespec:update`.
@@ -13,7 +13,7 @@ GraphQL, Streams, SSE, Events, REST and Versioning packages. Required TypeSpec p
 are resolved with them, and their version constraints must agree before installation.
 Installing a package does not activate its emitter or change Nami's transport.
 Preview package status is separate from the npm tag: `latest` can point to a `0.x`
-preview package. Use `--tag next` only when that channel is intentionally wanted.
+preview package. Pass `--tag <name>` to check another channel for one run.
 
 The updater fetches one small version document per package, with at most six concurrent
 requests, conditional ETag/Last-Modified requests when supported, and one cache entry per

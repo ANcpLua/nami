@@ -62,6 +62,9 @@ write shared generated outputs are explicitly serialized.
 In Rider, open `nami.slnx` and explicitly index the `contracts` web project for TypeSpec/emitter
 editing. IDE project unloading only changes the editor's working set; the CLI still uses the
 complete solution. Deleting `.idea` or running `dotnet clean` does not enable web-project indexing.
+A Debug-only IDE build graph lacks the Release-generated symbols, so its cleanup removes imports
+that are still needed. Prepare Release and use `--properties=Configuration=Release`; never accept an
+unused-import removal that is justified only by an unresolved generated reference.
 
 The completed prototype handover and file dispositions are documented in
 [test-harness.md](integration/test-harness.md). No Downloads checkout or parent repository is required.
@@ -82,6 +85,8 @@ The four .NET test projects have different responsibilities:
 
 Nami's MCP implementation is TypeScript under `src/nami.mcp`; the C# executable implements the
 private engine. Testing generated .NET consumer projects does not introduce a product SDK or CLI.
+
+Name a new test for the behavior it proves, and seal new concrete test classes.
 
 ### Per-invocation consumer projects
 
@@ -235,8 +240,7 @@ and source-generated serialization when extending the codecs.
 
 Canonical ordering, number normalization and identity-field selection remain named algorithms in
 the collector. A change to their hash inputs needs explicit identity tests; regenerating models
-alone does not prove persistence compatibility. Preview features and local compiler-source lessons
-are recorded in the [Nami model skill](../.agents/skills/nami-contract-models/SKILL.md).
+alone does not prove persistence compatibility.
 
 ## Focused and prepared runs
 

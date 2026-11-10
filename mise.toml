@@ -5,7 +5,7 @@ node = "24.22.2"
 "github:open-telemetry/weaver" = "0.28.0"
 # pino 9.14.0 is a reviewed manual release: registry signature verified and all
 # 207 archive files match upstream 339f1d6c899fa584324e15c587fbd811664dd07c.
-# See the local model skill for the retained review; no general trust bypass.
+# No general trust bypass.
 "npm:@modelcontextprotocol/inspector" = { version = "2.13.0", trust_policy_excludes = ["pino@9.14.0"] }
 
 [tasks."lint:tsp"]
