@@ -146,6 +146,7 @@ From Anthropic's submission pages, read 10 November 2026:
 - The exact wording of the sentence under the deploy button: in the EU a commercial
   tie has to be recognizable to the reader; the wording has not been checked by a
   lawyer.
-- Which authorization server fronts the hosted and the template deployments. The
-  existing free Auth0 tenant fits a single hosted server; a template that each user
-  deploys needs sign-in that works without the owner's tenant.
+- How a copy that someone else runs signs its owner in. Proposed in
+  [decision 0002](decisions/0002-sign-in-is-built-into-nami.md): sign-in inside nami,
+  as both reference products do. It decides how much work the "each user runs their
+  own copy" default is, and its effort is not estimated yet.

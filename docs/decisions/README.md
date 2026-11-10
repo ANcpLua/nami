@@ -52,3 +52,4 @@ The chosen option and the reason in one or two sentences.
 | No. | Decision | Status |
 | --- | --- | --- |
 | [0001](0001-remote-connector-and-who-pays.md) | nami reaches Claude as a remote connector; each user runs their own copy by default | accepted |
+| [0002](0002-sign-in-is-built-into-nami.md) | Sign-in is built into nami, so a copy needs no identity vendor | proposed |
