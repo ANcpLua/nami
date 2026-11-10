@@ -25,7 +25,7 @@ filesystem state.
 
 | Source | Role |
 | --- | --- |
-| `nami/.agents/skills/csharp-union-types` | Canonical union skill. |
+| `ANcpLua/csharp-union-types` | Canonical union skill since 2026-11-10 (commit `111e764`). The copy under `nami/.agents/skills` was removed after its newer serialization guidance was pushed there. |
 | `nami-plugin/plugins/nami` in `ANcpLua/opusfix` | Portable Nami developer plugin, version 0.1.1. |
 | Installed `ancplua-openai/nami/0.1.1` cache | Runtime distribution; all five skill entrypoints match the source. |
 | `~/.local/share/chezmoi/.agents/skills` | Canonical eleven macOS skills; deployed files remain under `~/.agents/skills`. |

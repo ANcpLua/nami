@@ -10,8 +10,7 @@ import sys
 from pathlib import Path
 
 LEGACY_ROOTS = ("artifacts/inspection", "artifacts/test-results", "artifacts/binlogs", "artifacts/logs",
-                "artifacts/verification.lock", "inspectcode.sarif", ".fallout/build.schema.json",
-                ".agents/skills/csharp-union-types/validation/last-run.json")
+                "artifacts/verification.lock", "inspectcode.sarif", ".fallout/build.schema.json")
 
 
 def owned_paths(root):

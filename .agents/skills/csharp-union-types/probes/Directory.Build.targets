@@ -1,3 +1,0 @@
-<!-- Deliberately empty: stops MSBuild inheriting any Directory.Build.targets from folders above. -->
-<Project>
-</Project>
