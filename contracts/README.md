@@ -32,11 +32,11 @@ export declarations are recorded explicitly; missing primary entry points fail v
 
 ## Contract lint
 
-`bun run lint` (`mise run lint:tsp`) is the gate. It builds the emitters and the linter and compiles
-`main.tsp` without emitting and with warnings as errors:
+`bun run lint` (`mise run lint:tsp`) is the gate. It builds the emitters and the linter, compiles
+`main.tsp` without emitting and with warnings as errors, then checks the suppressions:
 
 ```sh
-tsp compile main.tsp --no-emit --warn-as-error
+tsp compile main.tsp --no-emit --warn-as-error && node scripts/check-suppressions.mjs
 ```
 
 The ruleset is in `tspconfig.yaml`: `@typespec/http/all`, the compiler's `unused-using` and
@@ -56,13 +56,19 @@ That library's rules, each with the reason it exists at the top of its file in `
 | `storage-index-redundant` | an index declared twice, or one that is a leading prefix of another or of the primary key |
 | `storage-index-composite` | a non-unique multi-column index, which DuckDB documents as not eligible for index scans |
 | `storage-index-budget` | more secondary indexes on a table than `STORAGE_INDEX_BUDGET` in `src/policy.ts` |
+| `suppression-reason` | a `#suppress` without a reason |
 
 Policy (namespaces, root decorators, the index budget) is in `emitters/nami-lint/src/policy.ts`.
 The rules read the emitter decorators from the type graph by name and import no emitter code.
 Every rule reports the same diagnostics in the same order for the same sources.
 
 A finding is fixed or carried. To carry one, put `#suppress "<rule>" "<cleanup-ledger id or reason>"`
-on the declaration.
+on the declaration. `scripts/check-suppressions.mjs` then fails the gate as soon as the directive
+no longer hides anything, so a suppression cannot outlive its cause. It compiles with the
+configured ruleset and with the emitters running against a host that discards their writes,
+because a suppression also reads as unused when its rule is off or its emitter is skipped.
+`bun run lint:suppressions` lists every suppression with its rule and reason;
+`node scripts/check-suppressions.mjs --fix` deletes the unused ones.
 
 For a focused run, TypeSpec 1.18.0 can override the ruleset for one compilation. The gate itself
 never does:
