@@ -275,7 +275,7 @@ model MetricSeriesRow {
   @duckDbColumn(#{ order: 21, merge: "replace" })
   resourceDroppedAttributesCount?: uint32 | null;
   @duckDbColumn(#{ order: 22, merge: "replace" })
-  instrumentId: string;
+  instrumentId: Nami.Models.Values.InstrumentId;
 }
 
 @duckDbTable(#{ name: "metric_points", derived: true, indexes: "ProjectId,TimeUnixNano", conflict: "update" })
