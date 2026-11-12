@@ -28,6 +28,7 @@ scalar TraceId extends string;
 @example("b7ad6b7169203331")
 scalar SpanId extends string;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("W3C Trace Context traceparent header format")
 @pattern("^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}(?![\\s\\S])")
 @example("00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")
@@ -80,6 +81,7 @@ scalar DurationNs extends uint64;
 @minValue(0)
 scalar DurationMs extends float64;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("Duration in seconds")
 @minValue(0)
 scalar DurationS extends float64;
@@ -92,23 +94,28 @@ scalar IsoDuration extends string;
 // Network Scalars - IP Addresses & Ports
 // =============================================================================
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("IPv4 address in dotted-decimal notation")
 @pattern("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?![\\s\\S])")
 @example("192.168.1.1")
 scalar IPv4Address extends string;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("IPv6 address in standard notation")
 @example("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
 scalar IPv6Address extends string;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("IP address (IPv4 or IPv6)")
 scalar IpAddress extends string;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("Network port number (1-65535)")
 @minValue(1)
 @maxValue(65535)
 scalar Port extends int32;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("MAC address in colon-separated hex notation")
 @pattern("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}(?![\\s\\S])")
 @example("00:1A:2B:3C:4D:5E")
@@ -118,10 +125,12 @@ scalar MacAddress extends string;
 // Size & Count Scalars
 // =============================================================================
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("Size in bytes")
 @minValue(0)
 scalar ByteSize extends JsonInteger;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("Token count (for LLM operations)")
 @minValue(0)
 scalar TokenCount extends JsonInteger;
@@ -135,11 +144,13 @@ scalar JsonInteger extends int64;
 @minValue(0)
 scalar Count extends JsonInteger;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("Percentage value (0.0 to 100.0)")
 @minValue(0.0)
 @maxValue(100.0)
 scalar Percentage extends float64;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("Ratio value (0.0 to 1.0)")
 @minValue(0.0)
 @maxValue(1.0)
@@ -149,10 +160,12 @@ scalar Ratio extends float64;
 // GenAI-Specific Scalars
 // =============================================================================
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("Cost in USD (floating point)")
 @minValue(0)
 scalar CostUsd extends float64;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("Temperature setting for LLM requests (0.0-2.0)")
 @minValue(0)
 @maxValue(2)
@@ -162,6 +175,7 @@ scalar Temperature extends float64;
 // Semantic Scalars - Special Purpose Types
 // =============================================================================
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("SHA-256 hash in lowercase hex")
 @pattern("^[a-f0-9]{64}(?![\\s\\S])")
 @minLength(64)
@@ -186,36 +200,44 @@ scalar Cursor extends string;
 @example("sha256:0f1e2d3c4b5a69780f1e2d3c4b5a69780f1e2d3c4b5a69780f1e2d3c4b5a6978")
 scalar ContractRevision extends string;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("Semantic version string (e.g., 1.2.3)")
 @pattern("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?(?![\\s\\S])")
 @example("2.1.0")
 scalar SemVer extends string;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("URL string (absolute)")
 // RFC 3986 grammar, adapted from ajv-formats (MIT), with explicit ASCII case classes.
 @pattern("^(?:[A-Za-z][A-Za-z0-9+\\-.]*:)(?:\\/?\\/(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=:]|%[0-9A-Fa-f]{2})*@)?(?:\\[(?:(?:(?:(?:[0-9A-Fa-f]{1,4}:){6}|::(?:[0-9A-Fa-f]{1,4}:){5}|(?:[0-9A-Fa-f]{1,4})?::(?:[0-9A-Fa-f]{1,4}:){4}|(?:(?:[0-9A-Fa-f]{1,4}:){0,1}[0-9A-Fa-f]{1,4})?::(?:[0-9A-Fa-f]{1,4}:){3}|(?:(?:[0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})?::(?:[0-9A-Fa-f]{1,4}:){2}|(?:(?:[0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})?::[0-9A-Fa-f]{1,4}:|(?:(?:[0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})?::)(?:[0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{1,4}|(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?))|(?:(?:[0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})?::[0-9A-Fa-f]{1,4}|(?:(?:[0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})?::)|[Vv][0-9A-Fa-f]+\\.[A-Za-z0-9\\-._~!$&'()*+,;=:]+)\\]|(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)|(?:[A-Za-z0-9\\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})*)(?::\\d*)?(?:\\/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*|\\/(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})+(?:\\/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*)?|(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})+(?:\\/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*)(?:\\?(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?(?:#(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?(?![\\s\\S])")
 scalar UrlString extends string;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("URL path component")
 @example("/api/v1/users")
 scalar UrlPath extends string;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("URL query string (without leading ?)")
 @example("page=1&limit=100")
 scalar UrlQuery extends string;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("HTTP method name (uppercase)")
 @example("GET")
 scalar HttpMethod extends string;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("MIME content type")
 @example("application/json")
 scalar ContentType extends string;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("User agent string")
 @example("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 scalar UserAgent extends string;
 
+#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("Language/locale code (BCP 47)")
 @pattern("^[a-z]{2,3}(-[A-Z]{2})?(?![\\s\\S])")
 @example("en-US")

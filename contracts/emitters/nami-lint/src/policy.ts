@@ -303,3 +303,120 @@ export function confusableIdentityFor(scalar: Scalar): IdentityBinding | undefin
 export function relationshipPhrase(identity: IdentityBinding): string {
   return `${COMMON_NAMESPACE}.${identity.scalar}`;
 }
+
+// =============================================================================
+// Contract scope
+// =============================================================================
+// The wire-naming and identity rules above look only at the product contract.
+// The redundancy, duplication and storage rules look at every namespace that
+// holds contract declarations, and at nothing else: the in-repo emitter
+// libraries are compiled into the same program and must not be linted as if
+// they were part of the contract.
+
+/** Namespaces whose declarations are contract: wire, tools, storage, ingestion, configuration. */
+export const CONTRACT_NAMESPACES: readonly string[] = ["Nami.Api.Contracts", "Nami.Models", "Nami.Shapes"];
+
+/**
+ * Namespace that declares the in-repo emitter decorators (`emitters/csharp/lib/main.tsp`).
+ *
+ * The linter reads those decorators by their TypeSpec name from the type graph
+ * and never imports emitter code, so it works the same with `--no-emit`, in the
+ * editor and in tests, and cannot drift from an emitter's private state keys.
+ */
+export const EMIT_NAMESPACE = "Nami.Api.Schema.Emit.CSharp";
+
+/**
+ * Emitter decorators that make a declaration a root of the contract: something
+ * outside the TypeSpec sources consumes its target and every type it names.
+ */
+export const ROOT_DECORATORS: Readonly<Record<string, string>> = {
+  tool: "tool input, result or error",
+  wireRoot: "wire revision root",
+  duckDbTable: "storage row",
+  storageProjection: "ingestion-to-storage projection",
+  storageProjectionUsing: "named representation conversion",
+  modelProjection: "row or API projection",
+  projectionSource: "projection source property",
+  catalogProjection: "attribute catalog projection",
+  attributeProjection: "stored-to-API attribute projection",
+  storageAttributeProjection: "ingestion-to-stored attribute projection",
+  slotValue: "typed slot value",
+};
+
+/** Emitter decorator naming the generated consumer file of a whole namespace. */
+export const OUTPUT_DECORATOR = "csharpOutput";
+
+/**
+ * Emitter decorator that maps a namespace into the contracts assembly.
+ *
+ * For every namespace it maps, the C# emitter writes each model, enum and tagged
+ * union to `internal/nami.contracts` and the TypeScript emitter writes the same
+ * declarations to `src/nami.mcp/src/contracts/generated`
+ * (`emitters/csharp/src/emitter.ts`, `emitters/ts-types/src/index.ts`).
+ * Hand-written code can use those generated types, and the TypeSpec program
+ * cannot see whether it does, so a declaration with a generated type counts as
+ * reached. At 48bdb08 tests do use two such types that no tool reaches:
+ * `OTel.Metrics.MetricPointData` and `OTel.Metrics.MetricNumberValue`
+ * (`tests/Nami.UnitTests/ContractTests.cs`, `tests/Nami.IntegrationTests/UnionCompilerTests.cs`).
+ */
+export const GENERATED_NAMESPACE_DECORATOR = "csharpNamespace";
+
+/** The declaration kinds both emitters turn into a type of their own. */
+export const GENERATED_TYPE_KINDS: readonly string[] = ["Model", "Enum", "Union"];
+
+/**
+ * Decorators, by full name, that make an emitter generate a type from a scalar.
+ * A scalar without one is written by no emitter as a type: C# and TypeScript
+ * use its base type, and only a schema entry carries its name.
+ */
+export const BRAND_DECORATORS: readonly string[] = [
+  "Nami.Api.Schema.Emit.CSharp.csharpBrand",
+  "Nami.Api.Schema.Emit.TsTypes.tsBrand",
+];
+
+/** Emitter decorators whose target and type arguments are wire roots: they enter the contract revision. */
+export const WIRE_ROOT_DECORATORS: readonly string[] = ["wireRoot", "tool"];
+
+/** Standard-library decorators that request an artifact for their target on their own. */
+export const ROOT_LIBRARY_DECORATORS: Readonly<Record<string, string>> = {
+  "TypeSpec.JsonSchema.jsonSchema": "JSON Schema document",
+};
+
+// =============================================================================
+// Storage policy
+// =============================================================================
+
+/** Emitter decorators describing a DuckDB table and its columns. */
+export const TABLE_DECORATOR = "duckDbTable";
+export const COLUMN_DECORATOR = "duckDbColumn";
+
+/**
+ * Secondary indexes one table may declare before `storage-index-budget` asks
+ * for a review. Set between the second largest table at 48bdb08 (`logs`, 5)
+ * and the largest (`spans`, 19), so the gate reports today's outlier and any
+ * table that grows towards it. Override for one run with
+ * `--linter-rule '@ancplua/typespec-nami-lint/storage-index-budget={"maxIndexes":N}'`.
+ */
+export const STORAGE_INDEX_BUDGET = 8;
+
+/**
+ * The page the composite-index rule rests on: "Indexes are only eligible for
+ * index scans if they index a single column without expressions." This is the
+ * documentation of DuckDB 1.5, the line nami runs through DuckDB.NET 1.5.6.1;
+ * the 1.3, 1.4 and 2.0 pages carry the same sentence (read on 12 Nov 2026).
+ * Move the link with the engine. The rule repeats the sentence and checks
+ * structure only; it makes no claim about measured performance.
+ */
+export const DUCKDB_INDEX_SCAN_URL = "https://duckdb.org/docs/1.5/guides/performance/indexing#art-index-scans";
+
+// =============================================================================
+// Duplicate-shape policy
+// =============================================================================
+
+/**
+ * Own properties a model must declare before it can be reported as a copy of
+ * another model. A model that only extends or spreads its source declares the
+ * derivation in the source text and is never a copy; a one-property model is
+ * too small for "same shape" to mean "same thing".
+ */
+export const MIN_DUPLICATE_SHAPE_PROPERTIES = 2;
