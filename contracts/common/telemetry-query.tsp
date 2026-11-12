@@ -1,5 +1,4 @@
 import "./types.tsp";
-using TypeSpec.OpenAPI;
 namespace Nami.Api.Contracts.Common;
 
 @doc("Absolute RFC 3339 instant or a negative relative duration such as -15m, -2h, -7d or -30s.")
