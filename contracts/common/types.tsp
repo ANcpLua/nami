@@ -8,8 +8,6 @@ import "./values.tsp";
 
 import "@typespec/openapi";
 
-using TypeSpec.OpenAPI;
-
 namespace Nami.Api.Contracts.Common;
 
 // =============================================================================

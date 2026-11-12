@@ -10,11 +10,8 @@ import "../common/types.tsp";
 import "./enums.tsp";
 import "./resource.tsp";
 
-using TypeSpec.Http;
-using TypeSpec.OpenAPI;
 using Nami.Api.Contracts.Common;
 using Nami.Api.Contracts.OTel.Enums;
-using Nami.Api.Contracts.OTel.Resource;
 
 namespace Nami.Api.Contracts.OTel.Logs;
 

@@ -1,6 +1,5 @@
 import "./configuration.tsp";
 using Nami.Api.Schema.Emit.CSharp;
-using Nami.Models.Configuration;
 
 namespace Nami.Models.Configuration.Hosting {
   @csharpForm("internal sealed partial class")
