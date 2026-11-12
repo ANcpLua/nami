@@ -3,7 +3,7 @@
 ## Package maintenance
 
 `../eng/typespec.sh --check` checks the npm tag configured in `typespec-packages.json`
-(currently `next`; there is no fallback to `latest`). `../eng/typespec.sh --apply` installs exact versions and refreshes
+(currently `latest`, the stable channel; pass `--tag next` to look at dev builds). `../eng/typespec.sh --apply` installs exact versions and refreshes
 the package entry-point reference in
 `../.agents/skills/nami-contract-models/references/typespec-packages.json`.
 The equivalent repository tasks are `mise run typespec:check` and `mise run typespec:update`.
