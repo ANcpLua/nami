@@ -1,7 +1,7 @@
 {
   "name": "@ancplua/typespec-nami-lint",
   "private": true,
-  "description": "ANcpLua TypeSpec linter enforcing the nami wire-naming and identity invariants",
+  "description": "ANcpLua TypeSpec linter keeping the nami contract healthy: wire naming, identity, redundancy, duplication, storage smells and suppression hygiene",
   "type": "module",
   "main": "dist/index.js",
   "exports": {
@@ -9,5 +9,8 @@
       "default": "./dist/index.js"
     }
   },
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "peerDependencies": {
+    "@typespec/compiler": "1.18.0"
+  }
 }

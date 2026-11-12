@@ -14,6 +14,9 @@ model SchemaMetadataRow {
   derivedSchemaHash: string;
 }
 
+#suppress "@ancplua/typespec-nami-lint/storage-index-budget" "C07: 19 secondary indexes against a budget of 8; decide which to keep with the ingest measurement"
+#suppress "@ancplua/typespec-nami-lint/storage-index-redundant" "C07: ProjectId and ProjectId,TraceId are leading prefixes of other indexes and of the primary key; decide which to keep with the ingest measurement"
+#suppress "@ancplua/typespec-nami-lint/storage-index-composite" "C07: composite indexes; DuckDB documents only single-column indexes as eligible for index scans, confirm with EXPLAIN ANALYZE before changing any"
 @duckDbTable(#{ name: "spans", indexes: "ProjectId;ProjectId,TraceId;ProjectId,SessionId;ProjectId,StartTimeUnixNano;ProjectId,TraceId,ParentSpanId;ProjectId,ServiceName;ProjectId,GenAiProviderName;ProjectId,GenAiRequestModel;ProjectId,GenAiResponseModel;ProjectId,GenAiOperationName;TraceId;SessionId;StartTimeUnixNano;EndTimeUnixNano;ServiceName;GenAiProviderName;GenAiRequestModel;GenAiResponseModel;GenAiOperationName", conflict: "update" })
 model SpanStorageRow {
   @csharpInternal attributeRenames: Nami.Models.Ingestion.AttributeRename[] = #[];
@@ -101,6 +104,7 @@ model SpanStorageRow {
   droppedLinksCount?: uint32 | null;
 }
 
+#suppress "@ancplua/typespec-nami-lint/storage-index-composite" "C07: composite indexes; DuckDB documents only single-column indexes as eligible for index scans, confirm with EXPLAIN ANALYZE before changing any"
 @duckDbTable(#{ name: "logs", indexes: "ProjectId,TimeUnixNano;ProjectId,IngestSequence;ProjectId,TraceId;ProjectId,SessionId;TimeUnixNano", conflict: "update" })
 model LogStorageRow {
   @csharpInternal attributeRenames: Nami.Models.Ingestion.AttributeRename[] = #[];
@@ -172,6 +176,7 @@ model SignalWatermarkRow {
   watermarkUnixNano: uint64;
 }
 
+#suppress "@ancplua/typespec-nami-lint/storage-index-composite" "C07: composite indexes; DuckDB documents only single-column indexes as eligible for index scans, confirm with EXPLAIN ANALYZE before changing any"
 @duckDbTable(#{ name: "resource_observations", indexes: "ProjectId,ServiceName,ObservedUnixNano" })
 model ResourceObservationRow {
   @duckDbColumn(#{ order: 0, primaryKeyOrdinal: 0 })
@@ -227,6 +232,7 @@ model AttributeDiscoveryRow {
   lastSeenUnixNano: uint64;
 }
 
+#suppress "@ancplua/typespec-nami-lint/storage-index-composite" "C07: composite indexes; DuckDB documents only single-column indexes as eligible for index scans, confirm with EXPLAIN ANALYZE before changing any"
 @duckDbTable(#{ name: "metric_series", indexes: "ProjectId,MetricName", conflict: "update" })
 model MetricSeriesRow {
   @csharpInternal attributeRenames: Nami.Models.Ingestion.AttributeRename[] = #[];
@@ -278,6 +284,7 @@ model MetricSeriesRow {
   instrumentId: Nami.Models.Values.InstrumentId;
 }
 
+#suppress "@ancplua/typespec-nami-lint/storage-index-composite" "C07: composite indexes; DuckDB documents only single-column indexes as eligible for index scans, confirm with EXPLAIN ANALYZE before changing any"
 @duckDbTable(#{ name: "metric_points", derived: true, indexes: "ProjectId,TimeUnixNano", conflict: "update" })
 model MetricPointRow {
   @duckDbColumn(#{ order: 0, primaryKeyOrdinal: 0, sqlType: "VARCHAR(128)" })
@@ -308,6 +315,7 @@ model MetricPointRow {
   projectionUnavailableReason?: string | null;
 }
 
+#suppress "@ancplua/typespec-nami-lint/storage-index-composite" "C07: composite indexes; DuckDB documents only single-column indexes as eligible for index scans, confirm with EXPLAIN ANALYZE before changing any"
 @duckDbTable(#{ name: "metric_observations", indexes: "ProjectId,SeriesId,TimeUnixNano;ProjectId,TimeUnixNano", conflict: "ignore" })
 model MetricObservationRow {
   @duckDbColumn(#{ order: 0, primaryKeyOrdinal: 0, sqlType: "VARCHAR(128)" })
@@ -330,12 +338,14 @@ model MetricObservationRow {
   exemplarsJson?: string | null;
   @duckDbColumn(#{ order: 9, sqlType: "JSON" })
   instrumentMetadataJson?: string | null;
+  #suppress "@ancplua/typespec-nami-lint/storage-column-order" "C06: orders 10 and 11 are unused; the code fix changes two numbers in generated/model-manifest.json and leaves StorageRows.g.cs unchanged, confirm the schema hash with the .NET generator and apply it"
   @duckDbColumn(#{ order: 12 })
   resourceDroppedAttributesCount?: uint32 | null;
   @duckDbColumn(#{ order: 13 })
   scopeDroppedAttributesCount?: uint32 | null;
 }
 
+#suppress "@ancplua/typespec-nami-lint/storage-index-composite" "C07: composite indexes; DuckDB documents only single-column indexes as eligible for index scans, confirm with EXPLAIN ANALYZE before changing any"
 @duckDbTable(#{ name: "metric_exemplars", derived: true, indexes: "ProjectId,TimeUnixNano", conflict: "ignore" })
 model MetricExemplarRow {
   @duckDbColumn(#{ order: 0, primaryKeyOrdinal: 0, sqlType: "VARCHAR(128)" })

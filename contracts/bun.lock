@@ -38,6 +38,9 @@
     "emitters/nami-lint": {
       "name": "@ancplua/typespec-nami-lint",
       "version": "0.1.0",
+      "peerDependencies": {
+        "@typespec/compiler": "1.18.0",
+      },
     },
   },
   "packages": {

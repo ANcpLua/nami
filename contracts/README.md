@@ -30,6 +30,56 @@ build/test gate after an accepted update. The generated reference lists entry po
 their hashes, not a claim that every API is implemented or exercised. Missing secondary
 export declarations are recorded explicitly; missing primary entry points fail validation.
 
+## Contract lint
+
+`bun run lint` (`mise run lint:tsp`) is the gate. It builds the emitters and the linter and compiles
+`main.tsp` without emitting and with warnings as errors:
+
+```sh
+tsp compile main.tsp --no-emit --warn-as-error
+```
+
+The ruleset is in `tspconfig.yaml`: `@typespec/http/all`, the compiler's `unused-using` and
+`unused-template-parameter`, and `@ancplua/typespec-nami-lint/all` from `emitters/nami-lint`.
+That library's rules, each with the reason it exists at the top of its file in `src/rules/`:
+
+| Rule | Reports |
+|---|---|
+| `wire-name-snake-case`, `http-param-snake-case` | a JSON key or a query/path parameter that is not snake_case |
+| `identity-binding`, `identity-edge-typed`, `confusable-identity-documented` | an identity under a second name, type or key |
+| `unreachable-declaration` | a declaration that nothing in the contract uses and from which no emitter generates a type; in practice an unbranded scalar |
+| `duplicate-model-shape` | two independent models with the same properties |
+| `duplicate-member-value` | an enum value or a union variant listed twice |
+| `duplicate-wire-name` | a property that takes the JSON key of an inherited property |
+| `wire-root-twin` | a flat model and the discriminated union of the same message, both wire roots |
+| `storage-column-order` | column orders of a table that are not 0 to n-1 (code fix: renumber) |
+| `storage-index-redundant` | an index declared twice, or one that is a leading prefix of another or of the primary key |
+| `storage-index-composite` | a non-unique multi-column index, which DuckDB documents as not eligible for index scans |
+| `storage-index-budget` | more secondary indexes on a table than `STORAGE_INDEX_BUDGET` in `src/policy.ts` |
+
+Policy (namespaces, root decorators, the index budget) is in `emitters/nami-lint/src/policy.ts`.
+The rules read the emitter decorators from the type graph by name and import no emitter code.
+Every rule reports the same diagnostics in the same order for the same sources.
+
+A finding is fixed or carried. To carry one, put `#suppress "<rule>" "<cleanup-ledger id or reason>"`
+on the declaration.
+
+For a focused run, TypeSpec 1.18.0 can override the ruleset for one compilation. The gate itself
+never does:
+
+```sh
+tsp compile main.tsp --no-emit --linter-ruleset @ancplua/typespec-nami-lint/storage
+tsp compile main.tsp --no-emit --linter-rule '@ancplua/typespec-nami-lint/storage-index-budget={"maxIndexes":12}'
+tsp compile main.tsp --no-emit --linter-rule '@ancplua/typespec-nami-lint/unreachable-declaration={"generatedTypes":"report"}'
+```
+
+The last one is an audit. A model, enum or union of a namespace mapped with `@csharpNamespace` gets a
+generated C# and TypeScript type that hand-written code may use, which the TypeSpec program cannot see,
+so the gate counts it as reached. The audit lists the ones no tool, wire root, route, storage row or
+projection reaches; look for a hand-written use of each before removing it.
+
+`bun run test:lint` runs the rule tests in `emitters/nami-lint/test` (also part of `bun run build`).
+
 ## Contract generation
 
 The TypeSpec sources define Nami's six read-only tool inputs and results, the health report, the private engine
