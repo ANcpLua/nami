@@ -187,10 +187,15 @@ Change model definitions or emitters, then regenerate before building consumers:
 ```
 
 `eng/test.sh` builds the .NET projects; it does not replace the contract-generation step.
-The contract package builds the local emitters and runs its Node.js generator/codec tests before invoking
+The contract package builds the local emitters and runs its Node.js generator, codec and linter-rule
+tests (`contracts/scripts/lib`, `contracts/emitters/nami-lint/test`) before invoking
 TypeSpec and the schema/revision scripts. The active TypeSpec compiler and native TypeScript
 compiler are pinned in [`contracts/package.json`](../contracts/package.json); the MCP package has
 its own package manifest and lockfile.
+
+`mise run lint:tsp` is the contract lint gate. It compiles without emitting and with warnings as
+errors, then fails on any `#suppress` directive that no longer hides a finding. The rules, the
+suppression policy and the commands are in [`contracts/README.md`](../contracts/README.md#contract-lint).
 
 The model pipeline is:
 

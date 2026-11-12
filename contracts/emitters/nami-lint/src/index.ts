@@ -27,6 +27,10 @@
 //   storage-index-composite       non-unique indexes cover one column
 //   storage-index-budget          a table stays within its index budget
 //
+// Health
+//   suppression-reason            every #suppress says why
+//   (scripts/check-suppressions.mjs fails on a #suppress that is no longer used)
+//
 // Every rule is deterministic: same sources, same diagnostics, same order.
 // =============================================================================
 
@@ -42,6 +46,7 @@ import { storageColumnOrderRule } from "./rules/storage-column-order.js";
 import { storageIndexBudgetRule } from "./rules/storage-index-budget.js";
 import { storageIndexCompositeRule } from "./rules/storage-index-composite.js";
 import { storageIndexRedundantRule } from "./rules/storage-index-redundant.js";
+import { suppressionReasonRule } from "./rules/suppression-reason.js";
 import { unreachableDeclarationRule } from "./rules/unreachable-declaration.js";
 import { wireNameSnakeCaseRule } from "./rules/wire-name-snake-case.js";
 import { wireRootTwinRule } from "./rules/wire-root-twin.js";
@@ -71,7 +76,7 @@ const storageRules = [
   storageIndexBudgetRule,
 ];
 
-const hygieneRules = [unreachableDeclarationRule, duplicateModelShapeRule];
+const hygieneRules = [unreachableDeclarationRule, duplicateModelShapeRule, suppressionReasonRule];
 
 /** Every rule, in the order its diagnostics are reported. */
 export const rules = [...wireRules, ...storageRules, ...hygieneRules];
@@ -93,3 +98,5 @@ export const $linter = defineLinter({
 export * from "./policy.js";
 export { wireNameFixId } from "./rules/wire-name-snake-case.js";
 export { renumberColumnOrdersFixId } from "./rules/storage-column-order.js";
+export { auditSuppressions, formatSuppressionAudit, unusedSuppressionEdits } from "./suppressions.js";
+export type { SuppressionAudit, SuppressionAuditOptions, SuppressionRecord, SuppressionReportOptions, SuppressionState } from "./suppressions.js";

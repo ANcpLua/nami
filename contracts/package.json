@@ -11,7 +11,8 @@
     "compile": "bun run build:emitters && node --test scripts/lib/*.test.mjs emitters/nami-lint/test/*.test.mjs && node scripts/clean-generated.mjs && tsp compile main.tsp --warn-as-error && node scripts/emit-schemas.mjs && node scripts/emit-contract-revision.mjs",
     "build": "bun run compile",
     "format": "tsp format **/*.tsp",
-    "lint": "bun run build:emitters && tsp compile main.tsp --no-emit --warn-as-error",
+    "lint": "bun run build:emitters && tsp compile main.tsp --no-emit --warn-as-error && node scripts/check-suppressions.mjs",
+    "lint:suppressions": "bun run build:emitters && node scripts/check-suppressions.mjs --list",
     "test:lint": "bun run build:emitters && node --test emitters/nami-lint/test/*.test.mjs"
   },
   "devDependencies": {
