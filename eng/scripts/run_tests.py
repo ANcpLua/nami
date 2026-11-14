@@ -86,6 +86,12 @@ def execute(command, log, root, progress=None):
     return code if code >= 0 else 128 - code
 
 
+def missing_package_file(package, files):
+    # Finder writes .DS_Store into every folder a person opens. Restore records it as a package file
+    # and keeps the entry after the file is gone, so its absence says nothing about the package.
+    return next((file for file in files if Path(file).name != ".DS_Store" and not (package / file).is_file()), None)
+
+
 def project_state(dotnet, project, configuration, directory, root):
     command = [dotnet, "msbuild", str(project), "-nologo", f"-p:Configuration={configuration}",
                "-getProperty:IsTestingPlatformApplication,TargetPath,ProjectAssetsFile,MSBuildProjectExtensionsPath",
@@ -119,7 +125,7 @@ def project_state(dotnet, project, configuration, directory, root):
         package = next((folder / library["path"] for folder in folders if (folder / library["path"]).is_dir()), None)
         if package is None:
             raise HarnessError(f"Global package {name} is missing. Preserve the original global packages folder or restore in this stage.")
-        missing_file = next((file for file in library.get("files", []) if not (package / file).is_file()), None)
+        missing_file = missing_package_file(package, library.get("files", []))
         if missing_file:
             raise HarnessError(f"Global package {name} is incomplete: {package / missing_file}. Restore in this stage.")
     return state
