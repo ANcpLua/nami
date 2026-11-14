@@ -13,7 +13,7 @@ namespace Nami.IntegrationTests.Receiver;
 [TestClass]
 public sealed class SdkSignalTests
 {
-    private const string SchemaUrl = "https://opentelemetry.io/schemas/1.44.0";
+    private const string SchemaUrl = "https://opentelemetry.io/schemas/1.45.0";
 
     private static readonly Action<ILogger, int, Exception?> s_orderCreated =
         LoggerMessage.Define<int>(LogLevel.Information, new EventId(19, "OrderCreated"), "Created {OrderId}");
