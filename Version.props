@@ -12,7 +12,7 @@
   <PropertyGroup Label="Platform">
     <!-- The build host and product use the pinned .NET 11 runtime line. -->
     <!-- renovate: datasource=nuget depName=System.Security.Cryptography.Pkcs -->
-    <DotNetRuntimeVersion>11.0.0-rc.3.26522.148</DotNetRuntimeVersion>
+    <DotNetRuntimeVersion>11.0.0</DotNetRuntimeVersion>
     <!-- renovate: datasource=nuget depName=Microsoft.Extensions.TimeProvider.Testing -->
     <MicrosoftExtensionsVersion>10.11.0</MicrosoftExtensionsVersion>
     <!-- renovate: datasource=nuget depName=Microsoft.CodeAnalysis.CSharp -->
@@ -63,7 +63,7 @@
   <PropertyGroup Label="Verified transitive compatibility">
     <!-- Package bytes/API compatibility reviewed in the 2026-10-30 modernization. -->
     <!-- renovate: datasource=nuget depName=Microsoft.DiaSymReader -->
-    <MicrosoftDiaSymReaderVersion>3.0.0-rc.3.26522.148</MicrosoftDiaSymReaderVersion>
+    <MicrosoftDiaSymReaderVersion>3.0.0</MicrosoftDiaSymReaderVersion>
     <!-- renovate: datasource=nuget depName=Microsoft.Build.Locator -->
     <MicrosoftBuildLocatorVersion>1.11.2</MicrosoftBuildLocatorVersion>
     <!-- renovate: datasource=nuget depName=Microsoft.Testing.Extensions.Fakes -->
