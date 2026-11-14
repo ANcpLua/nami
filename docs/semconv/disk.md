@@ -6,7 +6,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `disk.io.direction` | `enum` | release_candidate |  | The disk IO operation direction. | `"read"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `disk.io.direction` | `enum` | release_candidate |  | The disk IO operation direction. | `"read"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `disk.io.direction` values
 

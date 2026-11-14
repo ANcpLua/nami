@@ -6,8 +6,8 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `cpu.logical_number` | `int` | development |  | The logical CPU number [0..n-1] | `1` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `cpu.mode` | `enum` | release_candidate |  | The mode of the CPU | `"user"`, `"system"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `cpu.logical_number` | `int` | release_candidate |  | The identifier of a logical execution target (CPU) as seen by the operating system, in the range [0..n-1]. | `1` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `cpu.mode` | `enum` | release_candidate |  | The mode of the CPU | `"user"`, `"system"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `cpu.mode` values
 

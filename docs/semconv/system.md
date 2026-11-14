@@ -6,23 +6,24 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `system.cpu.logical_number` | `int` | development | Replaced by `cpu.logical_number`. | Deprecated, use `cpu.logical_number` instead. | `1` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.cpu.state` | `enum` | development | Replaced by `cpu.mode`. | Deprecated, use `cpu.mode` instead. | `"idle"`, `"interrupt"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.device` | `string` | development |  | The device identifier | `"(identifier)"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.filesystem.mode` | `string` | development |  | The filesystem mode | `"rw, ro"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.filesystem.mountpoint` | `string` | development |  | The filesystem mount path | `"/mnt/data"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.filesystem.state` | `enum` | development |  | The filesystem state | `"used"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.filesystem.type` | `enum` | development |  | The filesystem type | `"ext4"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.memory.linux.hugepages.state` | `enum` | development |  | The Linux HugePages memory state | `"free"`, `"used"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.memory.linux.slab.state` | `enum` | development |  | The Linux Slab memory state | `"reclaimable"`, `"unreclaimable"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.memory.state` | `enum` | development |  | The memory state | `"free"`, `"cached"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.network.state` | `enum` | development | Replaced by `network.connection.state`. | Deprecated, use `network.connection.state` instead. | `"close_wait"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.paging.direction` | `enum` | development |  | The paging access direction | `"in"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.paging.fault.type` | `enum` | release_candidate |  | The paging fault type | `"minor"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.paging.state` | `enum` | development |  | The memory paging state | `"free"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.paging.type` | `enum` | development | Replaced by `system.paging.fault.type`. | Deprecated, use `system.paging.fault.type` instead. | `"minor"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.process.status` | `enum` | development | Replaced by `process.state`. | Deprecated, use `process.state` instead. | `"running"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `system.processes.status` | `enum` | development | Replaced by `process.state`. | Deprecated, use `process.state` instead. | `"running"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `system.cpu.logical_number` | `int` | development | Replaced by `cpu.logical_number`. | Deprecated, use `cpu.logical_number` instead. | `1` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.cpu.state` | `enum` | development | Replaced by `cpu.mode`. | Deprecated, use `cpu.mode` instead. | `"idle"`, `"interrupt"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.device` | `string` | development | Replaced by `system.device.name`. | Deprecated, use `system.device.name` instead. | `"(identifier)"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.device.name` | `string` | release_candidate |  | The OS level identifier for a device, such as disk, partition or network interface. | `"/dev/sda"`, `"eth0"`, `"\\network-drive"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.filesystem.mode` | `string` | release_candidate |  | The filesystem mode | `"rw, ro"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.filesystem.mountpoint` | `string` | release_candidate |  | The filesystem mount path | `"/mnt/data"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.filesystem.state` | `enum` | release_candidate |  | The filesystem state | `"used"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.filesystem.type` | `enum` | release_candidate |  | The filesystem type | `"ext4"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.memory.linux.hugepages.state` | `enum` | release_candidate |  | The Linux HugePages memory state | `"free"`, `"used"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.memory.linux.slab.state` | `enum` | release_candidate |  | The Linux Slab memory state | `"reclaimable"`, `"unreclaimable"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.memory.state` | `enum` | development |  | The memory state | `"used"`, `"available"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.network.state` | `enum` | development | Replaced by `network.connection.state`. | Deprecated, use `network.connection.state` instead. | `"close_wait"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.paging.direction` | `enum` | release_candidate |  | The paging access direction | `"in"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.paging.fault.type` | `enum` | release_candidate |  | The paging fault type | `"minor"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.paging.state` | `enum` | release_candidate |  | The memory paging state | `"free"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.paging.type` | `enum` | development | Replaced by `system.paging.fault.type`. | Deprecated, use `system.paging.fault.type` instead. | `"minor"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.process.status` | `enum` | development | Replaced by `process.state`. | Deprecated, use `process.state` instead. | `"running"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `system.processes.status` | `enum` | development | Replaced by `process.state`. | Deprecated, use `process.state` instead. | `"running"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `system.cpu.state` values
 
@@ -40,44 +41,45 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Value | Stability | Deprecated | Brief |
 | --- | --- | --- | --- |
-| `free` | development |  | `free`. |
-| `reserved` | development |  | `reserved`. |
-| `used` | development |  | `used`. |
+| `free` | release_candidate |  | `free`. |
+| `reserved` | release_candidate |  | `reserved`. |
+| `used` | release_candidate |  | `used`. |
 
 ### `system.filesystem.type` values
 
 | Value | Stability | Deprecated | Brief |
 | --- | --- | --- | --- |
-| `exfat` | development |  | `exfat`. |
-| `ext4` | development |  | `ext4`. |
-| `fat32` | development |  | `fat32`. |
-| `hfsplus` | development |  | `hfsplus`. |
-| `ntfs` | development |  | `ntfs`. |
-| `refs` | development |  | `refs`. |
+| `exfat` | release_candidate |  | `exfat`. |
+| `ext4` | release_candidate |  | `ext4`. |
+| `fat32` | release_candidate |  | `fat32`. |
+| `hfsplus` | release_candidate |  | `hfsplus`. |
+| `ntfs` | release_candidate |  | `ntfs`. |
+| `refs` | release_candidate |  | `refs`. |
 
 ### `system.memory.linux.hugepages.state` values
 
 | Value | Stability | Deprecated | Brief |
 | --- | --- | --- | --- |
-| `free` | development |  | `free`. |
-| `used` | development |  | `used`. |
+| `free` | release_candidate |  | `free`. |
+| `used` | release_candidate |  | `used`. |
 
 ### `system.memory.linux.slab.state` values
 
 | Value | Stability | Deprecated | Brief |
 | --- | --- | --- | --- |
-| `reclaimable` | development |  | `reclaimable`. |
-| `unreclaimable` | development |  | `unreclaimable`. |
+| `reclaimable` | release_candidate |  | `reclaimable`. |
+| `unreclaimable` | release_candidate |  | `unreclaimable`. |
 
 ### `system.memory.state` values
 
 | Value | Stability | Deprecated | Brief |
 | --- | --- | --- | --- |
-| `buffers` | development |  | `buffers`. |
-| `cached` | development |  | `cached`. |
-| `free` | development |  | `free`. |
+| `available` | development |  | An estimate of how much memory is available for starting new applications, without causing swapping. |
+| `buffers` | development | Removed, report memory usage with the `used` and `available` states instead. | `buffers`. |
+| `cached` | development | Removed, report memory usage with the `used` and `available` states instead. | `cached`. |
+| `free` | development | Removed, report memory usage with the `used` and `available` states instead. | `free`. |
 | `shared` | development | Removed, report shared memory usage with `metric.system.memory.linux.shared` metric | `shared`. |
-| `used` | development |  | Actual used virtual memory in bytes. |
+| `used` | release_candidate |  | Actual used virtual memory in bytes. |
 
 ### `system.network.state` values
 
@@ -100,8 +102,8 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Value | Stability | Deprecated | Brief |
 | --- | --- | --- | --- |
-| `in` | development |  | `in`. |
-| `out` | development |  | `out`. |
+| `in` | release_candidate |  | `in`. |
+| `out` | release_candidate |  | `out`. |
 
 ### `system.paging.fault.type` values
 
@@ -114,8 +116,8 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Value | Stability | Deprecated | Brief |
 | --- | --- | --- | --- |
-| `free` | development |  | `free`. |
-| `used` | development |  | `used`. |
+| `free` | release_candidate |  | `free`. |
+| `used` | release_candidate |  | `used`. |
 
 ### `system.paging.type` values
 
@@ -174,8 +176,8 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `system.memory.linux.shared` | updowncounter | `By` | development |  | Shared memory used (mostly by tmpfs). |
 | `system.memory.linux.slab.usage` | updowncounter | `By` | development |  | Reports the memory used by the Linux kernel for managing caches of frequently used objects. |
 | `system.memory.shared` | updowncounter | `By` | development | Replaced by `system.memory.linux.shared`. | Deprecated, use `system.memory.linux.shared` instead. |
-| `system.memory.usage` | updowncounter | `By` | development |  | Reports memory in use by state. |
-| `system.memory.utilization` | gauge | `1` | development |  | Percentage of memory bytes in use. |
+| `system.memory.usage` | updowncounter | `By` | development |  | Reports memory by state. |
+| `system.memory.utilization` | gauge | `1` | development |  | Fraction of memory bytes by state. |
 | `system.network.connection.count` | updowncounter | `{connection}` | development |  | The number of connections. |
 | `system.network.connections` | updowncounter | `{connection}` | development | Replaced by `system.network.connection.count`. | Deprecated, use `system.network.connection.count` instead. |
 | `system.network.dropped` | counter | `{packet}` | development | Replaced by `system.network.packet.dropped`. | Count of packets that are dropped or discarded even though there was no error. |

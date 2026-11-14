@@ -10,7 +10,7 @@ weaver registry check --future --v2 -r registry -p registry/policies
 
 Authored definitions live in `registry/source/`. They define Nami's project/discovery
 attributes, collector counters, and persistence annotations, and import the pinned GenAI
-registry. GenAI imports OpenTelemetry core v1.44.0. Core is deliberately not a second
+registry. GenAI imports OpenTelemetry core v1.45.0. Core is deliberately not a second
 direct dependency: Weaver 0.28.0 reports ambiguous GenAI attribute references when both
 registries are imported directly.
 
@@ -58,8 +58,8 @@ normalizes to its declared successor or is dropped. Exception text remains subje
 collector sanitizer. Captured header templates are known keys and retain their supplied values.
 
 The embedded `internal/nami.semconv/Generated/registry-inventory.json` records exact pins and
-counts. The effective pinned inventory contains 121 stable nondeprecated attributes, 51 stable
-metric instruments, eight stable span refinements (four base span types), one stable event,
+counts. The effective pinned inventory contains 125 stable nondeprecated attributes, 53 stable
+metric instruments, 14 stable span refinements (five base span types), one stable event,
 and five stable entities. Development definitions and Nami additions retain explicit stability.
 
 The generation gate verifies that the authored dependency URI and the current CHANGELOG
@@ -67,9 +67,9 @@ entry match both exact pinned commits and the selected Weaver version. It valida
 current materialization, publication, policies, and generated outputs without requiring
 historical registry copies or stored diff reports. Earlier versions remain in Git history.
 
-The current GenAI pin is `3fe84604a581b3d50dd5b4bd29383b462d2a5018`, a development
-revision which still imports core v1.44.0. The 0.2.0 publication adds A2A and
-agent-transfer attributes, external content-reference attributes, and embeddings
-metrics. Its development embeddings span type is `gen_ai.client.embeddings`.
+The current GenAI pin is `e6658f14c9d9ea0760825f029cb82e7673f48fab`, the head of upstream
+`main` on 14 Nov 2026; GenAI imports core v1.45.0 since `f4219d1` (#675). The 0.3.0
+publication follows core v1.45.0 and adds GenAI realtime sessions, exception events for the
+client operations, the internal retrieval span and the `gen_ai.execute_tool` span type.
 Inspect the exact upstream comparison when reviewing a pin update, including refinements,
 descriptions, annotations, and external JSON-schema changes.

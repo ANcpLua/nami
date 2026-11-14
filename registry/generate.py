@@ -17,11 +17,33 @@ import tempfile
 from materialize import materialize
 
 ROOT = Path(__file__).resolve().parent.parent
-CORE_COMMIT = 'e10a930844c6951757a43b849d364f7d056ac32b'
-GENAI_COMMIT = '3fe84604a581b3d50dd5b4bd29383b462d2a5018'
+CORE_TAG = 'v1.45.0'
+CORE_COMMIT = 'fb30ca17193b551473b1f43c315482918ab6987c'
+GENAI_COMMIT = 'e6658f14c9d9ea0760825f029cb82e7673f48fab'
 WEAVER_VERSION = '0.28.0'
 CORE_URL = 'https://github.com/open-telemetry/semantic-conventions.git'
 GENAI_URL = 'https://github.com/open-telemetry/semantic-conventions-genai.git'
+
+# Signal groups of core v1.45.0 that Weaver 0.28 reports without a requirement level, with the
+# authored file of each. Only these groups, in these files, at that commit are accepted.
+CORE_GROUPS_WITHOUT_REQUIREMENT_LEVEL = {
+    'event.azure.resource.log': 'azure/events.yaml',
+    'event.db.client.operation.exception': 'db/events.yaml',
+    'event.exception': 'exceptions/events.yaml',
+    'event.faas.invocation.exception': 'faas/events.yaml',
+    'event.http.client.request.exception': 'http/events.yaml',
+    'event.http.server.request.exception': 'http/events.yaml',
+    'event.messaging.create.exception': 'messaging/events.yaml',
+    'event.messaging.process.exception': 'messaging/events.yaml',
+    'event.messaging.receive.exception': 'messaging/events.yaml',
+    'event.messaging.send.exception': 'messaging/events.yaml',
+    'event.messaging.settle.exception': 'messaging/events.yaml',
+    'event.rpc.client.call.exception': 'rpc/events.yaml',
+    'event.rpc.server.call.exception': 'rpc/events.yaml',
+    'event.session.end': 'session/events.yaml',
+    'event.session.start': 'session/events.yaml',
+    'span.db.client': 'db/spans.yaml',
+}
 
 
 def run(args, **kwargs):
@@ -67,13 +89,23 @@ def migration_diagnostic(kind, value, workspace):
     if kind == 'MissingManifestFileFormat':
         return value.get('expected_format') == 'definition_manifest/2.0' and any(value.get('path','').endswith('/'+p+'/model/manifest.yaml') for p in ('core','genai'))
     if kind == 'MissingRequirementLevelWarning':
-        if value.get('group_id') in ('span.a2a.client','span.a2a.server'):
+        group=value.get('group_id')
+        if group in CORE_GROUPS_WITHOUT_REQUIREMENT_LEVEL:
+            # Core v1.45.0 moved these signals to the v2 syntax without a signal requirement level.
+            # Accept them only for that exact commit and the exact authored file.
+            authored=Path(workspace)/'core/model'/CORE_GROUPS_WITHOUT_REQUIREMENT_LEVEL[group]
+            return CORE_COMMIT == 'fb30ca17193b551473b1f43c315482918ab6987c' and value.get('path_or_url') in (str(authored),str(authored.resolve()))
+        if group in ('span.a2a.client','span.a2a.server'):
             # This immutable GenAI revision omits the signal requirement level.
             # Do not accept this exception for arbitrary revisions or source files.
             authored=Path(workspace)/'genai/model/a2a/spans.yaml'
-            return GENAI_COMMIT == '3fe84604a581b3d50dd5b4bd29383b462d2a5018' and value.get('path_or_url') in (str(authored),str(authored.resolve()))
-        return value.get('group_id') in ('span.gen_ai.fetch_response.client','entity.gen_ai.main_agent','metric.gen_ai.invoke_agent.inference_calls','metric.gen_ai.invoke_agent.tool_calls') and '/genai/model/' in value.get('path_or_url','')
+            return GENAI_COMMIT == 'e6658f14c9d9ea0760825f029cb82e7673f48fab' and value.get('path_or_url') in (str(authored),str(authored.resolve()))
+        return group in ('span.gen_ai.fetch_response.client','entity.gen_ai.main_agent','metric.gen_ai.invoke_agent.inference_calls','metric.gen_ai.invoke_agent.tool_calls') and '/genai/model/' in value.get('path_or_url','')
     if kind == 'InvalidAttributeWarning':
+        if value.get('attribute_id') in ('faas.invocation_id','faas.time') and value.get('group_id') == 'registry.faas.deprecated' and value.get('error') == 'Missing stability field.':
+            # Core v1.45.0 deprecates these two keys without a stability field.
+            authored=Path(workspace)/'core/model/faas/deprecated/registry-deprecated.yaml'
+            return CORE_COMMIT == 'fb30ca17193b551473b1f43c315482918ab6987c' and value.get('path_or_url') in (str(authored),str(authored.resolve()))
         return value.get('attribute_id') == 'gen_ai.main_agent.id' and value.get('group_id') == 'entity.gen_ai.main_agent' and value.get('error') == "Identity attributes are always required. Setting 'requirement_level' on an identity attribute is deprecated and has no effect." and '/genai/model/' in value.get('path_or_url','')
     if kind == 'DuplicateAttributeId':
         # The GenAI v2 files retain excluded legacy definitions beside their
@@ -124,11 +156,11 @@ def main():
         core=pinned_model(CORE_URL,CORE_COMMIT,'semantic-conventions',cache,temp/'core')
         genai=pinned_model(GENAI_URL,GENAI_COMMIT,'semantic-conventions-genai',cache,temp/'genai')
         genai_manifest=(temp/'genai/model/manifest.yaml').read_text()
-        if CORE_URL+'@v1.44.0[model]' not in genai_manifest:
-            raise RuntimeError('The pinned GenAI registry no longer refers to the expected core v1.44.0.')
+        if CORE_URL+'@'+CORE_TAG+'[model]' not in genai_manifest:
+            raise RuntimeError('The pinned GenAI registry no longer refers to the expected core '+CORE_TAG+'.')
         authoring=temp/'nami';shutil.copytree(ROOT/'registry/source',authoring,ignore=shutil.ignore_patterns('__pycache__'))
         # Redirect exact pinned source paths only inside this disposable copy.
-        replacements={CORE_URL+'@v1.44.0[model]':str(temp/'core/model'),GENAI_URL+'@'+GENAI_COMMIT+'[model]':str(temp/'genai/model')}
+        replacements={CORE_URL+'@'+CORE_TAG+'[model]':str(temp/'core/model'),GENAI_URL+'@'+GENAI_COMMIT+'[model]':str(temp/'genai/model')}
         for path in (authoring/'manifest.yaml',temp/'genai/model/manifest.yaml'):
             text=path.read_text()
             for before,after in replacements.items():text=text.replace(before,after)

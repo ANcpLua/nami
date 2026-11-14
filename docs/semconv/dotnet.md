@@ -6,7 +6,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `dotnet.gc.heap.generation` | `enum` | stable |  | Name of the garbage collector managed heap generation. | `"gen0"`, `"gen1"`, `"gen2"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `dotnet.gc.heap.generation` | `enum` | stable |  | Name of the garbage collector managed heap generation. | `"gen0"`, `"gen1"`, `"gen2"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `dotnet.gc.heap.generation` values
 

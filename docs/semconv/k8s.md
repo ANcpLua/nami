@@ -6,96 +6,96 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `k8s.cluster.name` | `string` | stable |  | The name of the cluster. | `"opentelemetry-cluster"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.cluster.uid` | `string` | stable |  | A pseudo-ID for the cluster, set to the UID of the `kube-system` namespace. | `"218fc5a9-a5f1-4b54-aa05-46717d0ab26d"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.container.ephemeral_storage.fs_type` | `enum` | development |  | The type of file system component for ephemeral storage. | `"rootfs"`, `"logs"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.container.name` | `string` | stable |  | The name of the Container from Pod specification, must be unique within a Pod. Container runtime usually uses different globally unique name (`container.name`). | `"redis"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.container.restart_count` | `int` | stable |  | Number of times the container was restarted. This attribute can be used to identify a particular container (running or stopped) within a container spec. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.container.status.last_terminated_reason` | `string` | development |  | Last terminated reason of the Container. | `"Evicted"`, `"Error"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.container.status.reason` | `enum` | development |  | The reason for the container state. Corresponds to the `reason` field of the: [K8s ContainerStateWaiting](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#containerstatewaiting-v1-core) or [K8s ContainerStateTerminated](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#containerstateterminated-v1-core) | `"ContainerCreating"`, `"CrashLoopBackOff"`, `"CreateContainerConfigError"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.container.status.state` | `enum` | development |  | The state of the container. [K8s ContainerState](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#containerstate-v1-core) | `"terminated"`, `"running"`, `"waiting"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.cronjob.annotation` | `template[string]` | stable |  | The cronjob annotation placed on the CronJob, the `<key>` being the annotation name, the value being the annotation value. | `"4"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.cronjob.label` | `template[string]` | stable |  | The label placed on the CronJob, the `<key>` being the label name, the value being the label value. | `"weekly"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.cronjob.name` | `string` | stable |  | The name of the CronJob. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.cronjob.uid` | `string` | stable |  | The UID of the CronJob. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.daemonset.annotation` | `template[string]` | stable |  | The annotation placed on the DaemonSet, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"1"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.daemonset.label` | `template[string]` | stable |  | The label placed on the DaemonSet, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"guestbook"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.daemonset.name` | `string` | stable |  | The name of the DaemonSet. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.daemonset.uid` | `string` | stable |  | The UID of the DaemonSet. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.deployment.annotation` | `template[string]` | stable |  | The annotation placed on the Deployment, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"1"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.deployment.label` | `template[string]` | stable |  | The label placed on the Deployment, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"guestbook"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.deployment.name` | `string` | stable |  | The name of the Deployment. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.deployment.uid` | `string` | stable |  | The UID of the Deployment. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.hpa.metric.type` | `string` | development |  | The type of metric source for the horizontal pod autoscaler. | `"Resource"`, `"ContainerResource"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.hpa.name` | `string` | development |  | The name of the horizontal pod autoscaler. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.hpa.scaletargetref.api_version` | `string` | development |  | The API version of the target resource to scale for the HorizontalPodAutoscaler. | `"apps/v1"`, `"autoscaling/v2"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.hpa.scaletargetref.kind` | `string` | development |  | The kind of the target resource to scale for the HorizontalPodAutoscaler. | `"Deployment"`, `"StatefulSet"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.hpa.scaletargetref.name` | `string` | development |  | The name of the target resource to scale for the HorizontalPodAutoscaler. | `"my-deployment"`, `"my-statefulset"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.hpa.uid` | `string` | development |  | The UID of the horizontal pod autoscaler. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.hugepage.size` | `string` | development |  | The size (identifier) of the K8s huge page. | `"2Mi"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.job.annotation` | `template[string]` | stable |  | The annotation placed on the Job, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"1"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.job.label` | `template[string]` | stable |  | The label placed on the Job, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"ci"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.job.name` | `string` | stable |  | The name of the Job. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.job.uid` | `string` | stable |  | The UID of the Job. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.namespace.annotation` | `template[string]` | stable |  | The annotation placed on the Namespace, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"0"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.namespace.label` | `template[string]` | stable |  | The label placed on the Namespace, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"default"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.namespace.name` | `string` | stable |  | The name of the namespace that the pod is running in. | `"default"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.namespace.phase` | `enum` | development |  | The phase of the K8s namespace. | `"active"`, `"terminating"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.node.annotation` | `template[string]` | stable |  | The annotation placed on the Node, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"0"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.node.condition.status` | `enum` | development |  | The status of the condition, one of True, False, Unknown. | `"true"`, `"false"`, `"unknown"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.node.condition.type` | `enum` | development |  | The condition type of a K8s Node. | `"Ready"`, `"DiskPressure"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.node.label` | `template[string]` | stable |  | The label placed on the Node, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"arm64"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.node.name` | `string` | stable |  | The name of the Node. | `"node-1"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.node.system_container.name` | `string` | development |  | The name of the system container running on the K8s Node. | `"kubelet"`, `"runtime"`, `"pods"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.node.uid` | `string` | stable |  | The UID of the Node. | `"1eb3a0c6-0477-4080-a9cb-0cb7db65c6a2"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.persistentvolume.annotation` | `template[string]` | development |  | The annotation placed on the PersistentVolume, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"kubernetes.io/aws-ebs"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.persistentvolume.label` | `template[string]` | development |  | The label placed on the PersistentVolume, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"ssd"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.persistentvolume.name` | `string` | development |  | The name of the PersistentVolume. | `"pv-data-01"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.persistentvolume.reclaim_policy` | `enum` | development |  | The reclaim policy of the PersistentVolume. | `"Delete"`, `"Retain"`, `"Recycle"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.persistentvolume.status.phase` | `enum` | development |  | The phase of the PersistentVolume. | `"Pending"`, `"Available"`, `"Bound"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.persistentvolume.uid` | `string` | development |  | The UID of the PersistentVolume. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.persistentvolumeclaim.annotation` | `template[string]` | development |  | The annotation placed on the PersistentVolumeClaim, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"kubernetes.io/aws-ebs"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.persistentvolumeclaim.label` | `template[string]` | development |  | The label placed on the PersistentVolumeClaim, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"my-app"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.persistentvolumeclaim.name` | `string` | development |  | The name of the PersistentVolumeClaim. | `"pvc-data-01"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.persistentvolumeclaim.status.phase` | `enum` | development |  | The phase of the PersistentVolumeClaim. | `"Pending"`, `"Bound"`, `"Lost"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.persistentvolumeclaim.uid` | `string` | development |  | The UID of the PersistentVolumeClaim. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.pod.annotation` | `template[string]` | stable |  | The annotation placed on the Pod, the `<key>` being the annotation name, the value being the annotation value. | `"true"`, `"x64"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.pod.hostname` | `string` | stable |  | Specifies the hostname of the Pod. | `"collector-gateway"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.pod.ip` | `string` | stable |  | IP address allocated to the Pod. | `"172.18.0.2"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.pod.label` | `template[string]` | stable |  | The label placed on the Pod, the `<key>` being the label name, the value being the label value. | `"my-app"`, `"x64"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.pod.labels` | `template[string]` | development | Replaced by `k8s.pod.label`. | Deprecated, use `k8s.pod.label` instead. | `"my-app"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.pod.name` | `string` | stable |  | The name of the Pod. | `"opentelemetry-pod-autoconf"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.pod.start_time` | `string` | stable |  | The start timestamp of the Pod. | `"2025-12-04T08:41:03Z"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.pod.status.phase` | `enum` | development |  | The phase for the pod. Corresponds to the `phase` field of the: [K8s PodStatus](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podstatus-v1-core) | `"Pending"`, `"Running"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.pod.status.reason` | `enum` | development |  | The reason for the pod state. Corresponds to the `reason` field of the: [K8s PodStatus](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podstatus-v1-core) | `"Evicted"`, `"NodeAffinity"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.pod.uid` | `string` | stable |  | The UID of the Pod. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.replicaset.annotation` | `template[string]` | stable |  | The annotation placed on the ReplicaSet, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"0"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.replicaset.label` | `template[string]` | stable |  | The label placed on the ReplicaSet, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"guestbook"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.replicaset.name` | `string` | stable |  | The name of the ReplicaSet. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.replicaset.uid` | `string` | stable |  | The UID of the ReplicaSet. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.replicationcontroller.name` | `string` | development |  | The name of the replication controller. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.replicationcontroller.uid` | `string` | development |  | The UID of the replication controller. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.resourcequota.name` | `string` | development |  | The name of the resource quota. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.resourcequota.resource_name` | `string` | development |  | The name of the K8s resource a resource quota defines. | `"count/replicationcontrollers"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.resourcequota.uid` | `string` | development |  | The UID of the resource quota. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.service.annotation` | `template[string]` | development |  | The annotation placed on the Service, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"true"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.service.endpoint.address_type` | `enum` | development |  | The address type of the service endpoint. | `"IPv4"`, `"IPv6"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.service.endpoint.condition` | `enum` | development |  | The condition of the service endpoint. | `"ready"`, `"serving"`, `"terminating"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.service.endpoint.zone` | `string` | development |  | The zone of the service endpoint. | `"us-east-1a"`, `"us-west-2b"`, `"zone-a"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.service.label` | `template[string]` | development |  | The label placed on the Service, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"my-service"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.service.name` | `string` | development |  | The name of the Service. | `"my-service"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.service.publish_not_ready_addresses` | `boolean` | development |  | Whether the Service publishes not-ready endpoints. | `true`, `false` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.service.selector` | `template[string]` | development |  | The selector key-value pair placed on the Service, the `<key>` being the selector key, the value being the selector value. | `"my-app"`, `"v1"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.service.traffic_distribution` | `string` | development |  | The traffic distribution policy for the Service. | `"PreferSameZone"`, `"PreferSameNode"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.service.type` | `enum` | development |  | The type of the Kubernetes Service. | `"ClusterIP"`, `"NodePort"`, `"LoadBalancer"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.service.uid` | `string` | development |  | The UID of the Service. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.statefulset.annotation` | `template[string]` | stable |  | The annotation placed on the StatefulSet, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"1"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.statefulset.label` | `template[string]` | stable |  | The label placed on the StatefulSet, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"guestbook"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.statefulset.name` | `string` | stable |  | The name of the StatefulSet. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.statefulset.uid` | `string` | stable |  | The UID of the StatefulSet. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.storageclass.name` | `string` | development |  | The name of K8s [StorageClass](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#storageclass-v1-storage-k8s-io) object. | `"gold.storageclass.storage.k8s.io"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.volume.name` | `string` | development |  | The name of the K8s volume. | `"volume0"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `k8s.volume.type` | `enum` | development |  | The type of the K8s volume. | `"emptyDir"`, `"persistentVolumeClaim"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `k8s.cluster.name` | `string` | stable |  | The name of the cluster. | `"opentelemetry-cluster"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.cluster.uid` | `string` | stable |  | A pseudo-ID for the cluster, set to the UID of the `kube-system` namespace. | `"218fc5a9-a5f1-4b54-aa05-46717d0ab26d"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.container.ephemeral_storage.fs_type` | `enum` | development |  | The type of file system component for ephemeral storage. | `"rootfs"`, `"logs"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.container.name` | `string` | stable |  | The name of the Container from Pod specification, must be unique within a Pod. Container runtime usually uses different globally unique name (`container.name`). | `"redis"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.container.restart_count` | `int` | stable |  | Number of times the container was restarted. This attribute can be used to identify a particular container (running or stopped) within a container spec. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.container.status.last_terminated_reason` | `string` | development |  | Last terminated reason of the Container. | `"Evicted"`, `"Error"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.container.status.reason` | `enum` | development |  | The reason for the container state. Corresponds to the `reason` field of the: [K8s ContainerStateWaiting](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#containerstatewaiting-v1-core) or [K8s ContainerStateTerminated](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#containerstateterminated-v1-core) | `"ContainerCreating"`, `"CrashLoopBackOff"`, `"CreateContainerConfigError"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.container.status.state` | `enum` | development |  | The state of the container. [K8s ContainerState](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#containerstate-v1-core) | `"terminated"`, `"running"`, `"waiting"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.cronjob.annotation` | `template[string]` | stable |  | The cronjob annotation placed on the CronJob, the `<key>` being the annotation name, the value being the annotation value. | `"4"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.cronjob.label` | `template[string]` | stable |  | The label placed on the CronJob, the `<key>` being the label name, the value being the label value. | `"weekly"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.cronjob.name` | `string` | stable |  | The name of the CronJob. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.cronjob.uid` | `string` | stable |  | The UID of the CronJob. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.daemonset.annotation` | `template[string]` | stable |  | The annotation placed on the DaemonSet, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"1"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.daemonset.label` | `template[string]` | stable |  | The label placed on the DaemonSet, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"guestbook"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.daemonset.name` | `string` | stable |  | The name of the DaemonSet. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.daemonset.uid` | `string` | stable |  | The UID of the DaemonSet. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.deployment.annotation` | `template[string]` | stable |  | The annotation placed on the Deployment, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"1"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.deployment.label` | `template[string]` | stable |  | The label placed on the Deployment, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"guestbook"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.deployment.name` | `string` | stable |  | The name of the Deployment. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.deployment.uid` | `string` | stable |  | The UID of the Deployment. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.hpa.metric.type` | `string` | development |  | The type of metric source for the horizontal pod autoscaler. | `"Resource"`, `"ContainerResource"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.hpa.name` | `string` | development |  | The name of the horizontal pod autoscaler. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.hpa.scaletargetref.api_version` | `string` | development |  | The API version of the target resource to scale for the HorizontalPodAutoscaler. | `"apps/v1"`, `"autoscaling/v2"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.hpa.scaletargetref.kind` | `string` | development |  | The kind of the target resource to scale for the HorizontalPodAutoscaler. | `"Deployment"`, `"StatefulSet"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.hpa.scaletargetref.name` | `string` | development |  | The name of the target resource to scale for the HorizontalPodAutoscaler. | `"my-deployment"`, `"my-statefulset"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.hpa.uid` | `string` | development |  | The UID of the horizontal pod autoscaler. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.hugepage.size` | `string` | development |  | The size (identifier) of the K8s huge page. | `"2Mi"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.job.annotation` | `template[string]` | stable |  | The annotation placed on the Job, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"1"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.job.label` | `template[string]` | stable |  | The label placed on the Job, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"ci"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.job.name` | `string` | stable |  | The name of the Job. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.job.uid` | `string` | stable |  | The UID of the Job. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.namespace.annotation` | `template[string]` | stable |  | The annotation placed on the Namespace, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"0"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.namespace.label` | `template[string]` | stable |  | The label placed on the Namespace, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"default"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.namespace.name` | `string` | stable |  | The name of the namespace that the pod is running in. | `"default"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.namespace.phase` | `enum` | development |  | The phase of the K8s namespace. | `"active"`, `"terminating"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.node.annotation` | `template[string]` | stable |  | The annotation placed on the Node, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"0"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.node.condition.status` | `enum` | development |  | The status of the condition, one of True, False, Unknown. | `"true"`, `"false"`, `"unknown"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.node.condition.type` | `enum` | development |  | The condition type of a K8s Node. | `"Ready"`, `"DiskPressure"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.node.label` | `template[string]` | stable |  | The label placed on the Node, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"arm64"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.node.name` | `string` | stable |  | The name of the Node. | `"node-1"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.node.system_container.name` | `string` | development |  | The name of the system container running on the K8s Node. | `"kubelet"`, `"runtime"`, `"pods"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.node.uid` | `string` | stable |  | The UID of the Node. | `"1eb3a0c6-0477-4080-a9cb-0cb7db65c6a2"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.persistentvolume.annotation` | `template[string]` | development |  | The annotation placed on the PersistentVolume, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"kubernetes.io/aws-ebs"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.persistentvolume.label` | `template[string]` | development |  | The label placed on the PersistentVolume, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"ssd"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.persistentvolume.name` | `string` | development |  | The name of the PersistentVolume. | `"pv-data-01"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.persistentvolume.reclaim_policy` | `enum` | development |  | The reclaim policy of the PersistentVolume. | `"Delete"`, `"Retain"`, `"Recycle"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.persistentvolume.status.phase` | `enum` | development |  | The phase of the PersistentVolume. | `"Pending"`, `"Available"`, `"Bound"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.persistentvolume.uid` | `string` | development |  | The UID of the PersistentVolume. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.persistentvolumeclaim.annotation` | `template[string]` | development |  | The annotation placed on the PersistentVolumeClaim, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"kubernetes.io/aws-ebs"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.persistentvolumeclaim.label` | `template[string]` | development |  | The label placed on the PersistentVolumeClaim, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"my-app"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.persistentvolumeclaim.name` | `string` | development |  | The name of the PersistentVolumeClaim. | `"pvc-data-01"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.persistentvolumeclaim.status.phase` | `enum` | development |  | The phase of the PersistentVolumeClaim. | `"Pending"`, `"Bound"`, `"Lost"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.persistentvolumeclaim.uid` | `string` | development |  | The UID of the PersistentVolumeClaim. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.pod.annotation` | `template[string]` | stable |  | The annotation placed on the Pod, the `<key>` being the annotation name, the value being the annotation value. | `"true"`, `"x64"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.pod.hostname` | `string` | stable |  | Specifies the hostname of the Pod. | `"collector-gateway"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.pod.ip` | `string` | stable |  | IP address allocated to the Pod. | `"172.18.0.2"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.pod.label` | `template[string]` | stable |  | The label placed on the Pod, the `<key>` being the label name, the value being the label value. | `"my-app"`, `"x64"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.pod.labels` | `template[string]` | development | Replaced by `k8s.pod.label`. | Deprecated, use `k8s.pod.label` instead. | `"my-app"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.pod.name` | `string` | stable |  | The name of the Pod. | `"opentelemetry-pod-autoconf"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.pod.start_time` | `string` | stable |  | The start timestamp of the Pod. | `"2025-12-04T08:41:03Z"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.pod.status.phase` | `enum` | development |  | The phase for the pod. Corresponds to the `phase` field of the: [K8s PodStatus](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podstatus-v1-core) | `"Pending"`, `"Running"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.pod.status.reason` | `enum` | development |  | The reason for the pod state. Corresponds to the `reason` field of the: [K8s PodStatus](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podstatus-v1-core) | `"Evicted"`, `"NodeAffinity"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.pod.uid` | `string` | stable |  | The UID of the Pod. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.replicaset.annotation` | `template[string]` | stable |  | The annotation placed on the ReplicaSet, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"0"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.replicaset.label` | `template[string]` | stable |  | The label placed on the ReplicaSet, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"guestbook"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.replicaset.name` | `string` | stable |  | The name of the ReplicaSet. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.replicaset.uid` | `string` | stable |  | The UID of the ReplicaSet. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.replicationcontroller.name` | `string` | development |  | The name of the replication controller. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.replicationcontroller.uid` | `string` | development |  | The UID of the replication controller. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.resourcequota.name` | `string` | development |  | The name of the resource quota. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.resourcequota.resource_name` | `string` | development |  | The name of the K8s resource a resource quota defines. | `"count/replicationcontrollers"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.resourcequota.uid` | `string` | development |  | The UID of the resource quota. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.service.annotation` | `template[string]` | development |  | The annotation placed on the Service, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"true"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.service.endpoint.address_type` | `enum` | development |  | The address type of the service endpoint. | `"IPv4"`, `"IPv6"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.service.endpoint.condition` | `enum` | development |  | The condition of the service endpoint. | `"ready"`, `"serving"`, `"terminating"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.service.endpoint.zone` | `string` | development |  | The zone of the service endpoint. | `"us-east-1a"`, `"us-west-2b"`, `"zone-a"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.service.label` | `template[string]` | development |  | The label placed on the Service, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"my-service"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.service.name` | `string` | development |  | The name of the Service. | `"my-service"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.service.publish_not_ready_addresses` | `boolean` | development |  | Whether the Service publishes not-ready endpoints. | `true`, `false` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.service.selector` | `template[string]` | development |  | The selector key-value pair placed on the Service, the `<key>` being the selector key, the value being the selector value. | `"my-app"`, `"v1"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.service.traffic_distribution` | `string` | development |  | The traffic distribution policy for the Service. | `"PreferSameZone"`, `"PreferSameNode"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.service.type` | `enum` | development |  | The type of the Kubernetes Service. | `"ClusterIP"`, `"NodePort"`, `"LoadBalancer"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.service.uid` | `string` | development |  | The UID of the Service. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.statefulset.annotation` | `template[string]` | stable |  | The annotation placed on the StatefulSet, the `<key>` being the annotation name, the value being the annotation value, even if the value is empty. | `"1"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.statefulset.label` | `template[string]` | stable |  | The label placed on the StatefulSet, the `<key>` being the label name, the value being the label value, even if the value is empty. | `"guestbook"`, `""` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.statefulset.name` | `string` | stable |  | The name of the StatefulSet. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.statefulset.uid` | `string` | stable |  | The UID of the StatefulSet. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.storageclass.name` | `string` | development |  | The name of K8s [StorageClass](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#storageclass-v1-storage-k8s-io) object. | `"gold.storageclass.storage.k8s.io"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.volume.name` | `string` | development |  | The name of the K8s volume. | `"volume0"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `k8s.volume.type` | `enum` | development |  | The type of the K8s volume. | `"emptyDir"`, `"persistentVolumeClaim"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `k8s.container.ephemeral_storage.fs_type` values
 
@@ -253,9 +253,11 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `k8s.container.memory.limit` | updowncounter | `By` | development | Replaced by `k8s.container.memory.limit.desired`. | Deprecated, use `k8s.container.memory.limit.desired` and `k8s.container.memory.limit.current` instead. |
 | `k8s.container.memory.limit.current` | updowncounter | `By` | development |  | Maximum memory resource limit currently configured for a running container. |
 | `k8s.container.memory.limit.desired` | updowncounter | `By` | development |  | Maximum memory resource limit as defined by the container spec. |
+| `k8s.container.memory.limit.utilization` | gauge | `1` | development |  | The ratio of container memory working set to its current memory limit. |
 | `k8s.container.memory.request` | updowncounter | `By` | development | Replaced by `k8s.container.memory.request.desired`. | Deprecated, use `k8s.container.memory.request.desired` and `k8s.container.memory.request.current` instead. |
 | `k8s.container.memory.request.current` | updowncounter | `By` | development |  | Memory resource request currently configured for a running container. |
 | `k8s.container.memory.request.desired` | updowncounter | `By` | development |  | Memory resource requested as defined by the container spec. |
+| `k8s.container.memory.request.utilization` | gauge | `1` | development |  | The ratio of container memory working set to its current memory request. |
 | `k8s.container.ready` | updowncounter | `{container}` | development |  | Indicates whether the container is currently marked as ready to accept traffic, based on its readiness probe (1 = ready, 0 = not ready). |
 | `k8s.container.restart.count` | updowncounter | `{restart}` | development |  | Describes how many times the container has restarted (since the last counter reset). |
 | `k8s.container.status.reason` | updowncounter | `{container}` | development |  | Describes the number of K8s containers that are currently in a state for a given reason. |
@@ -305,49 +307,63 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `k8s.node.condition.status` | updowncounter | `{node}` | development |  | Describes the condition of a particular Node. |
 | `k8s.node.cpu.allocatable` | updowncounter | `{cpu}` | development |  | Amount of CPU allocatable on the node. |
 | `k8s.node.cpu.time` | counter | `s` | release_candidate |  | Total CPU time consumed. |
-| `k8s.node.cpu.usage` | gauge | `{cpu}` | development |  | Node's CPU usage, measured in CPUs. Range from 0 to the number of allocatable CPUs. |
+| `k8s.node.cpu.usage` | gauge | `{cpu}` | release_candidate |  | Node's CPU usage, measured in CPUs. Range from 0 to the number of allocatable CPUs. |
 | `k8s.node.ephemeral_storage.allocatable` | updowncounter | `By` | development |  | Amount of ephemeral-storage allocatable on the node. |
-| `k8s.node.filesystem.available` | updowncounter | `By` | development |  | Node filesystem available bytes. |
-| `k8s.node.filesystem.capacity` | updowncounter | `By` | development |  | Node filesystem capacity. |
-| `k8s.node.filesystem.inode.count` | updowncounter | `{inode}` | development |  | The total inodes in the node's root filesystem. |
-| `k8s.node.filesystem.inode.free` | updowncounter | `{inode}` | development |  | The free inodes in the node's root filesystem. |
-| `k8s.node.filesystem.usage` | updowncounter | `By` | development |  | Node filesystem usage. |
+| `k8s.node.filesystem.available` | updowncounter | `By` | release_candidate |  | Node filesystem available bytes. |
+| `k8s.node.filesystem.capacity` | updowncounter | `By` | release_candidate |  | Node filesystem capacity. |
+| `k8s.node.filesystem.inode.count` | updowncounter | `{inode}` | release_candidate |  | The total inodes in the node's root filesystem. |
+| `k8s.node.filesystem.inode.free` | updowncounter | `{inode}` | release_candidate |  | The free inodes in the node's root filesystem. |
+| `k8s.node.filesystem.usage` | updowncounter | `By` | release_candidate |  | Node filesystem usage. |
 | `k8s.node.memory.allocatable` | updowncounter | `By` | development |  | Amount of memory allocatable on the node. |
 | `k8s.node.memory.available` | updowncounter | `By` | release_candidate |  | Node memory available. |
 | `k8s.node.memory.paging.faults` | counter | `{fault}` | development | Replaced by `k8s.node.paging.faults`. | Deprecated, use `k8s.node.paging.faults` instead. |
 | `k8s.node.memory.rss` | updowncounter | `By` | release_candidate |  | Node memory RSS. |
 | `k8s.node.memory.usage` | updowncounter | `By` | release_candidate |  | Memory usage of the Node. |
 | `k8s.node.memory.working_set` | updowncounter | `By` | release_candidate |  | Node memory working set. |
-| `k8s.node.network.errors` | counter | `{error}` | development |  | Node network errors. |
-| `k8s.node.network.io` | counter | `By` | development |  | Network bytes for the Node. |
-| `k8s.node.paging.faults` | counter | `{fault}` | development |  | Node memory paging faults. |
+| `k8s.node.network.errors` | counter | `{error}` | release_candidate |  | Node network errors. |
+| `k8s.node.network.io` | counter | `By` | release_candidate |  | Network bytes for the Node. |
+| `k8s.node.paging.faults` | counter | `{fault}` | release_candidate |  | Node memory paging faults. |
+| `k8s.node.pid.limit` | updowncounter | `{thread}` | development |  | Total number of processes/threads allowed by the operating system on the node. |
+| `k8s.node.pid.usage` | updowncounter | `{thread}` | development |  | Total number of existing processes and threads on the node. |
 | `k8s.node.pod.allocatable` | updowncounter | `{pod}` | development |  | Amount of pods allocatable on the node. |
 | `k8s.node.system_container.cpu.time` | counter | `s` | development |  | Node's system container CPU time. |
 | `k8s.node.system_container.cpu.usage` | gauge | `{cpu}` | development |  | Node's system container CPU usage, measured in CPUs. |
 | `k8s.node.system_container.memory.usage` | updowncounter | `By` | development |  | Node's system container memory usage. |
 | `k8s.node.system_container.memory.working_set` | updowncounter | `By` | development |  | The amount of working set memory. |
-| `k8s.node.uptime` | gauge | `s` | development |  | The time the Node has been running. |
+| `k8s.node.uptime` | gauge | `s` | release_candidate |  | The time the Node has been running. |
 | `k8s.persistentvolume.status.phase` | updowncounter | `{persistentvolume}` | development |  | Number of PersistentVolumes in a given phase. |
 | `k8s.persistentvolume.storage.capacity` | updowncounter | `By` | development |  | The storage capacity of the PersistentVolume. |
 | `k8s.persistentvolumeclaim.status.phase` | updowncounter | `{persistentvolumeclaim}` | development |  | Number of PersistentVolumeClaims in a given phase. |
 | `k8s.persistentvolumeclaim.storage.capacity` | updowncounter | `By` | development |  | The actual storage capacity provisioned for the PersistentVolumeClaim. |
 | `k8s.persistentvolumeclaim.storage.request` | updowncounter | `By` | development |  | The storage requested by the PersistentVolumeClaim. |
+| `k8s.pod.cpu.limit.current` | updowncounter | `{cpu}` | development |  | Maximum CPU resource limit currently configured for a running Pod. |
+| `k8s.pod.cpu.limit.desired` | updowncounter | `{cpu}` | development |  | Maximum CPU resource limit as defined by the Pod spec. |
+| `k8s.pod.cpu.limit.utilization` | gauge | `1` | development |  | The ratio of Pod CPU usage to its current CPU limit. |
+| `k8s.pod.cpu.request.current` | updowncounter | `{cpu}` | development |  | CPU resource requested currently configured for a running Pod. |
+| `k8s.pod.cpu.request.desired` | updowncounter | `{cpu}` | development |  | CPU resource requested as defined by the Pod spec. |
+| `k8s.pod.cpu.request.utilization` | gauge | `1` | development |  | The ratio of Pod CPU usage to its current CPU request. |
 | `k8s.pod.cpu.time` | counter | `s` | release_candidate |  | Total CPU time consumed. |
-| `k8s.pod.cpu.usage` | gauge | `{cpu}` | development |  | Pod's CPU usage, measured in CPUs. Range from 0 to the number of allocatable CPUs. |
-| `k8s.pod.filesystem.available` | updowncounter | `By` | development |  | Pod filesystem available bytes. |
-| `k8s.pod.filesystem.capacity` | updowncounter | `By` | development |  | Pod filesystem capacity. |
-| `k8s.pod.filesystem.usage` | updowncounter | `By` | development |  | Pod filesystem usage. |
+| `k8s.pod.cpu.usage` | gauge | `{cpu}` | release_candidate |  | Pod's CPU usage, measured in CPUs. Range from 0 to the number of allocatable CPUs. |
+| `k8s.pod.filesystem.available` | updowncounter | `By` | release_candidate |  | Pod filesystem available bytes. |
+| `k8s.pod.filesystem.capacity` | updowncounter | `By` | release_candidate |  | Pod filesystem capacity. |
+| `k8s.pod.filesystem.usage` | updowncounter | `By` | release_candidate |  | Pod filesystem usage. |
 | `k8s.pod.memory.available` | updowncounter | `By` | release_candidate |  | Pod memory available. |
+| `k8s.pod.memory.limit.current` | updowncounter | `By` | development |  | Maximum memory resource limit currently configured for a running Pod. |
+| `k8s.pod.memory.limit.desired` | updowncounter | `By` | development |  | Maximum memory resource limit as defined by the Pod spec. |
+| `k8s.pod.memory.limit.utilization` | gauge | `1` | development |  | The ratio of Pod memory working set to its current memory limit. |
 | `k8s.pod.memory.paging.faults` | counter | `{fault}` | development | Replaced by `k8s.pod.paging.faults`. | Deprecated, use `k8s.pod.paging.faults` instead. |
+| `k8s.pod.memory.request.current` | updowncounter | `By` | development |  | Memory resource request currently configured for a running Pod. |
+| `k8s.pod.memory.request.desired` | updowncounter | `By` | development |  | Memory resource requested as defined by the Pod spec. |
+| `k8s.pod.memory.request.utilization` | gauge | `1` | development |  | The ratio of Pod memory working set to its current memory request. |
 | `k8s.pod.memory.rss` | updowncounter | `By` | release_candidate |  | Pod memory RSS. |
 | `k8s.pod.memory.usage` | updowncounter | `By` | release_candidate |  | Memory usage of the Pod. |
 | `k8s.pod.memory.working_set` | updowncounter | `By` | release_candidate |  | Pod memory working set. |
-| `k8s.pod.network.errors` | counter | `{error}` | development |  | Pod network errors. |
-| `k8s.pod.network.io` | counter | `By` | development |  | Network bytes for the Pod. |
-| `k8s.pod.paging.faults` | counter | `{fault}` | development |  | Pod memory paging faults. |
+| `k8s.pod.network.errors` | counter | `{error}` | release_candidate |  | Pod network errors. |
+| `k8s.pod.network.io` | counter | `By` | release_candidate |  | Network bytes for the Pod. |
+| `k8s.pod.paging.faults` | counter | `{fault}` | release_candidate |  | Pod memory paging faults. |
 | `k8s.pod.status.phase` | updowncounter | `{pod}` | development |  | Describes number of K8s Pods that are currently in a given phase. |
 | `k8s.pod.status.reason` | updowncounter | `{pod}` | development |  | Describes the number of K8s Pods that are currently in a state for a given reason. |
-| `k8s.pod.uptime` | gauge | `s` | development |  | The time the Pod has been running. |
+| `k8s.pod.uptime` | gauge | `s` | release_candidate |  | The time the Pod has been running. |
 | `k8s.pod.volume.available` | updowncounter | `By` | development |  | Pod volume storage space available. |
 | `k8s.pod.volume.capacity` | updowncounter | `By` | development |  | Pod volume total capacity. |
 | `k8s.pod.volume.inode.count` | updowncounter | `{inode}` | development |  | The total inodes in the filesystem of the Pod's volume. |
@@ -388,6 +404,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `k8s.service.load_balancer.ingress.count` | gauge | `{ingress}` | development |  | Number of load balancer ingress points (external IPs/hostnames) assigned to the service. |
 | `k8s.statefulset.current_pods` | updowncounter | `{pod}` | development | Replaced by `k8s.statefulset.pod.current`. | Deprecated, use `k8s.statefulset.pod.current` instead. |
 | `k8s.statefulset.desired_pods` | updowncounter | `{pod}` | development | Replaced by `k8s.statefulset.pod.desired`. | Deprecated, use `k8s.statefulset.pod.desired` instead. |
+| `k8s.statefulset.pod.available` | updowncounter | `{pod}` | development |  | Total number of available replica pods (ready for at least minReadySeconds) targeted by this statefulset. |
 | `k8s.statefulset.pod.current` | updowncounter | `{pod}` | development |  | The number of replica pods created by the statefulset controller from the statefulset version indicated by currentRevision. |
 | `k8s.statefulset.pod.desired` | updowncounter | `{pod}` | development |  | Number of desired replica pods in this statefulset. |
 | `k8s.statefulset.pod.ready` | updowncounter | `{pod}` | development |  | The number of replica pods created for this statefulset with a Ready Condition. |

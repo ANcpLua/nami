@@ -6,7 +6,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `opentracing.ref_type` | `enum` | development |  | Parent-child Reference type |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `opentracing.ref_type` | `enum` | development | OpenTracing compatibility requirements are [deprecated in OpenTelemetry Specification](https://opentelemetry.io/docs/specs/otel/compatibility/opentracing/) | Parent-child Reference type |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `opentracing.ref_type` values
 

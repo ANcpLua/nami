@@ -6,33 +6,33 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `hw.battery.capacity` | `string` | development |  | Design capacity in Watts-hours or Ampere-hours | `"9.3Ah"`, `"50Wh"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.battery.chemistry` | `string` | development |  | Battery [chemistry](https://schemas.dmtf.org/wbem/cim-html/2.31.0/CIM_Battery.html), e.g. Lithium-Ion, Nickel-Cadmium, etc. | `"Li-ion"`, `"NiMH"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.battery.state` | `enum` | development |  | The current state of the battery |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.bios_version` | `string` | development |  | BIOS version of the hardware component | `"1.2.3"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.driver_version` | `string` | development |  | Driver version for the hardware component | `"10.2.1-3"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.enclosure.type` | `string` | development |  | Type of the enclosure (useful for modular systems) | `"Computer"`, `"Storage"`, `"Switch"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.firmware_version` | `string` | development |  | Firmware version of the hardware component | `"2.0.1"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.gpu.task` | `enum` | development |  | Type of task the GPU is performing |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.id` | `string` | development |  | An identifier for the hardware component, unique within the monitored host | `"win32battery_battery_testsysa33_1"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.limit_type` | `enum` | development |  | Type of limit for hardware components |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.logical_disk.raid_level` | `string` | development |  | RAID Level of the logical disk | `"RAID0+1"`, `"RAID5"`, `"RAID10"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.logical_disk.state` | `enum` | development |  | State of the logical disk space usage |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.memory.type` | `string` | development |  | Type of the memory module | `"DDR4"`, `"DDR5"`, `"LPDDR5"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.model` | `string` | development |  | Descriptive model name of the hardware component | `"PERC H740P"`, `"Intel(R) Core(TM) i7-10700K"`, `"Dell XPS 15 Battery"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.name` | `string` | development |  | An easily-recognizable name for the hardware component | `"eth0"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.network.logical_addresses` | `string[]` | development |  | Logical addresses of the adapter (e.g. IP address, or WWPN) | `["172.16.8.21","57.11.193.42"]` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.network.physical_address` | `string` | development |  | Physical address of the adapter (e.g. MAC address, or WWNN) | `"00-90-F5-E9-7B-36"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.parent` | `string` | development |  | Unique identifier of the parent component (typically the `hw.id` attribute of the enclosure, or disk controller) | `"dellStorage_perc_0"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.physical_disk.smart_attribute` | `string` | development |  | [S.M.A.R.T.](https://wikipedia.org/wiki/S.M.A.R.T.) (Self-Monitoring, Analysis, and Reporting Technology) attribute of the physical disk | `"Spin Retry Count"`, `"Seek Error Rate"`, `"Raw Read Error Rate"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.physical_disk.state` | `enum` | development |  | State of the physical disk endurance utilization |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.physical_disk.type` | `string` | development |  | Type of the physical disk | `"HDD"`, `"SSD"`, `"10K"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.sensor_location` | `string` | development |  | Location of the sensor | `"cpu0"`, `"ps1"`, `"INLET"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.serial_number` | `string` | development |  | Serial number of the hardware component | `"CNFCP0123456789"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.state` | `enum` | development |  | The current state of the component |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.tape_drive.operation_type` | `enum` | development |  | Type of tape drive operation |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.type` | `enum` | development |  | Type of the component |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `hw.vendor` | `string` | development |  | Vendor name of the hardware component | `"Dell"`, `"HP"`, `"Intel"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `hw.battery.capacity` | `string` | development |  | Design capacity in Watts-hours or Ampere-hours | `"9.3Ah"`, `"50Wh"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.battery.chemistry` | `string` | development |  | Battery [chemistry](https://schemas.dmtf.org/wbem/cim-html/2.31.0/CIM_Battery.html), e.g. Lithium-Ion, Nickel-Cadmium, etc. | `"Li-ion"`, `"NiMH"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.battery.state` | `enum` | development |  | The current state of the battery |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.bios_version` | `string` | development |  | BIOS version of the hardware component | `"1.2.3"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.driver_version` | `string` | development |  | Driver version for the hardware component | `"10.2.1-3"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.enclosure.type` | `string` | development |  | Type of the enclosure (useful for modular systems) | `"Computer"`, `"Storage"`, `"Switch"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.firmware_version` | `string` | development |  | Firmware version of the hardware component | `"2.0.1"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.gpu.task` | `enum` | development |  | Type of task the GPU is performing |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.id` | `string` | development |  | An identifier for the hardware component, unique within the monitored host | `"win32battery_battery_testsysa33_1"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.limit_type` | `enum` | development |  | Type of limit for hardware components |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.logical_disk.raid_level` | `string` | development |  | RAID Level of the logical disk | `"RAID0+1"`, `"RAID5"`, `"RAID10"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.logical_disk.state` | `enum` | development |  | State of the logical disk space usage |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.memory.type` | `string` | development |  | Type of the memory module | `"DDR4"`, `"DDR5"`, `"LPDDR5"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.model` | `string` | development |  | Descriptive model name of the hardware component | `"PERC H740P"`, `"Intel(R) Core(TM) i7-10700K"`, `"Dell XPS 15 Battery"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.name` | `string` | development |  | An easily-recognizable name for the hardware component | `"eth0"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.network.logical_addresses` | `string[]` | development |  | Logical addresses of the adapter (e.g. IP address, or WWPN) | `["172.16.8.21","57.11.193.42"]` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.network.physical_address` | `string` | development |  | Physical address of the adapter (e.g. MAC address, or WWNN) | `"00-90-F5-E9-7B-36"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.parent` | `string` | development |  | Unique identifier of the parent component (typically the `hw.id` attribute of the enclosure, or disk controller) | `"dellStorage_perc_0"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.physical_disk.smart_attribute` | `string` | development |  | [S.M.A.R.T.](https://wikipedia.org/wiki/S.M.A.R.T.) (Self-Monitoring, Analysis, and Reporting Technology) attribute of the physical disk | `"Spin Retry Count"`, `"Seek Error Rate"`, `"Raw Read Error Rate"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.physical_disk.state` | `enum` | development |  | State of the physical disk endurance utilization |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.physical_disk.type` | `string` | development |  | Type of the physical disk | `"HDD"`, `"SSD"`, `"10K"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.sensor_location` | `string` | development |  | Location of the sensor | `"cpu0"`, `"ps1"`, `"INLET"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.serial_number` | `string` | development |  | Serial number of the hardware component | `"CNFCP0123456789"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.state` | `enum` | development |  | The current state of the component |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.tape_drive.operation_type` | `enum` | development |  | Type of tape drive operation |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.type` | `enum` | development |  | Type of the component |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `hw.vendor` | `string` | development |  | Vendor name of the hardware component | `"Dell"`, `"HP"`, `"Intel"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `hw.battery.state` values
 

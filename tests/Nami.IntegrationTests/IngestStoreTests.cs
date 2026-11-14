@@ -132,9 +132,9 @@ public sealed class IngestStoreTests(TestContext context)
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         var discovery = Assert.ContainsSingle(snapshot.AttributeDiscoveries
             .Where(static d => d.OriginalKey == "rpc.grpc.request.metadata.x-request-id").ToArray());
-        Assert.AreEqual("rpc.request.metadata.x-request-id", discovery.CanonicalKey);
+        Assert.AreEqual("rpc.request.header.x-request-id", discovery.CanonicalKey);
         using var attrs = JsonDocument.Parse(Assert.ContainsSingle(snapshot.Spans).AttributesJson!);
-        Assert.AreEqual("sample", attrs.RootElement.GetProperty("rpc.request.metadata.x-request-id")[0].GetString());
+        Assert.AreEqual("sample", attrs.RootElement.GetProperty("rpc.request.header.x-request-id")[0].GetString());
         Assert.IsFalse(attrs.RootElement.TryGetProperty("rpc.grpc.request.metadata.x-request-id", out _));
     }
 

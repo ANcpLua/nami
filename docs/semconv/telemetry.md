@@ -6,11 +6,11 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `telemetry.distro.name` | `string` | stable |  | The name of the auto instrumentation agent or distribution, if used. | `"parts-unlimited-java"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `telemetry.distro.version` | `string` | stable |  | The version string of the auto instrumentation agent or distribution, if used. | `"1.2.3"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `telemetry.sdk.language` | `enum` | stable |  | The language of the telemetry SDK. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `telemetry.sdk.name` | `string` | stable |  | The name of the telemetry SDK as defined above. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `telemetry.sdk.version` | `string` | stable |  | The version string of the telemetry SDK. | `"1.2.3"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `telemetry.distro.name` | `string` | stable |  | The name of the auto instrumentation agent or distribution, if used. | `"parts-unlimited-java"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `telemetry.distro.version` | `string` | stable |  | The version string of the auto instrumentation agent or distribution, if used. | `"1.2.3"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `telemetry.sdk.language` | `enum` | stable |  | The language of the telemetry SDK. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `telemetry.sdk.name` | `string` | stable |  | The name of the telemetry SDK as defined above. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `telemetry.sdk.version` | `string` | stable |  | The version string of the telemetry SDK. | `"1.2.3"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `telemetry.sdk.language` values
 

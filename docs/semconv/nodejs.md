@@ -6,7 +6,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `nodejs.eventloop.state` | `enum` | development |  | The state of event loop time. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `nodejs.eventloop.state` | `enum` | development |  | The state of event loop time. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `nodejs.eventloop.state` values
 

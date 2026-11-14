@@ -6,8 +6,8 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `ios.app.state` | `enum` | development |  | This attribute represents the state of the application. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `ios.state` | `enum` | development | Replaced by `ios.app.state`. | Deprecated. Use the `ios.app.state` attribute. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `ios.app.state` | `enum` | development |  | This attribute represents the state of the application. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `ios.state` | `enum` | development | Replaced by `ios.app.state`. | Deprecated. Use the `ios.app.state` attribute. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `ios.app.state` values
 

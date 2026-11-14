@@ -8,7 +8,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | --- | --- | --- | --- | --- | --- | --- |
 | `gen_ai.agent.description` | `string` | development |  | Free-form description of the GenAI agent provided by the application. | `"Helps with math problems"`, `"Generates fiction stories"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.agent.id` | `string` | development |  | The unique and stable identifier of the GenAI hosted agent resource. | `"asst_5j66UpCpwteGg4YSxUnt7lPY"`, `"arn:aws:bedrock:us-east-1:123:agent/42"`, `"urn:agent:projects-123:projects:123:locations:us-east1:aiplatform:reasoningEngines:456"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
-| `gen_ai.agent.name` | `string` | development |  | Human-readable name of the GenAI agent provided by the application. | `"Math Tutor"`, `"Fiction Writer"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
+| `gen_ai.agent.name` | `string` | development |  | Human-readable name of the GenAI agent or workflow provided by the application. | `"Math Tutor"`, `"Fiction Writer"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.agent.version` | `string` | development |  | The version of the GenAI agent. | `"1.0.0"`, `"2025-05-01"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.conversation.compacted` | `boolean` | development |  | Indicates whether the effective conversation context used for this operation is a compacted view of a prior conversation. | `true` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.conversation.id` | `string` | development |  | The unique identifier for a conversation (session, thread), used to store and correlate messages within this conversation. | `"conv_5j66UpCpwteGg4YSxUnt7lPY"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
@@ -36,6 +36,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `gen_ai.prompt.variable` | `template[string]` | development |  | The variables supplied to the prompt template, the `<key>` being the variable name, the value being the variable value. | `"Alice"`, `"French"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.prompt.version` | `string` | development |  | The version of the prompt template used. | `"1.0.0"`, `"2025-05-01"`, `"prod"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.provider.name` | `enum` | development |  | The Generative AI provider as identified by the client or server instrumentation. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
+| `gen_ai.realtime_session.id` | `string` | development |  | The unique identifier for a realtime, bidirectional streaming session. | `"sess_5j66UpCpwteGg4YSxUnt7lPY"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.request.choice.count` | `int` | development |  | The target number of candidate completions to return. | `3` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.request.encoding_formats` | `string[]` | development |  | The encoding formats requested in an embeddings operation, if specified. | `["base64"]`, `["float","binary"]` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.request.frequency_penalty` | `double` | development |  | The frequency penalty setting for the GenAI request. | `0.1` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
@@ -55,7 +56,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `gen_ai.response.id` | `string` | development |  | The unique identifier for the completion. | `"chatcmpl-123"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.response.model` | `string` | development |  | The name of the model that generated the response. | `"gpt-4-0613"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.response.status` | `enum` | development |  | The lifecycle status of a generated response, as reported by the provider when the response is fetched or polled. | `"completed"`, `"in_progress"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
-| `gen_ai.response.time_to_first_chunk` | `double` | development |  | Time to first chunk in a streaming response, measured from request issuance, in seconds. The value is measured from when the client issues the generation request to when the first chunk is received in the response stream. | `0.5`, `1.2` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
+| `gen_ai.response.time_to_first_chunk` | `double` | development |  | Time from the start of a logical inference operation to the first chunk in its streaming response, in seconds. | `0.5`, `1.2` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.retrieval.documents` | `any` | development |  | The documents retrieved. | `"[\n {\n \"id\": \"doc_123\",\n \"score\": 0.95\n },\n {\n \"id\": \"doc_456\",\n \"score\": 0.87\n },\n {\n \"id\": \"doc_789\",\n \"score\": 0.82\n }\n]\n"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.retrieval.query.text` | `string` | development |  | The query text used for retrieval. | `"What is the capital of France?"`, `"weather in Paris"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.retrieval.top_k` | `int` | development |  | The maximum number of documents the retriever was asked to return for the query (also known as `k`, `limit`, or `max_num_results`). | `5` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
@@ -84,13 +85,12 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `gen_ai.usage.image.cache_read.input_tokens` | `int` | development |  | The number of image input tokens served from a provider-managed cache. | `128` | `nami.persisted`: `true`, `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"`, `nami.token_exempt`: `true` |
 | `gen_ai.usage.image.input_tokens` | `int` | development |  | The number of image input tokens. | `258` | `nami.persisted`: `true`, `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"`, `nami.token_exempt`: `true` |
 | `gen_ai.usage.image.output_tokens` | `int` | development |  | The number of image output tokens. | `1290` | `nami.persisted`: `true`, `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"`, `nami.token_exempt`: `true` |
-| `gen_ai.usage.input_tokens` | `int` | development |  | The number of tokens used in the GenAI input (prompt). | `100` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
-| `gen_ai.usage.output_tokens` | `int` | development |  | The number of tokens used in the GenAI response (completion). | `180` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
+| `gen_ai.usage.input_tokens` | `int` | development |  | The total number of input (prompt) tokens across all modalities. | `100` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
+| `gen_ai.usage.output_tokens` | `int` | development |  | The total number of output (completion) tokens across all modalities. | `180` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.usage.reasoning.output_tokens` | `int` | development |  | The number of output tokens used for reasoning (e.g. chain-of-thought, extended thinking). | `50` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.usage.text.cache_read.input_tokens` | `int` | development |  | The number of text input tokens served from a provider-managed cache. | `40` | `nami.persisted`: `true`, `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"`, `nami.token_exempt`: `true` |
 | `gen_ai.usage.text.input_tokens` | `int` | development |  | The number of text input tokens. | `100` | `nami.persisted`: `true`, `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"`, `nami.token_exempt`: `true` |
 | `gen_ai.usage.text.output_tokens` | `int` | development |  | The number of text output tokens. | `180` | `nami.persisted`: `true`, `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"`, `nami.token_exempt`: `true` |
-| `gen_ai.workflow.name` | `string` | development |  | Human-readable name of the GenAI workflow provided by the application. | `"multi_agent_rag"`, `"customer_support_pipeline"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 
 ### `gen_ai.operation.name` values
 
@@ -107,13 +107,16 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `fetch_response` | development |  | Fetch a previously generated model response by its identifier, without performing inference, such as [OpenAI Get a model response](https://platform.openai.com/docs/api-reference/responses/get) |
 | `generate_content` | development |  | Multimodal content generation operation such as [Gemini Generate Content](https://ai.google.dev/api/generate-content) |
 | `invoke_agent` | development |  | Invoke GenAI agent |
+| `invoke_runner` | development |  | Invoke a framework runner that is not itself an agent or a workflow |
 | `invoke_workflow` | development |  | Invoke GenAI workflow |
 | `plan` | development |  | Agent planning or task decomposition phase |
-| `retrieval` | development |  | Retrieval operation such as [OpenAI Search Vector Store API](https://platform.openai.com/docs/api-reference/vector-stores/search) |
+| `realtime_inference` | development |  | Server-side model generation within a realtime, bidirectional streaming session such as [OpenAI Realtime](https://platform.openai.com/docs/guides/realtime) or [Gemini Live](https://ai.google.dev/gemini-api/docs/live). |
+| `retrieval` | development |  | Execution of a retrieval pipeline that returns documents relevant to a query |
 | `search_memory` | development |  | Search/query memories from a memory store |
 | `text_completion` | development |  | Text completions operation such as [OpenAI Completions API (Legacy)](https://platform.openai.com/docs/api-reference/completions) |
 | `update_memory` | development |  | Update existing memory records |
 | `upsert_memory` | development |  | Create or update memory records without the caller choosing which |
+| `user_speech` | development |  | Describes the process of recording user speech input. |
 
 ### `gen_ai.output.type` values
 
@@ -141,6 +144,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `ibm.watsonx.ai` | development |  | [IBM Watsonx AI](https://www.ibm.com/products/watsonx-ai) |
 | `mistral` | development |  | [Mistral](https://mistral.ai/) |
 | `moonshot_ai` | development |  | [Moonshot AI](https://www.moonshot.ai/) |
+| `ollama` | development |  | [Ollama](https://ollama.com/) |
 | `openai` | development |  | [OpenAI](https://openai.com/) |
 | `perplexity` | development |  | [Perplexity](https://www.perplexity.ai/) |
 | `x_ai` | development |  | [xAI](https://x.ai/) |
@@ -182,18 +186,19 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `gen_ai.client.inference.operation.input_tokens` | histogram | `{token}` | development |  | The number of input (prompt) tokens used per inference operation. |
 | `gen_ai.client.inference.operation.output_tokens` | histogram | `{token}` | development |  | The number of output (completion) tokens used per inference operation. |
 | `gen_ai.client.inference.time_per_output_chunk` | histogram | `s` | development |  | Time per output chunk, recorded for each chunk received after the first one, measured as the time elapsed from the end of the previous chunk to the end of the current chunk. |
-| `gen_ai.client.inference.time_to_first_chunk` | histogram | `s` | development |  | Time to receive the first chunk, measured from when the client issues the generation request to when the first chunk is received in the response stream. |
+| `gen_ai.client.inference.time_to_first_chunk` | histogram | `s` | development |  | Time from the start of a logical inference operation to the first chunk in its streaming response. |
 | `gen_ai.client.inference.usage.cache_read.input_tokens` | counter | `{token}` | development |  | The number of input tokens served from a provider-managed cache. |
 | `gen_ai.client.inference.usage.cache_write.input_tokens` | counter | `{token}` | development |  | The number of input tokens written to a provider-managed cache. |
 | `gen_ai.client.inference.usage.input_tokens` | counter | `{token}` | development |  | The number of input (prompt) tokens used, including cached tokens. |
 | `gen_ai.client.inference.usage.output_tokens` | counter | `{token}` | development |  | The number of output (completion) tokens used, including reasoning tokens. |
 | `gen_ai.client.inference.usage.reasoning.output_tokens` | counter | `{token}` | development |  | The number of output tokens used for reasoning (e.g. chain-of-thought, extended thinking). |
+| `gen_ai.client.invoke_agent.duration` | histogram | `s` | development |  | GenAI client invoke agent operation duration. |
 | `gen_ai.client.operation.duration` | histogram | `s` | development |  | GenAI operation duration. |
 | `gen_ai.execute_tool.duration` | histogram | `s` | development |  | The duration of a single tool execution. |
-| `gen_ai.invoke_agent.duration` | histogram | `s` | development |  | The end-to-end duration of a single in-process agent invocation, from the moment the invocation starts until the agent emits the last chunk of its final response or terminates with an error. |
-| `gen_ai.invoke_agent.inference_calls` | histogram | `{inference_call}` | development |  | The number of inference (model) calls a GenAI agent makes during a single invocation. |
-| `gen_ai.invoke_agent.tool_calls` | histogram | `{tool_call}` | development |  | The number of tool calls a GenAI agent makes during a single invocation. |
-| `gen_ai.invoke_workflow.duration` | histogram | `s` | development |  | Records duration of GenAI workflow. |
+| `gen_ai.invoke_agent.duration` | histogram | `s` | development |  | The end-to-end duration of a single in-process agent, workflow, or framework entrypoint invocation, from the moment the invocation starts until it emits the last chunk of its final response or terminates with an error. |
+| `gen_ai.invoke_agent.inference_calls` | histogram | `{inference_call}` | development |  | The number of inference (model) calls a GenAI agent, workflow, or framework entrypoint makes during a single invocation. |
+| `gen_ai.invoke_agent.tool_calls` | histogram | `{tool_call}` | development |  | The number of tool calls a GenAI agent, workflow, or framework entrypoint makes during a single invocation. |
+| `gen_ai.retrieval.duration` | histogram | `s` | development |  | The duration of a retrieval operation - an execution of a framework retrieval pipeline that returns documents relevant to a query. |
 | `gen_ai.server.request.duration` | histogram | `s` | development |  | Generative AI server request duration such as time-to-last byte or last output token. |
 | `gen_ai.server.time_per_output_token` | histogram | `s` | development |  | Time per output token generated after the first token for successful responses. |
 | `gen_ai.server.time_to_first_token` | histogram | `s` | development |  | Time to generate first token for successful responses. |
