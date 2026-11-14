@@ -136,7 +136,7 @@ Diese Invarianten laufen ohne nami-Prozess: Weaver gegen die Registry, Roslyn ge
 | --- | --- | --- |
 | G1 | `weaver registry check --future -r registry` ist grün; die verschachtelte Abhängigkeit nami → genai → core löst sich ohne doppelte Core-Definition auf. | Exit-Code 0; aufgelöstes Schema enthält `http.request.method` genau einmal |
 | G2 | `weaver registry generate` ist eine reine Funktion: dieselbe Registry liefert byte-identische Ausgaben für C# und Markdown; das Gate regeneriert und vergleicht. | `git diff --exit-code` nach Regeneration |
-| G3 | Der generierte Katalog spiegelt das aufgelöste Schema: Stable-Zähler 121/8/51/1/5 aus Core, jede Definition mit ihrer Stabilität; kein Key ohne Herkunft. | Katalog gegen `weaver registry resolve --format json` (bis zur Entfernung des Kommandos; danach `package`) |
+| G3 | Der generierte Katalog spiegelt das aufgelöste Schema: Stable-Zähler 125/14/53/1/5 aus Core v1.45.0 (Registry 0.3.0), jede Definition mit ihrer Stabilität; kein Key ohne Herkunft. | Katalog gegen `weaver registry resolve --format json` (bis zur Entfernung des Kommandos; danach `package`) |
 | G4 | Jeder `nami.*`-Key ist in der nami-Registry definiert; kein `nami.*`-Literal im C#-Code außerhalb generierter Dateien. | Prüfung aller handgeschriebenen Produkt- und Instrumentierungsquellen ohne Treffer |
 | G5 | Deprecated Keys (`exception.escaped`, `db.query.parameter`, `http.request.body.size` u. a.) haben einen Nachfolger-Eintrag in der Normalisierungstabelle oder sind als „drop" markiert; kein deprecated Key wird als Spalte angelegt. | Tabelle ⊇ `deprecated`-Einträge des Schemas |
 | G6 | Enum-Attribute kennen nur Werte des Schemas: `db.system.name` ∈ {mariadb, microsoft.sql\_server, mysql, postgresql} stable, alle anderen Werte development; `http.request.method` ohne `QUERY`. | Generierte Werteklassen gegen Schema |
@@ -270,7 +270,7 @@ Namensschema `Subjekt_Bedingung_ErwartetesErgebnis`; eine Klasse pro Invarianten
 | `Registry_Check_PassesWithFuture` | G1 | Exit-Code 0, keine `violation` |
 | `Registry_NestedCoreDependency_ResolvesOnce` | G1 | `http.request.method` genau einmal im aufgelösten Schema |
 | `Generate_TwiceSameRegistry_IsByteIdentical` | G2 | `Assert.AreSequenceEqual(bytes1, bytes2)` für C# und Markdown |
-| `Catalog_MatchesResolvedRegistry` | G3 | Zähler 121/8/51/1/5; jede Definition mit `stability` |
+| `Catalog_MatchesResolvedRegistry` | G3 | Zähler 125/14/53/1/5; jede Definition mit `stability` |
 | `NamiKeys_AppearOnlyInGeneratedFiles` | G4 | Alle handgeschriebenen Produkt-/Instrumentierungsquellen ohne `nami.`-Literal |
 | `DeprecatedKeys_HaveSuccessorOrDrop` | G5 | `[DataRow]` über `exception.escaped`, `db.query.parameter`, `http.request.body.size` |
 | `EnumValues_MatchSchemaStability` | G6 | `redis` development, `postgresql` stable, `QUERY` fehlt |
