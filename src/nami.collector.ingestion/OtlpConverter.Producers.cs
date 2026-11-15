@@ -170,6 +170,5 @@ internal static partial class OtlpConverter
     private static string? StatusMessageOf(ProtoStatus? status, string? producer) =>
         NullIfEmpty(status?.Message) is not { } message ? null :
         producer is null ? message :
-        BoundedText.Truncate(ExceptionTextSanitizer.Sanitize(OtelAttributes.StatusDescription, message),
-            MaxProducerStatusMessageUtf8Bytes);
+        BoundedText.Truncate(message, MaxProducerStatusMessageUtf8Bytes);
 }
