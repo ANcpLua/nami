@@ -55,6 +55,19 @@ public static class RegistryPolicy
     public static string? ProducerOf(string key) => AttributeCatalog.Find(key)?.Producer;
 }
 
+// The longest value, in UTF-8 bytes, that ingest keeps of a key (annotation nami.max_utf8_bytes).
+// Ingest enforces the bound; a key without one keeps its value as sent.
+public static class ValueLimits
+{
+    public static FrozenDictionary<string, int> MaxUtf8Bytes { get; } =
+        new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+{% for limit in ctx.value_limits %}
+            [{{ limit.json }}] = {{ limit.bytes }},
+{% endfor %}
+        }.ToFrozenDictionary(StringComparer.Ordinal);
+}
+
 // The instrumentation scopes a producer's signals arrive under. A key whose definition names a
 // producer means what the registry says only on records from these scopes.
 public static class Producers

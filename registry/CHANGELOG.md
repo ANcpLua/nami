@@ -24,15 +24,18 @@
   `docs/semconv/claude_code.md`. A type is the type nami stores. Where Claude Code sends
   another type (`success`, `duration_ms` and the two sizes on `tool_result` as strings,
   `prompt_length` on `user_prompt`, `safe_mode` on `plugin_loaded`), the signal's reference
-  carries `nami.wire_type: string` and ingest converts. `bash_command` and `subagent_type`
-  arrive inside the `tool_parameters` JSON on `tool_decision` and `tool_result`
-  (`nami.wire_container`); ingest lifts them out and drops the container. Each signal names
+  carries `nami.wire_type: string` and ingest converts. `bash_command`, `full_command` and
+  `subagent_type` arrive inside the `tool_parameters` JSON on `tool_decision` and
+  `tool_result` (`nami.wire_container`); ingest lifts them out and drops the container. Each signal names
   the instrumentation scope it arrives under (`nami.instrumentation_scope`:
   `com.anthropic.claude_code`, `.events`, `.tracing`), so ingest can keep Claude Code's
   unprefixed keys (`model`, `type`, `success`, `source`) to Claude Code's records.
+- `full_command` is persisted as a tool detail, so that the claim check can compare it with
+  the gate command, and bounded: `nami.max_utf8_bytes: 4096` declares the longest value
+  ingest keeps of it (observer's ruling, 15 Nov). Ingest enforces the bound.
 - Never persisted (finish-line item 5): the prompt and response text (`prompt`,
   `prompt_text`, `response`, `user_prompt`), `tool_input`, `tool_parameters` as a whole,
-  `full_command`, the raw API bodies (`body`, `body_ref`), the detailed-beta content
+  the raw API bodies (`body`, `body_ref`), the detailed-beta content
   (`new_context`, `system_reminders`, `system_prompt_preview`, `user_system_prompt`,
   `response.model_output`), the `tool.output` span event's `content`, `output` and `diff`,
   and `error` text. Also not persisted: `organization.id`, `anthropic.plan`,
@@ -50,9 +53,10 @@
 - Policies: a key with `nami.producer` needs a brief, a stability and a persistence
   annotation, like a `nami.*` key; `nami.wire_type` must be a primitive OTLP type other than
   the stored type; `nami.wire_container` must name a defined, unpersisted string attribute;
-  a producer's signal must name its `nami.instrumentation_scope`.
+  a producer's signal must name its `nami.instrumentation_scope`; `nami.max_utf8_bytes` must
+  be a positive integer on a persisted string attribute.
 - Generated C#: `AttributeDefinition.Producer`, `RegistryPolicy.ProducerOf`,
-  `Producers.Scopes`, `WireContainers.Members`, and `Events` with an `EventDefinition` per event (deprecated
+  `Producers.Scopes`, `ValueLimits.MaxUtf8Bytes`, `WireContainers.Members`, and `Events` with an `EventDefinition` per event (deprecated
   events carry `[Obsolete]`). Markdown: events and spans per namespace, and the attribute
   table of each producer signal with stored type, wire type, requirement and persistence.
 - Weaver 0.28.0 replaces a definition's annotations with a reference's own annotations

@@ -41,7 +41,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `file_path` | `string` | development |  | Target file of a Read, Edit or Write tool call. | `"/workspace/calc/calc.py"` | `nami.persisted`: `true`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `false` |
 | `final_model` | `string` | development |  | Model that produced a subagent's final response. | `"claude-haiku-5-5"` | `nami.persisted`: `true`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `false` |
 | `first_content_ms` | `int` | development |  | Milliseconds from the start of an API request to the first content block of its successful attempt. |  | `nami.persisted`: `true`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `true` |
-| `full_command` | `string` | development |  | Command line of a Bash tool call. | `"python3 -m unittest -q"` | `nami.persisted`: `false`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `false` |
+| `full_command` | `string` | development |  | Command line of a Bash tool call, kept up to 4096 UTF-8 bytes. | `"python3 -m unittest -q"` | `nami.max_utf8_bytes`: `4096`, `nami.persisted`: `true`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `false` |
 | `has_hooks` | `boolean` | development |  | Whether a loaded plugin contributes hooks. |  | `nami.persisted`: `true`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `true` |
 | `has_mcp` | `boolean` | development |  | Whether a loaded plugin contributes MCP servers. |  | `nami.persisted`: `true`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `true` |
 | `host_owned_mcp` | `boolean` | development |  | Whether the SDK host manages a loaded plugin's MCP connections. |  | `nami.persisted`: `true`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `true` |
@@ -509,6 +509,7 @@ keeps the key.
 | `bash_command` | `string` | in `tool_parameters` | opt_in | yes |
 | `decision` | `string` |  | required | yes |
 | `event.sequence` | `int` |  | required | yes |
+| `full_command` | `string` | in `tool_parameters` | opt_in | yes |
 | `gen_ai.agent.name` | `string` |  | conditionally_required: When `OTEL_RESOURCE_ATTRIBUTES` sets it on the resource; Claude Code copies resource attributes onto every record. | yes |
 | `organization.id` | `string` |  | conditionally_required: When the session is authenticated. | no |
 | `permission_mode` | `string` |  | recommended | yes |
@@ -538,6 +539,7 @@ keeps the key.
 | `error` | `string` |  | opt_in | no |
 | `error_type` | `string` |  | conditionally_required: When the call failed. | yes |
 | `event.sequence` | `int` |  | required | yes |
+| `full_command` | `string` | in `tool_parameters` | opt_in | yes |
 | `gen_ai.agent.name` | `string` |  | conditionally_required: When `OTEL_RESOURCE_ATTRIBUTES` sets it on the resource; Claude Code copies resource attributes onto every record. | yes |
 | `organization.id` | `string` |  | conditionally_required: When the session is authenticated. | no |
 | `prompt.id` | `string` |  | required | yes |
@@ -660,7 +662,7 @@ keeps the key.
 | `bash_command_class` | `string` |  | conditionally_required: For the Bash tool. | yes |
 | `duration_ms` | `int` |  | required | yes |
 | `file_path` | `string` |  | opt_in | yes |
-| `full_command` | `string` |  | opt_in | no |
+| `full_command` | `string` |  | opt_in | yes |
 | `gen_ai.agent.name` | `string` |  | conditionally_required: When `OTEL_RESOURCE_ATTRIBUTES` sets it on the resource; Claude Code copies resource attributes onto every record. | yes |
 | `gen_ai.conversation.id` | `string` |  | required | yes |
 | `gen_ai.operation.name` | `enum` |  | required | yes |
