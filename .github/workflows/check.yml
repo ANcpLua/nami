@@ -29,6 +29,9 @@ jobs:
           "$HOME/.elan/bin/elan" run "$lean_toolchain" lean --version
           "$HOME/.elan/bin/elan" run "$lean_toolchain" lean -j2 --run eng/agent-policy/Policy.lean proof
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Check the storage proofs
+        working-directory: eng/proofs/storage
+        run: lake build
       - name: NativeAOT prerequisites
         run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
       - name: Verify
