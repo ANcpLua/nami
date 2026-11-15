@@ -44,7 +44,8 @@ internal sealed partial class OtlpOracle(TimeProvider clock)
         }
         catch (Exception error) when (!ct.IsCancellationRequested)
         {
-            if (!s_decodeFailures.Contains(error.GetType()))
+            // JsonReaderException and other internal subclasses count as their public base.
+            if (!s_decodeFailures.Any(type => type.IsInstanceOfType(error)))
                 findings.Add(Finding("decode", error, "an undeclared decode exception (still answered 400)"));
             return findings;
         }
