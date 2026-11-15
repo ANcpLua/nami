@@ -446,7 +446,8 @@
                                     "type": "string",
                                     "const": "span_status"
                                 }
-                            ]
+                            ],
+                            "description": "Where the errors were recorded, the first that applies to any of them: log_event, a log record named exception; span_event, an exception event on a span; span_status, a span with status error and no exception recorded for it."
                         }
                     },
                     "unevaluatedProperties": {
@@ -778,7 +779,7 @@
                         },
                         "kind": {
                             "$ref": "#/$defs/SpanKind",
-                            "description": "Span kind"
+                            "description": "Span kind as its OTLP number: 0 unspecified, 1 internal, 2 server, 3 client, 4 producer, 5 consumer."
                         },
                         "startTimeUnixNano": {
                             "$ref": "#/$defs/UnixNanos",
@@ -1119,7 +1120,7 @@
                     "properties": {
                         "code": {
                             "$ref": "#/$defs/SpanStatusCode",
-                            "description": "Status code"
+                            "description": "Status code as its OTLP number: 0 unset, 1 ok, 2 error."
                         },
                         "message": {
                             "type": "string",
@@ -1563,7 +1564,8 @@
                                     "type": "string",
                                     "const": "error"
                                 }
-                            ]
+                            ],
+                            "description": "error when any span of the trace has status error, otherwise ok when any has status ok, otherwise unset."
                         }
                     },
                     "unevaluatedProperties": {
@@ -2073,7 +2075,8 @@
                                     "type": "string",
                                     "const": "pipeline"
                                 }
-                            ]
+                            ],
+                            "description": "The resource attribute that changed, named in source_key: revision is vcs.ref.head.revision, version is service.version, environment is deployment.environment.name, pipeline is any cicd.* attribute."
                         },
                         "from": {
                             "type": "string"

@@ -55,6 +55,7 @@ model ErrorGroup {
   @encodedName("application/json", "last_seen") lastSeen: Timestamp;
   count: Count;
   @encodedName("application/json", "example_trace_id") exampleTraceId?: TraceId;
+  @doc("Where the errors were recorded, the first that applies to any of them: log_event, a log record named exception; span_event, an exception event on a span; span_status, a span with status error and no exception recorded for it.")
   source: "log_event" | "span_event" | "span_status";
 }
 
@@ -90,6 +91,7 @@ model SlowTrace {
   operation: string;
   @encodedName("application/json", "duration_ms") durationMs: DurationMs;
   @encodedName("application/json", "started_at") startedAt: Timestamp;
+  @doc("error when any span of the trace has status error, otherwise ok when any has status ok, otherwise unset.")
   status: "unset" | "ok" | "error";
 }
 
@@ -125,6 +127,7 @@ model ChangesRecentResult extends ToolResult {
 model Change {
   @encodedName("application/json", "observed_at") observedAt: Timestamp;
   service: string;
+  @doc("The resource attribute that changed, named in source_key: revision is vcs.ref.head.revision, version is service.version, environment is deployment.environment.name, pipeline is any cicd.* attribute.")
   kind: "revision" | "version" | "environment" | "pipeline";
   from?: string;
   to: string;

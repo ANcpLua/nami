@@ -152,7 +152,7 @@
                   4,
                   5
                 ],
-                "description": "Span kind"
+                "description": "Span kind as its OTLP number: 0 unspecified, 1 internal, 2 server, 3 client, 4 producer, 5 consumer."
               },
               "start_time_unix_nano": {
                 "type": "string",
@@ -397,7 +397,7 @@
                       1,
                       2
                     ],
-                    "description": "Status code"
+                    "description": "Status code as its OTLP number: 0 unset, 1 ok, 2 error."
                   },
                   "message": {
                     "type": "string",
@@ -662,7 +662,7 @@
                 4,
                 5
               ],
-              "description": "Span kind"
+              "description": "Span kind as its OTLP number: 0 unspecified, 1 internal, 2 server, 3 client, 4 producer, 5 consumer."
             },
             "start_time_unix_nano": {
               "type": "string",
@@ -907,7 +907,7 @@
                     1,
                     2
                   ],
-                  "description": "Status code"
+                  "description": "Status code as its OTLP number: 0 unset, 1 ok, 2 error."
                 },
                 "message": {
                   "type": "string",
