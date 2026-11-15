@@ -22,7 +22,7 @@
     "@typespec/json-schema": "1.18.0",
     "@typespec/openapi": "1.18.0",
     "@typespec/openapi3": "1.18.0",
-    "typescript": "7.1.0-dev.20261029.1",
+    "typescript": "7.1.0-beta",
     "@ancplua/nami-agent-control": "workspace:*",
     "@ancplua/typespec-nami-lint": "workspace:*",
     "@typespec/versioning": "0.88.0"

@@ -72,6 +72,24 @@ The [I1–I18 / D1–D6 evidence matrix](integration/requirement-evidence.md) di
 product proofs, test-harness proofs and the remaining product scope. Its recorded 744-test
 baseline is tied to code commit `00523cc`; it is not a fresh result for later source fingerprints.
 
+## Toolchain versions
+
+The compilers the product is built with, and where each version is set. Bun, Node.js and Weaver
+are pinned in `mise.toml` only.
+
+| Item | Version | Set in |
+| --- | --- | --- |
+| .NET SDK | 11.0.100 | `global.json` (`rollForward: disable`) and `mise.toml`, which must agree |
+| C# language version, every C# project | `preview`: C# 15 plus the features this compiler still marks as preview; the SDK's default is 15.0 | `LangVersion` in `Directory.Build.props`, repeated in the ingestion and storage projects |
+| Roslyn inside the SDK | 5.12.0-1.26529.118 | ships with SDK 11.0.100 (`csc -version`); it compiles every project and runs the DuckDB generator |
+| Roslyn the DuckDB generator compiles against | 5.9.0 | `RoslynVersion` in `Version.props`, the `Microsoft.CodeAnalysis.CSharp` reference of `internal/nami.collector.storage.generators` |
+| Target framework, product, tests and build | `net11.0` | `Directory.Build.props`; `eng/build/build.csproj` |
+| Target framework, DuckDB generator | `netstandard2.0` | `internal/nami.collector.storage.generators` |
+| TypeScript | 7.1.0-beta | `src/nami.mcp/package.json` and `contracts/package.json`, with their `bun.lock` files |
+
+The generator is built against an older Roslyn API than the compiler that loads it, so it can use
+only what Roslyn 5.9.0 offers.
+
 ## Project roles and generated fixtures
 
 The four .NET test projects have different responsibilities:
