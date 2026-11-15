@@ -160,7 +160,14 @@ public sealed class EnginePipeTests(TestContext context)
             _http.Dispose();
             // The ownership host keeps the engine's pipes open; disposing it ends both and every descendant.
             await _process.DisposeAsync();
-            await Task.WhenAny(_stderr, Task.Delay(TimeSpan.FromSeconds(10)));
+            try
+            {
+                await _stderr.WaitAsync(TimeSpan.FromSeconds(10));
+            }
+            catch (TimeoutException)
+            {
+                // A descendant kept the pipe open past its owner; the test's verdict stands without the rest.
+            }
         }
 
         private static int FreePort()
