@@ -13,16 +13,23 @@ using Nami.Tools;
 
 namespace Nami.Hosting;
 
-/// <summary>The private, bounded JSONL connection owned by the TypeScript supervisor.</summary>
-internal sealed class EngineProtocol(IServiceProvider services, CancellationToken stopping) : IAsyncDisposable
+/// <summary>
+///     The private, bounded JSONL connection owned by the TypeScript supervisor, over the process's standard input and
+///     output unless other streams are given.
+/// </summary>
+internal sealed class EngineProtocol(
+    IServiceProvider services,
+    CancellationToken stopping,
+    Stream? input = null,
+    Stream? output = null) : IAsyncDisposable
 {
     private static readonly byte[] s_lineTerminator = [10];
 
     private readonly SemaphoreSlim _execution = new(EngineLimits.WorkersDefault);
     private readonly CancellationTokenSource _lifetime = CancellationTokenSource.CreateLinkedTokenSource(stopping);
-    private readonly PipeWriter _output = PipeWriter.Create(Console.OpenStandardOutput());
+    private readonly PipeWriter _output = PipeWriter.Create(output ?? Console.OpenStandardOutput());
     private readonly ConcurrentDictionary<string, PendingCall> _pending = new(StringComparer.Ordinal);
-    private readonly PipeReader _reader = PipeReader.Create(Console.OpenStandardInput());
+    private readonly PipeReader _reader = PipeReader.Create(input ?? Console.OpenStandardInput());
     private readonly List<Task> _tasks = [];
     private readonly SemaphoreSlim _writes = new(1);
 
@@ -41,9 +48,10 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
         }
     }
 
-    internal static async Task RunAsync(IServiceProvider services, CancellationToken stopping)
+    internal static async Task RunAsync(IServiceProvider services, CancellationToken stopping, Stream? input = null,
+        Stream? output = null)
     {
-        await using var protocol = new EngineProtocol(services, stopping);
+        await using var protocol = new EngineProtocol(services, stopping, input, output);
         await protocol.ProcessAsync();
     }
 
@@ -61,8 +69,15 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
                     var frame = buffer.Slice(0, end);
                     if (frame.Length > EngineLimits.MaxFrameBytesDefault)
                         throw new InvalidDataException("Engine frame exceeds its limit.");
-                    var request = Decode(frame);
+                    var request = Decode(frame, out var refused);
                     buffer = buffer.Slice(buffer.GetPosition(1, end));
+                    if (request is null)
+                    {
+                        await Respond(refused!, ToolDispatcher.Error("invalid_argument",
+                            "The engine could not decode this request.").Content, true);
+                        continue;
+                    }
+
                     if (request.Revision != ContractRevision.Value)
                         throw new InvalidDataException("Engine contract revision mismatch.");
                     if (request.Method == "cancel")
@@ -198,13 +213,52 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
         }
     }
 
-    private static EngineRequest Decode(ReadOnlySequence<byte> frame)
+    /// <summary>
+    ///     Decodes one frame. The host forwards an agent's tool arguments and <c>_meta</c> trace context unchanged, so a
+    ///     frame can name its request and still not decode: arguments nested past the reader's depth, a string holding an
+    ///     unpaired UTF-16 surrogate. That request is refused alone, by the id in <paramref name="refused" />; a frame
+    ///     whose id cannot be read still ends the connection.
+    /// </summary>
+    private static EngineRequest? Decode(ReadOnlySequence<byte> frame, out string? refused)
     {
-        using var document = JsonDocument.Parse(frame);
-        if (ContractJson.Validate("Engine.EngineRequest", document.RootElement) is { } issue)
-            throw new InvalidDataException("Invalid engine request: " + issue.Field);
-        return document.RootElement.Deserialize(ContractTypes.TypeInfo<EngineRequest>())
-               ?? throw new InvalidDataException("Missing engine request.");
+        refused = null;
+        try
+        {
+            using var document = JsonDocument.Parse(frame);
+            if (ContractJson.Validate("Engine.EngineRequest", document.RootElement) is { } issue)
+                throw new InvalidDataException("Invalid engine request: " + issue.Field);
+            return document.RootElement.Deserialize(ContractTypes.TypeInfo<EngineRequest>())
+                   ?? throw new InvalidDataException("Missing engine request.");
+        }
+        catch (Exception error) when (error is JsonException or InvalidDataException or InvalidOperationException &&
+                                      RequestId(frame) is { } id)
+        {
+            refused = id;
+            return null;
+        }
+    }
+
+    /// <summary>The frame's request id, read without a depth bound, or null when the frame names none.</summary>
+    private static string? RequestId(ReadOnlySequence<byte> frame)
+    {
+        var reader = new Utf8JsonReader(frame, new JsonReaderOptions { MaxDepth = EngineLimits.MaxFrameBytesDefault });
+        try
+        {
+            if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject) return null;
+            while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
+            {
+                var isId = reader.ValueTextEquals("id"u8);
+                if (!reader.Read()) return null;
+                if (isId) return reader.TokenType == JsonTokenType.String ? reader.GetString() : null;
+                reader.Skip();
+            }
+
+            return null;
+        }
+        catch (Exception error) when (error is JsonException or InvalidOperationException)
+        {
+            return null;
+        }
     }
 
     private static async Task<JsonElement> HealthAsync(IServiceProvider services, CancellationToken cancellation)
