@@ -57,6 +57,29 @@ public sealed class ToolContractTests(TestContext context)
         Assert.IsFalse(result.Content.GetProperty("freshness").GetProperty("complete").GetBoolean());
     }
 
+    /// <summary>
+    ///     The contract's duration has no fraction: 2.5 s after the last trace arrived, with a window of 1.5 s, the
+    ///     silence is PT2S for the signal that was seen and PT1S, the whole seconds of the window, for the others.
+    /// </summary>
+    [TestMethod]
+    public async Task SourcesStatus_SilentForAFractionOfASecond_ReportsWholeSeconds()
+    {
+        var clock = new FakeTimeProvider(TestData.s_now);
+        await using var store = new DuckDbStore(":memory:", timeProvider: clock);
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now)),
+            context.CancellationToken);
+        clock.Advance(TimeSpan.FromMilliseconds(2500));
+        var result = Run("sources_status", await store.ReadSnapshotAsync("default", ct: context.CancellationToken),
+            "{\"since\":\"-1.5s\"}");
+        Assert.IsFalse(result.IsError, result.Content.GetRawText());
+        var silentFor = result.Content.GetProperty("services")[0].GetProperty("signals").EnumerateArray()
+            .ToDictionary(static signal => signal.GetProperty("signal").GetString()!, static signal =>
+                signal.GetProperty("kind").GetString() + " " + signal.GetProperty("silent_for").GetString());
+        Assert.AreEqual("silent PT2S", silentFor["traces"]);
+        Assert.AreEqual("silent PT1S", silentFor["metrics"]);
+        Assert.AreEqual("silent PT1S", silentFor["logs"]);
+    }
+
     [TestMethod]
     [DataRow("sources_status", DisplayName = "Sources same snapshot")]
     [DataRow("errors_recent", DisplayName = "Errors same snapshot")]

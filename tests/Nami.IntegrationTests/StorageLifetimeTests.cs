@@ -29,6 +29,27 @@ public sealed class StorageLifetimeTests(TestContext context)
         Assert.IsEmpty(connections.Items);
     }
 
+    /// <summary>
+    ///     NAMI_DATA_PATH is a path of the file system, not a piece of a connection string: characters that
+    ///     separate or quote the parts of a connection string are part of the path.
+    /// </summary>
+    [TestMethod]
+    [DataRow("semi;colon", DisplayName = "Semicolon")]
+    [DataRow("equals=sign", DisplayName = "Equals sign")]
+    [DataRow("single'quote", DisplayName = "Single quote")]
+    [DataRow("all;of='them'", DisplayName = "Semicolon, equals sign and quotes")]
+    public async Task Open_PathWithConnectionStringCharacters_StoresInThatFile(string directory)
+    {
+        var path = Path.Combine(DatabasePath(directory), "nami.duckdb");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await using (var store = new DuckDbStore(path))
+            await SeedTrace(store, context.CancellationToken);
+
+        Assert.IsTrue(File.Exists(path), path);
+        await using var reopened = new DuckDbStore(path);
+        Assert.ContainsSingle((await reopened.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
+    }
+
     [TestMethod]
     public async Task Open_SecondReaderFails_DisposesEveryAcquiredConnection()
     {
