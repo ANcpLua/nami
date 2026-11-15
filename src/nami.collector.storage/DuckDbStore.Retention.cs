@@ -23,14 +23,13 @@ internal sealed partial class DuckDbStore
                     break;
             }
 
-            // A pass removes only spans without a child, so a trace goes one level per pass: a short pass is
-            // not the last one, an empty pass is.
+            // Which expired spans go does not depend on the ones already gone, so a short pass is the last one.
             while (true)
             {
                 var deleted = await DeleteExpiredSpansBatchAsync(cutoffUnixNano, RetentionBatchSize, ct)
                     .ConfigureAwait(false);
                 spans += deleted;
-                if (deleted is 0)
+                if (deleted < RetentionBatchSize)
                     break;
             }
 
@@ -187,6 +186,13 @@ internal sealed partial class DuckDbStore
         return deleted;
     }
 
+    /// <summary>
+    ///     An expired span stays only while something holds it: a log of its trace, a log without a trace id that
+    ///     names it, or a span below it that stays, because it has not expired or a log names it. The spans held
+    ///     from below are collected by walking up from those spans, parent by parent; UNION ends the walk at a
+    ///     span it has already seen. A span that names itself as its parent, and spans that name each other in a
+    ///     circle, hold nothing by that alone and go with the rest of their expired trace.
+    /// </summary>
     private static async ValueTask<int> DeleteExpiredSpansBatchInternalAsync(
         DuckDBConnection con,
         ulong cutoffUnixNano,
@@ -199,15 +205,46 @@ internal sealed partial class DuckDbStore
         command.CommandText = """
                               DELETE FROM spans
                               WHERE (project_id, trace_id, span_id) IN (
+                                  WITH RECURSIVE held(project_id, trace_id, span_id) AS (
+                                      SELECT parent.project_id, parent.trace_id, parent.span_id
+                                      FROM spans AS parent
+                                      JOIN spans AS child
+                                        ON child.project_id = parent.project_id
+                                       AND child.trace_id = parent.trace_id
+                                       AND child.parent_span_id = parent.span_id
+                                      WHERE parent.end_time_unix_nano < $1
+                                        AND (
+                                            child.end_time_unix_nano >= $1
+                                            OR EXISTS (
+                                                SELECT 1
+                                                FROM logs AS child_log
+                                                WHERE child_log.project_id = child.project_id
+                                                  AND child_log.trace_id IS NULL
+                                                  AND child_log.span_id = child.span_id
+                                            )
+                                        )
+                                      UNION
+                                      SELECT parent.project_id, parent.trace_id, parent.span_id
+                                      FROM held
+                                      JOIN spans AS child
+                                        ON child.project_id = held.project_id
+                                       AND child.trace_id = held.trace_id
+                                       AND child.span_id = held.span_id
+                                      JOIN spans AS parent
+                                        ON parent.project_id = child.project_id
+                                       AND parent.trace_id = child.trace_id
+                                       AND parent.span_id = child.parent_span_id
+                                      WHERE parent.end_time_unix_nano < $1
+                                  )
                                   SELECT candidate.project_id, candidate.trace_id, candidate.span_id
                                   FROM spans AS candidate
                                   WHERE candidate.end_time_unix_nano < $1
                                     AND NOT EXISTS (
                                         SELECT 1
-                                        FROM spans AS child
-                                        WHERE child.project_id = candidate.project_id
-                                          AND child.trace_id = candidate.trace_id
-                                          AND child.parent_span_id = candidate.span_id
+                                        FROM held
+                                        WHERE held.project_id = candidate.project_id
+                                          AND held.trace_id = candidate.trace_id
+                                          AND held.span_id = candidate.span_id
                                     )
                                     AND NOT EXISTS (
                                         SELECT 1

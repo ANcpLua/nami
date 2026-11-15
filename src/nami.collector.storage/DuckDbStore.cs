@@ -87,7 +87,12 @@ internal sealed partial class DuckDbStore : INamiStore
         _logger = resolvedLoggerFactory.CreateLogger<DuckDbStore>();
         _isInMemory = databasePath == ":memory:";
         _databasePath = _isInMemory ? databasePath : Path.GetFullPath(databasePath);
-        var connectionString = $"DataSource={_databasePath};vacuum_rebuild_indexes={ulong.MaxValue}";
+        // The builder quotes a path that holds a separator of the connection string, such as ';' or '='.
+        var connectionString = new DuckDBConnectionStringBuilder
+        {
+            DataSource = _databasePath,
+            ["vacuum_rebuild_indexes"] = ulong.MaxValue.ToString(CultureInfo.InvariantCulture)
+        }.ConnectionString;
         _beforeWrite = beforeWrite;
         _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(jobQueueCapacity)
         {

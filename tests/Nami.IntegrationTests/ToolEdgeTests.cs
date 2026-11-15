@@ -192,6 +192,40 @@ public sealed class ToolEdgeTests(TestContext context)
         }
     }
 
+    /// <summary>
+    ///     A stored span can end before it starts: until a repeated span id replaced the whole row, the store kept
+    ///     the first start and took the later end. The tools report such a trace with no duration instead of the
+    ///     584 years an unsigned subtraction makes of it, and rank it last.
+    /// </summary>
+    [TestMethod]
+    public async Task Duration_SpanEndingBeforeItsStart_IsZeroAndRanksLast()
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-10))),
+            context.CancellationToken);
+        var valid = Assert.ContainsSingle(
+            (await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
+        var reversed = 2.ToString("x32", CultureInfo.InvariantCulture);
+        await store.EnqueueAsync(new SpanBatch([
+            valid with
+            {
+                TraceId = reversed, SpanId = 2.ToString("x16", CultureInfo.InvariantCulture),
+                EndTimeUnixNano = valid.StartTimeUnixNano - 19000000000UL
+            }
+        ]), context.CancellationToken);
+        var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+
+        var trace = Run(snapshot, "traces_get", new JsonObject { ["trace_id"] = reversed }.ToJsonString());
+        Assert.IsFalse(trace.IsError, trace.Content.GetRawText());
+        Assert.AreEqual("0", trace.Content.GetProperty("trace").GetProperty("duration_ns").GetString());
+
+        var slowest = Run(snapshot, "traces_slowest", "{}");
+        Assert.IsFalse(slowest.IsError, slowest.Content.GetRawText());
+        var ranking = slowest.Content.GetProperty("traces").EnumerateArray().Select(static row =>
+            (Trace: row.GetProperty("trace_id").GetString()!, Ms: row.GetProperty("duration_ms").GetDouble())).ToArray();
+        Assert.AreSequenceEqual([(valid.TraceId, 1d), (reversed, 0d)], ranking);
+    }
+
     [TestMethod]
     public async Task TracesSlowest_OrdersByDurationWithStableIds()
     {

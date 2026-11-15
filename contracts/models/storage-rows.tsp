@@ -26,15 +26,15 @@ model SpanStorageRow {
   spanId: string;
   @duckDbColumn(#{ order: 2, primaryKeyOrdinal: 1 })
   traceId: string;
-  @duckDbColumn(#{ order: 3 })
+  @duckDbColumn(#{ order: 3, merge: "replace" })
   parentSpanId?: string | null;
-  @duckDbColumn(#{ order: 4 })
+  @duckDbColumn(#{ order: 4, merge: "replace" })
   sessionId?: string | null;
-  @duckDbColumn(#{ order: 5 })
+  @duckDbColumn(#{ order: 5, merge: "replace" })
   name: string;
-  @duckDbColumn(#{ order: 6 })
+  @duckDbColumn(#{ order: 6, merge: "replace" })
   kind: uint8;
-  @duckDbColumn(#{ order: 7 })
+  @duckDbColumn(#{ order: 7, merge: "replace" })
   startTimeUnixNano: uint64;
   @duckDbColumn(#{ order: 8, merge: "replace" })
   endTimeUnixNano: uint64;
