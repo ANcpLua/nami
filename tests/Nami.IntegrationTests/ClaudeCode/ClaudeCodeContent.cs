@@ -144,6 +144,12 @@ internal static class ClaudeCodeContent
                                     SpanDetailKeys.GetValueOrDefault(span.Name), markers))
                                 continue;
                             spans++;
+                            // evaluator-5 red: content in the span status message
+                            span.Status = new Nami.Tests.Wire.OpenTelemetry.Proto.Trace.V1.Status
+                            {
+                                Code = Nami.Tests.Wire.OpenTelemetry.Proto.Trace.V1.Status.Types.StatusCode.Error,
+                                Message = markers.Content + ":status"
+                            };
                             if (span.Name != "claude_code.tool") continue;
                             var output = new Span.Types.Event { Name = "tool.output", TimeUnixNano = span.EndTimeUnixNano };
                             Fill(output.Attributes, ToolOutputKeys, ToolOutputDetailKeys, markers);
@@ -167,7 +173,7 @@ internal static class ClaudeCodeContent
     private static ProtoLog ContentEvent(ProtoLog request, string eventName, ContentMarkers markers)
     {
         var record = request.Clone();
-        record.Body = new AnyValue { StringValue = "claude_code." + eventName };
+        record.Body = new AnyValue { StringValue = markers.Content + ":body" }; // evaluator-5 red: content in the log body
         Set(record.Attributes, EventNameKey, eventName);
         Fill(record.Attributes, EventKeys[eventName], null, markers);
         return record;
