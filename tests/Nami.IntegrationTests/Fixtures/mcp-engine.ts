@@ -31,6 +31,9 @@ function readCommands() {
       if (mode === "unhealthy")
         reply(command.id, { status: "unhealthy", total_duration_ms: 0, contract_revision: CONTRACT_REVISION, entries: {} }, true);
       else reply(command.id, { pid: process.pid });
+    } else if (mode === "slow") {
+      // A tool call that takes 15 seconds, longer than the idle time at which a silent stream is cut.
+      setTimeout(() => reply(command.id, result), 15_000);
     } else if (mode === "recording") {
       // Every call frame as the host wrote it, one JSON line each; a row with an astral character on request.
       appendFileSync(join(state, "frames"), JSON.stringify({ id: command.id, name: command.name, input: command.input,

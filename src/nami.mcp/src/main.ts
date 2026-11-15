@@ -78,7 +78,11 @@ if (stdio) {
   }
   if (!isLoopbackBindHost(hostname) && !publicUrl)
     throw new Error("A non-loopback listener requires NAMI_PUBLIC_URL.");
-  const server = Bun.serve({ hostname, port, async fetch(request) {
+  // A connection that stays silent is closed after the longest idle time Bun allows (its default of 10 seconds cut
+  // every call that ran longer). A call being served is exempt: its client may wait for the result without a byte
+  // in either direction. Event streams also carry a keep-alive comment every 5 seconds, below the 10 seconds at
+  // which this server used to and many proxies do close a silent stream.
+  const server = Bun.serve({ hostname, port, idleTimeout: 255, async fetch(request, listener) {
     const url = new URL(request.url);
     const refused = dnsRebindingResponse(request, [...allowedHosts], [...allowedHosts]);
     if (refused) return refused;
@@ -86,8 +90,9 @@ if (stdio) {
     if (url.pathname !== "/mcp") return new Response(null, { status: 404 });
     const access = credential(request);
     if (access instanceof Response) return access;
+    listener.timeout(request, 0);
     // Stateless factory: both modern discovery and legacy initialize use the official SDK.
-    return createMcpHandler(() => createServer(engine, access), { onerror: report }).fetch(request);
+    return createMcpHandler(() => createServer(engine, access), { onerror: report, keepAliveMs: 5000 }).fetch(request);
   } });
   closeTransport = async () => { await server.stop(true); };
 }

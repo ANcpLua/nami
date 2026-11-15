@@ -251,6 +251,26 @@ public sealed class McpSupervisorTests(TestContext context)
         Assert.IsTrue(seen.GetProperty("keepsTheCharacter").GetBoolean(), "The 96th character is kept whole.");
     }
 
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public async Task EventStreamCall_EngineAnswersAfterFifteenSeconds_ReturnsItsResult()
+    {
+        // H5: Bun closed a connection after 10 silent seconds, so a 2025-11-25 call that ran longer ended as an
+        // empty 200 and its engine call was cancelled.
+        using var result = await RunAsync("slow");
+        var observed = result.RootElement;
+        Assert.AreEqual(200, observed.GetProperty("status").GetInt32());
+        Assert.IsGreaterThanOrEqualTo(15, observed.GetProperty("seconds").GetInt32(), "Precondition: the call outlasts the old idle timeout.");
+        Assert.AreEqual("fixture-snapshot", observed.GetProperty("snapshot").GetString(), "The call must return the engine's result.");
+        Assert.IsFalse(observed.GetProperty("isError").GetBoolean());
+        Assert.IsGreaterThanOrEqualTo(2, observed.GetProperty("keepAlives").GetInt32(),
+            "The stream must carry a keep-alive more often than every 10 seconds.");
+        // A 2026-07-28 call is one JSON body and was not cut before either; it must stay so.
+        Assert.AreEqual(200, observed.GetProperty("jsonStatus").GetInt32());
+        Assert.AreEqual("fixture-snapshot", observed.GetProperty("jsonSnapshot").GetString());
+        Assert.AreEqual(0, observed.GetProperty("exitCodeAfterSignal").GetInt32());
+    }
+
     private async Task<JsonDocument> RunAsync(string scenario)
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory.");

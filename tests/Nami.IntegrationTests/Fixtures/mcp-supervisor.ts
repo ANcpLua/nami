@@ -244,6 +244,38 @@ try {
     const exit = await exitWithin(host.exited, 3_000);
     const childGone = await observed(() => gone(host.child));
     console.log(JSON.stringify({ closingBegan, hostExit: exit, hostSignal: processUnderTest!.signalCode ?? null, childGone }));
+  } else if (scenario === "slow") {
+    // H5: a 2025-11-25 call is answered as an event stream; the engine takes 15 seconds to answer it.
+    // Beside it a 2026-07-28 call, which is answered as one JSON body: no byte travels until the result.
+    const host = await startHost("slow");
+    const started = performance.now();
+    type Answer = { status: number; type: string | null; body: string };
+    const answered = (call: Promise<Response>): Promise<Answer> => call.then(
+      async response => ({ status: response.status, type: response.headers.get("content-type"), body: await response.text() }))
+      .catch((error: Error) => ({ status: 0, type: null, body: error.name }));
+    const modern = answered(fetch(host.url + "/mcp", {
+      method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream",
+        "MCP-Protocol-Version": "2026-07-28", "Mcp-Method": "tools/call", "Mcp-Name": "sources_status" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "sources_status", arguments: {}, _meta: {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {},
+        "io.modelcontextprotocol/clientInfo": { name: "fixture", version: "0" } } } })
+    }));
+    const stream = await answered(toolCall(host.url));
+    const resultOf = (text: string | undefined) => {
+      try { return JSON.parse(text ?? "").result as { isError?: boolean; structuredContent?: { snapshot_id?: string } }; }
+      catch { return null; }
+    };
+    const seconds = Math.round((performance.now() - started) / 1000);
+    const result = resultOf(stream.body.split("\n").find(line => line.startsWith("data: "))?.slice(6));
+    const plain = await modern;
+    processUnderTest!.kill("SIGTERM");
+    console.log(JSON.stringify({
+      status: stream.status, contentType: stream.type, seconds,
+      keepAlives: stream.body.split("\n").filter(line => line.startsWith(":")).length,
+      isError: result?.isError ?? null, snapshot: result?.structuredContent?.snapshot_id ?? null,
+      jsonStatus: plain.status, jsonContentType: plain.type, jsonSnapshot: resultOf(plain.body)?.structuredContent?.snapshot_id ?? null,
+      exitCodeAfterSignal: await host.exited
+    }));
   } else if (scenario === "unhealthy") {
     const host = await startHost("unhealthy");
     const health = await healthOf(host.url);
