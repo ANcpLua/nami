@@ -66,3 +66,18 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `faas.mem_usage` | histogram | `By` | development |  | Distribution of max memory usage per invocation. |
 | `faas.net_io` | histogram | `By` | development |  | Distribution of net I/O usage per invocation. |
 | `faas.timeouts` | counter | `{timeout}` | development |  | Number of invocation timeouts. |
+
+## Events
+
+| Name | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+| `faas.invocation.exception` | development |  | This event represents an exception that occurred during FaaS function invocation, such as application errors, internal failures, or other exceptions that prevent the function from completing successfully. |
+
+## Spans
+
+| Type | Kind | Stability | Deprecated | Brief |
+| --- | --- | --- | --- | --- |
+| `faas.client` | client | development |  | This span represents an outgoing call to a FaaS service. |
+| `faas.datasource.server` | server | development |  | This span represents the server side of a FaaS invocation triggered in response to some data source operation such as a database or filesystem read/write. |
+| `faas.server` | server | development |  | This span represents the server (incoming) side of a FaaS invocation. |
+| `faas.timer.server` | server | development |  | This span represents the server side of a FaaS invocation triggered by a timer. |

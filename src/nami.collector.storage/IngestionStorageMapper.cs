@@ -3,7 +3,6 @@ namespace Nami.Collector.Storage;
 internal static class IngestionStorageMapper
 {
     private const int MaxPersistedLogBodyUtf8Bytes = 64 * 1024;
-    private const string TruncatedLogBodySuffix = "...[truncated]";
 
     public static List<SpanStorageRow> ToSpanStorageRows(TraceIngestionBatch batch,
         string? authenticatedProjectId = null)
@@ -214,22 +213,7 @@ internal static class IngestionStorageMapper
         return true;
     }
 
-    private static string TruncateBodyText(string raw)
-    {
-        if (Encoding.UTF8.GetByteCount(raw) <= MaxPersistedLogBodyUtf8Bytes)
-            return raw;
-
-        var remainingBytes = MaxPersistedLogBodyUtf8Bytes - Encoding.UTF8.GetByteCount(TruncatedLogBodySuffix);
-        var builder = new StringBuilder(Math.Min(raw.Length, MaxPersistedLogBodyUtf8Bytes));
-        Span<char> utf16 = stackalloc char[2];
-        foreach (var rune in raw.EnumerateRunes().TakeWhile(rune => rune.Utf8SequenceLength <= remainingBytes))
-        {
-            builder.Append(utf16[..rune.EncodeToUtf16(utf16)]);
-            remainingBytes -= rune.Utf8SequenceLength;
-        }
-
-        return builder.Append(TruncatedLogBodySuffix).ToString();
-    }
+    private static string TruncateBodyText(string raw) => BoundedText.Truncate(raw, MaxPersistedLogBodyUtf8Bytes);
 
     private static string? GetResourceEntityRefsIdentity(
         IReadOnlyList<ResourceEntityRefIngestionRecord> entityRefs,

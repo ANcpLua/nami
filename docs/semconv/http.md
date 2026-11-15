@@ -11,7 +11,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `http.flavor` | `enum` | development | Split into `network.protocol.name` and `network.protocol.version` | Deprecated, use `network.protocol.name` and `network.protocol.version` instead. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `http.host` | `string` | development | Replaced by one of `server.address`, `client.address` or `http.request.header.host`, depending on the usage. | Deprecated, use one of `server.address`, `client.address` or `http.request.header.host` instead, depending on the usage. | `"www.example.org"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `http.method` | `string` | development | Replaced by `http.request.method`. | Deprecated, use `http.request.method` instead. | `"GET"`, `"POST"`, `"HEAD"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
-| `http.request.body.content` | `any` | development |  | The content of the HTTP request body, with any content coding indicated by [Content-Encoding](https://www.rfc-editor.org/rfc/rfc9110.html#field.content-encoding) removed, captured as a string when the request content is textual or as byte array otherwise. | `"Hello world!"`, `"{\"foo\": \"bar\"}"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `http.request.body.content` | `any` | development |  | The content of the HTTP request body, with any content coding indicated by [Content-Encoding](https://www.rfc-editor.org/rfc/rfc9110.html#field.content-encoding) removed, captured as a string when the request content is textual or as byte array otherwise. | `"Hello world!"`, `"{\"foo\": \"bar\"}"` | `nami.persisted`: `false`, `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"`, `nami.token_exempt`: `false` |
 | `http.request.body.size` | `int` | development |  | The size of the request payload body in bytes. This is the number of bytes transferred excluding headers and is often, but not always, present as the [Content-Length](https://www.rfc-editor.org/rfc/rfc9110.html#field.content-length) header. For requests using transport encoding, this should be the compressed size. | `3495` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `http.request.header` | `template[string[]]` | stable |  | HTTP request headers, `<key>` being the normalized HTTP Header name (lowercase), the value being the header values. | `["application/json"]`, `["1.2.3.4","1.2.3.5"]` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `http.request.method` | `enum` | stable |  | HTTP request method. | `"GET"`, `"POST"`, `"HEAD"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
@@ -20,7 +20,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `http.request.size` | `int` | development |  | The total size of the request in bytes. This should be the total number of bytes sent over the wire, including the request line (HTTP/1.1), framing (HTTP/2 and HTTP/3), headers, and request body if any. | `1437` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `http.request_content_length` | `int` | development | Replaced by `http.request.header.content-length`. | Deprecated, use `http.request.header.content-length` instead. | `3495` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `http.request_content_length_uncompressed` | `int` | development | Replaced by `http.request.body.size`. | Deprecated, use `http.request.body.size` instead. | `5493` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
-| `http.response.body.content` | `any` | development |  | The content of the HTTP response body, with any content coding indicated by [Content-Encoding](https://www.rfc-editor.org/rfc/rfc9110.html#field.content-encoding) removed, captured as a string when the response content is textual or as byte array otherwise. | `"Hello world!"`, `"{\"foo\": \"bar\"}"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `http.response.body.content` | `any` | development |  | The content of the HTTP response body, with any content coding indicated by [Content-Encoding](https://www.rfc-editor.org/rfc/rfc9110.html#field.content-encoding) removed, captured as a string when the response content is textual or as byte array otherwise. | `"Hello world!"`, `"{\"foo\": \"bar\"}"` | `nami.persisted`: `false`, `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"`, `nami.token_exempt`: `false` |
 | `http.response.body.size` | `int` | development |  | The size of the response payload body in bytes. This is the number of bytes transferred excluding headers and is often, but not always, present as the [Content-Length](https://www.rfc-editor.org/rfc/rfc9110.html#field.content-length) header. For requests using transport encoding, this should be the compressed size. | `3495` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `http.response.header` | `template[string[]]` | stable |  | HTTP response headers, `<key>` being the normalized HTTP Header name (lowercase), the value being the header values. | `["application/json"]`, `["abc","def"]` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `http.response.size` | `int` | development |  | The total size of the response in bytes. This should be the total number of bytes sent over the wire, including the status line (HTTP/1.1), framing (HTTP/2 and HTTP/3), headers, and response body and trailers if any. | `1437` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
@@ -83,3 +83,17 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `http.server.request.body.size` | histogram | `By` | development |  | Size of HTTP server request bodies. |
 | `http.server.request.duration` | histogram | `s` | stable |  | Duration of HTTP server requests. |
 | `http.server.response.body.size` | histogram | `By` | development |  | Size of HTTP server response bodies. |
+
+## Events
+
+| Name | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+| `http.client.request.exception` | development |  | This event represents an exception that occurred during an HTTP client request, such as network failures, timeouts, or other errors that prevent the request from completing successfully. |
+| `http.server.request.exception` | development |  | This event represents an exception that occurred during HTTP server request processing, such as application errors, internal failures, or other exceptions that prevent the server from successfully handling the request. |
+
+## Spans
+
+| Type | Kind | Stability | Deprecated | Brief |
+| --- | --- | --- | --- | --- |
+| `http.client` | client | stable |  | This span represents an outbound HTTP request. |
+| `http.server` | server | stable |  | This span represents an inbound HTTP request. |

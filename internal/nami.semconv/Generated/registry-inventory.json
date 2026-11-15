@@ -44,6 +44,36 @@
     },
     {
       "deprecated": null,
+      "key": "agent.name",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "agent.source",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "agent_id",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "agent_path_count",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "agent_type",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "android.app.state",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "development"
@@ -62,6 +92,24 @@
       },
       "key": "android.state",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "anthropic.custom_base_url",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "anthropic.plan",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "anthropic.provider",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -315,6 +363,12 @@
       "key": "aspnetcore.user.is_authenticated",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "attempt",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
     },
     {
       "deprecated": null,
@@ -734,6 +788,36 @@
     },
     {
       "deprecated": null,
+      "key": "bash_argv0",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "bash_command",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "bash_command_class",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "body",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "body_ref",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "browser.brands",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "development"
@@ -796,6 +880,30 @@
       "deprecated": null,
       "key": "browser.web_vital.value",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cache_creation_1h_tokens",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cache_creation_5m_tokens",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cache_creation_tokens",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cache_read_tokens",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -976,6 +1084,12 @@
       "deprecated": null,
       "key": "client.service.namespace",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "client_request_id",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -1190,6 +1304,12 @@
     },
     {
       "deprecated": null,
+      "key": "command_path_count",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "container.command",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "development"
@@ -1306,6 +1426,24 @@
       "deprecated": null,
       "key": "container.runtime.version",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "content",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cost_usd",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "cost_usd_micros",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -1742,6 +1880,12 @@
       "stability": "development"
     },
     {
+      "deprecated": null,
+      "key": "decision",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
       "deprecated": {
         "note": "Replaced by `deployment.environment.name`.",
         "reason": "renamed",
@@ -1837,6 +1981,12 @@
     },
     {
       "deprecated": null,
+      "key": "diff",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "disk.io.direction",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "release_candidate"
@@ -1861,8 +2011,26 @@
     },
     {
       "deprecated": null,
+      "key": "duration_ms",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "effort",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "elasticsearch.node.name",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "enabled_via",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -1884,6 +2052,12 @@
       "stability": "development"
     },
     {
+      "deprecated": null,
+      "key": "error",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
       "deprecated": {
         "note": "Use domain-specific error message attribute. For example, use `feature_flag.error.message` for feature flag errors.",
         "reason": "obsoleted"
@@ -1899,12 +2073,30 @@
       "stability": "stable"
     },
     {
+      "deprecated": null,
+      "key": "error_class",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "error_type",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
       "deprecated": {
         "note": "The value of this attribute MUST now be set as the value of the EventName field on the LogRecord to indicate that the LogRecord represents an Event.\n",
         "reason": "uncategorized"
       },
       "key": "event.name",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "event.sequence",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -2268,6 +2460,30 @@
       "deprecated": null,
       "key": "file.symbolic_link.target_path",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "file_path",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "final_model",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "first_content_ms",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "full_command",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -3052,6 +3268,18 @@
     },
     {
       "deprecated": null,
+      "key": "has_hooks",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "has_mcp",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "heroku.app.id",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "development"
@@ -3156,6 +3384,12 @@
       "deprecated": null,
       "key": "host.type",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "host_owned_mcp",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -3541,6 +3775,24 @@
     },
     {
       "deprecated": null,
+      "key": "input_tokens",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "interaction.duration_ms",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "interaction.sequence",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "ios.app.state",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "development"
@@ -3553,6 +3805,18 @@
       },
       "key": "ios.state",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "is_async",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "is_built_in",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -4208,6 +4472,12 @@
       "stability": "development"
     },
     {
+      "deprecated": null,
+      "key": "language",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
       "deprecated": {
         "note": "Replaced by `system.memory.linux.slab.state`.",
         "reason": "renamed",
@@ -4215,6 +4485,12 @@
       },
       "key": "linux.memory.slab.state",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "llm_request.context",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -4257,6 +4533,42 @@
       "deprecated": null,
       "key": "log.record.uid",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "managed_settings.helper.applied",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "managed_settings.helper.state",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "managed_settings.source_behavior",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "managed_settings.sources",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "managed_settings.trigger",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "marketplace.name",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -4317,6 +4629,12 @@
       },
       "key": "message.uncompressed_size",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "message.uuid",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -4743,26 +5061,38 @@
     },
     {
       "deprecated": null,
+      "key": "model",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "model_swapped",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "nami.attribute.key",
-      "source_schema": "https://ancplua.github.io/nami/schemas/0.3.0",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
       "deprecated": null,
       "key": "nami.attribute.namespace",
-      "source_schema": "https://ancplua.github.io/nami/schemas/0.3.0",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
       "deprecated": null,
       "key": "nami.gen_ai.tool.call.arguments_hash",
-      "source_schema": "https://ancplua.github.io/nami/schemas/0.3.0",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
       "deprecated": null,
       "key": "nami.project.id",
-      "source_schema": "https://ancplua.github.io/nami/schemas/0.3.0",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -5063,6 +5393,12 @@
     },
     {
       "deprecated": null,
+      "key": "new_context",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "nfs.operation.name",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "development"
@@ -5192,6 +5528,12 @@
     },
     {
       "deprecated": null,
+      "key": "organization.id",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "os.build_id",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "development"
@@ -5301,12 +5643,60 @@
       "stability": "stable"
     },
     {
+      "deprecated": null,
+      "key": "output",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "output_tokens",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "parent.source",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
       "deprecated": {
         "note": "Use `server.service.name` on the client side or `client.service.name` on the server side.",
         "reason": "uncategorized"
       },
       "key": "peer.service",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "permission_mode",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "plugin.name",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "plugin.scope",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "plugin.version",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "plugin_id_hash",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -5637,6 +6027,48 @@
     },
     {
       "deprecated": null,
+      "key": "prompt",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "prompt.id",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "prompt_length",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "prompt_text",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "query_source",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "query_source_safe",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "queued_sends",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "rabbitmq.destination.routing_key",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "development"
@@ -5645,6 +6077,30 @@
       "deprecated": null,
       "key": "rabbitmq.message.delivery_tag",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "request_id",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "response",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "response.model_output",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "response_length",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -5918,6 +6374,12 @@
     },
     {
       "deprecated": null,
+      "key": "safe_mode",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "security_rule.category",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "development"
@@ -6098,6 +6560,18 @@
     },
     {
       "deprecated": null,
+      "key": "skill_path_count",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "source",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "source.address",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "development"
@@ -6133,6 +6607,24 @@
       "stability": "development"
     },
     {
+      "deprecated": null,
+      "key": "span.type",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "speed",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "start_type",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
       "deprecated": {
         "note": "Replaced by `db.client.connection.state`.",
         "reason": "renamed",
@@ -6140,6 +6632,24 @@
       },
       "key": "state",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "stop_reason",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "subagent_type",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "success",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -6280,6 +6790,18 @@
     },
     {
       "deprecated": null,
+      "key": "system_prompt_preview",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "system_reminders",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "telemetry.distro.name",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "stable"
@@ -6307,6 +6829,12 @@
       "key": "telemetry.sdk.version",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "stable"
+    },
+    {
+      "deprecated": null,
+      "key": "terminal.type",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
     },
     {
       "deprecated": null,
@@ -6524,6 +7052,78 @@
     },
     {
       "deprecated": null,
+      "key": "tool_input",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tool_input_size_bytes",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tool_name",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tool_name_safe",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tool_parameters",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tool_result_size_bytes",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tool_source",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "tool_use_id",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "total_tokens",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "total_tool_uses",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "ttft_ms",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "type",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
       "key": "url.domain",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
       "stability": "development"
@@ -6670,6 +7270,24 @@
       "deprecated": null,
       "key": "user_agent.version",
       "source_schema": "https://opentelemetry.io/schemas/1.45.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "user_prompt",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "user_prompt_length",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+      "stability": "development"
+    },
+    {
+      "deprecated": null,
+      "key": "user_system_prompt",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -6860,7 +7478,7 @@
     "attributes": {
       "stable": 125,
       "stable_refinements": 0,
-      "total": 1037
+      "total": 1140
     },
     "entities": {
       "stable": 5,
@@ -6870,20 +7488,20 @@
     "events": {
       "stable": 1,
       "stable_refinements": 1,
-      "total": 35
+      "total": 47
     },
     "metrics": {
       "stable": 53,
       "stable_refinements": 53,
-      "total": 585
+      "total": 593
     },
     "spans": {
       "stable": 5,
       "stable_refinements": 14,
-      "total": 45
+      "total": 50
     }
   },
   "genai_commit": "e6658f14c9d9ea0760825f029cb82e7673f48fab",
-  "schema_url": "https://ancplua.github.io/nami/schemas/0.3.0",
+  "schema_url": "https://ancplua.github.io/nami/schemas/0.4.0",
   "weaver": "0.28.0"
 }

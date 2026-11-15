@@ -10,7 +10,8 @@ weaver registry check --future --v2 -r registry -p registry/policies
 
 Authored definitions live in `registry/source/`. They define Nami's project/discovery
 attributes, collector counters, and persistence annotations, and import the pinned GenAI
-registry. GenAI imports OpenTelemetry core v1.45.0. Core is deliberately not a second
+registry. `source/claude_code/` describes the telemetry nami ingests from Claude Code: its
+counters, events, spans and the keys they carry, under Claude Code's own names. GenAI imports OpenTelemetry core v1.45.0. Core is deliberately not a second
 direct dependency: Weaver 0.28.0 reports ambiguous GenAI attribute references when both
 registries are imported directly.
 
@@ -57,6 +58,18 @@ it does not redeclare upstream definitions. Unknown keys are not persisted. A de
 normalizes to its declared successor or is dropped. Exception text remains subject to the
 collector sanitizer. Captured header templates are known keys and retain their supplied values.
 
+A key nami defines for a sender carries `nami.producer` (Claude Code's keys: `claude_code`)
+and, like a `nami.*` key, a brief, a stability and `nami.persisted`. Its type is the type nami
+stores. Where the sender puts another primitive type on the wire, the signal's reference says
+so in `nami.wire_type`, and ingest converts; where it nests the key inside a JSON string
+attribute, the reference names that attribute in `nami.wire_container`, and ingest lifts the
+key out and drops the container. A key may declare `nami.max_utf8_bytes`, the longest value
+in UTF-8 bytes that ingest keeps of it (generated as `ValueLimits.MaxUtf8Bytes`; ingest
+enforces it). Claude Code's `error` text passes the exception-text sanitizer before its bound. A producer's signals name the instrumentation scope they
+arrive under (`nami.instrumentation_scope`); a producer's key means what the registry says
+only on records from those scopes. Weaver 0.28.0 replaces, rather than merges, a definition's
+annotations with those of a reference, so persistence is always read from the definition.
+
 The embedded `internal/nami.semconv/Generated/registry-inventory.json` records exact pins and
 counts. The effective pinned inventory contains 125 stable nondeprecated attributes, 53 stable
 metric instruments, 14 stable span refinements (five base span types), one stable event,
@@ -72,4 +85,5 @@ The current GenAI pin is `e6658f14c9d9ea0760825f029cb82e7673f48fab`, the head of
 publication follows core v1.45.0 and adds GenAI realtime sessions, exception events for the
 client operations, the internal retrieval span and the `gen_ai.execute_tool` span type.
 Inspect the exact upstream comparison when reviewing a pin update, including refinements,
-descriptions, annotations, and external JSON-schema changes.
+descriptions, annotations, and external JSON-schema changes. The 0.4.0 publication keeps
+these pins and adds the Claude Code definitions; `CHANGELOG.md` lists them.

@@ -79,6 +79,7 @@ internal static partial class OtlpConverter
                     continue;
                 }
 
+                var producer = ProducerOfScope(scope.Scope?.Name);
                 foreach (var span in scope.Spans)
                 {
                     try
@@ -89,10 +90,10 @@ internal static partial class OtlpConverter
                             span is { StartTimeUnixNano: 0, EndTimeUnixNano: 0 })
                             throw new InvalidDataException("OTLP span requires start and end times with end >= start.");
                         spans.Add(CreateSpanRecordFromProto(span, project, serviceName,
-                                ExtractAttributesFromProto(span.Attributes, serviceName), resource.Attributes,
-                                resource.EntityRefs,
+                                ExtractAttributesFromProto(span.Attributes, serviceName, producer),
+                                resource.Attributes, resource.EntityRefs,
                                 NullIfEmpty(scope.SchemaUrl) ?? resourceSchema, NullIfEmpty(scope.Scope?.Name),
-                                NullIfEmpty(scope.Scope?.Version), reasons) with
+                                NullIfEmpty(scope.Scope?.Version), producer, reasons) with
                         {
                             ScopeSchemaUrl = NullIfEmpty(scope.SchemaUrl),
                             ScopeAttributes = scopeAttributes,
@@ -180,13 +181,13 @@ internal static partial class OtlpConverter
             if (IsUnresolvedProfilingKey(attr)) continue;
             var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
             NormalizedAttributes.RecordRename(attrs, attr.Key, key);
-            if (!AttributeKeySets.IsPersistable(key))
+            // A resource belongs to no instrumentation scope, so no producer's keys are kept on it.
+            if (ConvertAttribute(key, attr.Value, null) is not { } value)
             {
                 NamiCollectorMetrics.AttributeDropped(key);
                 continue;
             }
 
-            var value = ConvertProtoAnyValue(attr.Value, key);
             SetNormalizedAttribute(attrs, key, value, renamed);
 
             projectedKeys[attr.Key] = new ResourceAttributeProjectionKey(key);
@@ -281,43 +282,47 @@ internal static partial class OtlpConverter
 
     private static NormalizedAttributes ExtractAttributesFromProto(
         RepeatedField<ProtoKeyValue> protoAttributes,
-        string serviceName)
+        string serviceName,
+        string? producer)
     {
         var attributes = new NormalizedAttributes
         {
             [CollectorSemanticAttributeCatalog.ServiceName] = OtlpAttributeValue.FromString(serviceName)
         };
 
-        CaptureSpanAttributes(attributes, protoAttributes);
+        CaptureRecordAttributes(attributes, protoAttributes, producer);
         return attributes;
     }
 
-    private static void CaptureSpanAttributes(
+    // The attributes of one record (span, span event, span link, log record, metric point, exemplar) under the
+    // instrumentation scope of producer, or of no producer.
+    private static void CaptureRecordAttributes(
         NormalizedAttributes attributes,
-        RepeatedField<ProtoKeyValue> protoAttributes)
+        RepeatedField<ProtoKeyValue> protoAttributes,
+        string? producer)
     {
         ValidateAttributeKeys(protoAttributes);
-        foreach (var attr in protoAttributes)
+        foreach (var attr in LiftWireContainers(protoAttributes, producer))
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
             var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
             NormalizedAttributes.RecordRename(attributes, attr.Key, key);
-            if (!AttributeKeySets.ShouldCaptureSpanAttribute(key))
+            if (ConvertAttribute(key, attr.Value, producer) is not { } value)
             {
                 NamiCollectorMetrics.AttributeDropped(key);
                 continue;
             }
 
-            var value = ConvertProtoAnyValue(attr.Value, key);
             SetNormalizedAttribute(attributes, key, value, renamed);
         }
     }
 
-    private static NormalizedAttributes ConvertSpanChildAttributes(
-        RepeatedField<ProtoKeyValue> protoAttributes)
+    private static NormalizedAttributes ConvertRecordAttributes(
+        RepeatedField<ProtoKeyValue> protoAttributes,
+        string? producer)
     {
         var attributes = new NormalizedAttributes();
-        CaptureSpanAttributes(attributes, protoAttributes);
+        CaptureRecordAttributes(attributes, protoAttributes, producer);
         return attributes;
     }
 
@@ -356,34 +361,36 @@ internal static partial class OtlpConverter
             if (IsUnresolvedProfilingKey(attribute)) continue;
             var renamed = DeprecatedAttributeNormalizer.TryNormalize(attribute.Key, out var key);
             NormalizedAttributes.RecordRename(result, attribute.Key, key);
-            if (!AttributeKeySets.IsPersistable(key))
+            // Scope attributes and metric metadata describe the instrumentation, not a record of it: no producer's
+            // keys are kept there.
+            if (ConvertAttribute(key, attribute.Value, null) is not { } value)
             {
                 NamiCollectorMetrics.AttributeDropped(key);
                 continue;
             }
 
-            SetNormalizedAttribute(result, key, ConvertProtoAnyValue(attribute.Value, key), renamed);
+            SetNormalizedAttribute(result, key, value, renamed);
         }
 
         return result;
     }
 
-    private static List<SpanEventIngest> BuildSpanEvents(ProtoSpan span)
+    private static List<SpanEventIngest> BuildSpanEvents(ProtoSpan span, string? producer)
     {
         if (span.Events.Count is 0) return [];
 
-        return span.Events.Select(static e => new SpanEventIngest(e.Name ?? "", e.TimeUnixNano,
-            ConvertSpanChildAttributes(e.Attributes), e.DroppedAttributesCount)).ToList();
+        return span.Events.Select(e => new SpanEventIngest(e.Name ?? "", e.TimeUnixNano,
+            ConvertRecordAttributes(e.Attributes, producer), e.DroppedAttributesCount)).ToList();
     }
 
-    private static List<SpanLinkIngest> BuildSpanLinks(ProtoSpan span)
+    private static List<SpanLinkIngest> BuildSpanLinks(ProtoSpan span, string? producer)
     {
         if (span.Links.Count is 0) return [];
 
-        return span.Links.Select(static l => new SpanLinkIngest(
+        return span.Links.Select(l => new SpanLinkIngest(
                 RequireId(l.TraceId, 16, "link.trace_id"),
                 RequireId(l.SpanId, 8, "link.span_id"),
-                ConvertSpanChildAttributes(l.Attributes), NullIfEmpty(l.TraceState), l.Flags,
+                ConvertRecordAttributes(l.Attributes, producer), NullIfEmpty(l.TraceState), l.Flags,
                 l.DroppedAttributesCount)).ToList();
     }
 
@@ -394,7 +401,7 @@ internal static partial class OtlpConverter
     private const int MaxValueNesting = 16;
 
     private static OtlpAttributeValue ConvertProtoAnyValue(ProtoAnyValue? value, string? attributeKey = null,
-        int nesting = 0)
+        string? producer = null, int nesting = 0)
     {
         // All keyed carriers, including nested maps and metric metadata, converge here.
         // A key exemption never bypasses this value policy before original data is journaled.
@@ -410,8 +417,9 @@ internal static partial class OtlpConverter
             ProtoAnyValue.ValueOneofCase.DoubleValue => OtlpAttributeValue.FromDouble(value.DoubleValue),
             ProtoAnyValue.ValueOneofCase.BoolValue => OtlpAttributeValue.FromBool(value.BoolValue),
             ProtoAnyValue.ValueOneofCase.BytesValue => OtlpAttributeValue.FromBytes(CopyBytes(value.BytesValue)),
-            ProtoAnyValue.ValueOneofCase.ArrayValue => ConvertProtoArrayValue(value.ArrayValue, nesting + 1),
-            ProtoAnyValue.ValueOneofCase.KvlistValue => ConvertProtoKeyValueList(value.KvlistValue, nesting + 1),
+            ProtoAnyValue.ValueOneofCase.ArrayValue => ConvertProtoArrayValue(value.ArrayValue, producer, nesting + 1),
+            ProtoAnyValue.ValueOneofCase.KvlistValue =>
+                ConvertProtoKeyValueList(value.KvlistValue, producer, nesting + 1),
             ProtoAnyValue.ValueOneofCase.None => OtlpAttributeValue.Empty,
             // Alpha, profiles-only (opentelemetry-proto 1.10+): an index into a string table no other
             // signal carries. The proto asks non-profiling receivers to treat it as absent, which is what
@@ -421,13 +429,14 @@ internal static partial class OtlpConverter
         };
     }
 
-    private static OtlpAttributeValue ConvertProtoArrayValue(ProtoArrayValue value, int nesting)
+    private static OtlpAttributeValue ConvertProtoArrayValue(ProtoArrayValue value, string? producer, int nesting)
     {
         RequireNesting(nesting);
-        return OtlpAttributeValue.FromArray(value.Values.Select(item => ConvertProtoAnyValue(item, null, nesting)).ToList());
+        return OtlpAttributeValue.FromArray(
+            value.Values.Select(item => ConvertProtoAnyValue(item, null, producer, nesting)).ToList());
     }
 
-    private static OtlpAttributeValue ConvertProtoKeyValueList(ProtoKeyValueList value, int nesting)
+    private static OtlpAttributeValue ConvertProtoKeyValueList(ProtoKeyValueList value, string? producer, int nesting)
     {
         RequireNesting(nesting);
         ValidateAttributeKeys(value.Values);
@@ -435,13 +444,13 @@ internal static partial class OtlpConverter
         foreach (var item in value.Values)
         {
             if (IsUnresolvedProfilingKey(item)) continue;
-            if (!AttributeKeySets.IsPersistable(item.Key))
+            if (ConvertAttribute(item.Key, item.Value, producer, nesting) is not { } member)
             {
                 NamiCollectorMetrics.AttributeDropped(item.Key);
                 continue;
             }
 
-            items[item.Key] = ConvertProtoAnyValue(item.Value, item.Key, nesting);
+            items[item.Key] = member;
         }
 
         return OtlpAttributeValue.FromKeyValueList(items);
@@ -466,6 +475,7 @@ internal static partial class OtlpConverter
         string? schemaUrl,
         string? scopeName,
         string? scopeVersion,
+        string? producer,
         ISet<string> warnings) =>
         new()
         {
@@ -485,7 +495,7 @@ internal static partial class OtlpConverter
             StatusCode = span.Status is not null
                 ? DefinedOrZero((int)span.Status.Code, (int)ProtoStatusCode.Error, StatusCodeWarning, warnings)
                 : null,
-            StatusMessage = string.IsNullOrEmpty(span.Status?.Message) ? null : span.Status.Message,
+            StatusMessage = StatusMessageOf(span.Status, producer),
             ServiceName = serviceName,
             Attributes = attributes,
             ResourceAttributes = resourceAttributes,
@@ -493,8 +503,8 @@ internal static partial class OtlpConverter
             SchemaUrl = schemaUrl,
             ScopeName = scopeName,
             ScopeVersion = scopeVersion,
-            Events = BuildSpanEvents(span),
-            Links = BuildSpanLinks(span)
+            Events = BuildSpanEvents(span, producer),
+            Links = BuildSpanLinks(span, producer)
         };
 
     #endregion
@@ -564,6 +574,7 @@ internal static partial class OtlpConverter
                     continue;
                 }
 
+                var producer = ProducerOfScope(scope.Scope?.Name);
                 foreach (var log in scope.LogRecords)
                 {
                     var requestOrdinal = ordinal++;
@@ -571,7 +582,7 @@ internal static partial class OtlpConverter
                     {
                         logs.Add(
                             CreateLogRecord(log, project, serviceName, resource.Attributes, resource.EntityRefs,
-                                    observedTime, reasons) with
+                                    observedTime, producer, reasons) with
                             {
                                 UntimedRequestOrdinal =
                                     log is { TimeUnixNano: 0, ObservedTimeUnixNano: 0 } ? requestOrdinal : null,
@@ -609,9 +620,11 @@ internal static partial class OtlpConverter
         NormalizedAttributes resourceAttributes,
         IReadOnlyList<ResourceEntityRefIngestionRecord> resourceEntityRefs,
         ulong observedTime,
+        string? producer,
         ISet<string> warnings)
     {
-        var attributes = ExtractLogAttributes(log.Attributes);
+        var attributes = ConvertRecordAttributes(log.Attributes, producer);
+        var eventName = EventNameOf(log, producer);
 
         var severityNumber = DefinedOrZero((int)log.SeverityNumber, (int)ProtoSeverityNumber.Fatal4,
             SeverityNumberWarning, warnings);
@@ -621,7 +634,7 @@ internal static partial class OtlpConverter
             ProjectIdHint = projectIdHint,
             TraceId = RequireIdOrAbsent(log.TraceId, 16, "trace_id"),
             SpanId = RequireIdOrAbsent(log.SpanId, 8, "span_id"),
-            EventName = NullIfEmpty(log.EventName) ?? DeprecatedEventNameAttribute(log.Attributes),
+            EventName = eventName,
             Flags = log.Flags,
             DroppedAttributesCount = log.DroppedAttributesCount,
             TimeOrigin =
@@ -633,7 +646,7 @@ internal static partial class OtlpConverter
                 },
             SeverityNumber = severityNumber,
             SeverityText = log.SeverityText,
-            Body = ConvertProtoAnyValue(log.Body),
+            Body = ProducerBody(ConvertProtoAnyValue(log.Body), eventName, producer),
             ServiceName = serviceName,
             Attributes = attributes,
             ResourceAttributes = resourceAttributes,
@@ -644,7 +657,8 @@ internal static partial class OtlpConverter
     // Semantic conventions v1.45.0 deprecate the event.name attribute: "The value of this attribute MUST now be set as
     // the value of the EventName field on the LogRecord". A producer that still sends only the attribute gets that done
     // here, at ingest: Claude Code 2.1.325 names each of its events this way and leaves the field empty. The allowlist
-    // drops the deprecated key itself, so without this read the name would be lost. The field wins when both are set.
+    // drops the deprecated key itself, so without this read the name would be lost. The field wins when both are set
+    // (EventNameOf).
     // https://github.com/open-telemetry/semantic-conventions/blob/v1.45.0/model/event/deprecated/registry-deprecated.yaml
     private static string? DeprecatedEventNameAttribute(RepeatedField<ProtoKeyValue> attributes)
     {
@@ -659,29 +673,6 @@ internal static partial class OtlpConverter
         }
 
         return null;
-    }
-
-    private static NormalizedAttributes ExtractLogAttributes(RepeatedField<ProtoKeyValue> attributes)
-    {
-        ValidateAttributeKeys(attributes);
-        var dict = new NormalizedAttributes();
-        foreach (var attr in attributes)
-        {
-            if (string.IsNullOrEmpty(attr.Key)) continue;
-            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            NormalizedAttributes.RecordRename(dict, attr.Key, key);
-            if (!AttributeKeySets.IsPersistable(key) &&
-                !key.IsAny(AttributeKeySets.SessionCorrelation))
-            {
-                NamiCollectorMetrics.AttributeDropped(key);
-                continue;
-            }
-
-            var value = ConvertProtoAnyValue(attr.Value, key);
-            SetNormalizedAttribute(dict, key, value, renamed);
-        }
-
-        return dict;
     }
 
     #endregion

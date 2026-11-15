@@ -48,3 +48,10 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Name | Instrument | Unit | Stability | Deprecated | Brief |
 | --- | --- | --- | --- | --- | --- |
+
+## Spans
+
+| Type | Kind | Stability | Deprecated | Brief |
+| --- | --- | --- | --- | --- |
+| `a2a.client` | client | development |  | This span describes an A2A call from the client side. |
+| `a2a.server` | server | development |  | This span describes processing of an A2A request by the server. |

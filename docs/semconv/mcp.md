@@ -49,3 +49,10 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `mcp.client.session.duration` | histogram | `s` | development |  | The duration of the MCP session as observed on the MCP client. |
 | `mcp.server.operation.duration` | histogram | `s` | development |  | MCP request or notification duration as observed on the receiver from the time it was received until the result or ack is sent. |
 | `mcp.server.session.duration` | histogram | `s` | development |  | The duration of the MCP session as observed on the MCP server. |
+
+## Spans
+
+| Type | Kind | Stability | Deprecated | Brief |
+| --- | --- | --- | --- | --- |
+| `mcp.client` | client | development |  | This span describes the MCP call from the client side. |
+| `mcp.server` | server | development |  | This span describes the processing of the MCP request or notification initiated by the peer. |
