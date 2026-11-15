@@ -21,24 +21,24 @@ bounded details. A changed source/output fingerprint requires fresh validation.
 | --- | --- |
 | G1 | `Registry_Check_PassesWithFuture`; `Registry_NestedCoreDependency_ResolvesOnce` |
 | G2 | `Generate_TwiceSameRegistry_IsByteIdentical` |
-| G3 | `Catalog_MatchesResolvedRegistry`; `Catalog_EmbeddedConstants_MatchRegistrySnapshot` |
+| G3 | `Catalog_MatchesResolvedRegistry`; `Catalog_EachDefinition_CarriesResolvedStabilityAndSuccessor` (the stability of every attribute, metric and span against `registry/resolved.json`); `Catalog_EmbeddedConstants_MatchRegistrySnapshot` |
 | G4 | `NamiKeys_AppearOnlyInGeneratedFiles` |
-| G5 | `DeprecatedKeys_HaveSuccessorOrDrop` |
+| G5 | `DeprecatedKeys_HaveSuccessorOrDrop`; `Catalog_EachDefinition_CarriesResolvedStabilityAndSuccessor` (the successor of every attribute) |
 | G6 | `EnumValues_MatchSchemaStability` |
 | G7 | `GeneratedCode_AotAnalyzers_ReportNothing`; `NativeAOT conformance execution` |
 | G8 | `PolicyNamingUnpersistedKey_FailsGeneration`; `TokenExemption_ForUnpersistedKey_FailsGeneration` |
-| G9 | `PinChange_WithoutDiffEntry_FailsGate` |
-| R1 | `Ingest_ThreeTransports_SameRows` (traces/logs/metrics × JSON/protobuf/gRPC); `EveryTool_ThreeOtlpTransports_ReturnsTypedEvidence` (generated six-tool × three-transport cases) |
-| R2 | `Watermark_BackdatedRecord_DoesNotRegress` |
+| G9 | `CurrentPins_MismatchedMetadata_FailsBeforeSourceResolution`; `CurrentPins_WithoutHistoricalRegistry_ReachSourceResolution`; `CurrentPins_ChangedSincePreviousRelease_RecordTheRegistryDiff` |
+| R1 | `Ingest_ThreeTransports_SameRows` (traces/logs/metrics × JSON/protobuf/gRPC); `EveryTool_ThreeOtlpTransports_ReturnsTypedEvidence` (generated six-tool × three-transport cases); `Ingest_ThreeTransports_ProduceEquivalentRows` (one export per signal, the whole store compared across the three transports) |
+| R2 | `Watermark_BackdatedRecord_DoesNotRegress`; `Watermark_ClockStepsBack_DoesNotRegress` |
 | R3 | `LastSeen_FutureTimestamp_UsesReceiptTime` |
-| R4 | `Ingest_DeprecatedKey_RewrittenToSuccessor`; `Discovery_RenamedAndDroppedKeys_SurvivesRestart`; `Ingest_DeprecatedTemplate_PreservesSuffixAndDiscovery` |
-| R5 | `Ingest_DevelopmentKey_StoredWithStabilityMark` |
-| R6 | `Sanitizer_Boundaries_HoldAtPlusMinusOne`; `Sanitizer_OutputUtf8Boundary_PreservesValidText`; `Sanitizer_InvalidUtf16_FailsClosed` |
+| R4 | `Ingest_DeprecatedKey_RewrittenToSuccessor`; `Discovery_RenamedAndDroppedKeys_SurvivesRestart`; `Ingest_DeprecatedTemplate_PreservesSuffixAndDiscovery`; `Catalog_EachDefinition_CarriesResolvedStabilityAndSuccessor` (the successor ingest rewrites to, for every key) |
+| R5 | `Ingest_DevelopmentKey_StoredWithStabilityMark`; `Catalog_EachDefinition_CarriesResolvedStabilityAndSuccessor` (the stability ingest marks, for every key) |
+| R6 | `Sanitizer_Boundaries_HoldAtPlusMinusOne`; `Sanitizer_OutputUtf8Boundary_PreservesValidText`; `Sanitizer_InvalidUtf16_FailsClosed`; `Ingest_ExceptionText_IsSanitizedOnEveryTransport` (log record and span event over JSON, protobuf and gRPC) |
 | R7 | `Exception_LogEventAndSpanEvent_GroupTogether`; `ErrorsRecent_FiveHundredThousandSpans_UnderMaxBytes` |
 | R8 | `Resource_MissingServiceName_CountedNotDropped` |
-| R9 | `Read_OtherProject_ReturnsNothing`; `Http_KeyAndResourceConflict_Refused`; `Http_KeyRolesAndCrossProjectReads_AreEnforced` |
-| R10 | `Store_HasNoDeletePathOutsideRetention`; `Retention_RemovesExpiredPreservesRecent` |
-| S1 | `Union_SwitchWithoutDefault_IsExhaustive`; `Union_AddedCase_BreaksBuild` |
+| R9 | `Read_OtherProject_ReturnsNothing`; `Http_KeyAndResourceConflict_Refused`; `Http_KeyRolesAndCrossProjectReads_AreEnforced`; `Grpc_KeyRolesAndResourceConflict_AreEnforced` (traces, logs, metrics) |
+| R10 | `Store_HasNoDeletePathOutsideRetention`; `Retention_RemovesExpiredPreservesRecent`; `Tools_NeverChangeStoredTelemetry` (six tools, store file compared before and after); `Store_DeleteSqlOnlyInRetention` (source scan of row-removing SQL and of the callers of retention) |
+| S1 | `Build_ActualGeneratedModelsAndConsumers_SucceedsWithProductionPolicy`; `Build_AddedWireCase_RejectsTheActualGeneratedWriter`; `Build_AddedHierarchyLeaf_RejectsTheActualConsumer` |
 | S2 | `Serialize_EachCase_EmitsKindTopLevel`; `MetricPoint_UnionVariants_RoundTripWithKindTag` |
 | S3 | `RoundTrip_EachCase_IsByteIdentical`; `AttributeMixedCases_RoundTrip_PreservesNestedValues` |
 | S4 | `SerializerContext_CoversEveryContractType` |
@@ -47,7 +47,7 @@ bounded details. A changed source/output fingerprint requires fresh validation.
 | S7 | `Integers_BeyondSafeRange_RefusedOrString`; `Integers_ExactValues_Accepted`; `IntegerInput_MathematicallyIntegral_Deserializes`; `ToolArguments_IntegralJsonNumbers_Accepted` |
 | S8 | `ToolError_EachRefusalClass_HasOneShape`; `InvalidInputs_IdentifyRepairableField`; `Cursor_ExpiredSnapshot_NamesMissingResource` |
 | S9 | `ContractRevision_DocChange_Unchanged` |
-| T1 | `SourcesStatus_NoRecords_ReportsSilentWithDuration`; `SourcesStatus_AfterOneRequest_LastSeenWithinOneSecond` |
+| T1 | `SourcesStatus_NoRecords_ReportsSilentWithDuration`; `SourcesStatus_NoRecords_ReportsEverySignalSilent`; `SourcesStatus_OneSignalSeen_OthersSilent`; `SourcesStatus_AfterOneRequest_LastSeenWithinOneSecond` |
 | T2 | `AnyTool_SameSnapshot_ByteIdentical (six tools)` |
 | T3 | `AnyTool_AfterRestart_SameAnswer (six tools)`; `NativeHost_OtlpAndStdio_PreservesAllToolsAndSnapshotsAcrossRestart` |
 | T4 | `ErrorsRecent_FiveHundredThousandSpans_UnderMaxBytes`; `Cursor_PagesCoverAllRowsWithoutDuplicates`; `Refusal_LargeUnknownName_RespectsByteBudget` |
@@ -67,6 +67,11 @@ bounded details. A changed source/output fingerprint requires fresh validation.
   them with the three OTLP transports; all eighteen combinations assert typed tool evidence.
 - Transport tests send actual HTTP JSON, HTTP protobuf and gRPC requests for all three signals,
   stop the server and inspect persisted rows in the same real DuckDB file, including the original metric value.
+- The ingest-boundary tests (`Grpc_KeyRolesAndResourceConflict_AreEnforced`,
+  `Ingest_ExceptionText_IsSanitizedOnEveryTransport`, `Ingest_ThreeTransports_ProduceEquivalentRows`) run in the
+  Integration suite: they start the collector inside the test process with the registrations, middleware,
+  interceptor, endpoints and Kestrel listeners of `src/nami/Program.cs` and send real requests to it. The
+  published native engine is covered by the EndToEnd tests only.
 - The large-result test ingests 500000 spans in bounded batches, verifies stored count and group
   occurrence counts, bounds UTF-8 output and follows every cursor without duplicates.
 - Snapshot tests reopen real database files; conformance repeats a read across a native server
