@@ -1,0 +1,2 @@
+# Captured OTLP export bodies: exact protobuf bytes, never text-normalized.
+*.pb binary
