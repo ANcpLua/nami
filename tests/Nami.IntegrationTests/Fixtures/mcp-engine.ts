@@ -31,6 +31,13 @@ function readCommands() {
       if (mode === "unhealthy")
         reply(command.id, { status: "unhealthy", total_duration_ms: 0, contract_revision: CONTRACT_REVISION, entries: {} }, true);
       else reply(command.id, { pid: process.pid });
+    } else if (mode === "recording") {
+      // Every call frame as the host wrote it, one JSON line each; a row with an astral character on request.
+      appendFileSync(join(state, "frames"), JSON.stringify({ id: command.id, name: command.name, input: command.input,
+        traceparent: command.traceparent, tracestate: command.tracestate }) + "\n");
+      reply(command.id, command.input?.service === "emoji-svc"
+        ? { ...result, freshness: { ...result.freshness, returned: 1 }, services: [{ service: "x".repeat(94) + "\u{1F600}" + "Error" }] }
+        : result);
     } else if (mode === "holding") {
       appendFileSync(join(state, "calls"), command.id + "\n");
       if (released) reply(command.id, result);

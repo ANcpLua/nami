@@ -32,10 +32,10 @@ async function launcher(mode: string) {
   await writeFile(path, `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(fixture)} ${quote(mode)} ${quote(state)} "$@"\n`, { mode: 0o700 });
   return path;
 }
-async function request(handler: ReturnType<typeof createMcpHandler>, input: unknown) {
+async function request(handler: ReturnType<typeof createMcpHandler>, input: unknown, meta?: Record<string, unknown>) {
   const response = await handler.fetch(new Request("http://localhost/mcp", {
     method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream", "MCP-Protocol-Version": "2025-11-25" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "sources_status", arguments: input } })
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "sources_status", arguments: input, ...(meta ? { _meta: meta } : {}) } })
   }));
   assert.equal(response.status, 200);
   const body = await response.text();
@@ -98,7 +98,8 @@ try {
     await until(() => existsSync(join(state, "held")));
     const handler = createMcpHandler(() => createServer(engine!));
     try {
-      const refusal = await request(handler, { service: "x".repeat(1_048_576) });
+      // The schema puts no length on a cursor, so this input is valid and only its frame is too large.
+      const refusal = await request(handler, { cursor: "x".repeat(1_048_576) });
       assert.equal(refusal.isError, true);
       assert.equal(refusal.structuredContent.retryable, false);
       assert.equal(refusal.content.length, 2);
@@ -112,6 +113,75 @@ try {
         subsequentSnapshot: later.structuredContent?.snapshot_id ?? null,
         childBefore: before, childAfter: (health.result as { pid?: number } | null)?.pid ?? null
       }));
+    } finally { await handler.close(); }
+  } else if (scenario === "trace" || scenario === "refusal" || scenario === "headline") {
+    engine = new Engine(await launcher("recording"));
+    await engine.ready;
+    const handler = createMcpHandler(() => createServer(engine!));
+    const lone = (text: unknown) => typeof text === "string"
+      && /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(text);
+    // What the engine received for one request: its frame, or null when the host answered by itself.
+    const exchange = async (input: unknown, meta?: Record<string, unknown>) => {
+      const before = (await lines("frames")).length;
+      const result = await request(handler, input, meta);
+      const frames = await lines("frames");
+      return { result, frame: frames.length === before + 1 ? JSON.parse(frames.at(-1)!) as Record<string, unknown> : null };
+    };
+    try {
+      if (scenario === "trace") {
+        const trace = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
+        const cases: Record<string, Record<string, unknown>> = {
+          valid: { traceparent: trace, tracestate: "vendor=value, tenant@system=1" },
+          loneSurrogate: { traceparent: "\ud800" },
+          upperCase: { traceparent: trace.toUpperCase() },
+          zeroTraceId: { traceparent: "00-00000000000000000000000000000000-b7ad6b7169203331-01" },
+          zeroParentId: { traceparent: "00-0af7651916cd43dd8448eb211c80319c-0000000000000000-01" },
+          versionFf: { traceparent: "ff" + trace.slice(2) },
+          trailingOnVersion00: { traceparent: trace + "-extra" },
+          laterVersion: { traceparent: "01" + trace.slice(2) + "-extra" },
+          notText: { traceparent: 7, tracestate: ["vendor=value"] },
+          stateWithSurrogate: { traceparent: trace, tracestate: "vendor=\ud800" },
+          stateWithoutValue: { traceparent: trace, tracestate: "vendor" },
+          stateWithRepeatedKey: { traceparent: trace, tracestate: "vendor=1,vendor=2" },
+          stateWithoutParent: { tracestate: "vendor=value" }
+        };
+        const seen: Record<string, unknown> = {};
+        for (const [name, meta] of Object.entries(cases)) {
+          const { result, frame } = await exchange({}, meta);
+          seen[name] = { isError: result.isError ?? null, forwarded: frame !== null,
+            traceparent: frame?.traceparent ?? null, tracestate: frame?.tracestate ?? null };
+        }
+        console.log(JSON.stringify(seen));
+      } else if (scenario === "refusal") {
+        let deep: unknown = 0;
+        for (let level = 0; level < 70; level++) deep = [deep];
+        const cases: Record<string, unknown> = {
+          unknownNestedDeep: { nested: deep },
+          belowMinimum: { max_bytes: 5 },
+          wrongItemType: { fields: ["service", 7] },
+          tooLong: { service: "x".repeat(300) },
+          nameWithSurrogate: { ["\udc00"]: 1 }
+        };
+        const seen: Record<string, unknown> = {};
+        for (const [name, input] of Object.entries(cases)) {
+          const { result, frame } = await exchange(input);
+          const error = result.structuredContent ?? {};
+          seen[name] = { isError: result.isError ?? null, forwarded: frame !== null, code: error.code ?? null,
+            retryable: error.retryable ?? null, field: error.field ?? null, message: error.message ?? null,
+            allowed: error.allowed ?? null, hint: error.hint ?? null, parts: result.content?.length ?? 0,
+            textIsStructured: result.content?.length === 2 && JSON.stringify(JSON.parse(result.content[1].text)) === JSON.stringify(error),
+            loneSurrogate: lone(error.field) || lone(error.message) || lone(result.content?.[0]?.text) };
+        }
+        const later = await exchange({});
+        console.log(JSON.stringify({ ...seen, laterIsError: later.result.isError ?? null, laterForwarded: later.frame !== null,
+          framesInAll: (await lines("frames")).length }));
+      } else {
+        const { result } = await exchange({ service: "emoji-svc" });
+        const text: unknown = result.content?.[0]?.text;
+        console.log(JSON.stringify({ isError: result.isError ?? null, loneSurrogate: lone(text),
+          keepsTheCharacter: typeof text === "string" && text.includes("\u{1F600}"),
+          cutAfterIt: typeof text === "string" && !text.includes("Error") }));
+      }
     } finally { await handler.close(); }
   } else if (scenario === "backpressure") {
     engine = new Engine(await launcher("paused"));

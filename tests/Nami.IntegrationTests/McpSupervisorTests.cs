@@ -156,6 +156,101 @@ public sealed class McpSupervisorTests(TestContext context)
         Assert.AreEqual(0, observed.GetProperty("exitCodeAfterSignal").GetInt32());
     }
 
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    public async Task TraceContext_OnlyW3cFormsReachTheEngine_AndACallWithoutOneStillRuns()
+    {
+        // H1: an agent's _meta trace context was forwarded as it came, and a lone surrogate in it ended the engine.
+        const string Trace = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
+        using var result = await RunAsync("trace");
+        var seen = result.RootElement;
+        foreach (var call in seen.EnumerateObject())
+        {
+            Assert.IsFalse(call.Value.GetProperty("isError").GetBoolean(), call.Name + ": a trace context never fails a call.");
+            Assert.IsTrue(call.Value.GetProperty("forwarded").GetBoolean(), call.Name + ": the call must reach the engine.");
+        }
+
+        Assert.AreEqual(Trace, seen.GetProperty("valid").GetProperty("traceparent").GetString());
+        Assert.AreEqual("vendor=value, tenant@system=1", seen.GetProperty("valid").GetProperty("tracestate").GetString());
+        // A later version is forwarded as the fields every version shares.
+        Assert.AreEqual("01" + Trace[2..], seen.GetProperty("laterVersion").GetProperty("traceparent").GetString());
+        string[] noParent =
+        [
+            "loneSurrogate", "upperCase", "zeroTraceId", "zeroParentId", "versionFf", "trailingOnVersion00", "notText",
+            "stateWithoutParent"
+        ];
+        foreach (var name in noParent)
+        {
+            Assert.AreEqual(JsonValueKind.Null, seen.GetProperty(name).GetProperty("traceparent").ValueKind,
+                name + ": a traceparent that is not in W3C form must not be forwarded.");
+            Assert.AreEqual(JsonValueKind.Null, seen.GetProperty(name).GetProperty("tracestate").ValueKind,
+                name + ": a tracestate travels only with its traceparent.");
+        }
+
+        string[] noState = ["stateWithSurrogate", "stateWithoutValue", "stateWithRepeatedKey", "laterVersion"];
+        foreach (var name in noState.Take(3))
+            Assert.AreEqual(Trace, seen.GetProperty(name).GetProperty("traceparent").GetString(), name);
+        foreach (var name in noState)
+            Assert.AreEqual(JsonValueKind.Null, seen.GetProperty(name).GetProperty("tracestate").ValueKind,
+                name + ": a tracestate that is not a well-formed list must not be forwarded.");
+    }
+
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    public async Task SchemaRefusal_AnsweredByTheHostWithFieldAllowedAndHint_AndNeverForwarded()
+    {
+        // H2: arguments the input schema refused were forwarded as they came; 70 levels of nesting ended the engine.
+        using var result = await RunAsync("refusal");
+        var seen = result.RootElement;
+        string[] accepted = ["service", "since", "fields", "max_bytes", "snapshot_id", "cursor"];
+        (string Case, string Field, string Message, string Hint, bool Allowed)[] expected =
+        [
+            ("unknownNestedDeep", "nested", "is not accepted here; accepted: " + string.Join(", ", accepted),
+                "Replace the argument with one of the accepted arguments or drop it.", true),
+            ("belowMinimum", "max_bytes", "must be >= 1024", "Constraint: minimum.", false),
+            ("wrongItemType", "fields[1]", "must be string", "Constraint: type.", false),
+            ("tooLong", "service", "must NOT have more than 256 characters", "Constraint: maxLength.", false),
+            ("nameWithSurrogate", "\uFFFD", "is not accepted here; accepted: " + string.Join(", ", accepted),
+                "Replace the argument with one of the accepted arguments or drop it.", true)
+        ];
+        foreach (var (name, field, message, hint, allowed) in expected)
+        {
+            var refusal = seen.GetProperty(name);
+            Assert.IsTrue(refusal.GetProperty("isError").GetBoolean(), name);
+            Assert.IsFalse(refusal.GetProperty("forwarded").GetBoolean(), name + ": refused arguments must not reach the engine.");
+            Assert.AreEqual("invalid_argument", refusal.GetProperty("code").GetString(), name);
+            Assert.IsFalse(refusal.GetProperty("retryable").GetBoolean(), name);
+            Assert.AreEqual(field, refusal.GetProperty("field").GetString(), name);
+            Assert.AreEqual(message, refusal.GetProperty("message").GetString(), name);
+            Assert.AreEqual(hint, refusal.GetProperty("hint").GetString(), name);
+            if (allowed)
+                Assert.AreSequenceEqual(accepted,
+                    refusal.GetProperty("allowed").EnumerateArray().Select(static value => value.GetString()!).ToArray(), name);
+            else
+                Assert.AreEqual(JsonValueKind.Null, refusal.GetProperty("allowed").ValueKind, name);
+            Assert.AreEqual(2, refusal.GetProperty("parts").GetInt32(), name + ": a headline and the JSON text.");
+            Assert.IsTrue(refusal.GetProperty("textIsStructured").GetBoolean(), name + ": the text part must be the structured content.");
+            Assert.IsFalse(refusal.GetProperty("loneSurrogate").GetBoolean(), name + ": the refusal must be valid Unicode.");
+        }
+
+        Assert.IsFalse(seen.GetProperty("laterIsError").GetBoolean(), "A valid call after the refusals must succeed.");
+        Assert.IsTrue(seen.GetProperty("laterForwarded").GetBoolean());
+        Assert.AreEqual(1, seen.GetProperty("framesInAll").GetInt32(), "Only the valid call may have reached the engine.");
+    }
+
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    public async Task Headline_CutInsideAnAstralCharacter_StaysValidUnicode()
+    {
+        // H8: the headline cut each value at 96 UTF-16 units, which can end in half of a character.
+        using var result = await RunAsync("headline");
+        var seen = result.RootElement;
+        Assert.IsFalse(seen.GetProperty("isError").GetBoolean());
+        Assert.IsTrue(seen.GetProperty("cutAfterIt").GetBoolean(), "Precondition: the value is longer than the cut.");
+        Assert.IsFalse(seen.GetProperty("loneSurrogate").GetBoolean(), "The headline must not end a value in a lone surrogate.");
+        Assert.IsTrue(seen.GetProperty("keepsTheCharacter").GetBoolean(), "The 96th character is kept whole.");
+    }
+
     private async Task<JsonDocument> RunAsync(string scenario)
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory.");

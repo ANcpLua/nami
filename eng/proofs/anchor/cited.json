@@ -325,14 +325,29 @@
   "model": "Host.fail before ready (exitWith 1)"
  },
  "src/nami.mcp/src/server.ts|execute|failureCode|1": {
-  "memberHash": "190fd0544b67fa03",
-  "line": 53,
+  "memberHash": "8801ea0ae32420ba",
+  "line": 135,
   "model": "Host.outcomeOf .tool"
  },
  "src/nami.mcp/src/server.ts|execute|abortRethrow|1": {
-  "memberHash": "190fd0544b67fa03",
-  "line": 52,
+  "memberHash": "8801ea0ae32420ba",
+  "line": 134,
   "model": "Host.Outcome.cancelled"
+ },
+ "src/nami.mcp/src/server.ts|execute|engineCall|1": {
+  "memberHash": "8801ea0ae32420ba",
+  "line": 130,
+  "model": "Host.step .requestTool (only arguments the input schema accepted enter Engine.request)"
+ },
+ "src/nami.mcp/src/server.ts|<top level>|refusal|1": {
+  "memberHash": "056353700a526dc8",
+  "line": 29,
+  "model": "abstraction: a call whose arguments the schema refused is answered by the host and is no Host event"
+ },
+ "src/nami.mcp/src/server.ts|register|refusal|1": {
+  "memberHash": "b776a843a785847c",
+  "line": 169,
+  "model": "abstraction: a call whose arguments the schema refused is answered by the host and is no Host event"
  },
  "src/nami/Hosting/EngineProtocol.cs|Accept|pending|1": {
   "memberHash": "dfcb7d356d41a124",

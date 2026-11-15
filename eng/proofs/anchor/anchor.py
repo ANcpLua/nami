@@ -50,6 +50,8 @@ PATTERNS = {
     "src/nami.mcp/src/server.ts": {
         "failureCode": r"const code = failure instanceof EngineError",
         "abortRethrow": r"signal\.throwIfAborted\(\)",
+        "engineCall": r"engine\.(?:call|request)\(",
+        "refusal": r"refused\.(?:set|get)\(",
     },
     "src/nami/Hosting/EngineProtocol.cs": {
         "pending": r"_pending\.(?:TryAdd|TryRemove|TryGetValue)\(",
