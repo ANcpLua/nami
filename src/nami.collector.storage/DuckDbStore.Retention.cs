@@ -30,7 +30,7 @@ internal sealed partial class DuckDbStore
                 var deleted = await DeleteExpiredSpansBatchAsync(cutoffUnixNano, RetentionBatchSize, ct)
                     .ConfigureAwait(false);
                 spans += deleted;
-                if (deleted is 0)
+                if (deleted < RetentionBatchSize)
                     break;
             }
 
