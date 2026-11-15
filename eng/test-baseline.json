@@ -16,7 +16,7 @@
   },
   "suites": {
     "Unit": 241,
-    "Integration": 520,
+    "Integration": 523,
     "EndToEnd": 45
   },
   "nodeTests": {
