@@ -33,7 +33,8 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     private const string PassingTestRun = "toolu_01FIXTURE000000000000004";
     private const string TruncationMarker = "...[truncated]";
 
-    private static readonly string[] s_primitiveKinds = ["boolean", "double", "int", "string"];
+    // What the capture stores: the four primitive types, and lists, all of them empty (managed_settings.sources).
+    private static readonly string[] s_storedKinds = ["[]", "boolean", "double", "int", "string"];
     private static readonly string[] s_persistedDetails = ["bash_command", "file_path", "full_command"];
     private static readonly string[] s_droppedDetails = ["error", "tool_parameters"];
     private static readonly string[] s_liftedMembers = ["bash_command", "full_command", "subagent_type"];
@@ -93,14 +94,13 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
                 Assert.IsNotNull(definition, key + " is stored, so the registry defines it");
                 var stored = Kind(value);
                 kinds[stored] = kinds.GetValueOrDefault(stored) + 1;
-                if (stored != StoredKind(definition.Type))
+                if (!IsStoredAs(definition.Type, stored))
                     mismatches.Add($"{source} {key}: declared {definition.Type}, stored as {stored}");
             }
         }
 
         Assert.IsEmpty(mismatches, string.Join(Environment.NewLine, mismatches.Distinct(StringComparer.Ordinal)));
-        Assert.AreSequenceEqual(s_primitiveKinds, kinds.Keys.ToArray(),
-            "the capture exercises all four primitive types");
+        Assert.AreSequenceEqual(s_storedKinds, kinds.Keys.ToArray(), "the capture exercises all four primitive types");
 
         // The marked values, by event: each of the 16 tool results, 4 prompts and 13 loaded plugins of the signed-in
         // capture holds them in the declared type.
@@ -335,14 +335,14 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     private static string? Text(string attributesJson, string key) =>
         (StoredAttributeJson.Attribute(attributesJson, key) as AttributeValue.StringValue)?.Value;
 
-    /// <summary>The primitive type of a stored value, in the registry's words.</summary>
+    /// <summary>The type of a stored value, in the registry's words; an empty list is <c>[]</c>.</summary>
     private static string Kind(AttributeValue? value)
     {
         return value switch
         {
             AttributeValue.StringValue => "string",
             AttributeValue.BoolValue => "boolean",
-            AttributeValue.ArrayValue array => Kind(array.Value.Count is 0 ? null : array.Value[0]) + "[]",
+            AttributeValue.ArrayValue array => string.Join('|', array.Value.Select(Kind).Distinct(StringComparer.Ordinal)) + "[]",
             AttributeValue.ObjectValue item => item.Value switch
             {
                 AttributeIntValue => "int",
@@ -353,15 +353,19 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
         };
     }
 
-    /// <summary>The stored kind of a registry type: an enum is stored as its string, a template as its member type.</summary>
-    private static string StoredKind(string registryType)
+    /// <summary>
+    ///     Whether a value of kind <paramref name="stored" /> has the registry type: an enum is stored as its string, a
+    ///     template as its member type, and an empty list fits every list type.
+    /// </summary>
+    private static bool IsStoredAs(string registryType, string stored)
     {
-        return registryType switch
+        var declared = registryType switch
         {
             "enum" => "string",
             _ when registryType.StartsWith("template[", StringComparison.Ordinal) => registryType[9..^1],
             _ => registryType
         };
+        return stored == declared || (stored == "[]" && declared.EndsWith("[]", StringComparison.Ordinal));
     }
 
     /// <summary>
