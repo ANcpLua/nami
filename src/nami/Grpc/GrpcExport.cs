@@ -21,7 +21,7 @@ internal static class GrpcExport
         {
             throw new RpcException(new Status(StatusCode.Unavailable, "Service is shutting down"));
         }
-        catch (InvalidDataException)
+        catch (Exception error) when (error is InvalidDataException or JsonException)
         {
             // Deliberately no exception detail: collector responses never carry exception messages.
             throw new RpcException(new Status(StatusCode.InvalidArgument, $"Malformed {dataKind} payload."));
