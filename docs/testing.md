@@ -74,12 +74,19 @@ baseline is tied to code commit `34bc04f`; it is not a fresh result for later so
 
 ## Toolchain versions
 
-The compilers the product is built with, and where each version is set. Bun, Node.js and Weaver
-are pinned in `mise.toml` only.
+The compilers the product is built with, and where each version is set. `mise.toml` installs
+Bun 1.4.4, Node.js 24.22.3 and Weaver 0.28.0 for the repository commands, and Node.js is pinned
+there only. Bun and Weaver are pinned in more places, which move together with `mise.toml`:
+
+- Bun: the image of the container's MCP build stage (`oven/bun:1.4.4`, `src/nami/Dockerfile:1`),
+  and its type definitions (`@types/bun` in `src/nami.mcp/package.json`).
+- Weaver: `WEAVER_VERSION` in `registry/generate.py`, which refuses any other `weaver --version`;
+  the `weaver` entry of `registry/source-pins.json`; and the installed-tool path in
+  `tests/Nami.IntegrationTests/RegistryGateTests.cs`.
 
 | Item | Version | Set in |
 | --- | --- | --- |
-| .NET SDK | 11.0.100 | `global.json` (`rollForward: disable`) and `mise.toml`, which must agree |
+| .NET SDK | 11.0.100 | `global.json` (`rollForward: disable`) and `mise.toml`, which must agree; the container builds with `mcr.microsoft.com/dotnet/sdk:11.0.100` and runs on `runtime-deps:11.0.0`, the runtime of `DotNetRuntimeVersion` in `Version.props` (`src/nami/Dockerfile:8` and `:14`) |
 | C# language version, every C# project | `preview`: C# 15 plus the features this compiler still marks as preview; the SDK's default is 15.0 | `LangVersion` in `Directory.Build.props`, repeated in the ingestion and storage projects |
 | Roslyn inside the SDK | 5.12.0-1.26529.118 | ships with SDK 11.0.100 (`csc -version`); it compiles every project and runs the DuckDB generator |
 | Roslyn the DuckDB generator compiles against | 5.9.0 | `RoslynVersion` in `Version.props`, the `Microsoft.CodeAnalysis.CSharp` reference of `internal/nami.collector.storage.generators` |
@@ -206,14 +213,16 @@ Change model definitions or emitters, then regenerate before building consumers:
 
 `eng/test.sh` builds the .NET projects; it does not replace the contract-generation step.
 The contract package builds the local emitters and runs its Node.js generator, codec and linter-rule
-tests (`contracts/scripts/lib`, `contracts/emitters/nami-lint/test`) before invoking
-TypeSpec and the schema/revision scripts. The active TypeSpec compiler and native TypeScript
+tests (`contracts/scripts/lib`, `contracts/emitters/nami-lint/test`) and checks the `#suppress`
+directives before invoking TypeSpec and the schema/revision scripts. The active TypeSpec compiler and native TypeScript
 compiler are pinned in [`contracts/package.json`](../contracts/package.json); the MCP package has
 its own package manifest and lockfile.
 
-`mise run lint:tsp` is the contract lint gate. It compiles without emitting and with warnings as
-errors, then fails on any `#suppress` directive that no longer hides a finding. The rules, the
-suppression policy and the commands are in [`contracts/README.md`](../contracts/README.md#contract-lint).
+`mise run lint:tsp` runs the contract lint gate on its own. It compiles without emitting and with
+warnings as errors, then fails on any `#suppress` directive that no longer hides a finding. The push
+gate enforces the same: `VerifyContracts` runs `eng/contracts.sh verify`, whose `bun run compile`
+runs that suppression check before it regenerates anything. The rules, the suppression policy and
+the commands are in [`contracts/README.md`](../contracts/README.md#contract-lint).
 
 The model pipeline is:
 

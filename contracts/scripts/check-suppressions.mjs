@@ -15,10 +15,13 @@
 //     so emitter diagnostics are matched and no file is touched
 //   - any compilation error ends the run with exit code 2: nothing is judged
 //
+// A directive without a reason, and a suppression of `suppression-reason`
+// itself, fail the gate even when they are used.
+//
 // Usage: node scripts/check-suppressions.mjs [--list] [--fix]
 //   --list  also print every suppression with its state, rule and reason
 //   --fix   delete the unused directives (never the undecidable ones)
-// Exit code: 0 clean, 1 unused or undecidable suppressions, 2 the check could not run.
+// Exit code: 0 clean, 1 unused, undecidable or refused suppressions, 2 the check could not run.
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -72,6 +75,6 @@ if (flags.has("--fix") && audit.unused > 0) {
     await writeFile(path, text);
   }
   console.log(`Removed ${audit.unused} unused suppression(s) from ${paths.length} file(s). Run the gate again.`);
-  process.exit(audit.undecidable > 0 ? 1 : 0);
+  process.exit(audit.undecidable > 0 || audit.refused > 0 ? 1 : 0);
 }
 process.exit(audit.clean ? 0 : 1);

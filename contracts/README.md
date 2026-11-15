@@ -35,12 +35,16 @@ export declarations are recorded explicitly; missing primary entry points fail v
 
 ## Contract lint
 
-`bun run lint` (`mise run lint:tsp`) is the gate. It builds the emitters and the linter, compiles
-`main.tsp` without emitting and with warnings as errors, then checks the suppressions:
+`bun run lint` (`mise run lint:tsp`) runs the lint gate on its own. It builds the emitters and the
+linter, compiles `main.tsp` without emitting and with warnings as errors, then checks the suppressions:
 
 ```sh
 tsp compile main.tsp --no-emit --warn-as-error && node scripts/check-suppressions.mjs
 ```
+
+The push gate enforces both parts as well: `bun run compile`, which `eng/contracts.sh verify` runs
+for the `VerifyContracts` target of `./eng/build.sh Check`, checks the suppressions before it
+regenerates anything and then compiles with warnings as errors.
 
 The ruleset is in `tspconfig.yaml`: `@typespec/http/all`, the compiler's `unused-using` and
 `unused-template-parameter`, and `@ancplua/typespec-nami-lint/all` from `emitters/nami-lint`.
@@ -70,6 +74,9 @@ on the declaration. `scripts/check-suppressions.mjs` then fails the gate as soon
 no longer hides anything, so a suppression cannot outlive its cause. It compiles with the
 configured ruleset and with the emitters running against a host that discards their writes,
 because a suppression also reads as unused when its rule is off or its emitter is skipped.
+It also fails on a directive without a reason and on any suppression of `suppression-reason`,
+used or not: stacked above a directive without a reason, such a suppression would silence the
+rule that asks for one.
 `bun run lint:suppressions` lists every suppression with its rule and reason;
 `node scripts/check-suppressions.mjs --fix` deletes the unused ones.
 

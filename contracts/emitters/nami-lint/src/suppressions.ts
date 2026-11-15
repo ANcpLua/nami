@@ -17,11 +17,22 @@
 // the configured ruleset with no override, emitters running, no errors. This
 // module is the pure half: it reads a finished program and decides. It is
 // deterministic: records are sorted by project-relative path and position.
+//
+// Two kinds of directive are refused by what they say, used or not. One without
+// a reason: the rule `suppression-reason` reports it, but a second directive
+// stacked above it can suppress that report, and then the compiler, every rule
+// and every `used` flag are satisfied. And a suppression of `suppression-reason`
+// itself, which is that second directive.
 // =============================================================================
 
 import type { Program } from "@typespec/compiler";
 import { getSuppressions } from "@typespec/compiler/ast";
 import { compareText } from "./contract.js";
+import { LIBRARY_NAME } from "./library.js";
+import { suppressionReasonRule } from "./rules/suppression-reason.js";
+
+/** The code of the rule that asks every directive for a reason; suppressing it is refused. */
+const REASON_RULE = `${LIBRARY_NAME}/${suppressionReasonRule.name}`;
 
 export type SuppressionState =
   /** Matched a diagnostic in this compilation. */
@@ -30,6 +41,12 @@ export type SuppressionState =
   | "unused"
   /** Its rule is disabled by the configuration, so this compilation cannot tell. */
   | "undecidable";
+
+export type SuppressionDefect =
+  /** No reason, or only white space: nobody can tell a decision from a leftover. */
+  | "no-reason"
+  /** It suppresses `suppression-reason`, which would let any directive go without a reason. */
+  | "suppresses-reason-rule";
 
 export interface SuppressionRecord {
   /** Path relative to the project root, with forward slashes. */
@@ -47,6 +64,8 @@ export interface SuppressionRecord {
   /** The reason as written; empty when none was given. */
   readonly reason: string;
   readonly state: SuppressionState;
+  /** Why the directive is refused whatever its state; undefined when it is acceptable. */
+  readonly defect: SuppressionDefect | undefined;
 }
 
 export interface SuppressionAudit {
@@ -54,7 +73,9 @@ export interface SuppressionAudit {
   readonly used: number;
   readonly unused: number;
   readonly undecidable: number;
-  /** Whether every suppression is known to be needed. */
+  /** Directives refused for what they say (see `defect`), used or not. */
+  readonly refused: number;
+  /** Whether every suppression is known to be needed and gives an acceptable reason. */
   readonly clean: boolean;
 }
 
@@ -78,6 +99,7 @@ export function auditSuppressions(program: Program, options: SuppressionAuditOpt
     const { file, pos, end } = suppression.location;
     const start = file.getLineAndCharacterOfPosition(pos);
     const code = suppression.directive.code;
+    const reason = suppression.directive.message;
     return {
       file: relativePath(program.projectRoot, file.path),
       path: file.path,
@@ -86,15 +108,17 @@ export function auditSuppressions(program: Program, options: SuppressionAuditOpt
       pos,
       end,
       code,
-      reason: suppression.directive.message,
+      reason,
       state: suppression.used ? "used" : disabled.has(code) ? "undecidable" : "unused",
+      defect: code === REASON_RULE ? "suppresses-reason-rule" : reason.trim() === "" ? "no-reason" : undefined,
     };
   });
   records.sort((left, right) => compareText(left.file, right.file) || left.pos - right.pos);
   const count = (state: SuppressionState): number => records.filter((record) => record.state === state).length;
   const unused = count("unused");
   const undecidable = count("undecidable");
-  return { records, used: count("used"), unused, undecidable, clean: unused === 0 && undecidable === 0 };
+  const refused = records.filter((record) => record.defect !== undefined).length;
+  return { records, used: count("used"), unused, undecidable, refused, clean: unused === 0 && undecidable === 0 && refused === 0 };
 }
 
 export interface SuppressionReportOptions {
@@ -104,16 +128,23 @@ export interface SuppressionReportOptions {
 
 /**
  * The audit as text. Nothing here depends on the machine, the clock or the
- * environment, so two runs over the same sources print the same bytes.
+ * environment, so two runs over the same sources print the same bytes. Every
+ * line that fails the gate says `error`, so the contract check in the push gate
+ * (`eng/contracts.sh verify`, which keeps such lines) shows where it failed.
  */
 export function formatSuppressionAudit(audit: SuppressionAudit, options: SuppressionReportOptions = {}): string {
   const lines: string[] = [];
   const position = (record: SuppressionRecord): string => `${record.file}:${record.line}:${record.column}`;
   for (const record of audit.records) {
     if (record.state === "unused") {
-      lines.push(`${position(record)} - unused suppression of '${record.code}': nothing matched it in a full compilation. Remove the directive.`);
+      lines.push(`${position(record)} - error: unused suppression of '${record.code}': nothing matched it in a full compilation. Remove the directive.`);
     } else if (record.state === "undecidable") {
-      lines.push(`${position(record)} - suppression of '${record.code}' cannot be checked: tspconfig.yaml disables that rule. Enable the rule or remove the directive.`);
+      lines.push(`${position(record)} - error: suppression of '${record.code}' cannot be checked: tspconfig.yaml disables that rule. Enable the rule or remove the directive.`);
+    }
+    if (record.defect === "suppresses-reason-rule") {
+      lines.push(`${position(record)} - error: suppression of '${record.code}' is not allowed: it lets the next directive go without a reason. Remove it and give that directive a reason.`);
+    } else if (record.defect === "no-reason") {
+      lines.push(`${position(record)} - error: suppression of '${record.code}' gives no reason. Add one as the second string: the cleanup-ledger id, or why the finding is acceptable here.`);
     }
   }
   if (options.list) {
@@ -126,8 +157,9 @@ export function formatSuppressionAudit(audit: SuppressionAudit, options: Suppres
       lines.push(`  ${position(record)}  ${record.state}  ${record.code}  ${JSON.stringify(record.reason)}`);
     }
   }
+  const refused = audit.refused > 0 ? `, ${audit.refused} refused` : "";
   lines.push(
-    `Suppressions: ${audit.records.length} total, ${audit.used} used, ${audit.unused} unused, ${audit.undecidable} undecidable.`,
+    `Suppressions: ${audit.records.length} total, ${audit.used} used, ${audit.unused} unused, ${audit.undecidable} undecidable${refused}.`,
   );
   return lines.join("\n");
 }
