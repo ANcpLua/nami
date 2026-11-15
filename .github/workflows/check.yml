@@ -29,6 +29,10 @@ jobs:
           "$HOME/.elan/bin/elan" run "$lean_toolchain" lean --version
           "$HOME/.elan/bin/elan" run "$lean_toolchain" lean -j2 --run eng/agent-policy/Policy.lean proof
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Lean proofs of the host and engine protocol
+        run: |
+          python3 eng/proofs/anchor/anchor.py --expect eng/proofs/anchor/cited.json > /dev/null
+          cd eng/proofs && bash audit/lean_audit.sh NamiProofs --spec NamiProofs.HostEngine.Verdict
       - name: NativeAOT prerequisites
         run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
       - name: Verify

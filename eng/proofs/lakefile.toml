@@ -1,0 +1,5 @@
+name = "NamiProofs"
+defaultTargets = ["NamiProofs"]
+
+[[lean_lib]]
+name = "NamiProofs"

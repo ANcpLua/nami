@@ -506,6 +506,34 @@ public sealed class HostTransportTests(TestContext context)
 
     [TestMethod]
     [Timeout(90000, CooperativeCancellation = true)]
+    public async Task Host_RealEngineKilledMidCall_FailsPendingCallsExitsNonZeroAndLeavesNoOrphan()
+    {
+        // P04 (eng/proofs: Spec.HostExitsNonZeroWhenEngineDies, refuted). The engine is stopped so the
+        // call cannot finish, then killed: the call must end typed, the host must exit non-zero, and no
+        // engine may be left behind.
+        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
+            context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
+            context.CancellationToken);
+        var engine = LinuxProcess.ChildOf(host.HostProcessId, TestData.HostBinary);
+        await LinuxProcess.SignalAsync(engine, "STOP", context.CancellationToken);
+        var written = LinuxProcess.BytesWritten(host.HostProcessId);
+        var call = host.CallAsync("sources_status", "{}", context.CancellationToken).AsTask();
+        // The host has written the call's frame to the stopped engine's input.
+        await LinuxProcess.UntilAsync(() => LinuxProcess.BytesWritten(host.HostProcessId) > written,
+            TimeSpan.FromSeconds(15), context.CancellationToken);
+        await LinuxProcess.SignalAsync(engine, "KILL", context.CancellationToken);
+        var result = await call.WaitAsync(TimeSpan.FromSeconds(15), context.CancellationToken);
+        Assert.IsTrue(result.IsError);
+        Assert.AreEqual("collector_unavailable", Content(result).GetProperty("code").GetString());
+        Assert.IsTrue(Content(result).GetProperty("retryable").GetBoolean());
+        Assert.IsTrue(await host.WaitForHostExitAsync(TimeSpan.FromSeconds(15), context.CancellationToken),
+            "The host must exit when its engine dies; it was still running 15 seconds later.");
+        Assert.AreNotEqual(0, host.HostExitCode, "The host must exit non-zero when its engine dies.");
+        Assert.IsTrue(LinuxProcess.Gone(engine), "No engine process may be left behind.");
+    }
+
+    [TestMethod]
+    [Timeout(90000, CooperativeCancellation = true)]
     public async Task Health_ReturnsGeneratedSchemaAndRevision()
     {
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
