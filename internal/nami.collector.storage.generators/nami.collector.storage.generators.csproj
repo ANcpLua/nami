@@ -12,16 +12,13 @@
 
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 
-    <!-- Explicit Roslyn references also work under IDE language-server builds. -->
-    <DisableImplicitRoslynPackageReference>true</DisableImplicitRoslynPackageReference>
-
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
   </ItemGroup>
 
-  <!-- The ANcpLua SDK added these global usings until 15 Nov; kept so the code compiles unchanged. -->
+  <!-- Global usings this project relied on before 15 Nov, declared here so the code compiles unchanged. -->
   <ItemGroup>
     <Using Include="System.Diagnostics.CodeAnalysis"/>
     <Using Include="System.Globalization"/>

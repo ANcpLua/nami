@@ -32,7 +32,7 @@
     <InternalsVisibleTo Include="Nami.EndToEndTests"/>
   </ItemGroup>
 
-  <!-- The ANcpLua SDK added these global usings until 15 Nov; kept so the code compiles unchanged. -->
+  <!-- Global usings this project relied on before 15 Nov, declared here so the code compiles unchanged. -->
   <ItemGroup>
     <Using Include="System.Diagnostics.CodeAnalysis"/>
     <Using Include="System.Globalization"/>
