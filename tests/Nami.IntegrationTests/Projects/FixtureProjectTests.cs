@@ -85,7 +85,7 @@ public sealed class FixtureProjectTests(TestContext context)
 
     private Task<(int ExitCode, string Output, string Error)> RunAsync(string assembly)
     {
-        var start = new ProcessStartInfo("dotnet");
+        var start = new ProcessStartInfo(ChildProcess.DotnetHost);
         start.ArgumentList.Add(assembly);
         return ChildProcess.RunAsync(start, "the generated ordinary consumer", context.CancellationToken);
     }

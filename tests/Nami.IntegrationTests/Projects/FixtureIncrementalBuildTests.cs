@@ -51,7 +51,7 @@ public sealed class FixtureIncrementalBuildTests(TestContext context)
         Assert.IsEmpty(fixture.EvidenceFiles);
         Assert.IsEmpty(Directory.GetFiles(fixture.DirectoryPath, "*.binlog", SearchOption.AllDirectories));
         Assert.IsFalse(File.Exists(Path.Combine(fixture.DirectoryPath, "fixture-invocation.xml")));
-        var start = new ProcessStartInfo(Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet");
+        var start = new ProcessStartInfo(ChildProcess.DotnetHost);
         start.ArgumentList.Add(build.AssemblyPath);
         var run = await ChildProcess.RunAsync(start, "quiet consumer", context.CancellationToken);
         Assert.AreEqual(0, run.ExitCode, run.Error);

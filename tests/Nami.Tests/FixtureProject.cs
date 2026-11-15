@@ -226,7 +226,7 @@ public sealed class FixtureProject : IAsyncDisposable
             var output = command == "pack"
                 ? Path.Combine(DirectoryPath, "packages", Guid.NewGuid().ToString("N"))
                 : Path.Combine(DirectoryPath, command == "publish" ? nativeAot ? "native" : "published" : "output");
-            var start = new ProcessStartInfo(Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet")
+            var start = new ProcessStartInfo(ChildProcess.DotnetHost)
             {
                 WorkingDirectory = DirectoryPath
             };

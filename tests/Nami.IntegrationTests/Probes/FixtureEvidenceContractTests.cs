@@ -13,7 +13,7 @@ public sealed class FixtureEvidenceContractTests(TestContext context)
     public async Task FixtureAttribute_FailedBuildRows_RetainReadableMstestAttachmentsAfterCleanup()
     {
         var resultsDirectory = Path.Combine(context.TestTempDirectory!, "child-results");
-        var start = new ProcessStartInfo("dotnet");
+        var start = new ProcessStartInfo(ChildProcess.DotnetHost);
         start.ArgumentList.Add(Path.Combine(AppContext.BaseDirectory, "fixtures", "BuildEvidenceProbe",
             "BuildEvidenceProbe.dll"));
         foreach (var argument in new[]

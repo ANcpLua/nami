@@ -522,7 +522,7 @@ public sealed partial class RegistryGateTests(TestContext context)
         var log = Path.Combine(
             context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
             "semconv.binlog");
-        var result = await ProcessRunner.RunAsync("dotnet",
+        var result = await ProcessRunner.RunAsync(ChildProcess.DotnetHost,
         [
             "build", "internal/nami.semconv/Nami.SemanticConventions.csproj", "-c", "Release", "--no-restore",
             "-t:Rebuild", "-p:IsAotCompatible=true", "-p:EnableTrimAnalyzer=true", "-p:EnableAotAnalyzer=true",
