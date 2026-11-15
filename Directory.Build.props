@@ -25,6 +25,24 @@
     <WarningsAsErrors>$(WarningsAsErrors);CA1816;CA2000;CA2012;CA2016;CS8509;CS8655;CS8846</WarningsAsErrors>
   </PropertyGroup>
 
+  <!-- Using an [Obsolete] member without a message (CS0612) fails every build, as CS0618 does. -->
+  <PropertyGroup>
+    <WarningsAsErrors>$(WarningsAsErrors);CS0612</WarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- Release builds and every CI build fail on any warning and on NuGet audit findings (NU1901 to
+       NU1904: low to critical severity). Configuration is empty here unless -c passes it, so CI=true
+       also covers CI builds without -c, such as eng/build.sh building eng/build. NativeAOT publish
+       hands both properties to ILC. Kept as warnings: IL2104 and IL3053, ILC's summaries of a
+       package's trim and AOT warnings (today only DuckDB.NET.Data has them), and NU1900, vulnerability
+       data that could not be read, which is not a finding. Local Debug builds keep warnings as
+       warnings and still audit. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' or '$(CI)' == 'true'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);IL2104;IL3053;NU1900</WarningsNotAsErrors>
+  </PropertyGroup>
+
   <PropertyGroup>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
