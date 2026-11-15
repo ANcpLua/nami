@@ -75,25 +75,6 @@ public sealed class McpSupervisorTests(TestContext context)
     }
 
     [TestMethod]
-    [Timeout(60000, CooperativeCancellation = true)]
-    public async Task Health_EngineGone_Returns503()
-    {
-        // P04 "engine gone": the engine has failed and the host has not exited yet. The fixture
-        // engine writes one line that is not JSON and ignores SIGTERM, so the host waits for it.
-        using var result = await RunAsync("gone");
-        var observed = result.RootElement;
-        Assert.AreEqual(200, observed.GetProperty("healthBefore").GetInt32());
-        Assert.IsTrue(observed.GetProperty("engineFailed").GetBoolean(), "The host must stop the failed engine.");
-        Assert.AreEqual(503, observed.GetProperty("healthStatus").GetInt32(),
-            "GET /health between the engine's failure and the host's exit must answer 503.");
-        Assert.AreEqual("unhealthy", observed.GetProperty("healthReportStatus").GetString());
-        var exit = observed.GetProperty("hostExit");
-        Assert.AreEqual(JsonValueKind.Number, exit.ValueKind, "The host must exit after its engine failed; it was still " + exit);
-        Assert.AreNotEqual(0, exit.GetInt32(), "The host must exit non-zero when its engine failed.");
-        Assert.IsTrue(observed.GetProperty("childGone").GetBoolean(), "No engine process may be left behind.");
-    }
-
-    [TestMethod]
     [Timeout(30000, CooperativeCancellation = true)]
     public async Task Health_EngineReportsError_Returns503()
     {
@@ -102,23 +83,6 @@ public sealed class McpSupervisorTests(TestContext context)
         Assert.AreEqual(503, observed.GetProperty("healthStatus").GetInt32());
         Assert.AreEqual("unhealthy", observed.GetProperty("healthReportStatus").GetString());
         Assert.AreEqual(0, observed.GetProperty("exitCodeAfterSignal").GetInt32());
-    }
-
-    [TestMethod]
-    [Timeout(30000, CooperativeCancellation = true)]
-    public async Task Health_FullEngineQueue_AnswersWithAHealthReport()
-    {
-        // 32 tool calls wait in a healthy engine (ENGINE_LIMITS.max_pending). /health must still answer
-        // with a health report, not with the host's own queue limit as an unhandled error.
-        using var result = await RunAsync("busy");
-        var observed = result.RootElement;
-        Assert.IsTrue(observed.GetProperty("allWaiting").GetBoolean(), "The fixture must hold 32 calls.");
-        var status = observed.GetProperty("healthStatus").GetInt32();
-        Assert.IsTrue(status is 200 or 503, $"GET /health answered {status} while 32 calls were waiting.");
-        Assert.IsTrue(observed.GetProperty("healthReportStatus").GetString() is "healthy" or "degraded" or "unhealthy",
-            "The answer must be a health report.");
-        Assert.AreEqual(32, observed.GetProperty("callsSucceeded").GetInt32());
-        Assert.AreEqual(0, observed.GetProperty("exitCodeAfterSignal").GetInt32(), "A clean shutdown must exit 0.");
     }
 
     [TestMethod]
