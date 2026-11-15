@@ -23,8 +23,8 @@ Nami's own tool operations emit telemetry. A product generator that instruments 
 applications and a project-bound observation lifetime manager are still open. Test capture
 helpers and generated fixture projects do not implement those product features.
 
-The last complete Release gate at `00523cc` recorded **239 Unit + 465 Integration + 40 EndToEnd
-= 744 passed, 0 failed, 0 skipped**, current generated output and unchanged wire schemas.
+The last complete Release gate at `34bc04f` recorded **239 Unit + 497 Integration + 45 EndToEnd
+= 781 passed, 0 failed, 0 skipped**, current generated output and unchanged wire schemas.
 Native publish retained existing DuckDB trim/AOT and Apple toolchain diagnostics. This is a
 historical baseline, not a fresh result for this documentation change: `mise diagnostics`
 reports the build/test/contract and inspection records as **STALE** after later documentation

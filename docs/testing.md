@@ -69,8 +69,8 @@ unused-import removal that is justified only by an unresolved generated referenc
 The completed prototype handover and file dispositions are documented in
 [test-harness.md](integration/test-harness.md). No Downloads checkout or parent repository is required.
 The [I1–I18 / D1–D6 evidence matrix](integration/requirement-evidence.md) distinguishes actual
-product proofs, test-harness proofs and the remaining product scope. Its recorded 744-test
-baseline is tied to code commit `00523cc`; it is not a fresh result for later source fingerprints.
+product proofs, test-harness proofs and the remaining product scope. Its recorded 781-test
+baseline is tied to code commit `34bc04f`; it is not a fresh result for later source fingerprints.
 
 ## Toolchain versions
 

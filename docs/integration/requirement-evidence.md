@@ -27,11 +27,11 @@ Die folgenden Zuordnungen beruhen auf den konkret gelesenen Implementierungen un
 
 ## Ausgeführte Basis und Aktualitätsgrenze
 
-Der vollständige Release-Codegate auf `00523cc` lief mit **239 Unit, 465 Integration und
-40 EndToEnd: 744 bestanden, keine Fehler oder übersprungenen Fälle**. Registry und reproduzierbare
+Der vollständige Release-Codegate auf `34bc04f` lief mit **239 Unit, 497 Integration und
+45 EndToEnd: 781 bestanden, keine Fehler oder übersprungenen Fälle**. Registry und reproduzierbare
 Contract-Generierung bestanden; erzeugte Dateien waren aktuell, Wire-Schemas unverändert.
 Die TypeSpec-Generierung führt zusätzlich die Node-Tests aus
-[contracts/package.json](../../contracts/package.json) aus; diese sind nicht Teil der 744 MTP-Fälle.
+[contracts/package.json](../../contracts/package.json) aus; diese sind nicht Teil der 781 MTP-Fälle.
 Native Publish meldete weiterhin DuckDB IL2104/IL3053 und lokale Apple-Toolchain-Diagnostik.
 
 `mise diagnostics` meldete beim vorliegenden Abgleich **STALE** für Build, Tests, Contracts und
