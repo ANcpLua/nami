@@ -1,7 +1,6 @@
 import type { Program, Scalar, Type } from "@typespec/compiler";
 import { emitFile, getMaxValueAsNumeric, getMinValueAsNumeric, navigateProgram } from "@typespec/compiler";
-import { effectiveEncoding, nonNullType, resolveProperty } from "./semantics.js";
-import { schemaName } from "./tool-metadata.js";
+import { effectiveEncoding, nonNullType, resolveProperty, schemaName } from "./semantics.js";
 function kind(type: Type): string | undefined {
   type = nonNullType(type);
   if (type.kind !== "Scalar") return;

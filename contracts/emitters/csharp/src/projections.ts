@@ -1,4 +1,4 @@
-import { recordOutput } from "./semantics.js";
+import { pascal, recordOutput } from "./semantics.js";
 import type { DecoratorContext, Model, ModelProperty, Namespace, Program, Type, Union } from "@typespec/compiler";
 import { emitFile, isArrayModelType, isRecordModelType, walkPropertiesInherited } from "@typespec/compiler";
 import { resolve } from "node:path";
@@ -42,7 +42,7 @@ export async function emitCatalogProjections(program: Program): Promise<void> {
       const type = mapType(program,property.type).replace(/\?$/u, "");
       const method = ({string:"AsString",long:"AsInt64",double:"AsDouble",bool:"AsBool"} as Record<string,string>)[type];
       if (!method) throw new Error(`Unsupported catalog projection type ${type}`);
-      const name = property.name[0]!.toUpperCase()+property.name.slice(1);
+      const name = pascal(property.name);
       return `        ${name} = Nami.SemanticConventions.CollectorSemanticAttributeCatalog.${symbol} is { } key${index} ? attributes.GetValueOrDefault(key${index})?.${method}() : null,`;
     });
     appendProjection(program,files,target,`internal static class ${target.name}Factory\n{\n    internal static ${mapType(program,target)} FromAttributes(IReadOnlyDictionary<string, ${mapType(program,valueType as Union)}> attributes) => new()\n    {\n${assignments.join("\n")}\n    };\n}`);
@@ -71,8 +71,8 @@ export async function emitModelProjections(program: Program): Promise<void> {
       if (!input) throw new Error(`${source.name} -> ${target.name} has no input for ${property.name}; declare a computed value or a source property`);
       if (computedInput) used.add(property.name);
       if (projectedInput) usedProjection.add(property.name);
-      const name = property.name[0]!.toUpperCase() + property.name.slice(1);
-      const inputName = input.name[0]!.toUpperCase()+input.name.slice(1);
+      const name = pascal(property.name);
+      const inputName = pascal(input.name);
       return [`        ${name} = ${computedInput ? "computed" : projectedInput ? "projection" : "source"}.${inputName},`];
     });
     const unused = [...computedProperties.keys()].filter(key => !used.has(key));
@@ -112,7 +112,7 @@ export async function emitProjections(program: Program): Promise<void> {
       const assignments = [...walkPropertiesInherited(target)].filter(p=>p.type.kind!=="String").map(property=> {
         const input = [...walkPropertiesInherited(source)].find(p=>p.name===property.name);
         if (!input) throw new Error(`Projection ${source.name} -> ${target.name} has no input for ${property.name}`);
-        const name = property.name[0]!.toUpperCase()+property.name.slice(1);
+        const name = pascal(property.name);
         const expression=`value.${name}`;
         let conversion = convert(input.type,property.type,expression);
         if (input.optional && conversion !== expression) conversion = `${expression} is { } present${name} ? ${convert(input.type,property.type,`present${name}`)} : null`;

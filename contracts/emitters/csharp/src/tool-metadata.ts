@@ -1,30 +1,25 @@
-import type { DecoratorContext, Model, ModelProperty, Program, Scalar, Type, Union } from "@typespec/compiler";
+import type { DecoratorContext, Model, ModelProperty, Program, Type, Union } from "@typespec/compiler";
 import { emitFile, getNamespaceFullName, walkPropertiesInherited } from "@typespec/compiler";
 import { stateKeys } from "./lib.js";
-import { resolveProperty } from "./semantics.js";
+import { pascal, resolveProperty, schemaName } from "./semantics.js";
 export interface ToolContract { name: string; input: Model; result: Model; error: Model }
 export function $tool(ctx: DecoratorContext, target: Model, name: string, result: Model, error: Model): void {
   ctx.program.stateMap(stateKeys.tool).set(target, {name, input: target, result, error});
 }
 export function $wireRoot(ctx: DecoratorContext, target: Model | Union): void { ctx.program.stateSet(stateKeys.wireRoot).add(target); }
-export function schemaName(type: Model | Union | Scalar): string {
-  const namespace = getNamespaceFullName(type.namespace!);
-  const root = "Nami.Api.Contracts";
-  return `${namespace === root ? "" : namespace.startsWith(root + ".") ? namespace.slice(root.length + 1) + "." : namespace + "."}${type.name}`;
-}
 export async function emitToolMetadata(program: Program, csharpDir: string): Promise<void> {
   const tools = [...program.stateMap(stateKeys.tool).values()] as ToolContract[];
   tools.sort((a,b) => a.name.localeCompare(b.name));
   const rootTypes = new Set<Type>(program.stateSet(stateKeys.wireRoot));
   for (const tool of tools) for (const type of [tool.input,tool.result,tool.error]) rootTypes.add(type);
-  const configuration = Object.fromEntries([...program.stateMap(stateKeys.environment)].map(([property,value]) => [(property as import("@typespec/compiler").ModelProperty).name.replace(/^./u, c => c.toUpperCase()),value]));
+  const configuration = Object.fromEntries([...program.stateMap(stateKeys.environment)].map(([property,value]) => [pascal((property as ModelProperty).name),value]));
   const defaults = new Map<string,string>();
   const addDefault = (property: ModelProperty, key: ModelProperty) => {
     const value = property.defaultValue;
     if (!value) return;
     if (!["StringValue","NumericValue","BooleanValue"].includes(value.valueKind)) throw new Error(`${property.name} needs a scalar environment default`);
     const text = String((value as {value: unknown}).value);
-    const name = key.name.replace(/^./u,c=>c.toUpperCase());
+    const name = pascal(key.name);
     if (defaults.has(name) && defaults.get(name) !== text) throw new Error(`Conflicting environment defaults for ${name}`);
     defaults.set(name,text);
   };
