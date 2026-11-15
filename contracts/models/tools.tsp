@@ -17,10 +17,10 @@ model SourceStatus {
   service: string;
   signals: SignalStatus[];
 }
-@doc("The latest receipt time for one signal, or how long it has been silent.")
-model SignalStatusFields {
+// Spread into both signal states; an alias of a model expression, so nothing is generated for it.
+alias SignalStatusFields = {
   signal: "traces" | "metrics" | "logs";
-}
+};
 model ActiveSignalStatus {
   ...SignalStatusFields;
   kind: "active";

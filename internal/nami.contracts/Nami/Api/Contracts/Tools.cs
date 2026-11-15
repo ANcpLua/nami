@@ -118,12 +118,6 @@ public sealed class SourceStatus
     public required IReadOnlyList<Nami.Api.Contracts.Tools.SignalStatus> Signals { get; init; }
 }
 
-public sealed class SignalStatusFields
-{
-    [JsonPropertyName("signal")]
-    public required string Signal { get; init; }
-}
-
 public sealed class ErrorsRecentInput
 {
     public const string SinceDefault = "-60m";
