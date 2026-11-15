@@ -90,13 +90,6 @@ internal sealed class IndentedStringBuilder(int initialCapacity)
     private int _indentLevel;
     private bool _needsIndent = true;
 
-    public IndentedStringBuilder Append(string text)
-    {
-        WriteIndentIfNeeded();
-        _sb.Append(text);
-        return this;
-    }
-
     public IndentedStringBuilder AppendLine()
     {
         _sb.AppendLine();
