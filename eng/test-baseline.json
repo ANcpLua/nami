@@ -1,0 +1,35 @@
+{
+  "description": "Test counts the gate must see. suites, nodeTests and pythonTests describe the tree as it is: a commit that adds or removes tests changes them, and the floors in eng/test-suites.json, in the same commit. A Node test is a line that starts with test( in contracts/scripts/lib/*.test.mjs; a Python test is a def test_ function in eng/scripts/tests/test_*.py. measured records the last full gate measured twice in a row with equal counts; it changes only when the gate is measured again.",
+  "measured": {
+    "commit": "34bc04f08ef08da03a961a44c2f763a3902d8afb",
+    "sdk": "11.0.100",
+    "command": "./eng/build.sh Check --Configuration Release",
+    "runs": [
+      "https://github.com/ANcpLua/nami/actions/runs/43709628509/attempts/1",
+      "https://github.com/ANcpLua/nami/actions/runs/43709628509/attempts/2"
+    ],
+    "suites": {
+      "Unit": 239,
+      "Integration": 497,
+      "EndToEnd": 45
+    }
+  },
+  "suites": {
+    "Unit": 239,
+    "Integration": 497,
+    "EndToEnd": 45
+  },
+  "nodeTests": {
+    "contracts/scripts/lib/canonical-schema.test.mjs": 2,
+    "contracts/scripts/lib/encoded-integers.test.mjs": 4,
+    "contracts/scripts/lib/paths.test.mjs": 2,
+    "contracts/scripts/lib/property-semantics.test.mjs": 4,
+    "contracts/scripts/lib/row-projection.test.mjs": 5
+  },
+  "pythonTests": {
+    "eng/scripts/tests/test_artifact_lifetime.py": 16,
+    "eng/scripts/tests/test_inspection_packages.py": 3,
+    "eng/scripts/tests/test_run_tests.py": 3,
+    "eng/scripts/tests/test_update_typespec.py": 19
+  }
+}
