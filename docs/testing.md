@@ -306,6 +306,36 @@ Module mode skips project evaluation. Its adjacent `testconfig.json`, runtime de
 the test's fixture inputs must still be present. EndToEnd also requires `artifacts/publish/nami`
 (`nami.exe` on Windows), `artifacts/publish/mcp/main.js`, and Bun. Keep the expression narrow: support and unselected assemblies are rejected.
 
+## Test lanes
+
+A test lane (plan rule 14) is a named group of tests that the gate does not run. Its `lanes` entry in
+`eng/test-suites.json` names the suite the tests live in, the MSTest category that selects them, the lane's
+own floor and its own timeout; `eng/test-baseline.json` records each lane's count beside the suites. A normal
+run of a suite passes `--filter TestCategory!=<category>` for every lane in that suite and keeps the suite's
+floor, so the floors count gate tests only; a user `--filter` is combined with that exclusion. A lane runs
+alone against its own floor:
+
+```bash
+./eng/test.sh --lane m2-acceptance
+./eng/test.sh --lane live-nami
+```
+
+Each lane has a Fallout target (`M2Acceptance`, `LiveNami`) that `Check` does not depend on. `check.yml` runs
+`m2-acceptance` on manual start (`workflow_dispatch` with `lane`); `live-nami` has no CI job.
+
+| Lane | Category | Tests | Leaves the lane |
+| --- | --- | --- | --- |
+| `m2-acceptance` | `M2Acceptance` | M2's acceptance tests in `tests/Nami.EndToEndTests/Sessions`, written from `campaign.md` before the tools exist: `sessions_search` and `sessions_get` on the scrubbed Claude Code capture (`tests/Nami.IntegrationTests/Fixtures/ClaudeCodeOtlp/signed-in`), the claim check with planted gate runs, and no content in either tool's answer | When M2 lands and the lane passes: delete the entry, and the EndToEnd floor and baseline grow by its count |
+| `live-nami` | `LiveNami` | The live check against the nami running on the Mac while the team's sessions export to it (`NAMI_LIVE_MCP_URL`, `NAMI_LIVE_READ_KEY`, `NAMI_LIVE_AGENTS`, `NAMI_LIVE_SINCE`) | Stays: no runner reaches that nami |
+
+The wire names the acceptance tests read are in `Sessions/SessionsContract.cs` only. The capture's bodies are
+posted exactly as Claude Code sent them, each checked against `manifest.json`; synthetic variants (planted gate
+runs, content sentinels) are decoded copies built in memory by `Nami.Tests/Infrastructure/ClaudeCodeCapture.cs`.
+The capture is from 15 Nov 2026, so these tests pass absolute windows and start nami with `NAMI_RETENTION_DAYS=0`.
+Two classes need no new tool and run in the gate: `ContentAtIngestTests` (EndToEnd: no prompt, response or tool
+content in the stopped engine's store or in any answer) and `ClaudeCodeCaptureTests` (Integration: the planted
+gate runs and the content sentinels are what the acceptance tests say they are).
+
 ## Current diagnostics: one entry, no report history in the workspace
 
 The reviewed C# suggestions and the reasons for intentionally retaining particular implementations are recorded in [inspection-review.md](inspection-review.md). Rules remain enabled; a reviewed informational finding is not hidden from the current report.

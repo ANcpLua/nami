@@ -52,6 +52,13 @@ sealed class Build : FalloutBuild, IHasConfiguration
         .Executes(() => Run("bash", $"eng/test.sh --suite EndToEnd --configuration {Configuration} --no-build --no-restore"));
     public Target Check => d => d.Description("Registry, contract parity, tests and NativeAOT conformance")
         .DependsOn(Registry).DependsOn(VerifyContracts).DependsOn(Test);
+    // Test lanes (plan rule 14, eng/test-suites.json): named tests the gate leaves out; Check depends on none of them.
+    public Target M2Acceptance => d => d.Description("Test lane m2-acceptance: M2's acceptance tests, outside the gate until M2 lands")
+        .DependsOn(Compile).DependsOn(PublishNative)
+        .Executes(() => Run("bash", $"eng/test.sh --lane m2-acceptance --configuration {Configuration} --no-build --no-restore"));
+    public Target LiveNami => d => d.Description("Test lane live-nami: the live check against the nami running on this Mac")
+        .DependsOn(Compile).DependsOn(PublishNative)
+        .Executes(() => Run("bash", $"eng/test.sh --lane live-nami --configuration {Configuration} --no-build --no-restore"));
     public Target Publish => d => d.Description("Verify and publish the NativeAOT binary")
         .DependsOn(Check);
     public static int Main() => Execute<Build>(static x => x.Check);

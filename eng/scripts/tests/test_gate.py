@@ -98,6 +98,12 @@ class GateTests(unittest.TestCase):
         self.assertEqual({name: baseline["suites"][name] for name in SUITES},
                          {name: floors[name]["minimumExpectedTests"] for name in SUITES},
                          "The floors in eng/test-suites.json must equal the suite counts in eng/test-baseline.json.")
+        # Rule 14: a test lane has its own floor, recorded beside the suites; the suite floors count gate tests only.
+        lanes = floors.get("lanes", {})
+        self.assertEqual(baseline.get("lanes", {}), {name: lane["minimumExpectedTests"] for name, lane in lanes.items()},
+                         "Each test lane's floor in eng/test-suites.json must equal its count in eng/test-baseline.json.")
+        self.assertEqual([], [name for name, lane in lanes.items() if lane["suite"] not in SUITES],
+                         "A test lane lives in one of the three suites.")
         self.assertEqual(baseline["nodeTests"], counted("contracts/scripts/lib", "*.test.mjs", NODE_TEST),
                          "Node tests differ from eng/test-baseline.json; a commit that adds or removes tests updates it.")
         self.assertEqual(baseline["pythonTests"], counted("eng/scripts/tests", "test_*.py", PYTHON_TEST),

@@ -7,6 +7,8 @@
     <ProjectReference Include="../../internal/nami.contracts/Nami.Api.Contracts.csproj"/>
     <PackageReference Include="Grpc.Net.Client"/>
     <PackageReference Include="ModelContextProtocol"/>
+    <!-- The store scan of the content tests reads the stopped engine's file with the product's pinned driver. -->
+    <PackageReference Include="DuckDB.NET.Data.Full"/>
     <None Update="testconfig.json" CopyToOutputDirectory="PreserveNewest"/>
   </ItemGroup>
 </Project>
