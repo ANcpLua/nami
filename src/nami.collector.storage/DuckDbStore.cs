@@ -320,10 +320,17 @@ internal sealed partial class DuckDbStore : INamiStore
         return ExecuteReadAsync(con =>
         {
             using var cmd = con.CreateCommand();
+            // A session is a session.id that a span or a log record (an event) carries. A trace without one is not a
+            // session, and a sender that exports events without traces, as Claude Code does unless its tracing beta
+            // is on, still has sessions.
             cmd.CommandText = """
                               SELECT
                                   (SELECT COUNT(*) FROM spans WHERE project_id = $1) as span_count,
-                                  (SELECT COUNT(DISTINCT COALESCE(session_id, trace_id)) FROM spans WHERE project_id = $1) as session_count
+                                  (SELECT COUNT(*) FROM (
+                                       SELECT session_id FROM spans WHERE project_id = $1 AND session_id IS NOT NULL
+                                       UNION
+                                       SELECT session_id FROM logs WHERE project_id = $1 AND session_id IS NOT NULL
+                                   )) as session_count
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
 
