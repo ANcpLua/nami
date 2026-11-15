@@ -147,13 +147,14 @@ internal static class TracesSlowestTool
             }).Where(t =>
                 window.Contains(t.Start, "traces") && t.Spans.Any(s => window.Matches(s.ServiceName)) &&
                 (operation is null || t.Root.Name == operation))
-            .OrderByDescending(static t => t.End - t.Start).ThenBy(static t => t.Root.TraceId, StringComparer.Ordinal)
+            .OrderByDescending(static t => ToolValues.Elapsed(t.Start, t.End))
+            .ThenBy(static t => t.Root.TraceId, StringComparer.Ordinal)
             .Take(limit)
             .Select(static t => ToolValues.Json(new SlowTrace
             {
                 TraceId = t.Root.TraceId,
                 Operation = t.Root.Name,
-                DurationMs = (t.End - t.Start) / 1_000_000d,
+                DurationMs = ToolValues.Elapsed(t.Start, t.End) / 1_000_000d,
                 StartedAt = ToolDispatcher.Timestamp(t.Start),
                 Status = t.Spans.Any(static s => s.StatusCode == 2) ? "error" :
                     t.Spans.Any(static s => s.StatusCode == 1) ? "ok" : "unset"
@@ -262,7 +263,7 @@ internal static class TracesGetTool
             TraceId = traceId,
             RootSpan = ToolValues.SpanModel(root),
             SpanCount = spans.Length,
-            DurationNs = end - start,
+            DurationNs = ToolValues.Elapsed(start, end),
             StartTime = ToolDispatcher.Timestamp(start),
             EndTime = ToolDispatcher.Timestamp(end),
             Services = [.. spans.Select(static span => span.ServiceName ?? "unknown").Distinct(StringComparer.Ordinal)
@@ -277,6 +278,15 @@ internal static class TracesGetTool
 
 internal static class ToolValues
 {
+    /// <summary>
+    ///     The time from a stored start to a stored end, and zero when the end precedes the start: the bounds are
+    ///     unsigned, and a database written before a repeated span id replaced the whole row can hold such a span.
+    /// </summary>
+    internal static ulong Elapsed(ulong startUnixNano, ulong endUnixNano)
+    {
+        return endUnixNano > startUnixNano ? endUnixNano - startUnixNano : 0;
+    }
+
     internal static JsonObject Json<T>(T value)
     {
         return JsonSerializer.SerializeToNode(value, ContractTypes.TypeInfo<T>())!.AsObject();

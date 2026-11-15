@@ -58,7 +58,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 3
+          "order": 3,
+          "merge": "replace"
         }
       },
       {
@@ -67,7 +68,8 @@
         "optional": true,
         "nullable": true,
         "column": {
-          "order": 4
+          "order": 4,
+          "merge": "replace"
         }
       },
       {
@@ -76,7 +78,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 5
+          "order": 5,
+          "merge": "replace"
         }
       },
       {
@@ -85,7 +88,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 6
+          "order": 6,
+          "merge": "replace"
         }
       },
       {
@@ -94,7 +98,8 @@
         "optional": false,
         "nullable": false,
         "column": {
-          "order": 7
+          "order": 7,
+          "merge": "replace"
         }
       },
       {
