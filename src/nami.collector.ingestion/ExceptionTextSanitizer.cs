@@ -4,8 +4,8 @@ using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
 namespace Nami.Collector.Ingestion;
 
 /// <summary>
-///     Shared incoming-OTLP value policy for error text: the registry's exception text keys and the span status
-///     message of a producer's records.
+///     Shared incoming-OTLP value policy for error text: the registry's exception text keys, a producer's error
+///     text keys (Claude Code's error) and the span status message of a producer's records.
 ///     This runs before any ingestion model can reach storage or an original-point journal.
 ///     ILogger classification/redaction does not cover those incoming values.
 ///     The outcome depends on the text alone: every pattern matches without backtracking, in time linear in

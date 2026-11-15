@@ -15,6 +15,13 @@ internal static partial class OtlpConverter
     // The longest span status message nami keeps of a producer's span, in UTF-8 bytes (observer's ruling, 15 Nov 2026).
     private const int MaxProducerStatusMessageUtf8Bytes = 1024;
 
+    // Error text a producer sends under its own key. The registry asks for the sanitizer of exception.message before
+    // the key's bound (registry/source/claude_code/attributes.yaml, error); the generated code has no table for that
+    // yet, so the key is named here. Every member is a producer key, which the allowlist keeps to the producer's
+    // records.
+    private static readonly FrozenSet<string> s_producerErrorTextKeys =
+        FrozenSet.Create(StringComparer.Ordinal, ClaudeCodeAttributes.Error);
+
     private static readonly FrozenDictionary<string, string> s_producerByScope = Producers.Scopes
         .SelectMany(static producer => producer.Value.Select(scope => KeyValuePair.Create(scope, producer.Key)))
         .ToFrozenDictionary(StringComparer.Ordinal);
@@ -28,7 +35,10 @@ internal static partial class OtlpConverter
     {
         if (!AttributeKeySets.IsPersistable(key, producer)) return null;
 
-        var value = ConvertProtoAnyValue(wire, key, producer);
+        // Sanitized first, bounded after: a credential where the cut falls is removed whole, not cut in half.
+        var value = s_producerErrorTextKeys.Contains(key)
+            ? OtlpAttributeValue.FromString(ExceptionTextSanitizer.Sanitize(key, wire))
+            : ConvertProtoAnyValue(wire, key, producer);
 
         // A key the registry bounds (nami.max_utf8_bytes) is a string by the registry's own policy. Any other
         // value, such as a list of strings, would pass the bound unmeasured, so it is not kept.

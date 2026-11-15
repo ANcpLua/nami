@@ -143,9 +143,9 @@ between the `api_request` events, `claude_code.token.usage` and the CLI's result
 - What nami stores of these records follows the registry (`registry/source/claude_code`,
   `docs/semconv/claude_code.md`): Claude Code's unprefixed keys only under its three scopes,
   string values in the declared type, `bash_command`, `full_command` and `subagent_type` out
-  of `tool_parameters` and nothing else of it, `full_command` up to 4096 UTF-8 bytes, and a
-  span's status message, into which Claude Code copies the text of `error`, after the
-  sanitizer that exception text gets and up to 1024 UTF-8 bytes.
+  of `tool_parameters` and nothing else of it, `full_command` up to 4096 UTF-8 bytes, and
+  `error` and a span's status message, into which Claude Code copies the text of `error`,
+  after the sanitizer that exception text gets and up to 1024 UTF-8 bytes.
 - `gen_ai.agent.name` is a resource attribute and is also copied onto every data point, log
   record and span, next to `session.id`, `user.id`, `user.email`, `user.account_uuid`,
   `user.account_id`, `organization.id`, `terminal.type`, `anthropic.provider`,
