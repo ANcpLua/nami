@@ -385,6 +385,46 @@ public sealed class ClaudeCodeConverterTests
         }
     }
 
+    /// <summary>
+    ///     Claude Code's <c>error</c> attribute is persisted since registry 849dd8b, as error text: through the
+    ///     sanitizer of <c>exception.message</c> first and up to <c>ValueLimits.MaxUtf8Bytes</c> (1024) after it, on
+    ///     the events and the spans that carry it. Under another scope it is another sender's unknown key.
+    /// </summary>
+    [TestMethod]
+    public void Error_OnAProducersScope_LosesItsCredentials_AndIsKeptUpToTheRegistrysBound()
+    {
+        var bound = ValueLimits.MaxUtf8Bytes["error"];
+        Assert.AreEqual(1024, bound);
+        const string leaking = "Request failed with 401\nAuthorization: Bearer sk-live-0123456789abcdef\n" +
+                               "connection password=hunter2-and-more;retry in 5 s";
+        const string sanitized = "Request failed with 401\nAuthorization: Bearer [REDACTED]\nconnection password=[REDACTED];retry in 5 s";
+        var text = new string('é', 2000);
+
+        Assert.AreEqual(sanitized, ConvertLog(EventsScope, new LogRecord { Attributes = { Text("error", leaking) } })
+            .Attributes["error"].AsString());
+        Assert.AreEqual(sanitized, ConvertSpan(TracingScope, NewSpan([Text("error", leaking)])).Attributes["error"].AsString());
+        Assert.AreEqual("Shell command failed", ConvertLog(EventsScope,
+            new LogRecord { Attributes = { Text("error", "Shell command failed") } }).Attributes["error"].AsString());
+        var cut = ConvertLog(EventsScope, new LogRecord { Attributes = { Text("error", text) } }).Attributes["error"].AsString()!;
+        Assert.AreEqual(new string('é', (bound - Marker.Length) / 2) + Marker, cut);
+
+        // The credential sits where the cut falls: it is removed before the text is cut, not cut in half.
+        var straddling = new string('a', bound - 30) + " password=hunter2-and-more-secret-text";
+        var kept = ConvertLog(EventsScope, new LogRecord { Attributes = { Text("error", straddling) } }).Attributes["error"].AsString()!;
+        Assert.DoesNotContain("hunter2", kept);
+        Assert.IsLessThanOrEqualTo(bound, Encoding.UTF8.GetByteCount(kept));
+
+        // Error text is a string; any other value fails closed, as it does for exception.message.
+        var number = ConvertLog(EventsScope, new LogRecord
+        {
+            Attributes = { new KeyValue { Key = "error", Value = new AnyValue { IntValue = 500 } } }
+        });
+        Assert.AreEqual("[SANITIZATION_FAILED]", number.Attributes["error"].AsString());
+
+        var foreign = ConvertLog(ForeignScope, new LogRecord { Attributes = { Text("error", leaking), Text(Ordinary, "builder") } });
+        Assert.AreSequenceEqual(s_ordinaryOnly, Keys(foreign.Attributes));
+    }
+
     private static string[] Keys(NormalizedAttributes attributes) =>
         attributes.Keys.Order(StringComparer.Ordinal).ToArray();
 

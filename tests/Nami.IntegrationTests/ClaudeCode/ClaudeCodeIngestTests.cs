@@ -38,12 +38,12 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     // What the capture stores: the four primitive types, the empty lists of managed_settings.sources and the string
     // lists of gen_ai.response.finish_reasons on the 17 llm_request spans.
     private static readonly string[] s_storedKinds = ["[]", "boolean", "double", "int", "string", "string[]"];
-    private static readonly string[] s_persistedDetails = ["bash_command", "file_path", "full_command"];
-    private static readonly string[] s_droppedDetails = ["error", "tool_parameters"];
+    private static readonly string[] s_persistedDetails = ["bash_command", "error", "file_path", "full_command"];
+    private static readonly string[] s_droppedDetails = ["tool_parameters"];
     private static readonly string[] s_liftedMembers = ["bash_command", "full_command", "subagent_type"];
     private static readonly string[] s_droppedMembers = ["tool_parameters", "description", "git_commit_id", "git_branch", "tool_input"];
     private static readonly string[] s_toolEvents = ["claude_code.tool_decision", "claude_code.tool_result"];
-    private static readonly string[] s_detailColumns = ["spans.attributes_json", "spans.events_json"];
+    private static readonly string[] s_detailColumns = ["logs.attributes_json", "spans.attributes_json", "spans.events_json"];
     private static readonly string[] s_attributeTables = ["logs", "spans", "metric_series"];
 
     /// <summary>
@@ -235,14 +235,15 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     }
 
     /// <summary>
-    ///     A span status message is error text: nami keeps a Claude Code span's through the sanitizer that exception
-    ///     text gets and up to 1024 UTF-8 bytes (observer's ruling, 15 Nov). The failing test run of s1 gets a status
-    ///     message that carries a bearer token, a password assignment and a URL with user information and a query,
-    ///     followed by more text than fits: the credentials reach no column of any table, what was cut off neither,
-    ///     and the rest of the message is stored on the span.
+    ///     Error text is kept through the sanitizer that exception text gets and up to 1024 UTF-8 bytes (observer's
+    ///     ruling, 15 Nov): Claude Code's <c>error</c> attribute, and the span status message it copies that text
+    ///     into. The failing test run of s1 gets an error that carries a bearer token, a password assignment and a URL
+    ///     with user information and a query, followed by more text than fits, on its <c>tool_result</c> event, on
+    ///     its <c>tool.execution</c> span and in that span's status message: the credentials reach no column of any
+    ///     table, what was cut off neither, and the rest of the text is stored in all three places.
     /// </summary>
     [TestMethod]
-    public async Task Ingest_CredentialsInAClaudeCodeSpanStatusMessage_ReachNoStoredRow()
+    public async Task Ingest_CredentialsInClaudeCodeErrorText_ReachNoStoredRow()
     {
         const string secret = "nami-secret-8f2b61d0";
         const string tail = "nami-tail-5c0a97e4";
@@ -251,27 +252,62 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
                       $"remote https://builder:{secret}-userinfo@git.example.test/nami.git?access={secret}-query rejected the push\n" +
                       $"password={secret}-password;retry in 5 s\n" +
                       new string('é', 1024) + tail;
+        var (changedEvents, changedSpans) = (0, 0);
         var exports = ClaudeCodeCapture.Load(ClaudeCodeCapture.SignedIn).Select(export =>
         {
-            if (export.Signal != Signals.Traces) return export;
-            var request = ExportTraceServiceRequest.Parser.ParseFrom(export.Payload);
-            foreach (var span in request.ResourceSpans.SelectMany(static resource => resource.ScopeSpans)
-                         .SelectMany(static scope => scope.Spans).Where(static span => span.Status is { Message.Length: > 0 }))
-                span.Status.Message = message;
-            return export with { Payload = request.ToByteArray() };
+            switch (export.Signal)
+            {
+                case Signals.Logs:
+                    {
+                        var request = ExportLogsServiceRequest.Parser.ParseFrom(export.Payload);
+                        foreach (var error in request.ResourceLogs.SelectMany(static resource => resource.ScopeLogs)
+                                     .SelectMany(static scope => scope.LogRecords).SelectMany(static record => record.Attributes)
+                                     .Where(static attribute => attribute.Key == "error"))
+                        {
+                            error.Value = WireCapture.Text(message);
+                            changedEvents++;
+                        }
+
+                        return export with { Payload = request.ToByteArray() };
+                    }
+                case Signals.Traces:
+                    {
+                        var request = ExportTraceServiceRequest.Parser.ParseFrom(export.Payload);
+                        foreach (var span in request.ResourceSpans.SelectMany(static resource => resource.ScopeSpans)
+                                     .SelectMany(static scope => scope.Spans)
+                                     .Where(static span => span.Status is { Message.Length: > 0 }))
+                        {
+                            span.Status.Message = message;
+                            span.Attributes.Single(static attribute => attribute.Key == "error").Value = WireCapture.Text(message);
+                            changedSpans++;
+                        }
+
+                        return export with { Payload = request.ToByteArray() };
+                    }
+                default:
+                    return export;
+            }
         }).ToArray();
+        Assert.AreEqual(1, changedEvents, "the failed tool_result of s1");
+        Assert.AreEqual(1, changedSpans, "the failed tool.execution span of s1");
 
         var path = await IngestAsync(exports);
 
-        var stored = Assert.ContainsSingle(StoredRows.Rows(path,
-            "SELECT status_message FROM spans WHERE project_id = $1 AND status_message IS NOT NULL", Project))[0]!;
-        Assert.IsEmpty(StoredRows.ColumnsContaining(path, secret), "no credential is stored: " + stored);
+        var failedSpan = Assert.ContainsSingle(StoredRows.Rows(path,
+            "SELECT status_message, attributes_json FROM spans WHERE project_id = $1 AND status_message IS NOT NULL", Project));
+        var failedResult = Assert.ContainsSingle(AttributesOfEvents(path, "claude_code.tool_result")
+            .Where(static json => Text(json, "error") is not null));
+        Assert.IsEmpty(StoredRows.ColumnsContaining(path, secret), "no credential is stored");
         Assert.IsEmpty(StoredRows.ColumnsContaining(path, tail), "the part beyond 1024 bytes is stored nowhere");
-        Assert.StartsWith("Shell command failed: could not push\nAuthorization: Bearer [REDACTED]\n", stored);
-        Assert.Contains("remote https://git.example.test/nami.git rejected the push\n", stored);
-        Assert.Contains("password=[REDACTED];retry in 5 s\n", stored);
-        Assert.EndsWith(TruncationMarker, stored);
-        Assert.IsLessThanOrEqualTo(1024, Encoding.UTF8.GetByteCount(stored));
+        foreach (var stored in new[] { failedSpan[0], Text(failedSpan[1]!, "error"), Text(failedResult, "error") })
+        {
+            Assert.IsNotNull(stored);
+            Assert.StartsWith("Shell command failed: could not push\nAuthorization: Bearer [REDACTED]\n", stored);
+            Assert.Contains("remote https://git.example.test/nami.git rejected the push\n", stored);
+            Assert.Contains("password=[REDACTED];retry in 5 s\n", stored);
+            Assert.EndsWith(TruncationMarker, stored);
+            Assert.IsLessThanOrEqualTo(1024, Encoding.UTF8.GetByteCount(stored));
+        }
     }
 
     /// <summary>
@@ -293,9 +329,9 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     ///     Tool details (the Bash command in <c>tool_parameters</c> and <c>full_command</c>, file paths, full error
     ///     text) may be stored only under a key the registry marks persisted: a mapping must not keep one on its own.
     ///     Finish-line item 4 needs the command, so this is the registry's decision. Since registry 0.4.0 it persists
-    ///     <c>bash_command</c>, <c>file_path</c> and <c>full_command</c> and not <c>tool_parameters</c> as a whole or
-    ///     the <c>error</c> text: the first three are stored where they were planted, in the attributes of spans and
-    ///     span events and in no other column, and the other two reach no stored row.
+    ///     <c>bash_command</c>, <c>file_path</c>, <c>full_command</c> and the <c>error</c> text, and not
+    ///     <c>tool_parameters</c> as a whole: the first four are stored where they were planted, in the attributes of
+    ///     events, spans and span events and in no other column, and the container reaches no stored row.
     /// </summary>
     [TestMethod]
     public async Task Ingest_ClaudeCodeToolDetails_ReachNoStoredRowUnlessTheRegistryPersistsTheKey()
