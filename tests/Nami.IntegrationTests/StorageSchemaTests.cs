@@ -1,4 +1,5 @@
 using DuckDB.NET.Data;
+using System.Globalization;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Time.Testing;
 using Nami.Collector.Storage;
@@ -126,6 +127,37 @@ public sealed class StorageSchemaTests(TestContext context)
         await store.EnqueueAsync(new SpanBatch([original with { ServiceName = null }]), context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         Assert.AreEqual("checkout", Assert.ContainsSingle(snapshot.Spans).ServiceName);
+    }
+
+    /// <summary>
+    ///     A span id that arrives again replaces the stored span as one unit. The second copy here starts and ends
+    ///     before the first one started, so a row with the first start and the second end would end before it began.
+    /// </summary>
+    [TestMethod]
+    public async Task Upsert_RepeatedSpanId_StoresTheLaterCopyWhole()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        var first = TestData.Nanos(TestData.s_now.AddSeconds(-10));
+        var second = TestData.Nanos(TestData.s_now.AddSeconds(-30));
+        await StorageTestData.SeedTraces(store, Copy(first, "first copy", 2, 7), context.CancellationToken);
+        await StorageTestData.SeedTraces(store, Copy(second, "second copy", 3, 8), context.CancellationToken);
+        var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        var span = Assert.ContainsSingle(snapshot.Spans);
+        Assert.AreEqual(second, span.StartTimeUnixNano);
+        Assert.AreEqual(second + 1000000UL, span.EndTimeUnixNano);
+        Assert.AreEqual(span.EndTimeUnixNano - span.StartTimeUnixNano, span.DurationNs);
+        Assert.AreEqual("second copy", span.Name);
+        Assert.AreEqual((byte)3, span.Kind);
+        Assert.AreEqual(8.ToString("x16", CultureInfo.InvariantCulture), span.ParentSpanId);
+
+        static string Copy(ulong start, string name, int kind, int parent)
+        {
+            var payload = JsonNode.Parse(OtlpData.Traces(start, operation: name))!;
+            var span = payload["resourceSpans"]![0]!["scopeSpans"]![0]!["spans"]![0]!;
+            span["kind"] = kind;
+            span["parentSpanId"] = parent.ToString("x16", CultureInfo.InvariantCulture);
+            return payload.ToJsonString();
+        }
     }
 
     [TestMethod]

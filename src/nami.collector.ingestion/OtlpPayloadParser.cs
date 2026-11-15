@@ -25,13 +25,25 @@ internal static class OtlpPayloadParser
 
     public static OtlpPayloadEncoding GetEncoding(string? contentType)
     {
+        return TryGetEncoding(contentType, out var encoding)
+            ? encoding
+            : throw new OtlpUnsupportedMediaTypeException(contentType);
+    }
+
+    /// <summary>The encoding a Content-Type names; false for a missing one and for one OTLP does not define.</summary>
+    public static bool TryGetEncoding(string? contentType, out OtlpPayloadEncoding encoding)
+    {
+        encoding = OtlpPayloadEncoding.Json;
         if (!MediaTypeHeaderValue.TryParse(contentType, out var parsed) || parsed.MediaType is null)
-            throw new OtlpUnsupportedMediaTypeException(contentType);
+            return false;
 
         if (string.Equals(parsed.MediaType, ProtobufContentType, StringComparison.OrdinalIgnoreCase))
-            return OtlpPayloadEncoding.Protobuf;
+        {
+            encoding = OtlpPayloadEncoding.Protobuf;
+            return true;
+        }
 
-        return string.Equals(parsed.MediaType, JsonContentType, StringComparison.OrdinalIgnoreCase) ? OtlpPayloadEncoding.Json : throw new OtlpUnsupportedMediaTypeException(contentType);
+        return string.Equals(parsed.MediaType, JsonContentType, StringComparison.OrdinalIgnoreCase);
     }
 
     public static Task<ExportTraceServiceRequest> ParseTraceRequestAsync(
