@@ -1,0 +1,12 @@
+name = "NamiStorage"
+defaultTargets = ["NamiStorage", "replay"]
+
+[[lean_lib]]
+name = "NamiStorage"
+# A `sorry` or any other warning fails the build.
+moreLeanArgs = ["-DwarningAsError=true"]
+
+[[lean_exe]]
+name = "replay"
+root = "Replay"
+moreLeanArgs = ["-DwarningAsError=true"]
