@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from update_typespec import Registry, UpdateError, REFERENCE, apply_update, collect_packages, constraints, package_update, installed_reference, workspace_updates
+from update_typespec import Registry, UpdateError, POLICY, REFERENCE, ROOT, apply_update, collect_packages, constraints, package_update, installed_reference, workspace_updates
 
 
 def package(name="@typespec/compiler", version="1.17.0", **extra):
@@ -153,7 +153,7 @@ class PackagePlanTests(unittest.TestCase):
             original = '{"name":"extension","peerDependencies":{"@typespec/compiler":"1.17.0"}}\n'
             workspace.write_text(original)
             reference = root / REFERENCE
-            reference.parent.mkdir(parents=True)
+            reference.parent.mkdir(parents=True, exist_ok=True)
             reference.write_text('{"packages":[]}')
             with patch.object(update_typespec, "ROOT", root), patch.object(sys, "argv", ["update_typespec.py", "--check"]), \
                  patch("update_typespec.collect_packages", return_value=({"@typespec/compiler": compiler}, {"@typespec/compiler": "compiler"})), \
@@ -191,7 +191,7 @@ class UpdateTransactionTests(unittest.TestCase):
             lock = root / "contracts/bun.lock"
             reference = root / REFERENCE
             manifest.parent.mkdir(parents=True)
-            reference.parent.mkdir(parents=True)
+            reference.parent.mkdir(parents=True, exist_ok=True)
             originals = {manifest: b'{"custom":"unchanged"}\n', lock: b"original lock\n", reference: b"original reference\n"}
             for path, content in originals.items():
                 path.write_bytes(content)
@@ -218,7 +218,7 @@ class UpdateTransactionTests(unittest.TestCase):
             lock = root / "contracts/bun.lock"
             reference = root / REFERENCE
             workspace.parent.mkdir(parents=True)
-            reference.parent.mkdir(parents=True)
+            reference.parent.mkdir(parents=True, exist_ok=True)
             originals = {manifest: b'{"workspaces":["extension"]}\n',
                          workspace: b'{ "name": "extension", "peerDependencies": { "@typespec/compiler": "1.17.0" } }\n',
                          lock: b"original lock\n", reference: b"original reference\n"}
@@ -323,6 +323,12 @@ class InstalledReferenceTests(unittest.TestCase):
             (installed / "package.json").write_text(json.dumps(package(tspMain="missing.tsp")))
             with self.assertRaisesRegex(UpdateError, "Missing declared entry point"):
                 installed_reference(root, {"@typespec/compiler": package()}, {"@typespec/compiler": "compiler"}, "latest")
+
+    def test_reference_is_committed_under_contracts_with_a_name_unlike_the_policy(self):
+        # The reference once sat in a deleted skill folder under the policy file's own name.
+        self.assertEqual("contracts", REFERENCE.parts[0])
+        self.assertNotEqual(POLICY.name, REFERENCE.name)
+        self.assertTrue((ROOT / REFERENCE).is_file(), f"{REFERENCE} is not committed where the updater writes it")
 
 
 if __name__ == "__main__":

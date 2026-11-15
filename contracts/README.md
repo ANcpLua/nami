@@ -4,8 +4,9 @@
 
 `../eng/typespec.sh --check` checks the npm tag configured in `typespec-packages.json`
 (currently `latest`, the stable channel; pass `--tag next` to look at dev builds). `../eng/typespec.sh --apply` installs exact versions and refreshes
-the package entry-point reference in
-`../.agents/skills/nami-contract-models/references/typespec-packages.json`.
+the package entry-point reference in `typespec-api-reference.json`. The two files differ:
+`typespec-packages.json` is the policy you edit, `typespec-api-reference.json` is written
+by the updater from the installed packages.
 The equivalent repository tasks are `mise run typespec:check` and `mise run typespec:update`.
 
 The maintained set is what the contract build uses: the compiler, the HTTP and OpenAPI
