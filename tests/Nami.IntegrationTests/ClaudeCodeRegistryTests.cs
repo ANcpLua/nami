@@ -47,7 +47,7 @@ public sealed class ClaudeCodeRegistryTests(TestContext context)
     // Finish-line item 5: prompt and response text, tool input, raw bodies and tool content.
     private static readonly string[] s_content =
     [
-        "body", "body_ref", "content", "diff", "error", "gen_ai.input.messages", "gen_ai.output.messages",
+        "body", "body_ref", "content", "diff", "gen_ai.input.messages", "gen_ai.output.messages",
         "gen_ai.system_instructions", "gen_ai.tool.call.arguments", "gen_ai.tool.call.result", "new_context",
         "output", "prompt", "prompt_text", "response", "response.model_output", "system_prompt_preview",
         "system_reminders", "tool_input", "tool_parameters", "user_prompt", "user_system_prompt"
@@ -61,7 +61,7 @@ public sealed class ClaudeCodeRegistryTests(TestContext context)
     private static readonly string[] s_evidence =
     [
         "agent_id", "bash_command", "cache_creation_tokens", "cache_read_tokens", "cost_usd", "cost_usd_micros",
-        "duration_ms", "effort", "error_type", "event.sequence", "full_command", "gen_ai.agent.name",
+        "duration_ms", "effort", "error", "error_type", "event.sequence", "full_command", "gen_ai.agent.name",
         "input_tokens", "model", "output_tokens", "prompt.id", "query_source", "session.id", "success",
         "tool_name", "tool_use_id", "vcs.ref.head.revision"
     ];
@@ -204,14 +204,20 @@ public sealed class ClaudeCodeRegistryTests(TestContext context)
         foreach (var key in lifted.Concat(s_droppedParameters))
             Assert.Contains(key, members.Select(static member => member.Key), key + " no longer occurs in the capture");
 
-        // The observer's bound on full_command (15 Nov): ingest keeps at most 4096 UTF-8 bytes of it.
+        // The observer's bounds (15 Nov): ingest keeps at most 4096 UTF-8 bytes of a command line and,
+        // after the exception-text sanitizer, 1024 of an error message.
         Assert.AreEqual(4096, ValueLimits.MaxUtf8Bytes["full_command"]);
+        Assert.AreEqual(1024, ValueLimits.MaxUtf8Bytes["error"]);
         Assert.IsTrue(ValueLimits.MaxUtf8Bytes.Keys.All(static key =>
             RegistryPolicy.IsPersisted(key) && AttributeCatalog.Find(key)!.Type == "string"));
         var commands = s_capture.Value.Values.Where(static value => value.Key == "full_command")
             .Select(static value => value.Value.GetProperty("stringValue").GetString()!).ToArray();
         Assert.IsGreaterThan(0, commands.Length);
         Assert.IsTrue(commands.All(static command => Encoding.UTF8.GetByteCount(command) <= 4096));
+        var errors = s_capture.Value.Values.Where(static value => value.Key == "error")
+            .Select(static value => value.Value.GetProperty("stringValue").GetString()!).ToArray();
+        Assert.IsGreaterThan(0, errors.Length);
+        Assert.IsTrue(errors.All(static error => Encoding.UTF8.GetByteCount(error) <= 1024));
     }
 
     [TestMethod]
@@ -328,6 +334,7 @@ public sealed class ClaudeCodeRegistryTests(TestContext context)
             Assert.IsTrue(results.All(json => TopLevelKeys(json).Contains(key)), key);
         Assert.HasCount(2, results.Where(static json => TopLevelKeys(json).Contains("vcs.ref.head.revision")));
         Assert.HasCount(6, snapshot.Spans.Where(static span => TopLevelKeys(span.AttributesJson!).Contains("full_command")));
+        Assert.HasCount(1, results.Where(static json => TopLevelKeys(json).Contains("error")));
         var tokens = snapshot.Metrics.Where(static series => series.MetricName == "claude_code.token.usage")
             .Select(static series => series.AttributesJson!).ToArray();
         Assert.IsTrue(tokens.All(static json => TopLevelKeys(json).IsSupersetOf(["type", "model", "query_source", "session.id"])));

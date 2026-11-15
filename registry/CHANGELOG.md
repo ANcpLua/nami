@@ -33,12 +33,17 @@
 - `full_command` is persisted as a tool detail, so that the claim check can compare it with
   the gate command, and bounded: `nami.max_utf8_bytes: 4096` declares the longest value
   ingest keeps of it (observer's ruling, 15 Nov). Ingest enforces the bound.
+- `error` is persisted too, because error text helps people and agents (observer's ruling,
+  15 Nov): ingest passes it through the exception-text sanitizer, which removes
+  credentials, and keeps at most 1024 UTF-8 bytes of it (`nami.max_utf8_bytes: 1024`). The
+  key is the same on `api_error`, `tool_result` and the `claude_code.llm_request` and
+  `claude_code.tool.execution` spans, so it is kept on all four.
 - Never persisted (finish-line item 5): the prompt and response text (`prompt`,
   `prompt_text`, `response`, `user_prompt`), `tool_input`, `tool_parameters` as a whole,
   the raw API bodies (`body`, `body_ref`), the detailed-beta content
   (`new_context`, `system_reminders`, `system_prompt_preview`, `user_system_prompt`,
-  `response.model_output`), the `tool.output` span event's `content`, `output` and `diff`,
-  and `error` text. Also not persisted: `organization.id`, `anthropic.plan`,
+  `response.model_output`), and the `tool.output` span event's `content`, `output` and
+  `diff`. Also not persisted: `organization.id`, `anthropic.plan`,
   `anthropic.custom_base_url`, `terminal.type` and `span.type`.
 - Reused, not redefined: `session.id`, `user.id`, `user.email`, `vcs.ref.head.*` and
   `error.type` from core; `gen_ai.agent.name`, `gen_ai.conversation.id`,

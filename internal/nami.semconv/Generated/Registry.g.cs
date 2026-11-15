@@ -342,7 +342,7 @@ public static class AttributeCatalog
         new("enabled_via", "string", Stability.Development, true, true, "https://ancplua.github.io/nami/schemas/0.4.0", null, "claude_code"),
         new("enduser.role", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null, null),
         new("enduser.scope", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null, null),
-        new("error", "string", Stability.Development, false, false, "https://ancplua.github.io/nami/schemas/0.4.0", null, "claude_code"),
+        new("error", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.4.0", null, "claude_code"),
         new("error.message", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null, null),
         new("error.type", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null, null),
         new("error_class", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.4.0", null, "claude_code"),
@@ -1199,6 +1199,7 @@ public static class ValueLimits
     public static FrozenDictionary<string, int> MaxUtf8Bytes { get; } =
         new Dictionary<string, int>(StringComparer.Ordinal)
         {
+            ["error"] = 1024,
             ["full_command"] = 4096,
         }.ToFrozenDictionary(StringComparer.Ordinal);
 }
