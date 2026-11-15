@@ -36,9 +36,8 @@ internal static class CollectorCoreExtensions
 
         // The three OTLP export services bind through OtlpExportMethodProvider, whose request
         // marshaller decodes an invalid UTF-8 sequence as U+FFFD (OTLP 1.11.1). AddGrpc's binder
-        // looks for a Grpc.Tools service base, which these services no longer have; it would only
-        // warn at start-up, so it goes.
-        services.RemoveAll(typeof(IServiceMethodProvider<>));
+        // stays registered, because every other gRPC service in the process gets its methods from
+        // it; for these three it finds OtlpExportService's empty bind method and adds nothing.
         services.AddSingleton<IServiceMethodProvider<TraceServiceImpl>>(
             new OtlpExportMethodProvider<TraceServiceImpl, ExportTraceServiceRequest, ExportTraceServiceResponse>(
                 TraceServiceReflection.Descriptor.Services[0],

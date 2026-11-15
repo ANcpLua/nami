@@ -50,9 +50,8 @@
 
   <PropertyGroup Label="Build and test tooling">
     <!-- Fallout's 11.0.x packages are older unlisted builds, not the active release line. -->
-    <!-- Pre-release kept: 10.5.0 stable is on nuget.org since 7 Nov, but the pins below are verified against rc.3 only; that move is its own change. Checked 15 Nov 2026. -->
     <!-- renovate: datasource=nuget depName=Fallout.Common -->
-    <FalloutVersion>10.5.0-rc.3</FalloutVersion>
+    <FalloutVersion>10.5.0</FalloutVersion>
     <!-- Fallout's build host targets net11.0 and uses the installed SDK's MSBuild at runtime. -->
     <!-- renovate: datasource=nuget depName=Microsoft.Build -->
     <MicrosoftBuildVersion>18.11.0</MicrosoftBuildVersion>
@@ -79,7 +78,8 @@
     <!-- renovate: datasource=nuget depName=Newtonsoft.Json -->
     <NewtonsoftJsonVersion>14.0.1-beta2</NewtonsoftJsonVersion>
   </PropertyGroup>
-  <!-- Actual Fallout 10.5.0-rc.3 consumers verified against these dependency versions. -->
+  <!-- Fallout's consumers were verified against these dependency versions under 10.5.0-rc.3. 10.5.0
+       declares the same dependencies plus NuGet.Frameworks 7.9.0, which NuGetVersion already pins. -->
   <PropertyGroup Label="Fallout transitive dependencies">
     <!-- The newer Azure family requires MSAL versions whose cache-file creation fails on
          macOS arm64. Keep the coherent Azure family while independently updating its clients. -->
@@ -102,19 +102,19 @@
     <MicrosoftIdentityModelAbstractionsVersion>8.23.0</MicrosoftIdentityModelAbstractionsVersion>
     <!-- renovate: datasource=nuget depName=System.ClientModel -->
     <SystemClientModelVersion>1.16.0</SystemClientModelVersion>
-    <!-- Pre-release kept: verified with Fallout rc.3 at this version; the newest stable is 1.1.9, which is all Fallout asks for. Checked 15 Nov 2026. -->
+    <!-- Pre-release kept: part of Fallout's verified set, which 10.5.0 does not change; the newest stable is 1.1.9, which is all Fallout asks for. Checked 15 Nov 2026. -->
     <!-- renovate: datasource=nuget depName=Glob -->
     <GlobVersion>1.2.0-alpha0037</GlobVersion>
-    <!-- Pre-release kept: verified with Fallout rc.3 at this version; the newest stable is 4.4.0 (Fallout asks for 4.3.0). Checked 15 Nov 2026. -->
+    <!-- Pre-release kept: part of Fallout's verified set, which 10.5.0 does not change; the newest stable is 4.4.0 (Fallout asks for 4.3.0). Checked 15 Nov 2026. -->
     <!-- renovate: datasource=nuget depName=Serilog -->
     <SerilogVersion>4.4.1-dev-02453</SerilogVersion>
-    <!-- Pre-release kept: verified with Fallout rc.3 at this version; the newest stable is 4.0.0, which is all Fallout asks for. Checked 15 Nov 2026. -->
+    <!-- Pre-release kept: part of Fallout's verified set, which 10.5.0 does not change; the newest stable is 4.0.0, which is all Fallout asks for. Checked 15 Nov 2026. -->
     <!-- renovate: datasource=nuget depName=Serilog.Formatting.Compact.Reader -->
     <SerilogCompactReaderVersion>4.1.0-dev-00085</SerilogCompactReaderVersion>
-    <!-- Pre-release kept: verified with Fallout rc.3 at this version; the newest stable is 7.0.0, which is all Fallout asks for. Checked 15 Nov 2026. -->
+    <!-- Pre-release kept: part of Fallout's verified set, which 10.5.0 does not change; the newest stable is 7.0.0, which is all Fallout asks for. Checked 15 Nov 2026. -->
     <!-- renovate: datasource=nuget depName=Serilog.Sinks.File -->
     <SerilogFileSinkVersion>8.0.0-nblumhardt-02322</SerilogFileSinkVersion>
-    <!-- Pre-release kept: verified with Fallout rc.3 at this version; the newest listed stable is 0.50.9 (Fallout asks for 0.50.1). Checked 15 Nov 2026. -->
+    <!-- Pre-release kept: part of Fallout's verified set, which 10.5.0 does not change; the newest listed stable is 0.50.9 (Fallout asks for 0.50.1). Checked 15 Nov 2026. -->
     <!-- renovate: datasource=nuget depName=SharpCompress -->
     <SharpCompressVersion>0.51.0-beta.174</SharpCompressVersion>
     <!-- renovate: datasource=nuget depName=YamlDotNet -->

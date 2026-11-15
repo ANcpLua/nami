@@ -6,6 +6,7 @@ using OpenTelemetry.Proto.Collector.Metrics.V1;
 namespace Nami.Grpc;
 
 internal sealed class MetricsServiceImpl(INamiStore store, IOptions<OtlpApiKeyOptions>? options = null)
+    : OtlpExportService
 {
     public Task<ExportMetricsServiceResponse> Export(
         ExportMetricsServiceRequest request,
