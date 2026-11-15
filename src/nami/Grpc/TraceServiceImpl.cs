@@ -6,6 +6,7 @@ using OpenTelemetry.Proto.Collector.Trace.V1;
 namespace Nami.Grpc;
 
 internal sealed class TraceServiceImpl(INamiStore store, IOptions<OtlpApiKeyOptions>? options = null)
+    : OtlpExportService
 {
     public Task<ExportTraceServiceResponse> Export(
         ExportTraceServiceRequest request,
