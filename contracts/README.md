@@ -8,12 +8,14 @@ the package entry-point reference in
 `../.agents/skills/nami-contract-models/references/typespec-packages.json`.
 The equivalent repository tasks are `mise run typespec:check` and `mise run typespec:update`.
 
-The maintained set includes the compiler/core emitters and the optional Protobuf,
-GraphQL, Streams, SSE, Events, REST and Versioning packages. Required TypeSpec peers
-are resolved with them, and their version constraints must agree before installation.
-Installing a package does not activate its emitter or change Nami's transport.
-Preview package status is separate from the npm tag: `latest` can point to a `0.x`
-preview package. Pass `--tag <name>` to check another channel for one run.
+The maintained set is what the contract build uses: the compiler, the HTTP and OpenAPI
+libraries and the OpenAPI 3 and JSON Schema emitters, plus Versioning for the versioned
+views described under "Contract generation". Required TypeSpec peers are resolved with
+them, and their version constraints must agree before installation. A package joins the
+set when a `.tsp` file, `tspconfig.yaml` or an in-repo emitter starts to use it, in both
+`typespec-packages.json` and `package.json`; installing it does not activate its emitter or
+change Nami's transport. Preview package status is separate from the npm tag: `latest` can
+point to a `0.x` preview package. Pass `--tag <name>` to check another channel for one run.
 
 The updater fetches one small version document per package, with at most six concurrent
 requests, conditional ETag/Last-Modified requests when supported, and one cache entry per
