@@ -14,6 +14,6 @@ public sealed class ToolchainPinTests(TestContext context)
             ProcessRunner.RepositoryRoot, context.CancellationToken);
         Assert.AreEqual(0, result.ExitCode, result.Output + result.Error);
         Assert.Contains("test_toolchain_pins_agree", result.Error);
-        Assert.MatchesRegex(@"Ran [1-9][0-9]* tests", result.Error);
+        Assert.MatchesRegex(@"Ran [1-9][0-9]* tests? in ", result.Error);
     }
 }
