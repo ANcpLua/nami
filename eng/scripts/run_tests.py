@@ -131,6 +131,43 @@ def project_state(dotnet, project, configuration, directory, root):
     return state
 
 
+LANE_CATEGORY = re.compile(r"^[A-Za-z][A-Za-z0-9]*$")
+
+
+def lanes_of(manifest, suites):
+    """The test lanes of eng/test-suites.json (plan rule 14), checked: each names one suite and one plain category."""
+    lanes = manifest.get("lanes", {})
+    for name, lane in lanes.items():
+        if lane.get("suite") not in suites:
+            raise HarnessError(f"Test lane {name} names suite {lane.get('suite')!r}; expected one of {', '.join(suites)}.")
+        if not LANE_CATEGORY.fullmatch(str(lane.get("category", ""))):
+            raise HarnessError(f"Test lane {name} needs a plain MSTest category of letters and digits.")
+        if not isinstance(lane.get("minimumExpectedTests"), int) or lane["minimumExpectedTests"] < 1:
+            raise HarnessError(f"Test lane {name} needs its own floor of at least one test.")
+    return lanes
+
+
+def selection(manifest, suite, lane=None, user_filter=None):
+    """The MTP filter, floor and timeout of one suite run.
+
+    A lane run selects the lane's category against the lane's own floor and timeout. A normal run leaves out the
+    category of every lane that lives in the suite, so the gate never runs lane tests and the suite floor counts gate
+    tests only. A --filter still proves no floor (rule 8): the floor drops to one, and the lane exclusion stays.
+    """
+    lanes = manifest.get("lanes", {})
+    if lane is not None:
+        settings = lanes[lane]
+        parts = [f"TestCategory={settings['category']}"]
+    else:
+        settings = manifest[suite]
+        parts = [f"TestCategory!={entry['category']}" for _, entry in sorted(lanes.items()) if entry["suite"] == suite]
+    floor, timeout = settings["minimumExpectedTests"], settings["timeout"]
+    if user_filter:
+        parts = [f"({user_filter})", *parts] if parts else [user_filter]
+        floor = 1
+    return ("&".join(parts) or None), floor, timeout
+
+
 def read_results(directory):
     files = sorted(directory.glob("*.trx"))
     if not files:
@@ -164,6 +201,7 @@ def main():
     parser.add_argument("--root", type=Path, required=True, help=argparse.SUPPRESS)
     parser.add_argument("--dotnet", required=True, help=argparse.SUPPRESS)
     parser.add_argument("--suite", choices=("All", "Unit", "Integration", "EndToEnd"), default="All")
+    parser.add_argument("--lane", help="Run one test lane of eng/test-suites.json alone, against its own floor.")
     parser.add_argument("--configuration", default="Release")
     parser.add_argument("--no-build", action="store_true")
     parser.add_argument("--no-restore", action="store_true")
@@ -187,9 +225,24 @@ def main():
         return 10
     manifest = json.loads((root / "eng/test-suites.json").read_text())
     order = ("Unit", "Integration", "EndToEnd")
-    if set(manifest) != set(order):
+    if set(manifest) - {"lanes"} != set(order):
         raise SystemExit("The suite manifest must define Unit, Integration and EndToEnd exactly once.")
-    selected = list(order) if args.suite == "All" else [args.suite]
+    try:
+        lanes = lanes_of(manifest, order)
+    except HarnessError as error:
+        print(f"TEST SETUP FAILED: {error}", file=sys.stderr)
+        return 10
+    if args.lane is not None:
+        if args.lane not in lanes:
+            print(f"TEST SETUP FAILED: unknown test lane {args.lane!r}; eng/test-suites.json defines: "
+                  f"{', '.join(sorted(lanes)) or 'none'}.", file=sys.stderr)
+            return 10
+        if args.suite != "All":
+            print("TEST SETUP FAILED: --lane selects its own suite; leave out --suite.", file=sys.stderr)
+            return 10
+        selected = [lanes[args.lane]["suite"]]
+    else:
+        selected = list(order) if args.suite == "All" else [args.suite]
     if "EndToEnd" in selected:
         runtime_paths = [str(Path(resolve(root, name)).parent) for name in ("bun", "node")]
         os.environ["PATH"] = os.pathsep.join([*runtime_paths, os.environ.get("PATH", "")])
@@ -208,15 +261,16 @@ def main():
     if os.name != "nt":
         os.environ["NAMI_ARTIFACT_LEASE_FD"] = str(owned_run.lease.fileno())
     summary = {"status": "RUNNING", "directory": str(run), "configuration": args.configuration,
-               "requested": selected, "filtered": bool(args.filter), "suites": []}
+               "requested": selected, "lane": args.lane, "filtered": bool(args.filter), "suites": []}
     if (root / ".git").exists():
         summary["context"] = {"source": sources(root)}
     if not nested:
         (base / "current/summary.json").write_text(json.dumps(summary, indent=2))
-    print(f"TEST RUN: suites={','.join(selected)} configuration={args.configuration}\nResults: current tests (mise diagnostics)", flush=True)
+    lane_text = f" lane={args.lane}" if args.lane else ""
+    print(f"TEST RUN: suites={','.join(selected)}{lane_text} configuration={args.configuration}\nResults: current tests (mise diagnostics)", flush=True)
     try:
         if not args.no_build and not args.test_modules:
-            target = root / ("nami.slnx" if args.suite == "All" else manifest[args.suite]["project"])
+            target = root / ("nami.slnx" if len(selected) > 1 else manifest[selected[0]]["project"])
             command = [args.dotnet, "build", str(target), "-c", args.configuration, f"-maxcpucount:{workers}", "-nodeReuse:false", "-p:UseSharedCompilation=false", f"-bl:{run}/build-{{}}.binlog"]
             if args.no_restore:
                 command.append("--no-restore")
@@ -254,7 +308,7 @@ def main():
             directory = run / name
             directory.mkdir()
             project = root / settings["project"]
-            minimum = 1 if args.filter else settings["minimumExpectedTests"]
+            test_filter, minimum, timeout = selection(manifest, name, args.lane, args.filter)
             if args.test_modules:
                 matches = [path for path in module_files if path.name == project.stem + ".dll"]
                 if len(matches) != 1:
@@ -277,12 +331,14 @@ def main():
             command += ["--max-parallel-test-modules", "1", "--minimum-expected-tests", str(minimum),
                         "--output", settings["verbosity"], "--show-test-results", display["show-test-results"],
                         "--no-ansi", "--no-progress",
-                        "--timeout", settings["timeout"], "--report-trx", "--results-directory", str(directory),
+                        "--timeout", timeout, "--report-trx", "--results-directory", str(directory),
                         "--config-file", str(config), "--diagnostic", "--diagnostic-verbosity", "Information",
                         "--diagnostic-output-directory", str(directory / "diagnostics")]
-            if args.filter:
-                command += ["--filter", args.filter]
-            print(f"TEST SUITE: {name} minimum={minimum}; status: ./eng/test.sh --status current", flush=True)
+            if test_filter:
+                command += ["--filter", test_filter]
+            left_out = sorted(lane for lane, entry in lanes.items() if entry["suite"] == name and lane != args.lane)
+            scope = f" lane={args.lane}" if args.lane else f" without test lanes {','.join(left_out)}" if left_out else ""
+            print(f"TEST SUITE: {name}{scope} minimum={minimum}; status: ./eng/test.sh --status current", flush=True)
             code = execute(command, directory / "test.log", root,
                            progress=lambda: f"TEST WAIT {name}: {test_status(directory)}; status: ./eng/test.sh --status current")
             try:
@@ -290,7 +346,8 @@ def main():
             except (HarnessError, ET.ParseError, ValueError) as error:
                 print(f"TEST REPORT FAILED: {error}", file=sys.stderr)
                 return finish(summary, code or 10)
-            summary["suites"].append({"suite": name, "minimum": minimum, "exitCode": code, **counts, "tests": names})
+            summary["suites"].append({"suite": name, "minimum": minimum, "filter": test_filter, "exitCode": code,
+                                      **counts, "tests": names})
             print(f"TEST RESULT {name}: Passed: {counts['passed']}, Failed: {counts['failed']}, Skipped: {counts['skipped']}, Total: {counts['total']}, Exit: {code}", flush=True)
             if code:
                 return finish(summary, code)
