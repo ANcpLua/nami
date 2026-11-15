@@ -254,3 +254,15 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `db.client.cosmosdb.operation.request_charge` | histogram | `{request_unit}` | development | Replaced by `azure.cosmosdb.client.operation.request_charge`. | Deprecated, use `azure.cosmosdb.client.operation.request_charge` instead. |
 | `db.client.operation.duration` | histogram | `s` | stable |  | Duration of database client operations. |
 | `db.client.response.returned_rows` | histogram | `{row}` | development |  | The actual number of records returned by the database operation. |
+
+## Events
+
+| Name | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+| `db.client.operation.exception` | development |  | This event represents an exception that occurred during a database client operation, such as connection failures, query errors, timeouts, or other errors that prevent the operation from completing successfully. |
+
+## Spans
+
+| Type | Kind | Stability | Deprecated | Brief |
+| --- | --- | --- | --- | --- |
+| `db.client` | client | stable |  | This span describes database client call. |

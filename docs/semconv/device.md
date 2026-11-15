@@ -15,3 +15,9 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Name | Instrument | Unit | Stability | Deprecated | Brief |
 | --- | --- | --- | --- | --- | --- |
+
+## Events
+
+| Name | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+| `device.app.lifecycle` | development |  | This event represents an occurrence of a lifecycle transition on Android or iOS platform. |

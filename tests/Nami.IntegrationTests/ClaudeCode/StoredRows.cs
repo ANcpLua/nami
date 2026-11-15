@@ -20,6 +20,26 @@ internal static class StoredRows
         return names;
     }
 
+    /// <summary>The rows of a query over the file, each column read as text; a NULL stays null.</summary>
+    internal static IReadOnlyList<string?[]> Rows(string path, string sql, params string[] parameters)
+    {
+        using var connection = Open(path);
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        foreach (var parameter in parameters) command.Parameters.Add(new DuckDBParameter { Value = parameter });
+        using var reader = command.ExecuteReader();
+        var rows = new List<string?[]>();
+        while (reader.Read())
+        {
+            var row = new string?[reader.FieldCount];
+            for (var column = 0; column < row.Length; column++)
+                row[column] = reader.IsDBNull(column) ? null : Convert.ToString(reader.GetValue(column), CultureInfo.InvariantCulture);
+            rows.Add(row);
+        }
+
+        return rows;
+    }
+
     /// <summary>
     ///     The rows that contain <paramref name="marker" />, per <c>table.column</c>, over every column of every table
     ///     in the file, each read as text; a column without such a row is left out.
