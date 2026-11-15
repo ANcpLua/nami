@@ -1,8 +1,9 @@
 # Claude Code OTLP captures, scrubbed
 
 Two captures of the OTLP/HTTP export bodies that the Claude Code CLI 2.1.325 sent to a local
-sink on 15 Nov 2026, scrubbed. No test reads these files yet. They are input for the M2 design
-and for the fixture test of finish-line item 6.
+sink on 15 Nov 2026, scrubbed. They are input for the M2 design and for the fixture tests of
+finish-line item 6: `tests/Nami.IntegrationTests/ClaudeCode/ClaudeCodeIngestTests.cs` posts them to
+nami's OTLP/HTTP ingest and reads the stored rows back.
 
 | Folder | Captured on | Sessions | What it shows |
 | --- | --- | --- | --- |
@@ -134,7 +135,8 @@ between the `api_request` events, `claude_code.token.usage` and the CLI's result
 
 - A log record's event name is in its body (`claude_code.tool_result`) and in the attribute
   `event.name` (`tool_result`). The OTLP `event_name` field is empty and severity is unset;
-  nami's converter reads only `event_name` today. Startup events carry no trace context; the
+  nami's converter takes the name from `event_name` and, when that is empty, from the deprecated
+  `event.name` attribute; it does not read the body. Startup events carry no trace context; the
   others carry the trace and span id of the interaction or tool span they belong to.
 - `gen_ai.agent.name` is a resource attribute and is also copied onto every data point, log
   record and span, next to `session.id`, `user.id`, `user.email`, `user.account_uuid`,
