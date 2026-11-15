@@ -22,6 +22,10 @@ Mapping: `/health` probes that fail to connect are not host events; the engine's
 renumbered from 1 in the order the engine received them; `mcp-engine.ts` ends on end of input
 unless its mode ignores it.
 
+Transitions the accepted traces exercise: host 13 of 16 events (not `stdinError`,
+`startupTimeout`, `externalKill`); engine 7 of 9 (not `eofPartial`, `stop`); system all 5.
+Line coverage of the runs was not measured.
+
 One trace was first rejected: `busy` ended with exit code 1 after SIGTERM where the model
 predicted 0. Bun ends a process with code 1 once a `fetch` handler has thrown, even after a
 clean shutdown; `St.threw` models that now, and the trace is accepted.
@@ -178,5 +182,13 @@ def auditorRace : List System.Ev :=
 set_option maxRecDepth 20000 in
 theorem auditorRace_accepted :
     (System.run System.init auditorRace).map systemObs = some (.faulted, 32, 0) := by decide
+
+/-- `decode_probe.py deep` and `surrogate`: one call frame as engine.ts writes it for
+arguments nested 70 deep, and for a lone surrogate in `traceparent`. Run: no reply, exit -6
+(`JsonReaderException` depth 64; `InvalidOperationException` missing low surrogate). -/
+def undecodable : List System.Ev := [.host (.requestTool true), .deliverUndecodable]
+
+theorem undecodable_accepted :
+    (System.run System.init undecodable).map systemObs = some (.faulted, 1, 0) := by decide
 
 end NamiProofs.HostEngine.Traces
