@@ -33,6 +33,15 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     private const string PassingTestRun = "toolu_01FIXTURE000000000000004";
     private const string TruncationMarker = "...[truncated]";
 
+    private static readonly string[] s_primitiveKinds = ["boolean", "double", "int", "string"];
+    private static readonly string[] s_persistedDetails = ["bash_command", "file_path", "full_command"];
+    private static readonly string[] s_droppedDetails = ["error", "tool_parameters"];
+    private static readonly string[] s_liftedMembers = ["bash_command", "full_command", "subagent_type"];
+    private static readonly string[] s_droppedMembers = ["tool_parameters", "description", "git_commit_id", "git_branch", "tool_input"];
+    private static readonly string[] s_toolEvents = ["claude_code.tool_decision", "claude_code.tool_result"];
+    private static readonly string[] s_detailColumns = ["spans.attributes_json", "spans.events_json"];
+    private static readonly string[] s_attributeTables = ["logs", "spans", "metric_series"];
+
     /// <summary>
     ///     Claude Code names each event only in the <c>event.name</c> attribute (<c>tool_result</c>) and in the body
     ///     (<c>claude_code.tool_result</c>); the OTLP <c>event_name</c> field is empty on all 95 records of both captures.
@@ -90,7 +99,7 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
         }
 
         Assert.IsEmpty(mismatches, string.Join(Environment.NewLine, mismatches.Distinct(StringComparer.Ordinal)));
-        Assert.AreSequenceEqual(new[] { "boolean", "double", "int", "string" }, kinds.Keys.ToArray(),
+        Assert.AreSequenceEqual(s_primitiveKinds, kinds.Keys.ToArray(),
             "the capture exercises all four primitive types");
 
         // The marked values, by event: each of the 16 tool results, 4 prompts and 13 loaded plugins of the signed-in
@@ -127,17 +136,15 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
 
         var sent = SentToolParameters();
         Assert.HasCount(14, sent, "7 tool_decision and 7 tool_result events of the capture carry tool_parameters");
-        string[] lifted = ["bash_command", "full_command", "subagent_type"];
-        string[] dropped = ["tool_parameters", "description", "git_commit_id", "git_branch", "tool_input"];
-        foreach (var name in new[] { "claude_code.tool_decision", "claude_code.tool_result" })
+        foreach (var name in s_toolEvents)
         {
             var stored = AttributesOfEvents(path, name);
             Assert.HasCount(16, stored, name);
-            Assert.IsEmpty(stored.SelectMany(Keys).Where(dropped.Contains).Distinct().ToArray(), name);
+            Assert.IsEmpty(stored.SelectMany(Keys).Where(s_droppedMembers.Contains).Distinct().ToArray(), name);
             foreach (var json in stored)
             {
                 var call = Text(json, "tool_use_id") ?? throw new InvalidDataException("A tool event without tool_use_id.");
-                foreach (var key in lifted)
+                foreach (var key in s_liftedMembers)
                 {
                     var expected = sent.TryGetValue((name, call), out var members) && members.TryGetProperty(key, out var member)
                         ? member.GetString()
@@ -224,9 +231,8 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     {
         var path = await IngestPlantedCaptureAsync();
 
-        string[] persisted = ["bash_command", "file_path", "full_command"];
-        Assert.AreSequenceEqual(persisted, ClaudeCodeContent.DetailKeys.Where(RegistryPolicy.IsPersisted).ToArray());
-        Assert.AreSequenceEqual(new[] { "error", "tool_parameters" },
+        Assert.AreSequenceEqual(s_persistedDetails, ClaudeCodeContent.DetailKeys.Where(RegistryPolicy.IsPersisted).ToArray());
+        Assert.AreSequenceEqual(s_droppedDetails,
             ClaudeCodeContent.DetailKeys.Where(static key => !RegistryPolicy.IsPersisted(key)).ToArray());
         foreach (var key in ClaudeCodeContent.DetailKeys)
         {
@@ -235,7 +241,7 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
             if (RegistryPolicy.IsPersisted(key))
             {
                 Assert.IsNotEmpty(stored, key + " is persisted, so its planted value is stored");
-                Assert.IsEmpty(stored.Keys.Except(["spans.attributes_json", "spans.events_json"]).ToArray(),
+                Assert.IsEmpty(stored.Keys.Except(s_detailColumns).ToArray(),
                     $"{key} is stored outside the attributes it was sent in: " + Excerpts(path, stored, marker));
             }
             else
@@ -280,7 +286,7 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     /// <summary>Every stored attribute object of the project: events, spans, span events and links, metric series.</summary>
     private static IEnumerable<(string Source, string Json)> StoredAttributes(string path)
     {
-        foreach (var table in new[] { "logs", "spans", "metric_series" })
+        foreach (var table in s_attributeTables)
         {
             foreach (var row in StoredRows.Rows(path,
                          $"SELECT attributes_json FROM {table} WHERE project_id = $1 AND attributes_json IS NOT NULL", Project))
@@ -336,7 +342,7 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
         {
             AttributeValue.StringValue => "string",
             AttributeValue.BoolValue => "boolean",
-            AttributeValue.ArrayValue array => Kind(array.Value.FirstOrDefault()) + "[]",
+            AttributeValue.ArrayValue array => Kind(array.Value.Count is 0 ? null : array.Value[0]) + "[]",
             AttributeValue.ObjectValue item => item.Value switch
             {
                 AttributeIntValue => "int",
