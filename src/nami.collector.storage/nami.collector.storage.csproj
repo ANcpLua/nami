@@ -3,7 +3,6 @@
        explicitly reference the same pinned driver to verify physical schema and failure boundaries. -->
   <PropertyGroup>
     <RootNamespace>Nami.Collector.Storage</RootNamespace>
-    <LangVersion>preview</LangVersion>
     <IsAotCompatible>true</IsAotCompatible>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
