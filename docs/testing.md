@@ -74,12 +74,19 @@ baseline is tied to code commit `00523cc`; it is not a fresh result for later so
 
 ## Toolchain versions
 
-The compilers the product is built with, and where each version is set. Bun, Node.js and Weaver
-are pinned in `mise.toml` only.
+The compilers the product is built with, and where each version is set. `mise.toml` installs
+Bun 1.4.4, Node.js 24.22.3 and Weaver 0.28.0 for the repository commands, and Node.js is pinned
+there only. Bun and Weaver are pinned in more places, which move together with `mise.toml`:
+
+- Bun: the image of the container's MCP build stage (`oven/bun:1.4.4`, `src/nami/Dockerfile:1`),
+  and its type definitions (`@types/bun` in `src/nami.mcp/package.json`).
+- Weaver: `WEAVER_VERSION` in `registry/generate.py`, which refuses any other `weaver --version`;
+  the `weaver` entry of `registry/source-pins.json`; and the installed-tool path in
+  `tests/Nami.IntegrationTests/RegistryGateTests.cs`.
 
 | Item | Version | Set in |
 | --- | --- | --- |
-| .NET SDK | 11.0.100 | `global.json` (`rollForward: disable`) and `mise.toml`, which must agree |
+| .NET SDK | 11.0.100 | `global.json` (`rollForward: disable`) and `mise.toml`, which must agree; the container builds with `mcr.microsoft.com/dotnet/sdk:11.0.100` and runs on `runtime-deps:11.0.0`, the runtime of `DotNetRuntimeVersion` in `Version.props` (`src/nami/Dockerfile:8` and `:14`) |
 | C# language version, every C# project | `preview`: C# 15 plus the features this compiler still marks as preview; the SDK's default is 15.0 | `LangVersion` in `Directory.Build.props`, repeated in the ingestion and storage projects |
 | Roslyn inside the SDK | 5.12.0-1.26529.118 | ships with SDK 11.0.100 (`csc -version`); it compiles every project and runs the DuckDB generator |
 | Roslyn the DuckDB generator compiles against | 5.9.0 | `RoslynVersion` in `Version.props`, the `Microsoft.CodeAnalysis.CSharp` reference of `internal/nami.collector.storage.generators` |
