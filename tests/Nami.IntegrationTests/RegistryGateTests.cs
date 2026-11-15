@@ -528,6 +528,43 @@ public sealed partial class RegistryGateTests(TestContext context)
         Assert.DoesNotContain("Unexpected upstream", result.Error);
     }
 
+    /// <summary>
+    ///     registry/generate.py accepts the pins only when the first CHANGELOG section names both commits, so that
+    ///     section is the entry of the pinned registry. When a pin differs from the release before, the same section
+    ///     must carry the summary of <c>weaver registry diff</c> against that release.
+    /// </summary>
+    [TestMethod]
+    public void CurrentPins_ChangedSincePreviousRelease_RecordTheRegistryDiff()
+    {
+        var sections = File.ReadAllText(Path.Combine(Root, "registry/CHANGELOG.md")).Split("\n## ");
+        Assert.IsGreaterThan(2, sections.Length, "Expected the current and a previous release in the CHANGELOG.");
+        var current = sections[1];
+        var previous = sections[2];
+        Assert.Contains(RegistryInfo.CoreCommit, current);
+        Assert.Contains(RegistryInfo.GenAiCommit, current);
+        var version = ReleaseVersion().Match(current).Groups["version"].Value;
+        var baseline = ReleaseVersion().Match(previous).Groups["version"].Value;
+        Assert.AreNotEqual("", version);
+        Assert.AreNotEqual("", baseline);
+        var changed = new[] { ("core", RegistryInfo.CoreCommit), ("genai", RegistryInfo.GenAiCommit) }
+            .Where(pin => !previous.Contains(pin.Item2, StringComparison.Ordinal))
+            .Select(static pin => pin.Item1 + " " + pin.Item2).ToArray();
+        if (changed.Length == 0)
+        {
+            context.WriteLine($"Registry {version} keeps the pins of {baseline}; no registry diff is due.");
+            return;
+        }
+
+        var pins = string.Join(", ", changed);
+        var entries = RegistryDiffEntry().Matches(current);
+        Assert.HasCount(1, entries,
+            $"Registry {version} moved {pins} since {baseline}; its CHANGELOG entry needs one `weaver registry diff` summary.");
+        Assert.AreEqual(baseline, entries[0].Groups["baseline"].Value,
+            $"Registry {version} moved {pins}; the `weaver registry diff` summary must compare against {baseline}.");
+        Assert.MatchesRegex(@"\d", entries[0].Groups["summary"].Value,
+            $"The `weaver registry diff` summary of registry {version} ({pins}) names no counts.");
+    }
+
     [TestMethod]
     [Timeout(60000, CooperativeCancellation = true)]
     public async Task A2aMigrationExceptions_RequireExactPinnedSource()
@@ -639,4 +676,12 @@ public sealed partial class RegistryGateTests(TestContext context)
 
     [GeneratedRegex(@"\berror ([A-Z]+\d+)\b", RegexOptions.CultureInvariant)]
     private static partial Regex CompilerError();
+
+    [GeneratedRegex(@"\A(?<version>\d+\.\d+\.\d+)\b", RegexOptions.CultureInvariant)]
+    private static partial Regex ReleaseVersion();
+
+    // One bullet of a release: from its marker to the next bullet or the end of the section.
+    [GeneratedRegex(@"^- `weaver registry diff` against (?<baseline>\d+\.\d+\.\d+):(?<summary>(?:(?!^- ).)*)",
+        RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Singleline)]
+    private static partial Regex RegistryDiffEntry();
 }
