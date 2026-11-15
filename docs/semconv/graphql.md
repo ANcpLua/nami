@@ -22,3 +22,9 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Name | Instrument | Unit | Stability | Deprecated | Brief |
 | --- | --- | --- | --- | --- | --- |
+
+## Spans
+
+| Type | Kind | Stability | Deprecated | Brief |
+| --- | --- | --- | --- | --- |
+| `graphql.server` | server | development |  | This span represents an incoming operation on a GraphQL server implementation. |

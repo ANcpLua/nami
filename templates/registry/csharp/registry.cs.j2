@@ -10,8 +10,11 @@ public enum Stability { Unknown, Stable, Development, Deprecated, Alpha, Beta, R
 public enum Instrument { Counter, UpDownCounter, Gauge, Histogram }
 public sealed record MetricDefinition(string Name, string Unit, Instrument Instrument, Stability Stability);
 public sealed record SpanDefinition(string Id, string Type, string Kind, Stability Stability, IReadOnlyList<string> RequiredAttributes);
+public sealed record EventDefinition(string Name, Stability Stability);
 
-public sealed record AttributeDefinition(string Key, string Type, Stability Stability, bool IsPersisted, bool IsTokenExempt, string SourceSchema, string? Successor);
+// Producer: the sender nami describes a key for when the key is that sender's own, such as
+// claude_code for Claude Code's keys; null for the keys of the semantic conventions and nami.
+public sealed record AttributeDefinition(string Key, string Type, Stability Stability, bool IsPersisted, bool IsTokenExempt, string SourceSchema, string? Successor, string? Producer);
 
 public static class RegistryInfo
 {
@@ -28,7 +31,7 @@ public static class AttributeCatalog
     private static readonly AttributeDefinition[] Definitions =
     [
 {% for a in ctx.attributes %}
-        new({{ a.json }}, {{ a.type_json }}, Stability.{{ a.cs_stability }}, {{ "true" if a.persisted else "false" }}, {{ "true" if a.token_exempt else "false" }}, {{ a.source_json }}, {{ a.successor }}),
+        new({{ a.json }}, {{ a.type_json }}, Stability.{{ a.cs_stability }}, {{ "true" if a.persisted else "false" }}, {{ "true" if a.token_exempt else "false" }}, {{ a.source_json }}, {{ a.successor }}, {{ a.producer_json }}),
 {% endfor %}
     ];
     private static readonly FrozenDictionary<string, AttributeDefinition> ByKey =
@@ -49,6 +52,33 @@ public static class RegistryPolicy
 {
     public static bool IsPersisted(string key) => AttributeCatalog.Find(key)?.IsPersisted == true;
     public static bool IsTokenExempt(string key) => AttributeCatalog.Find(key)?.IsTokenExempt == true;
+    public static string? ProducerOf(string key) => AttributeCatalog.Find(key)?.Producer;
+}
+
+// The instrumentation scopes a producer's signals arrive under. A key whose definition names a
+// producer means what the registry says only on records from these scopes.
+public static class Producers
+{
+    public static FrozenDictionary<string, IReadOnlyList<string>> Scopes { get; } =
+        new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
+        {
+{% for producer in ctx.producer_scopes %}
+            [{{ producer.json }}] = Array.AsReadOnly(new string[] { {{ producer.scopes | join(", ") }} }),
+{% endfor %}
+        }.ToFrozenDictionary(StringComparer.Ordinal);
+}
+
+// Keys a producer sends inside a JSON string attribute, by that attribute. The container is
+// never persisted; ingest lifts these members out of it and drops the rest.
+public static class WireContainers
+{
+    public static FrozenDictionary<string, IReadOnlyList<string>> Members { get; } =
+        new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
+        {
+{% for container in ctx.wire_containers %}
+            [{{ container.json }}] = Array.AsReadOnly(new string[] { {{ container.members | join(", ") }} }),
+{% endfor %}
+        }.ToFrozenDictionary(StringComparer.Ordinal);
 }
 public static class AttributeStability
 {
@@ -137,6 +167,26 @@ public static class Spans
         public const string Name = {{ span.json }};
         public const string Kind = "{{ span.kind }}";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { {{ span.required | join(", ") }} });
+    }
+{% endfor %}
+}
+
+public static class Events
+{
+    public static IReadOnlyList<EventDefinition> All { get; } = Array.AsReadOnly(new EventDefinition[]
+    {
+{% for event in ctx.events %}
+        new({{ event.json }}, Stability.{{ event.stability }}),
+{% endfor %}
+    });
+{% for event in ctx.events %}
+{% if event.obsolete %}
+    [Obsolete({{ event.obsolete }})]
+{% endif %}
+    public static class {{ event.name }}
+    {
+        public const string Name = {{ event.json }};
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.{{ event.stability }};
     }
 {% endfor %}
 }

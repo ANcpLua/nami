@@ -53,3 +53,9 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | --- | --- | --- | --- | --- | --- |
 | `azure.cosmosdb.client.active_instance.count` | updowncounter | `{instance}` | development |  | Number of active client instances. |
 | `azure.cosmosdb.client.operation.request_charge` | histogram | `{request_unit}` | development |  | [Request units](https://learn.microsoft.com/azure/cosmos-db/request-units) consumed by the operation. |
+
+## Events
+
+| Name | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+| `azure.resource.log` | development |  | Describes Azure Resource Log event, see [Azure Resource Log Top-level Schema](https://learn.microsoft.com/azure/azure-monitor/essentials/resource-logs-schema#top-level-common-schema) for more details. |

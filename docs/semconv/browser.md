@@ -52,3 +52,9 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Name | Instrument | Unit | Stability | Deprecated | Brief |
 | --- | --- | --- | --- | --- | --- |
+
+## Events
+
+| Name | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+| `browser.web_vital` | development |  | This event describes the website performance metrics introduced by Google, See [web vitals](https://web.dev/vitals). |

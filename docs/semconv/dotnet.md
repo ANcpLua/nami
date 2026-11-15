@@ -41,3 +41,13 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `dotnet.thread_pool.thread.count` | updowncounter | `{thread}` | stable |  | The number of thread pool threads that currently exist. |
 | `dotnet.thread_pool.work_item.count` | counter | `{work_item}` | stable |  | The number of work items that the thread pool has completed since the process has started. |
 | `dotnet.timer.count` | updowncounter | `{timer}` | stable |  | The number of timer instances that are currently active. |
+
+## Spans
+
+| Type | Kind | Stability | Deprecated | Brief |
+| --- | --- | --- | --- | --- |
+| `dotnet.dns.lookup.internal` | internal | development |  | The span describes DNS lookup or reverse lookup performed with one of the methods on [System.Net.Dns](https://learn.microsoft.com/dotnet/api/system.net.dns) class. |
+| `dotnet.http.connection_setup.internal` | internal | development |  | The span describes the establishment of the HTTP connection. It includes the time it takes to resolve the DNS, establish the socket connection, and perform the TLS handshake. |
+| `dotnet.http.request.wait_for_connection.internal` | internal | development |  | The span describes the time it takes for the HTTP request to obtain a connection from the connection pool. |
+| `dotnet.socket.connect.internal` | internal | development |  | The span describes the establishment of the socket connection. |
+| `dotnet.tls.handshake.internal` | internal | development |  | The span describes TLS client or server handshake performed with [System.Net.Security.SslStream](https://learn.microsoft.com/dotnet/api/system.net.security.sslstream). |

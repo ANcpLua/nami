@@ -1,5 +1,66 @@
 # Registry changes
 
+## 0.4.0 — 2026-11-15
+
+- Core: `open-telemetry/semantic-conventions` tag `v1.45.0`, commit
+  `fb30ca17193b551473b1f43c315482918ab6987c` (unchanged, imported through GenAI).
+- GenAI: `open-telemetry/semantic-conventions-genai` commit
+  `e6658f14c9d9ea0760825f029cb82e7673f48fab` (unchanged).
+- Weaver: `0.28.0` (unchanged).
+- Content is no longer persisted (finish-line item 5, engine audit A2). Without an annotation
+  a key is persisted, so these were stored and returned verbatim: the prompt, response and
+  system prompt (`gen_ai.input.messages`, `gen_ai.output.messages`,
+  `gen_ai.system_instructions`), tool calls and definitions (`gen_ai.tool.call.arguments`,
+  `gen_ai.tool.call.result`, `gen_ai.tool.definitions`), retrieval and memory content
+  (`gen_ai.retrieval.documents`, `gen_ai.retrieval.query.text`, `gen_ai.memory.query.text`,
+  `gen_ai.memory.records`), prompt template variables (`gen_ai.prompt.variable.<key>`), and
+  HTTP bodies (`http.request.body.content`, `http.response.body.content`). Each now carries
+  `nami.persisted: false`, so ingest drops it.
+- Claude Code (M2): `registry/source/claude_code/` describes the telemetry of Claude Code
+  2.1.325 as the capture of 15 Nov 2026 shows it (`tests/Nami.IntegrationTests/Fixtures/ClaudeCodeOtlp`)
+  and its monitoring documentation: 8 counters, 12 events, 5 spans and 103 attributes, all
+  development. The attributes keep Claude Code's wire names and carry
+  `nami.producer: claude_code`; code generation groups them in `ClaudeCodeAttributes` and
+  `docs/semconv/claude_code.md`. A type is the type nami stores. Where Claude Code sends
+  another type (`success`, `duration_ms` and the two sizes on `tool_result` as strings,
+  `prompt_length` on `user_prompt`, `safe_mode` on `plugin_loaded`), the signal's reference
+  carries `nami.wire_type: string` and ingest converts. `bash_command` and `subagent_type`
+  arrive inside the `tool_parameters` JSON on `tool_decision` and `tool_result`
+  (`nami.wire_container`); ingest lifts them out and drops the container. Each signal names
+  the instrumentation scope it arrives under (`nami.instrumentation_scope`:
+  `com.anthropic.claude_code`, `.events`, `.tracing`), so ingest can keep Claude Code's
+  unprefixed keys (`model`, `type`, `success`, `source`) to Claude Code's records.
+- Never persisted (finish-line item 5): the prompt and response text (`prompt`,
+  `prompt_text`, `response`, `user_prompt`), `tool_input`, `tool_parameters` as a whole,
+  `full_command`, the raw API bodies (`body`, `body_ref`), the detailed-beta content
+  (`new_context`, `system_reminders`, `system_prompt_preview`, `user_system_prompt`,
+  `response.model_output`), the `tool.output` span event's `content`, `output` and `diff`,
+  and `error` text. Also not persisted: `organization.id`, `anthropic.plan`,
+  `anthropic.custom_base_url`, `terminal.type` and `span.type`.
+- Reused, not redefined: `session.id`, `user.id`, `user.email`, `vcs.ref.head.*` and
+  `error.type` from core; `gen_ai.agent.name`, `gen_ai.conversation.id`,
+  `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`,
+  `gen_ai.response.id`, `gen_ai.response.finish_reasons`, `gen_ai.tool.call.id` and
+  `gen_ai.tool.name` from GenAI. Claude Code's `event.name` is core's deprecated key, whose
+  value belongs in the log record's EventName field. Not defined, so ingest drops them:
+  `user.account_uuid`, `user.account_id`, `event.timestamp`, `link.type` and `gen_ai.system`.
+- Persistence of inherited keys: `session.id` is now persisted (sessions come from it on
+  events, spans and metric points); `user.id` and `user.email` are no longer persisted;
+  `gen_ai.agent.name` is persisted explicitly instead of by default.
+- Policies: a key with `nami.producer` needs a brief, a stability and a persistence
+  annotation, like a `nami.*` key; `nami.wire_type` must be a primitive OTLP type other than
+  the stored type; `nami.wire_container` must name a defined, unpersisted string attribute;
+  a producer's signal must name its `nami.instrumentation_scope`.
+- Generated C#: `AttributeDefinition.Producer`, `RegistryPolicy.ProducerOf`,
+  `Producers.Scopes`, `WireContainers.Members`, and `Events` with an `EventDefinition` per event (deprecated
+  events carry `[Obsolete]`). Markdown: events and spans per namespace, and the attribute
+  table of each producer signal with stored type, wire type, requirement and persistence.
+- Weaver 0.28.0 replaces a definition's annotations with a reference's own annotations
+  instead of merging them, so a signal's entry for `success` on `tool_result` carries
+  `nami.wire_type` but not `nami.persisted`. Persistence is read from the attribute's
+  definition, as the generated policy always did.
+- Advanced the Nami registry schema to 0.4.0. This does not change the product version.
+
 ## 0.3.0 — 2026-11-14
 
 - Core: `open-telemetry/semantic-conventions` tag `v1.45.0`, commit

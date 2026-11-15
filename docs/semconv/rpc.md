@@ -120,3 +120,18 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `rpc.server.requests_per_rpc` | histogram | `{count}` | development | Removed, no replacement at this time. | Measures the number of messages received per RPC. |
 | `rpc.server.response.size` | histogram | `By` | development | Removed, no replacement at this time. | Measures the size of RPC response messages (uncompressed). |
 | `rpc.server.responses_per_rpc` | histogram | `{count}` | development | Removed, no replacement at this time. | Measures the number of messages sent per RPC. |
+
+## Events
+
+| Name | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+| `rpc.client.call.exception` | development |  | This event represents an exception that occurred during an outgoing RPC call, such as network failures, timeouts, serialization errors, or other errors that prevent the call from completing successfully. |
+| `rpc.message` | development | Deprecated, no replacement at this time. | Describes a message sent or received within the context of an RPC call. |
+| `rpc.server.call.exception` | development |  | This event represents an exception that occurred during incoming RPC call processing, such as application errors, internal failures, or other exceptions that prevent the server from successfully handling the call. |
+
+## Spans
+
+| Type | Kind | Stability | Deprecated | Brief |
+| --- | --- | --- | --- | --- |
+| `rpc.call.client` | client | stable |  | This span represents an outgoing Remote Procedure Call (RPC). |
+| `rpc.call.server` | server | stable |  | This span represents an incoming Remote Procedure Call (RPC). |

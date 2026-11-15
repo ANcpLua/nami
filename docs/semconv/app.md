@@ -23,3 +23,12 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Name | Instrument | Unit | Stability | Deprecated | Brief |
 | --- | --- | --- | --- | --- | --- |
+
+## Events
+
+| Name | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+| `app.crash` | development |  | This event represents a termination of a user-facing application due to unrecoverable programming errors such as exceptions or signals that indicate an error has happened at a lower level. |
+| `app.jank` | development |  | This event indicates that the application has detected substandard UI rendering performance. |
+| `app.screen.click` | development |  | This event represents an instantaneous click on the screen of an application. |
+| `app.widget.click` | development |  | This event indicates that an application widget has been clicked. |

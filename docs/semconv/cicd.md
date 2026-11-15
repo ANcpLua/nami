@@ -86,3 +86,10 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `cicd.pipeline.run.errors` | counter | `{error}` | release_candidate |  | The number of errors encountered in pipeline runs (eg. compile, test failures). |
 | `cicd.system.errors` | counter | `{error}` | release_candidate |  | The number of errors in a component of the CI/CD system (eg. controller, scheduler, agent). |
 | `cicd.worker.count` | updowncounter | `{worker}` | release_candidate |  | The number of workers on the CI/CD system by state. |
+
+## Spans
+
+| Type | Kind | Stability | Deprecated | Brief |
+| --- | --- | --- | --- | --- |
+| `cicd.pipeline.run.server` | server | release_candidate |  | This span describes a CI/CD pipeline run. |
+| `cicd.pipeline.task.internal` | internal | release_candidate |  | This span describes task execution in a pipeline run. |
