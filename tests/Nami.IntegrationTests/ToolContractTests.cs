@@ -16,6 +16,8 @@ namespace Nami.IntegrationTests;
 [DependsOn(typeof(IngestStoreTests), nameof(IngestStoreTests.Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
 public sealed class ToolContractTests(TestContext context)
 {
+    private static readonly string[] s_signals = ["traces", "metrics", "logs"];
+
     private static JsonElement Input(string value)
     {
         using var document = JsonDocument.Parse(value);
@@ -55,6 +57,50 @@ public sealed class ToolContractTests(TestContext context)
         }
 
         Assert.IsFalse(result.Content.GetProperty("freshness").GetProperty("complete").GetBoolean());
+    }
+
+    [TestMethod]
+    public async Task SourcesStatus_NoRecords_ReportsEverySignalSilent()
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        var result = Run("sources_status", await store.ReadSnapshotAsync("default", ct: context.CancellationToken));
+        Assert.IsFalse(result.IsError, result.Content.GetRawText());
+        var service = Assert.ContainsSingle(result.Content.GetProperty("services").EnumerateArray().ToArray());
+        var signals = service.GetProperty("signals").EnumerateArray().ToArray();
+        // Each signal is named: an entry that is missing would read as nothing to report, not as silence.
+        Assert.AreSequenceEqual(s_signals, signals.Select(static s => s.GetProperty("signal").GetString()).ToArray());
+        foreach (var signal in signals) AssertSilentForTheWindow(signal);
+    }
+
+    [TestMethod]
+    public async Task SourcesStatus_OneSignalSeen_OthersSilent()
+    {
+        var clock = new FakeTimeProvider(TestData.s_now);
+        await using var store = new DuckDbStore(":memory:", timeProvider: clock);
+        await StorageTestData.SeedLogs(store, OtlpData.Logs(TestData.Nanos(TestData.s_now.AddSeconds(-2))), clock,
+            context.CancellationToken);
+        clock.Advance(TimeSpan.FromSeconds(1));
+        var result = Run("sources_status", await store.ReadSnapshotAsync("default", ct: context.CancellationToken));
+        Assert.IsFalse(result.IsError, result.Content.GetRawText());
+        var service = Assert.ContainsSingle(result.Content.GetProperty("services").EnumerateArray().ToArray());
+        Assert.AreEqual("checkout", service.GetProperty("service").GetString());
+        var signals = service.GetProperty("signals").EnumerateArray().ToArray();
+        Assert.AreSequenceEqual(s_signals, signals.Select(static s => s.GetProperty("signal").GetString()).ToArray());
+        var logs = signals.Single(static s => s.GetProperty("signal").GetString() == "logs");
+        Assert.AreEqual("active", logs.GetProperty("kind").GetString());
+        Assert.AreEqual(TestData.s_now,
+            DateTimeOffset.Parse(logs.GetProperty("last_seen").GetString()!, CultureInfo.InvariantCulture));
+        Assert.IsFalse(logs.TryGetProperty("silent_for", out _), logs.GetRawText());
+        foreach (var signal in signals.Where(static s => s.GetProperty("signal").GetString() != "logs"))
+            AssertSilentForTheWindow(signal);
+    }
+
+    /// <summary>A signal that was never received: silent, without a last receipt, for the whole default window.</summary>
+    private static void AssertSilentForTheWindow(JsonElement signal)
+    {
+        Assert.AreEqual("silent", signal.GetProperty("kind").GetString(), signal.GetRawText());
+        Assert.IsFalse(signal.TryGetProperty("last_seen", out _), signal.GetRawText());
+        Assert.AreEqual("PT1H", signal.GetProperty("silent_for").GetString(), signal.GetRawText());
     }
 
     [TestMethod]
