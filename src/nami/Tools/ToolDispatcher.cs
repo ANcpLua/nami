@@ -104,7 +104,7 @@ internal static class ToolDispatcher
     }
 
     internal static ToolRunResult Error(string code, string message, string? field = null,
-        IReadOnlyList<string>? allowed = null, string? resourceId = null, string? hint = null)
+        IReadOnlyList<string>? allowed = null, string? resourceId = null, string? hint = null, bool retryable = false)
     {
         // Refusals obey the minimum valid response budget too. Echoes are bounded by their
         // encoded JSON bytes, so control characters and non-ASCII cannot bypass the limit.
@@ -113,7 +113,7 @@ internal static class ToolDispatcher
         {
             Code = BoundedEcho(code, 64),
             Message = BoundedEcho(message, 320),
-            Retryable = false,
+            Retryable = retryable,
             Field = field is null ? null : BoundedEcho(field, 128),
             Hint = hint is null ? null : BoundedEcho(hint, 128),
             ResourceType = resourceId is null ? null : field == "trace_id" ? "trace" : "snapshot",

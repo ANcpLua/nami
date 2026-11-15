@@ -39,7 +39,9 @@ summarizes progress, including the outstanding evidence for the Claude connector
 The TypeScript supervisor starts the native engine and owns its private, bounded JSONL streams.
 MCP uses stdio or Streamable HTTP; the engine exposes OTLP. No internal REST analysis endpoint is needed.
 
-Stdio reads the `default` project. For another project, use Streamable HTTP with its project-bound read credential.
+Stdio carries no credential: it works only with `NAMI_OTLP_AUTH_MODE=Unsecured` and reads the `default` project.
+With `NAMI_OTLP_AUTH_MODE=ApiKey`, the default outside Development, the host refuses `--stdio` at start; use
+Streamable HTTP with a project-bound read credential.
 
 ## Connect an agent
 

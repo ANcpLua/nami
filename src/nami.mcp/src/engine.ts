@@ -24,7 +24,10 @@ export class Engine {
   private stopped = false;
   private hasExited = false;
   private shutdown: Promise<void> | undefined;
+  private reportFailed!: (error: Error) => void;
   readonly ready: Promise<EngineResponse>;
+  /** Resolves with the reason once the engine has failed by itself and its process is gone; never after close(). */
+  readonly failed = new Promise<Error>(resolve => { this.reportFailed = resolve; });
 
   constructor(path: string) {
     this.child = spawn(path.endsWith(".dll") ? "dotnet" : path,
@@ -66,7 +69,7 @@ export class Engine {
     tracestate: string | null = null): Promise<EngineResponse> {
     await this.ready;
     if (this.stopped) throw new EngineError("collector_unavailable", "Engine has stopped.");
-    if (this.pending.size >= ENGINE_LIMITS.max_pending) throw new Error("Engine request queue is full.");
+    if (this.pending.size >= ENGINE_LIMITS.max_pending) throw new EngineError("collector_unavailable", "Engine request queue is full.");
     signal?.throwIfAborted();
     const id = String(++this.sequence);
     const request: EngineCommand = method === "health" ? { id, revision: CONTRACT_REVISION, method } : { id, revision: CONTRACT_REVISION, method, name: name ?? "", input, credential, traceparent, tracestate };
@@ -125,7 +128,7 @@ export class Engine {
     this.writesClosed.abort();
     this.rejectPending(error);
     this.child.kill("SIGTERM");
-    void this.close();
+    void this.close().then(() => this.reportFailed(error));
   }
 
   private rejectPending(error: Error): void {

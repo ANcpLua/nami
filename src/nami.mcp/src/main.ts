@@ -3,9 +3,9 @@ import { timingSafeEqual } from "node:crypto";
 import { resolve } from "node:path";
 import { createMcpHandler } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
-import { CONFIG, CONFIG_DEFAULTS } from "./contracts/generated/manifest.js";
-import type { ProjectKeyDocument } from "./contracts/generated/json.js";
-import { Engine } from "./engine.js";
+import { CONFIG, CONFIG_DEFAULTS, CONTRACT_REVISION } from "./contracts/generated/manifest.js";
+import type { HealthReport, ProjectKeyDocument } from "./contracts/generated/json.js";
+import { Engine, EngineError } from "./engine.js";
 import { dnsRebindingResponse, isLoopbackBindHost } from "./http-security.js";
 import { createServer } from "./server.js";
 
@@ -13,8 +13,6 @@ const args = process.argv.slice(2);
 const engineIndex = args.indexOf("--engine");
 const enginePath = engineIndex >= 0 ? args[engineIndex + 1] : undefined;
 if (!enginePath) throw new Error("Pass --engine with the published NativeAOT engine path.");
-const engine = new Engine(resolve(enginePath));
-await engine.ready;
 const stdio = args.includes("--stdio");
 // The host answers /mcp before the engine sees a call, so it repeats two engine rules on purpose: the default mode
 // (CollectorAuthExtensions: Unsecured only in Development; WebApplication.CreateSlimBuilder adds DOTNET_ variables
@@ -23,6 +21,12 @@ const stdio = args.includes("--stdio");
 // so a drift between the copies can refuse a call early but never admit one the engine refuses.
 const environment = process.env.DOTNET_ENVIRONMENT ?? process.env.ASPNETCORE_ENVIRONMENT;
 const mode = process.env[CONFIG.AuthMode] ?? (environment?.toLowerCase() === "development" ? CONFIG_DEFAULTS.AuthMode : "ApiKey");
+// Stdio carries no credential, and in ApiKey mode the engine answers every call without one "unauthorized".
+if (stdio && mode.toLowerCase() === "apikey")
+  throw new Error(`--stdio cannot be used with ${CONFIG.AuthMode}=ApiKey: stdio carries no project key, so every tool call would be refused. `
+    + `Serve Streamable HTTP and send a project's read key in x-otlp-api-key, or set ${CONFIG.AuthMode}=Unsecured for a local engine with the default project.`);
+const engine = new Engine(resolve(enginePath));
+await engine.ready;
 const keyDocument: unknown = JSON.parse(process.env[CONFIG.ProjectKeys] ?? "{}");
 // Engine readiness follows validation of this shared credential configuration.
 const keys = Object.values(keyDocument as ProjectKeyDocument)
@@ -38,7 +42,29 @@ function credential(request: Request): string | null | Response {
     headers: { "WWW-Authenticate": 'x-otlp-api-key realm="nami"' } }) : supplied;
 }
 
-let closeTransport: () => Promise<void>;
+// GET /health always answers with a health report: the engine's own, or this one with 503 when the engine cannot
+// give one because it has stopped, is closing, or already holds its limit of waiting requests.
+function unhealthy(description: string, started: number): Response {
+  const elapsed = performance.now() - started;
+  const report: HealthReport = { status: "unhealthy", total_duration_ms: elapsed, contract_revision: CONTRACT_REVISION,
+    entries: { engine: { status: "unhealthy", description, duration_ms: elapsed } } };
+  return Response.json(report, { status: 503 });
+}
+async function health(signal: AbortSignal): Promise<Response> {
+  const started = performance.now();
+  try {
+    const reply = await engine.request("health", null, null, null, signal);
+    if (!reply.isError) return Response.json(reply.result);
+    const result: unknown = reply.result;
+    return typeof result === "object" && result !== null && "status" in result && "entries" in result
+      ? Response.json(result, { status: 503 }) : unhealthy("The engine refused the health request.", started);
+  } catch (error) {
+    return unhealthy(error instanceof EngineError ? error.message : "The engine is unavailable.", started);
+  }
+}
+
+// Ends the transport: at once, or (force false, HTTP only) after the requests being answered have their answers.
+let closeTransport: (force?: boolean) => Promise<void>;
 if (stdio) {
   const handle = serveStdio(() => createServer(engine), { onerror: report });
   closeTransport = () => handle.close();
@@ -57,21 +83,35 @@ if (stdio) {
   }
   if (!isLoopbackBindHost(hostname) && !publicUrl)
     throw new Error("A non-loopback listener requires NAMI_PUBLIC_URL.");
-  const server = Bun.serve({ hostname, port, async fetch(request) {
-    const url = new URL(request.url);
-    const refused = dnsRebindingResponse(request, [...allowedHosts], [...allowedHosts]);
-    if (refused) return refused;
-    if (url.pathname === "/health") {
-      const reply = await engine.request("health", null, null, null, request.signal);
-      return Response.json(reply.result, { status: reply.isError ? 503 : 200 });
+  // A connection that stays silent is closed after the longest idle time Bun allows (its default of 10 seconds cut
+  // every call that ran longer). A call being served is exempt: its client may wait for the result without a byte
+  // in either direction. Event streams also carry a keep-alive comment every 5 seconds, below the 10 seconds at
+  // which this server used to and many proxies do close a silent stream.
+  // Nothing this listener answers carries a path or a stack: no development error page, and an unexpected
+  // failure is a JSON-RPC internal error.
+  const failure = (status: number, code: number, message: string) =>
+    Response.json({ jsonrpc: "2.0", error: { code, message }, id: null }, { status });
+  const server = Bun.serve({
+    hostname, port, idleTimeout: 255, development: false,
+    error(error) { report(error); return failure(500, -32603, "Internal error."); },
+    async fetch(request, listener) {
+      // Host and Origin are judged before the URL is read: with a malformed Host header the URL does not parse.
+      let url: URL;
+      try {
+        const refused = dnsRebindingResponse(request, [...allowedHosts], [...allowedHosts]);
+        if (refused) return refused;
+        url = new URL(request.url);
+      } catch { return failure(400, -32600, "Invalid Host header or request target."); }
+      if (url.pathname === "/health") return health(request.signal);
+      if (url.pathname !== "/mcp") return new Response(null, { status: 404 });
+      const access = credential(request);
+      if (access instanceof Response) return access;
+      listener.timeout(request, 0);
+      // Stateless factory: both modern discovery and legacy initialize use the official SDK.
+      return createMcpHandler(() => createServer(engine, access), { onerror: report, keepAliveMs: 5000 }).fetch(request);
     }
-    if (url.pathname !== "/mcp") return new Response(null, { status: 404 });
-    const access = credential(request);
-    if (access instanceof Response) return access;
-    // Stateless factory: both modern discovery and legacy initialize use the official SDK.
-    return createMcpHandler(() => createServer(engine, access), { onerror: report }).fetch(request);
-  } });
-  closeTransport = async () => { await server.stop(true); };
+  });
+  closeTransport = async (force = true) => { await server.stop(force); };
 }
 let closing = false;
 async function close() {
@@ -80,8 +120,26 @@ async function close() {
   await closeTransport();
   await engine.close();
 }
-process.once("SIGINT", () => { void close().catch(report); });
-process.once("SIGTERM", () => { void close().catch(report); });
+// The first signal closes; a second one while that is under way ends the host at once. The handlers stay
+// registered, so the second signal still exits through the "exit" listener that takes the engine with it.
+function stop() {
+  if (closing) process.exit(1);
+  void close().catch(report);
+}
+process.on("SIGINT", stop);
+process.on("SIGTERM", stop);
+// The engine failed by itself. Until its process is gone the host keeps answering: /health with 503, tool calls
+// with collector_unavailable. Then it ends non-zero, so that whatever started it starts both again.
+void engine.failed.then(async (error) => {
+  process.exitCode = 1;
+  console.error("The native engine failed: " + error.message);
+  if (!closing) {
+    closing = true;
+    // The calls this failure rejected are being answered right now: they get their answer, within two seconds.
+    await Promise.race([closeTransport(false), new Promise(resolve => setTimeout(resolve, 2000))]).catch(report);
+  }
+  process.exit(1);
+});
 if (stdio) {
   process.stdin.once("end", () => { void close().catch(report); });
   process.stdin.resume();
