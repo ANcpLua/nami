@@ -14,6 +14,7 @@ internal static class CollectorAuthExtensions
             .Bind(config)
             .ValidateOnStart();
 
+        // src/nami.mcp/src/main.ts repeats this default for /mcp, reading the environment name with the same precedence.
         services.AddOptions<OtlpApiKeyOptions>()
             .Configure(options => options.AuthMode = environment.IsDevelopment()
                 ? OtlpApiKeyOptions.UnsecuredMode
