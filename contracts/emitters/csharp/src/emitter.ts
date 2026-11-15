@@ -21,6 +21,7 @@ import {
   isArrayModelType,
   isRecordModelType,
   navigateProgram,
+  resolveEncodedEnumMemberValue,
   resolveEncodedName,
 } from "@typespec/compiler";
 import { getAllHttpServices, isBody, isBodyRoot, isMetadata } from "@typespec/http";
@@ -587,30 +588,42 @@ function inheritedProperties(model: Model): ModelProperty[] {
   return [...byName.values()];
 }
 
-function renderEnum(_program: Program, enm: Enum): string {
+/**
+ * An enum member's JSON value is the one OpenAPI and JSON Schema publish: since TypeSpec 1.18.0 an
+ * `@encodedName("application/json", ...)` on the member replaces its value or name.
+ */
+function wireValues(program: Program, enm: Enum): Map<EnumMember, string | number> {
+  const values = new Map([...enm.members.values()].map((m) => [m, resolveEncodedEnumMemberValue(program, m, "application/json")] as const));
+  const kinds = new Set([...values.values()].map((value) => typeof value));
+  if (kinds.size > 1) throw new Error(`Enum ${enm.name} mixes number and string JSON values; a C# enum serializes all members one way.`);
+  return values;
+}
+
+function renderEnum(program: Program, enm: Enum): string {
   const enumMembers = [...enm.members.values()];
-  const usesStringValues = enumMembers.some((m) => typeof m.value !== "number");
+  const wire = wireValues(program, enm);
+  const usesStringValues = enumMembers.some((m) => typeof wire.get(m) !== "number");
   const converter = usesStringValues
     ? `[JsonConverter(typeof(global::Nami.Api.Contracts.StringEnumConverter<${enm.name}>))]\n`
     : "";
   const members = enumMembers.map((m) => {
-    const wireValue = typeof m.value === "string" ? m.value : m.name;
+    const wireValue = String(wire.get(m));
     const nameAttribute = usesStringValues
       ? `    [JsonStringEnumMemberName("${escapeCsharpString(wireValue)}")]\n`
       : "";
     const valueSuffix = typeof m.value === "number" ? ` = ${m.value}` : "";
     return `${nameAttribute}    ${pascal(m.name)}${valueSuffix}`;
   }).join(",\n");
-  return `${converter}public enum ${enm.name}\n{\n${members}\n}\n${usesStringValues ? renderEnumValues(enumMembers, enm.name) : ""}`;
+  return `${converter}public enum ${enm.name}\n{\n${members}\n}\n${usesStringValues ? renderEnumValues(enumMembers, enm.name, wire) : ""}`;
 }
 
 /**
  * A string enum's wire values as constants, the members of the TypeScript emitter's `<Enum>Values`, so a consumer
  * compares with the contract's value instead of a literal typed beside it.
  */
-function renderEnumValues(members: EnumMember[], name: string): string {
+function renderEnumValues(members: EnumMember[], name: string, wire: Map<EnumMember, string | number>): string {
   const constants = members.map((m) =>
-    `    public const string ${pascal(m.name)} = "${escapeCsharpString(typeof m.value === "string" ? m.value : m.name)}";`);
+    `    public const string ${pascal(m.name)} = "${escapeCsharpString(String(wire.get(m)))}";`);
   return `\npublic static class ${name}Values\n{\n${constants.join("\n")}\n}\n`;
 }
 
