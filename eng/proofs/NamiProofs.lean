@@ -6,6 +6,7 @@ import NamiProofs.HostEngine.Spec
 import NamiProofs.HostEngine.Proofs
 import NamiProofs.HostEngine.Mutants
 import NamiProofs.HostEngine.Traces
+import NamiProofs.HostEngine.Design
 import NamiProofs.HostEngine.Proofs.Framing
 import NamiProofs.HostEngine.Proofs.Host
 import NamiProofs.HostEngine.Proofs.HostRefute

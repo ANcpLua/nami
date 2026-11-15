@@ -2,6 +2,7 @@ import NamiProofs.HostEngine.Framing
 import NamiProofs.HostEngine.Host
 import NamiProofs.HostEngine.Engine
 import NamiProofs.HostEngine.System
+import NamiProofs.HostEngine.Design
 
 /-!
 # Claims, written from the contract
@@ -169,6 +170,14 @@ def OnlyEndOfInputEndsTheLoop : Prop := Claim.OnlyEndOfInputEndsTheLoop Engine.s
 def EngineCanAlwaysExitAfterTheLoopEnds : Prop := Claim.EngineCanAlwaysExitAfterTheLoopEnds Engine.step
 def ReadsKeepFrameIdentity : Prop := Claim.ReadsKeepFrameIdentity Framing.onChunk
 def CorrectHostNeverEndsTheEngine : Prop := Claim.CorrectHostNeverEndsTheEngine
+/-- engine.tsp: shared bounds. The slot accounting as it is (`Design.lean`). -/
+def SlotsAgreeToday : Prop := Design.NoRefusal Design.today
+/-- With only "a cancel frame removes the entry". -/
+def SlotsAgreeWithRemoveOnCancelOnly : Prop := Design.NoRefusal ⟨true, false⟩
+/-- With only "remove the entry before writing the reply". -/
+def SlotsAgreeWithRemoveBeforeReplyOnly : Prop := Design.NoRefusal ⟨false, true⟩
+/-- With both changes. -/
+def SlotsAgreeWithBothChanges : Prop := Design.NoRefusal Design.fixed
 end Spec
 
 namespace Verdict
@@ -190,6 +199,11 @@ def WrongRevisionRefusedBeforeDispatch : Prop := ¬ Spec.WrongRevisionRefusedBef
 def DuplicateOrFullRefusedForThatId : Prop := ¬ Spec.DuplicateOrFullRefusedForThatId
 def OnlyEndOfInputEndsTheLoop : Prop := ¬ Spec.OnlyEndOfInputEndsTheLoop
 def CorrectHostNeverEndsTheEngine : Prop := ¬ Spec.CorrectHostNeverEndsTheEngine
+-- The proposed fix (design model).
+def SlotsAgreeToday : Prop := ¬ Spec.SlotsAgreeToday
+def SlotsAgreeWithRemoveOnCancelOnly : Prop := ¬ Spec.SlotsAgreeWithRemoveOnCancelOnly
+def SlotsAgreeWithRemoveBeforeReplyOnly : Prop := ¬ Spec.SlotsAgreeWithRemoveBeforeReplyOnly
+def SlotsAgreeWithBothChanges : Prop := Spec.SlotsAgreeWithBothChanges
 end Verdict
 
 end NamiProofs.HostEngine

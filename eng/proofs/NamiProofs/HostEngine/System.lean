@@ -12,8 +12,14 @@ The steady state after readiness: callers enter and abort requests on the host
 EngineProtocol.cs:57-89 read complete frames in order; `Framing.lean` proves that the
 splitting into frames does not depend on how the bytes arrive).
 
-Engine death, shutdown and invalid frames are left to the two machines on their own; this
-composition asks only what frames a correct host can send.
+Engine death and shutdown are left to the two machines on their own; this composition asks
+only what frames a correct host can send. A call frame carries the agent's arguments and
+`_meta` trace context unchanged (server.ts:41-48, 86-89), so a frame the host writes may be
+one the engine cannot decode: `deliverUndecodable` delivers the next call frame as `garbage`.
+Two such frames end the published engine today (checked in this container, exit -6): input
+nested 70 deep (`JsonDocument` depth 64, EngineProtocol.cs:203) and a lone surrogate in
+`traceparent` (`GetString()` while validating, EngineProtocol.cs:204); the host audit found
+both reachable from ordinary MCP requests.
 -/
 
 namespace NamiProofs.HostEngine.System
@@ -50,6 +56,8 @@ inductive Ev where
   | eng (e : Engine.Ev)
   /-- The host's `data` handler takes the next reply frame. -/
   | receive
+  /-- The read loop takes the next frame, a call whose content it cannot decode. -/
+  | deliverUndecodable
   deriving DecidableEq, Repr
 
 def step (s : St) : Ev → Option St
@@ -65,6 +73,11 @@ def step (s : St) : Ev → Option St
   | .eng e =>
     match e with
     | .enter _ | .respond _ _ | .release _ | .drop _ => (Engine.step s.eng e).map ({ s with eng := · })
+    | _ => none
+  | .deliverUndecodable =>
+    match s.host.sent[s.delivered]? with
+    | some (.call _) | some (.health _) => (Engine.step s.eng (.frame .garbage)).map
+        (fun g => { s with eng := g, delivered := s.delivered + 1 })
     | _ => none
   | .receive =>
     match s.eng.out[s.received]? with

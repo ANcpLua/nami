@@ -31,6 +31,12 @@ theorem replyBeforeRelease_faults :
     (run init replyBeforeRelease).map (fun s => (s.eng.loop, s.host.pending.length, s.eng.pending.length)) =
       some (.faulted, 32, 32) := by decide
 
+/-- Trace C: one call whose arguments or trace context the engine cannot decode. -/
+def undecodableCall : List Ev := [.host (.requestTool true), .deliverUndecodable]
+
+theorem undecodableCall_faults :
+    (run init undecodableCall).map (fun s => s.eng.loop) = some .faulted := by decide
+
 instance : Inhabited St := ⟨⟨{}, {}, 0, 0⟩⟩
 
 theorem correctHostNeverEndsTheEngine_refuted : ¬ Claim.CorrectHostNeverEndsTheEngine := by

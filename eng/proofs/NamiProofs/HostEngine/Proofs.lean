@@ -4,6 +4,7 @@ import NamiProofs.HostEngine.Proofs.Host
 import NamiProofs.HostEngine.Proofs.HostRefute
 import NamiProofs.HostEngine.Proofs.Engine
 import NamiProofs.HostEngine.Proofs.System
+import NamiProofs.HostEngine.Design
 
 /-!
 # Verdicts
@@ -65,6 +66,13 @@ theorem onlyEndOfInputEndsTheLoop : Verdict.OnlyEndOfInputEndsTheLoop :=
 theorem correctHostNeverEndsTheEngine : Verdict.CorrectHostNeverEndsTheEngine :=
   System.correctHostNeverEndsTheEngine_refuted
 
+theorem slotsAgreeToday : Verdict.SlotsAgreeToday := Design.today_noRefusal_refuted
+theorem slotsAgreeWithRemoveOnCancelOnly : Verdict.SlotsAgreeWithRemoveOnCancelOnly :=
+  Design.removeOnCancel_alone_refuted
+theorem slotsAgreeWithRemoveBeforeReplyOnly : Verdict.SlotsAgreeWithRemoveBeforeReplyOnly :=
+  Design.removeBeforeReply_alone_refuted
+theorem slotsAgreeWithBothChanges : Verdict.SlotsAgreeWithBothChanges := Design.fixed_noRefusal
+
 end NamiProofs.HostEngine.Verdict
 
 /-! The held claims also as theorems of exactly their `Spec` type, so that
@@ -81,4 +89,5 @@ theorem cancelCompletesWaitingCall_holds : Spec.CancelCompletesWaitingCall := Ve
 theorem engineCanAlwaysExitAfterTheLoopEnds_holds : Spec.EngineCanAlwaysExitAfterTheLoopEnds :=
   Verdict.engineCanAlwaysExitAfterTheLoopEnds
 theorem readsKeepFrameIdentity_holds : Spec.ReadsKeepFrameIdentity := Verdict.readsKeepFrameIdentity
+theorem slotsAgreeWithBothChanges_holds : Spec.SlotsAgreeWithBothChanges := Verdict.slotsAgreeWithBothChanges
 end NamiProofs.HostEngine.Spec

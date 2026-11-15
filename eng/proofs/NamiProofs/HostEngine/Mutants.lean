@@ -155,7 +155,7 @@ theorem mutant_engineExit_stuck : ∀ (es : List Engine.Ev) (s s' : Engine.St),
         apply ih _ s' _ _ _ _ _ hr
         · simp [Engine.cancelAll, hreading, hl]
         · simp [Engine.cancelAll]
-        · simpa [Engine.cancelAll] using hx
+        · simp only [Engine.cancelAll]
         · exact ⟨{ c1 with cancelled := true }, by simp [Engine.cancelAll]; exact ⟨c1, hc1, by simp⟩, hc1id⟩
         · intro c hc hcid
           simp [Engine.cancelAll] at hc
