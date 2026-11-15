@@ -24,7 +24,8 @@
     "contracts/scripts/lib/encoded-integers.test.mjs": 4,
     "contracts/scripts/lib/paths.test.mjs": 2,
     "contracts/scripts/lib/property-semantics.test.mjs": 4,
-    "contracts/scripts/lib/row-projection.test.mjs": 5
+    "contracts/scripts/lib/row-projection.test.mjs": 5,
+    "contracts/scripts/lib/tagged-union.test.mjs": 3
   },
   "pythonTests": {
     "eng/scripts/tests/test_artifact_lifetime.py": 16,

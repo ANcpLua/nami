@@ -8,32 +8,35 @@ using System.Text.Json.Serialization;
 
 namespace Nami.Api.Contracts.Tools;
 
-[JsonConverter(typeof(SignalStatusJsonConverter))]
-public readonly union SignalStatus(ActiveSignalStatus, SilentSignalStatus);
-
-public sealed class SignalStatusJsonConverter : JsonConverter<SignalStatus>
+[JsonUnion(TypeClassifier = typeof(SignalStatus.Classifier))]
+public readonly union SignalStatus(ActiveSignalStatus, SilentSignalStatus)
 {
-    public override SignalStatus Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public string Signal => this switch
     {
-        using var document = JsonDocument.ParseValue(ref reader);
-        var root = document.RootElement;
-        if (root.ValueKind != JsonValueKind.Object) throw new JsonException("SignalStatus must be a JSON object.");
-        if (!root.TryGetProperty("kind", out var tagProperty) || tagProperty.ValueKind != JsonValueKind.String) throw new JsonException("SignalStatus requires kind.");
-        var tag = tagProperty.GetString();
-        if (tag == "active") return root.Deserialize(options.GetTypeInfo<ActiveSignalStatus>()) ?? throw new JsonException("Missing ActiveSignalStatus case.");
-        if (tag == "silent") return root.Deserialize(options.GetTypeInfo<SilentSignalStatus>()) ?? throw new JsonException("Missing SilentSignalStatus case.");
-        throw new JsonException("Unknown SignalStatus case.");
-    }
+        ActiveSignalStatus variant => variant.Signal,
+        SilentSignalStatus variant => variant.Signal,
+        null => throw new InvalidOperationException("An empty SignalStatus has no Signal.")
+    };
 
-    public override void Write(Utf8JsonWriter writer, SignalStatus value, JsonSerializerOptions options)
+    public string Kind => this switch
     {
-        System.Text.Json.Serialization.Metadata.JsonTypeInfo typeInfo = value switch
+        ActiveSignalStatus variant => variant.Kind,
+        SilentSignalStatus variant => variant.Kind,
+        null => throw new InvalidOperationException("An empty SignalStatus has no Kind.")
+    };
+
+    /// <summary>Picks the case from the `kind` tag; with a missing or unknown tag there is no case and reading fails.</summary>
+    public sealed class Classifier : JsonTypeClassifierFactory<SignalStatus>
+    {
+        public override JsonTypeClassifier CreateJsonClassifier(JsonTypeClassifierContext context, JsonSerializerOptions options) => Classify;
+
+        private static Type? Classify(ref Utf8JsonReader reader)
         {
-            ActiveSignalStatus => options.GetTypeInfo<ActiveSignalStatus>(),
-            SilentSignalStatus => options.GetTypeInfo<SilentSignalStatus>(),
-            null => throw new InvalidOperationException("An empty SignalStatus cannot be serialized.")
-        };
-        JsonSerializer.Serialize(writer, value.Value, typeInfo);
+            if (!global::Nami.Api.Contracts.WireTag.TrySeek(ref reader, "kind"u8)) return null;
+            if (reader.ValueTextEquals("active"u8)) return typeof(ActiveSignalStatus);
+            if (reader.ValueTextEquals("silent"u8)) return typeof(SilentSignalStatus);
+            return null;
+        }
     }
 }
 

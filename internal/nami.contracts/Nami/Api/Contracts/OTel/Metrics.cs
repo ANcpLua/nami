@@ -8,65 +8,57 @@ using System.Text.Json.Serialization;
 
 namespace Nami.Api.Contracts.OTel.Metrics;
 
-[JsonConverter(typeof(MetricNumberValueJsonConverter))]
-public readonly union MetricNumberValue(Nami.Api.Contracts.Common.AttributeIntValue, Nami.Api.Contracts.Common.AttributeDoubleValue);
-
-public sealed class MetricNumberValueJsonConverter : JsonConverter<MetricNumberValue>
+[JsonUnion(TypeClassifier = typeof(MetricNumberValue.Classifier))]
+public readonly union MetricNumberValue(Nami.Api.Contracts.Common.AttributeIntValue, Nami.Api.Contracts.Common.AttributeDoubleValue)
 {
-    public override MetricNumberValue Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public string Kind => this switch
     {
-        using var document = JsonDocument.ParseValue(ref reader);
-        var root = document.RootElement;
-        if (root.ValueKind != JsonValueKind.Object) throw new JsonException("MetricNumberValue must be a JSON object.");
-        if (!root.TryGetProperty("kind", out var tagProperty) || tagProperty.ValueKind != JsonValueKind.String) throw new JsonException("MetricNumberValue requires kind.");
-        var tag = tagProperty.GetString();
-        if (tag == "int") return root.Deserialize(options.GetTypeInfo<Nami.Api.Contracts.Common.AttributeIntValue>()) ?? throw new JsonException("Missing Nami.Api.Contracts.Common.AttributeIntValue case.");
-        if (tag == "double") return root.Deserialize(options.GetTypeInfo<Nami.Api.Contracts.Common.AttributeDoubleValue>()) ?? throw new JsonException("Missing Nami.Api.Contracts.Common.AttributeDoubleValue case.");
-        throw new JsonException("Unknown MetricNumberValue case.");
-    }
+        Nami.Api.Contracts.Common.AttributeIntValue variant => variant.Kind,
+        Nami.Api.Contracts.Common.AttributeDoubleValue variant => variant.Kind,
+        null => throw new InvalidOperationException("An empty MetricNumberValue has no Kind.")
+    };
 
-    public override void Write(Utf8JsonWriter writer, MetricNumberValue value, JsonSerializerOptions options)
+    /// <summary>Picks the case from the `kind` tag; with a missing or unknown tag there is no case and reading fails.</summary>
+    public sealed class Classifier : JsonTypeClassifierFactory<MetricNumberValue>
     {
-        System.Text.Json.Serialization.Metadata.JsonTypeInfo typeInfo = value switch
+        public override JsonTypeClassifier CreateJsonClassifier(JsonTypeClassifierContext context, JsonSerializerOptions options) => Classify;
+
+        private static Type? Classify(ref Utf8JsonReader reader)
         {
-            Nami.Api.Contracts.Common.AttributeIntValue => options.GetTypeInfo<Nami.Api.Contracts.Common.AttributeIntValue>(),
-            Nami.Api.Contracts.Common.AttributeDoubleValue => options.GetTypeInfo<Nami.Api.Contracts.Common.AttributeDoubleValue>(),
-            null => throw new InvalidOperationException("An empty MetricNumberValue cannot be serialized.")
-        };
-        JsonSerializer.Serialize(writer, value.Value, typeInfo);
+            if (!global::Nami.Api.Contracts.WireTag.TrySeek(ref reader, "kind"u8)) return null;
+            if (reader.ValueTextEquals("int"u8)) return typeof(Nami.Api.Contracts.Common.AttributeIntValue);
+            if (reader.ValueTextEquals("double"u8)) return typeof(Nami.Api.Contracts.Common.AttributeDoubleValue);
+            return null;
+        }
     }
 }
 
-[JsonConverter(typeof(MetricPointDataJsonConverter))]
-public readonly union MetricPointData(MetricNumberPointData, MetricHistogramPointData, MetricExponentialHistogramPointData, MetricSummaryPointData);
-
-public sealed class MetricPointDataJsonConverter : JsonConverter<MetricPointData>
+[JsonUnion(TypeClassifier = typeof(MetricPointData.Classifier))]
+public readonly union MetricPointData(MetricNumberPointData, MetricHistogramPointData, MetricExponentialHistogramPointData, MetricSummaryPointData)
 {
-    public override MetricPointData Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public string Kind => this switch
     {
-        using var document = JsonDocument.ParseValue(ref reader);
-        var root = document.RootElement;
-        if (root.ValueKind != JsonValueKind.Object) throw new JsonException("MetricPointData must be a JSON object.");
-        if (!root.TryGetProperty("kind", out var tagProperty) || tagProperty.ValueKind != JsonValueKind.String) throw new JsonException("MetricPointData requires kind.");
-        var tag = tagProperty.GetString();
-        if (tag == "number") return root.Deserialize(options.GetTypeInfo<MetricNumberPointData>()) ?? throw new JsonException("Missing MetricNumberPointData case.");
-        if (tag == "histogram") return root.Deserialize(options.GetTypeInfo<MetricHistogramPointData>()) ?? throw new JsonException("Missing MetricHistogramPointData case.");
-        if (tag == "exponential_histogram") return root.Deserialize(options.GetTypeInfo<MetricExponentialHistogramPointData>()) ?? throw new JsonException("Missing MetricExponentialHistogramPointData case.");
-        if (tag == "summary") return root.Deserialize(options.GetTypeInfo<MetricSummaryPointData>()) ?? throw new JsonException("Missing MetricSummaryPointData case.");
-        throw new JsonException("Unknown MetricPointData case.");
-    }
+        MetricNumberPointData variant => variant.Kind,
+        MetricHistogramPointData variant => variant.Kind,
+        MetricExponentialHistogramPointData variant => variant.Kind,
+        MetricSummaryPointData variant => variant.Kind,
+        null => throw new InvalidOperationException("An empty MetricPointData has no Kind.")
+    };
 
-    public override void Write(Utf8JsonWriter writer, MetricPointData value, JsonSerializerOptions options)
+    /// <summary>Picks the case from the `kind` tag; with a missing or unknown tag there is no case and reading fails.</summary>
+    public sealed class Classifier : JsonTypeClassifierFactory<MetricPointData>
     {
-        System.Text.Json.Serialization.Metadata.JsonTypeInfo typeInfo = value switch
+        public override JsonTypeClassifier CreateJsonClassifier(JsonTypeClassifierContext context, JsonSerializerOptions options) => Classify;
+
+        private static Type? Classify(ref Utf8JsonReader reader)
         {
-            MetricNumberPointData => options.GetTypeInfo<MetricNumberPointData>(),
-            MetricHistogramPointData => options.GetTypeInfo<MetricHistogramPointData>(),
-            MetricExponentialHistogramPointData => options.GetTypeInfo<MetricExponentialHistogramPointData>(),
-            MetricSummaryPointData => options.GetTypeInfo<MetricSummaryPointData>(),
-            null => throw new InvalidOperationException("An empty MetricPointData cannot be serialized.")
-        };
-        JsonSerializer.Serialize(writer, value.Value, typeInfo);
+            if (!global::Nami.Api.Contracts.WireTag.TrySeek(ref reader, "kind"u8)) return null;
+            if (reader.ValueTextEquals("number"u8)) return typeof(MetricNumberPointData);
+            if (reader.ValueTextEquals("histogram"u8)) return typeof(MetricHistogramPointData);
+            if (reader.ValueTextEquals("exponential_histogram"u8)) return typeof(MetricExponentialHistogramPointData);
+            if (reader.ValueTextEquals("summary"u8)) return typeof(MetricSummaryPointData);
+            return null;
+        }
     }
 }
 

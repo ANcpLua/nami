@@ -63,32 +63,25 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
                         throw new InvalidDataException("Engine frame exceeds its limit.");
                     var command = Decode(frame);
                     buffer = buffer.Slice(buffer.GetPosition(1, end));
-                    var (id, revision) = command switch
-                    {
-                        EngineCall call => (call.Id, call.Revision),
-                        EngineHealth health => (health.Id, health.Revision),
-                        EngineCancel cancel => (cancel.Id, cancel.Revision),
-                        null => throw new InvalidDataException("Missing engine request.")
-                    };
-                    if (revision != ContractRevision.Value)
+                    if (command.Revision != ContractRevision.Value)
                         throw new InvalidDataException("Engine contract revision mismatch.");
                     if (command is EngineCancel)
                     {
-                        if (_pending.TryGetValue(id, out var active)) active.Cancel();
+                        if (_pending.TryGetValue(command.Id, out var active)) active.Cancel();
                         continue;
                     }
 
-                    if (_pending.Count >= EngineLimits.MaxPendingDefault || _pending.ContainsKey(id))
+                    if (_pending.Count >= EngineLimits.MaxPendingDefault || _pending.ContainsKey(command.Id))
                         throw new InvalidDataException("Duplicate or excessive pending engine requests.");
                     var cancellation = new PendingCall(_lifetime.Token);
-                    if (!_pending.TryAdd(id, cancellation))
+                    if (!_pending.TryAdd(command.Id, cancellation))
                     {
                         cancellation.Dispose();
                         throw new InvalidDataException("Duplicate engine request.");
                     }
 
                     _tasks.RemoveAll(static task => task.IsCompletedSuccessfully);
-                    _tasks.Add(Execute(id, command, cancellation));
+                    _tasks.Add(Execute(command, cancellation));
                 }
 
                 if (buffer.Length > EngineLimits.MaxFrameBytesDefault)
@@ -110,7 +103,7 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
         }
     }
 
-    private async Task Execute(string id, EngineCommand command, PendingCall cancellation)
+    private async Task Execute(EngineCommand command, PendingCall cancellation)
     {
         var entered = false;
         var previous = Activity.Current;
@@ -121,7 +114,7 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
             entered = true;
             if (command is not EngineCall call)
             {
-                await Respond(id, await HealthAsync(services, cancellation.Token), false);
+                await Respond(command.Id, await HealthAsync(services, cancellation.Token), false);
                 return;
             }
 
@@ -130,7 +123,7 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
             if (options.IsApiKeyMode && (credential is null || !credential.Roles.HasFlag(ApiKeyRoles.Read)))
             {
                 var denied = ToolDispatcher.Error("unauthorized", "A project-bound read credential is required.");
-                await Respond(id, denied.Content, true);
+                await Respond(command.Id, denied.Content, true);
                 return;
             }
 
@@ -153,7 +146,7 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
                         activity?.SetTag(ErrorAttributes.Type, code.GetString());
                 }
 
-                await Respond(id, result.Content, result.IsError);
+                await Respond(command.Id, result.Content, result.IsError);
             }
             finally
             {
@@ -170,14 +163,14 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
             activity?.SetStatus(ActivityStatusCode.Error);
             NamiTelemetry.RecordException(error, services.GetRequiredService<ILoggerFactory>().CreateLogger("nami"));
             var failure = ToolDispatcher.Error("internal_error", "The engine could not complete the request.");
-            await Respond(id, failure.Content, true);
+            await Respond(command.Id, failure.Content, true);
         }
         finally
         {
             activity?.Dispose();
             Activity.Current = previous;
             if (entered) _execution.Release();
-            _pending.TryRemove(id, out _);
+            _pending.TryRemove(command.Id, out _);
             cancellation.Dispose();
         }
     }

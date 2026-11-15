@@ -117,7 +117,8 @@ public sealed class ContractTests
     [TestMethod]
     public void EmptyUnion_Serialization_IsRejected()
     {
-        Assert.ThrowsExactly<InvalidOperationException>(() => ContractJson.Serialize(default(MetricNumberValue)));
+        // System.Text.Json writes an empty union as null; the contract's schema check refuses it.
+        Assert.ThrowsExactly<JsonException>(() => ContractJson.Serialize(default(MetricNumberValue)));
     }
 
     [TestMethod]

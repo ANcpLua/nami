@@ -210,36 +210,32 @@ public sealed class AttributeValueJsonConverter : JsonConverter<AttributeValue>
     public override void Write(Utf8JsonWriter writer, AttributeValue value, JsonSerializerOptions options) => AttributeValue.Serialize(writer, value, options);
 }
 
-[JsonConverter(typeof(AttributeObjectValueJsonConverter))]
-public readonly union AttributeObjectValue(AttributeIntValue, AttributeDoubleValue, AttributeBytesValue, AttributeKeyValueListValue);
-
-public sealed class AttributeObjectValueJsonConverter : JsonConverter<AttributeObjectValue>
+[JsonUnion(TypeClassifier = typeof(AttributeObjectValue.Classifier))]
+public readonly union AttributeObjectValue(AttributeIntValue, AttributeDoubleValue, AttributeBytesValue, AttributeKeyValueListValue)
 {
-    public override AttributeObjectValue Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public string Kind => this switch
     {
-        using var document = JsonDocument.ParseValue(ref reader);
-        var root = document.RootElement;
-        if (root.ValueKind != JsonValueKind.Object) throw new JsonException("AttributeObjectValue must be a JSON object.");
-        if (!root.TryGetProperty("kind", out var tagProperty) || tagProperty.ValueKind != JsonValueKind.String) throw new JsonException("AttributeObjectValue requires kind.");
-        var tag = tagProperty.GetString();
-        if (tag == "int") return root.Deserialize(options.GetTypeInfo<AttributeIntValue>()) ?? throw new JsonException("Missing AttributeIntValue case.");
-        if (tag == "double") return root.Deserialize(options.GetTypeInfo<AttributeDoubleValue>()) ?? throw new JsonException("Missing AttributeDoubleValue case.");
-        if (tag == "bytes") return root.Deserialize(options.GetTypeInfo<AttributeBytesValue>()) ?? throw new JsonException("Missing AttributeBytesValue case.");
-        if (tag == "kvlist") return root.Deserialize(options.GetTypeInfo<AttributeKeyValueListValue>()) ?? throw new JsonException("Missing AttributeKeyValueListValue case.");
-        throw new JsonException("Unknown AttributeObjectValue case.");
-    }
+        AttributeIntValue variant => variant.Kind,
+        AttributeDoubleValue variant => variant.Kind,
+        AttributeBytesValue variant => variant.Kind,
+        AttributeKeyValueListValue variant => variant.Kind,
+        null => throw new InvalidOperationException("An empty AttributeObjectValue has no Kind.")
+    };
 
-    public override void Write(Utf8JsonWriter writer, AttributeObjectValue value, JsonSerializerOptions options)
+    /// <summary>Picks the case from the `kind` tag; with a missing or unknown tag there is no case and reading fails.</summary>
+    public sealed class Classifier : JsonTypeClassifierFactory<AttributeObjectValue>
     {
-        System.Text.Json.Serialization.Metadata.JsonTypeInfo typeInfo = value switch
+        public override JsonTypeClassifier CreateJsonClassifier(JsonTypeClassifierContext context, JsonSerializerOptions options) => Classify;
+
+        private static Type? Classify(ref Utf8JsonReader reader)
         {
-            AttributeIntValue => options.GetTypeInfo<AttributeIntValue>(),
-            AttributeDoubleValue => options.GetTypeInfo<AttributeDoubleValue>(),
-            AttributeBytesValue => options.GetTypeInfo<AttributeBytesValue>(),
-            AttributeKeyValueListValue => options.GetTypeInfo<AttributeKeyValueListValue>(),
-            null => throw new InvalidOperationException("An empty AttributeObjectValue cannot be serialized.")
-        };
-        JsonSerializer.Serialize(writer, value.Value, typeInfo);
+            if (!global::Nami.Api.Contracts.WireTag.TrySeek(ref reader, "kind"u8)) return null;
+            if (reader.ValueTextEquals("int"u8)) return typeof(AttributeIntValue);
+            if (reader.ValueTextEquals("double"u8)) return typeof(AttributeDoubleValue);
+            if (reader.ValueTextEquals("bytes"u8)) return typeof(AttributeBytesValue);
+            if (reader.ValueTextEquals("kvlist"u8)) return typeof(AttributeKeyValueListValue);
+            return null;
+        }
     }
 }
 

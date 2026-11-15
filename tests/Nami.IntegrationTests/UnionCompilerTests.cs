@@ -32,15 +32,16 @@ public sealed partial class UnionCompilerTests(TestContext context)
     [DataRow("OTel/Metrics.cs", "MetricPointData")]
     [DataRow("Engine.cs", "EngineCommand")]
     [DataRow("Tools.cs", "SignalStatus")]
-    public async Task Build_AddedWireCase_RejectsTheActualGeneratedWriter(string file, string type)
+    public async Task Build_AddedWireCase_RejectsTheActualGeneratedUnion(string file, string type)
     {
         var path = ContractDirectory + "/Nami/Api/Contracts/" + file;
         var source = await File.ReadAllTextAsync(RepositoryPath(path), context.CancellationToken);
-        var pattern = "(?m)^public readonly union " + type + @"\(([^\r\n]+)\);$";
+        // The union's own members (its tag and the members every case shares) switch over the cases.
+        var pattern = "(?m)^public readonly union " + type + @"\(([^\r\n]+)\)$";
         var declaration = Regex.Match(source, pattern, RegexOptions.CultureInvariant);
         Assert.IsTrue(declaration.Success, "The generated union declaration must be present: " + type);
         var changed = source.Replace(declaration.Value,
-            "public readonly union " + type + "(" + declaration.Groups[1].Value + ", AddedCase);",
+            "public readonly union " + type + "(" + declaration.Groups[1].Value + ", AddedCase)",
             StringComparison.Ordinal) + "\npublic sealed class AddedCase;\n";
         await using var project = new FixtureProject("AddedWireCase", context: context);
         AddActualSources(project, path, changed);
@@ -117,9 +118,14 @@ public sealed partial class UnionCompilerTests(TestContext context)
                 default(AttributeObjectValue), default(MetricNumberValue), default(MetricPointData),
                 default(EngineCommand), default(SignalStatus)
             ];
+            // System.Text.Json writes an empty union as null; ContractJson's schema check refuses
+            // that (ContractTests.EmptyUnion_Serialization_IsRejected). This fixture embeds no schemas.
             foreach (var value in defaults)
-                RequireFailure<InvalidOperationException>(() => JsonSerializer.Serialize(value,
-                    ContractTypes.TypeInfo(ContractTypes.NameOf(value.GetType()))));
+            {
+                var name = ContractTypes.NameOf(value.GetType());
+                if (JsonSerializer.Serialize(value, ContractTypes.TypeInfo(name)) != "null")
+                    throw new InvalidOperationException($"{name}: an empty union was not written as null.");
+            }
             foreach (var name in cases.Select(static item => item.Name).Distinct())
             {
                 var metadata = ContractTypes.TypeInfo(name);
@@ -152,7 +158,14 @@ public sealed partial class UnionCompilerTests(TestContext context)
             RequireFailure<InvalidOperationException>(() => new StoredAttributeValue.ObjectValue(null!).ToStableString());
             RequireFailure<JsonException>(() => JsonSerializer.Deserialize("{}", storedMetadata));
             RequireFailure<JsonException>(() => JsonSerializer.Deserialize("{\"type\":\"unknown\"}", storedMetadata));
-            Console.Write("15 wire and 8 stored roundtrips; 7 defaults and 12 invalid tags rejected; reflection disabled");
+            var call = JsonSerializer.Deserialize(cases[10].Json, ContractTypes.TypeInfo<EngineCommand>());
+            var cancel = JsonSerializer.Deserialize(cases[12].Json, ContractTypes.TypeInfo<EngineCommand>());
+            var silent = JsonSerializer.Deserialize(cases[14].Json, ContractTypes.TypeInfo<SignalStatus>());
+            if ((call.Id, call.Revision, call.Method, cancel.Id, cancel.Method, silent.Signal, silent.Kind)
+                != ("1", "test", "call", "3", "cancel", "logs", "silent"))
+                throw new InvalidOperationException("A lifted union member read the wrong case.");
+            RequireFailure<InvalidOperationException>(() => _ = default(EngineCommand).Id);
+            Console.Write("15 wire and 8 stored roundtrips; 7 defaults and 12 invalid tags rejected; lifted members read; reflection disabled");
 
             static void RequireFailure<T>(Action action) where T : Exception
             {
@@ -167,7 +180,7 @@ public sealed partial class UnionCompilerTests(TestContext context)
                 Path.Combine(published.OutputDirectory, project.Definition.Name + (OperatingSystem.IsWindows() ? ".exe" : ""))),
             "the NativeAOT union consumer", context.CancellationToken);
         Assert.AreEqual(0, run.ExitCode, run.Output + run.Error);
-        Assert.AreEqual("15 wire and 8 stored roundtrips; 7 defaults and 12 invalid tags rejected; reflection disabled", run.Output);
+        Assert.AreEqual("15 wire and 8 stored roundtrips; 7 defaults and 12 invalid tags rejected; lifted members read; reflection disabled", run.Output);
     }
 
     private static void AssertMissingCase(FixtureBuildResult result, string type, string consumer)

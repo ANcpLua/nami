@@ -8,34 +8,46 @@ using System.Text.Json.Serialization;
 
 namespace Nami.Api.Contracts.Engine;
 
-[JsonConverter(typeof(EngineCommandJsonConverter))]
-public readonly union EngineCommand(EngineCall, EngineHealth, EngineCancel);
-
-public sealed class EngineCommandJsonConverter : JsonConverter<EngineCommand>
+[JsonUnion(TypeClassifier = typeof(EngineCommand.Classifier))]
+public readonly union EngineCommand(EngineCall, EngineHealth, EngineCancel)
 {
-    public override EngineCommand Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public string Id => this switch
     {
-        using var document = JsonDocument.ParseValue(ref reader);
-        var root = document.RootElement;
-        if (root.ValueKind != JsonValueKind.Object) throw new JsonException("EngineCommand must be a JSON object.");
-        if (!root.TryGetProperty("method", out var tagProperty) || tagProperty.ValueKind != JsonValueKind.String) throw new JsonException("EngineCommand requires method.");
-        var tag = tagProperty.GetString();
-        if (tag == "call") return root.Deserialize(options.GetTypeInfo<EngineCall>()) ?? throw new JsonException("Missing EngineCall case.");
-        if (tag == "health") return root.Deserialize(options.GetTypeInfo<EngineHealth>()) ?? throw new JsonException("Missing EngineHealth case.");
-        if (tag == "cancel") return root.Deserialize(options.GetTypeInfo<EngineCancel>()) ?? throw new JsonException("Missing EngineCancel case.");
-        throw new JsonException("Unknown EngineCommand case.");
-    }
+        EngineCall variant => variant.Id,
+        EngineHealth variant => variant.Id,
+        EngineCancel variant => variant.Id,
+        null => throw new InvalidOperationException("An empty EngineCommand has no Id.")
+    };
 
-    public override void Write(Utf8JsonWriter writer, EngineCommand value, JsonSerializerOptions options)
+    public string Revision => this switch
     {
-        System.Text.Json.Serialization.Metadata.JsonTypeInfo typeInfo = value switch
+        EngineCall variant => variant.Revision,
+        EngineHealth variant => variant.Revision,
+        EngineCancel variant => variant.Revision,
+        null => throw new InvalidOperationException("An empty EngineCommand has no Revision.")
+    };
+
+    public string Method => this switch
+    {
+        EngineCall variant => variant.Method,
+        EngineHealth variant => variant.Method,
+        EngineCancel variant => variant.Method,
+        null => throw new InvalidOperationException("An empty EngineCommand has no Method.")
+    };
+
+    /// <summary>Picks the case from the `method` tag; with a missing or unknown tag there is no case and reading fails.</summary>
+    public sealed class Classifier : JsonTypeClassifierFactory<EngineCommand>
+    {
+        public override JsonTypeClassifier CreateJsonClassifier(JsonTypeClassifierContext context, JsonSerializerOptions options) => Classify;
+
+        private static Type? Classify(ref Utf8JsonReader reader)
         {
-            EngineCall => options.GetTypeInfo<EngineCall>(),
-            EngineHealth => options.GetTypeInfo<EngineHealth>(),
-            EngineCancel => options.GetTypeInfo<EngineCancel>(),
-            null => throw new InvalidOperationException("An empty EngineCommand cannot be serialized.")
-        };
-        JsonSerializer.Serialize(writer, value.Value, typeInfo);
+            if (!global::Nami.Api.Contracts.WireTag.TrySeek(ref reader, "method"u8)) return null;
+            if (reader.ValueTextEquals("call"u8)) return typeof(EngineCall);
+            if (reader.ValueTextEquals("health"u8)) return typeof(EngineHealth);
+            if (reader.ValueTextEquals("cancel"u8)) return typeof(EngineCancel);
+            return null;
+        }
     }
 }
 

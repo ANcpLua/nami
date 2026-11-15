@@ -503,27 +503,63 @@ function isStringEncodedNumber(program: Program, property: ModelProperty): boole
   return resolveProperty(program, property).encoding?.type.name === "string";
 }
 
+/**
+ * A tagged union of models as a C# 15 union that System.Text.Json reads and writes itself: the built-in union
+ * converter writes the active case unchanged, and on read the nested classifier picks the case from the tag
+ * value without buffering the object (cleanup ledger C10). Members every case declares alike, the tag included,
+ * are lifted onto the union, so a reader needs no match for them; each is an exhaustive switch, so a case added
+ * to the declaration without them does not compile (CS8509).
+ */
 function renderPolymorphicUnion(program: Program, union: Union): string {
   const variants = [...union.variants.values()].map((variant) => {
     if (variant.type.kind !== "Model") throw new Error(`Union ${union.name} contains a non-model case.`);
     return variant.type;
   });
-  const name = union.name;
-  const converter = `${name}JsonConverter`;
+  const name = union.name!;
   const tagged = taggedUnionInfo(program, union);
+  if (!tagged) throw new Error(`Union ${name} needs a tag (@discriminated with envelope "none"): its cases are all JSON objects, so System.Text.Json can only tell them apart by the tag value.`);
   const caseType = (model: Model) => localOrQualifiedType(program, union, model);
-  const reads = variants.map(model => {
-    const selector = tagged
-      ? `tag == "${escapeCsharpString(tagged.tagOf(model))}"`
-      : `root.TryGetProperty("${escapeCsharpString(resolveEncodedName(program, [...model.properties.values()].find(p => !p.optional)! , "application/json"))}", out _)`;
-    return `        if (${selector}) return root.Deserialize(options.GetTypeInfo<${caseType(model)}>()) ?? throw new JsonException("Missing ${caseType(model)} case.");`;
-  }).join("\n");
-  const tagRead = tagged
-    ? `        if (!root.TryGetProperty("${escapeCsharpString(tagged.property)}", out var tagProperty) || tagProperty.ValueKind != JsonValueKind.String) throw new JsonException("${name} requires ${escapeCsharpString(tagged.property)}.");\n        var tag = tagProperty.GetString();\n`
-    : "";
-  const writes = variants.map(model => `            ${caseType(model)} => options.GetTypeInfo<${caseType(model)}>(),`).join("\n");
-  return `[JsonConverter(typeof(${converter}))]\npublic readonly union ${name}(${variants.map(caseType).join(", ")});\n\npublic sealed class ${converter} : JsonConverter<${name}>\n{\n    public override ${name} Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)\n    {\n        using var document = JsonDocument.ParseValue(ref reader);\n        var root = document.RootElement;\n        if (root.ValueKind != JsonValueKind.Object) throw new JsonException("${name} must be a JSON object.");\n${tagRead}${reads}\n        throw new JsonException("Unknown ${name} case.");\n    }\n\n    public override void Write(Utf8JsonWriter writer, ${name} value, JsonSerializerOptions options)\n    {\n        System.Text.Json.Serialization.Metadata.JsonTypeInfo typeInfo = value switch\n        {\n${writes}\n            null => throw new InvalidOperationException("An empty ${name} cannot be serialized.")\n        };\n        JsonSerializer.Serialize(writer, value.Value, typeInfo);\n    }\n}\n`;
+  const lifted = sharedMembers(program, name, variants, tagged.property).map((member) =>
+    `    public ${member.type} ${member.name} => this switch\n    {\n` +
+    variants.map((model) => `        ${caseType(model)} variant => variant.${member.name},`).join("\n") +
+    `\n        null => throw new InvalidOperationException("An empty ${name} has no ${member.name}.")\n    };\n\n`).join("");
+  const classify = variants.map((model) =>
+    `            if (reader.ValueTextEquals("${escapeCsharpString(tagged.tagOf(model))}"u8)) return typeof(${caseType(model)});`).join("\n");
+  return `[JsonUnion(TypeClassifier = typeof(${name}.Classifier))]\npublic readonly union ${name}(${variants.map(caseType).join(", ")})\n{\n${lifted}` +
+    `    /// <summary>Picks the case from the \`${escapeCsharpString(tagged.property)}\` tag; with a missing or unknown tag there is no case and reading fails.</summary>\n` +
+    `    public sealed class Classifier : JsonTypeClassifierFactory<${name}>\n    {\n` +
+    `        public override JsonTypeClassifier CreateJsonClassifier(JsonTypeClassifierContext context, JsonSerializerOptions options) => Classify;\n\n` +
+    `        private static Type? Classify(ref Utf8JsonReader reader)\n        {\n` +
+    `            if (!global::Nami.Api.Contracts.WireTag.TrySeek(ref reader, "${escapeCsharpString(tagged.property)}"u8)) return null;\n` +
+    `${classify}\n            return null;\n        }\n    }\n}\n`;
+}
 
+/** Names a C# 15 union already gives its members, and the name of the nested classifier. */
+const UNION_MEMBER_NAMES = new Set(["Value", "HasValue", "Classifier"]);
+
+/**
+ * The properties every case declares with the same C# name, the same generated C# type and the same JSON name,
+ * in the first case's order. The tag counts: each case renders it as a string literal getter.
+ */
+function sharedMembers(program: Program, union: string, variants: Model[], tag: string): Array<{ name: string; type: string }> {
+  const shapes = variants.map((model) => new Map(inheritedProperties(model)
+    .filter((property) => !isHttpMetadata(program, property))
+    .map((property) => {
+      const jsonName = resolveProperty(program, property).jsonName;
+      return [pascal(property.name), { type: jsonName === tag ? "string" : memberType(program, property), jsonName }] as const;
+    })));
+  const [first, ...rest] = shapes;
+  return [...first!]
+    .filter(([member, shape]) => !UNION_MEMBER_NAMES.has(member) && member !== union &&
+      rest.every((other) => other.get(member)?.type === shape.type && other.get(member)?.jsonName === shape.jsonName))
+    .map(([member, shape]) => ({ name: member, type: shape.type }));
+}
+
+/** The C# type renderModel gives a property. */
+function memberType(program: Program, property: ModelProperty): string {
+  const type = mapType(program, property.type);
+  if (!property.optional) return type;
+  return type.endsWith("?") ? `global::Nami.Api.Contracts.OptionalValue<${type}>` : `${type}?`;
 }
 
 function localOrQualifiedType(program: Program, owner: Model | Union, type: Model | Union): string {

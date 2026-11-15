@@ -23,8 +23,10 @@
     <AnalysisLevel>latest</AnalysisLevel>
     <AnalysisMode>Recommended</AnalysisMode>
     <!-- CS0618: a deprecated semantic-convention constant carries [Obsolete]; using one fails the build.
-         A reader that must accept an old key says so with a narrow #pragma and a reason. -->
-    <WarningsAsErrors>$(WarningsAsErrors);CA1816;CA2000;CA2012;CA2016;CS0618;CS8509;CS8655;CS8846</WarningsAsErrors>
+         A reader that must accept an old key says so with a narrow #pragma and a reason.
+         SYSLIB1227: a union whose cases System.Text.Json cannot tell apart by JSON token kind has no
+         classifier; generated tagged unions always declare one, so a union without it fails the build. -->
+    <WarningsAsErrors>$(WarningsAsErrors);CA1816;CA2000;CA2012;CA2016;CS0618;CS8509;CS8655;CS8846;SYSLIB1227</WarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup>
