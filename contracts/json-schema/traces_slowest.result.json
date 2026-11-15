@@ -116,7 +116,8 @@
               "unset",
               "ok",
               "error"
-            ]
+            ],
+            "description": "error when any span of the trace has status error, otherwise ok when any has status ok, otherwise unset."
           }
         },
         "description": "A field projection of SlowTrace; omitted members were not requested.",

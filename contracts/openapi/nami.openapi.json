@@ -1402,7 +1402,7 @@
           },
           "kind": {
             "$ref": "#/components/schemas/OTel.Enums.SpanKind",
-            "description": "Span kind"
+            "description": "Span kind as its OTLP number: 0 unspecified, 1 internal, 2 server, 3 client, 4 producer, 5 consumer."
           },
           "start_time_unix_nano": {
             "$ref": "#/components/schemas/Common.UnixNanos",
@@ -1548,7 +1548,7 @@
         "properties": {
           "code": {
             "$ref": "#/components/schemas/OTel.Enums.SpanStatusCode",
-            "description": "Status code"
+            "description": "Status code as its OTLP number: 0 unset, 1 ok, 2 error."
           },
           "message": {
             "type": "string",
@@ -1688,7 +1688,8 @@
               "version",
               "environment",
               "pipeline"
-            ]
+            ],
+            "description": "The resource attribute that changed, named in source_key: revision is vcs.ref.head.revision, version is service.version, environment is deployment.environment.name, pipeline is any cicd.* attribute."
           },
           "from": {
             "type": "string"
@@ -1775,7 +1776,8 @@
               "log_event",
               "span_event",
               "span_status"
-            ]
+            ],
+            "description": "Where the errors were recorded, the first that applies to any of them: log_event, a log record named exception; span_event, an exception event on a span; span_status, a span with status error and no exception recorded for it."
           }
         },
         "unevaluatedProperties": {
@@ -1912,7 +1914,8 @@
               "version",
               "environment",
               "pipeline"
-            ]
+            ],
+            "description": "The resource attribute that changed, named in source_key: revision is vcs.ref.head.revision, version is service.version, environment is deployment.environment.name, pipeline is any cicd.* attribute."
           },
           "from": {
             "type": "string"
@@ -1956,7 +1959,8 @@
               "log_event",
               "span_event",
               "span_status"
-            ]
+            ],
+            "description": "Where the errors were recorded, the first that applies to any of them: log_event, a log record named exception; span_event, an exception event on a span; span_status, a span with status error and no exception recorded for it."
           }
         },
         "unevaluatedProperties": {
@@ -2012,7 +2016,8 @@
               "unset",
               "ok",
               "error"
-            ]
+            ],
+            "description": "error when any span of the trace has status error, otherwise ok when any has status ok, otherwise unset."
           }
         },
         "unevaluatedProperties": {
@@ -2170,7 +2175,8 @@
               "unset",
               "ok",
               "error"
-            ]
+            ],
+            "description": "error when any span of the trace has status error, otherwise ok when any has status ok, otherwise unset."
           }
         },
         "unevaluatedProperties": {
