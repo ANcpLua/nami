@@ -3,7 +3,6 @@
        Storage nor the host, so the compiler, not a text scan, keeps decoding storage-blind. -->
   <PropertyGroup>
     <RootNamespace>Nami.Collector.Ingestion</RootNamespace>
-    <LangVersion>preview</LangVersion>
     <IsAotCompatible>true</IsAotCompatible>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
