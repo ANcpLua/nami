@@ -71,16 +71,28 @@ public sealed class EngineProtocolTests(TestContext context)
         });
 
     [TestMethod]
-    [DataRow("{\"service\":\"a\\ud800\"}", "service", DisplayName = "Argument value")]
-    [DataRow("{\"\\udc00\":1}", "", DisplayName = "Argument name")]
-    public Task HostFrame_ArgumentWithAnUnpairedSurrogate_RefusedAsAnInvalidArgument(string arguments, string field) =>
+    public Task HostFrame_ArgumentNamedWithAnUnpairedSurrogate_RefusedAloneAndTheEngineKeepsServing() =>
         WithEngineAsync(async exchange =>
         {
-            var reply = await exchange(Call("1", "sources_status", arguments));
+            // The MCP's schema refuses the unknown member and forwards the arguments for the engine's refusal.
+            var reply = await exchange(Call("1", "sources_status", "{\"\\udc00\":1}"));
+            Assert.IsTrue(reply.GetProperty("is_error").GetBoolean());
+            Assert.AreEqual("invalid_argument", reply.GetProperty("result").GetProperty("code").GetString());
+
+            var health = await exchange(Health("2"));
+            Assert.IsFalse(health.GetProperty("is_error").GetBoolean());
+        });
+
+    [TestMethod]
+    public Task HostFrame_ArgumentValueWithAnUnpairedSurrogate_RefusedAsAnInvalidArgument() =>
+        WithEngineAsync(async exchange =>
+        {
+            // The MCP's schema accepts this string, so the tool's own contract check is the one that sees it.
+            var reply = await exchange(Call("1", "sources_status", "{\"service\":\"a\\ud800\"}"));
             Assert.IsTrue(reply.GetProperty("is_error").GetBoolean());
             Assert.AreEqual("invalid_argument", reply.GetProperty("result").GetProperty("code").GetString(),
                 reply.GetRawText());
-            Assert.AreEqual(field, reply.GetProperty("result").GetProperty("field").GetString());
+            Assert.AreEqual("service", reply.GetProperty("result").GetProperty("field").GetString());
         });
 
     /// <summary>Serves one engine over pipes for the test body, which exchanges frames for replies.</summary>
