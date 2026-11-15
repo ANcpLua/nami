@@ -12,6 +12,9 @@ namespace Nami.Collector.Ingestion;
 // narrows what is kept and none widens it beyond the allowlist.
 internal static partial class OtlpConverter
 {
+    // The longest span status message nami keeps of a producer's span, in UTF-8 bytes (observer's ruling, 15 Nov 2026).
+    private const int MaxProducerStatusMessageUtf8Bytes = 1024;
+
     private static readonly FrozenDictionary<string, string> s_producerByScope = Producers.Scopes
         .SelectMany(static producer => producer.Value.Select(scope => KeyValuePair.Create(scope, producer.Key)))
         .ToFrozenDictionary(StringComparer.Ordinal);
@@ -150,8 +153,13 @@ internal static partial class OtlpConverter
             : OtlpAttributeValue.Empty;
 
     // A span status message is free text outside the allowlist: no key names it. Claude Code copies the text of its
-    // error attribute into it, which the registry does not persist because it can quote content, so a producer's
-    // span keeps its status code and not its message. Other senders' messages are stored as sent.
+    // error attribute into it. That text says why a tool call or a request failed, so a producer's is kept, but as
+    // error text is kept elsewhere: through the sanitizer exception text gets, which removes credentials in URLs,
+    // assignments and authorization values, and then up to 1024 UTF-8 bytes. The failure metric names it by the
+    // attribute OpenTelemetry gives the status description outside OTLP. Other senders' messages are stored as sent.
     private static string? StatusMessageOf(ProtoStatus? status, string? producer) =>
-        producer is null ? NullIfEmpty(status?.Message) : null;
+        NullIfEmpty(status?.Message) is not { } message ? null :
+        producer is null ? message :
+        BoundedText.Truncate(ExceptionTextSanitizer.Sanitize(OtelAttributes.StatusDescription, message),
+            MaxProducerStatusMessageUtf8Bytes);
 }

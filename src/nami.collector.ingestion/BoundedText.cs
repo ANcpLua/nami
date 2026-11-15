@@ -3,7 +3,8 @@ namespace Nami.Collector.Ingestion;
 /// <summary>
 ///     The one way nami shortens text it keeps: whole characters (runes) up to a budget of UTF-8 bytes, then a marker
 ///     that counts toward the budget, so the result never exceeds it and a reader can tell that text is missing.
-///     Log bodies and the values the registry bounds (<c>ValueLimits.MaxUtf8Bytes</c>) are cut this way.
+///     Log bodies, the values the registry bounds (<c>ValueLimits.MaxUtf8Bytes</c>) and a producer's span status
+///     messages are cut this way.
 /// </summary>
 internal static class BoundedText
 {
