@@ -31,7 +31,9 @@ internal sealed record PlantedCapture(IReadOnlyList<ClaudeCodeExport> Exports, i
 ///     <c>claude_code.{name}</c> there, and these records carry content there instead, because no key names a body
 ///     and so no registry decision covers it (the evaluator's gap on M2 ingest step 2). Every record that carries a
 ///     planted value also carries the control marker, so a reader can tell a record that was stored without its
-///     content from one that was not stored at all.
+///     content from one that was not stored at all. Every planted span also carries content in its status message:
+///     Claude Code copies the text of its <c>error</c> attribute there (4 spans of the captures), and the registry
+///     does not persist <c>error</c>.
 /// </summary>
 internal static class ClaudeCodeContent
 {
@@ -146,6 +148,10 @@ internal static class ClaudeCodeContent
                                     SpanDetailKeys.GetValueOrDefault(span.Name), markers))
                                 continue;
                             spans++;
+                            // Claude Code copies the text of its error attribute into the status message of a failed
+                            // span, and no key names that field: content, whatever the status code is.
+                            span.Status ??= new Status();
+                            span.Status.Message = markers.Content + ":status";
                             if (span.Name != "claude_code.tool") continue;
                             var output = new Span.Types.Event { Name = "tool.output", TimeUnixNano = span.EndTimeUnixNano };
                             Fill(output.Attributes, ToolOutputKeys, ToolOutputDetailKeys, markers);
