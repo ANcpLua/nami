@@ -16,6 +16,7 @@ public sealed class GateTests(TestContext context)
         Assert.Contains("test_suite_floors_match_recorded_baseline", result.Error);
         Assert.Contains("test_every_python_test_file_has_a_wrapper", result.Error);
         Assert.Contains("test_vendored_protos_match_their_lock_files", result.Error);
+        Assert.Contains("test_registry_check_uses_cached_pin_without_network", result.Error);
         Assert.MatchesRegex(@"Ran [1-9][0-9]* tests", result.Error);
     }
 }

@@ -28,7 +28,7 @@
   },
   "pythonTests": {
     "eng/scripts/tests/test_artifact_lifetime.py": 16,
-    "eng/scripts/tests/test_gate.py": 3,
+    "eng/scripts/tests/test_gate.py": 4,
     "eng/scripts/tests/test_inspection_packages.py": 3,
     "eng/scripts/tests/test_run_tests.py": 3,
     "eng/scripts/tests/test_update_typespec.py": 19

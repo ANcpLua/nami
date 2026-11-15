@@ -2,6 +2,9 @@
 import hashlib
 import json
 import re
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -25,6 +28,13 @@ TEST_COPY_EXCEPTIONS = {
 def counted(folder, pattern, expression):
     return {path.relative_to(ROOT).as_posix(): len(expression.findall(path.read_text(encoding="utf-8")))
             for path in sorted((ROOT / folder).glob(pattern))}
+
+
+def git(*arguments):
+    """Run git without the user's identity or signing settings and return its output."""
+    command = ["git", "-c", "user.name=nami", "-c", "user.email=nami@example.invalid", "-c", "commit.gpgsign=false",
+               *arguments]
+    return subprocess.run(command, check=True, capture_output=True, text=True).stdout.strip()
 
 
 def sha256(data):
@@ -108,6 +118,37 @@ class GateTests(unittest.TestCase):
         # Offline: the lock files record the upstream hashes. A difference outside TEST_COPY_EXCEPTIONS is reported,
         # never fixed by editing a proto or a lock file.
         self.assertEqual([], proto_differences(ROOT))
+
+    def test_registry_check_uses_cached_pin_without_network(self):
+        sys.dont_write_bytecode = True
+        sys.path.insert(0, str(ROOT / "registry"))
+        import generate
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary = Path(temporary)
+            upstream = temporary / "upstream"
+            (upstream / "model").mkdir(parents=True)
+            (upstream / "model/registry.yaml").write_text("groups: []\n")
+            git("init", "-q", str(upstream))
+            git("-C", str(upstream), "add", "model")
+            git("-C", str(upstream), "commit", "-q", "-m", "pinned")
+            pinned = git("-C", str(upstream), "rev-parse", "HEAD")
+            # pinned_model first looks for a checkout next to the repository; none has this name, so it uses the cache.
+            sibling = "nami-gate-" + temporary.name
+            self.assertFalse((generate.ROOT.parent / sibling).exists())
+            cache = temporary / "cache"
+            git("clone", "-q", "--no-checkout", str(upstream), str(cache / sibling))
+            unreachable = (temporary / "unreachable.git").as_uri()
+            git("-C", str(cache / sibling), "remote", "set-url", "origin", unreachable)
+
+            self.assertEqual(pinned, generate.pinned_model(unreachable, pinned, sibling, cache, temporary / "pinned"))
+            self.assertEqual("groups: []\n", (temporary / "pinned/model/registry.yaml").read_text())
+
+            # A pin the cache lacks is still fetched, so against the unreachable remote it fails.
+            (upstream / "model/registry.yaml").write_text("groups: [moved]\n")
+            git("-C", str(upstream), "commit", "-q", "-a", "-m", "moved")
+            moved = git("-C", str(upstream), "rev-parse", "HEAD")
+            with self.assertRaisesRegex(RuntimeError, "fetch --depth 1 origin " + moved):
+                generate.pinned_model(unreachable, moved, sibling, cache, temporary / "moved")
 
 
 if __name__ == "__main__":

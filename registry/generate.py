@@ -61,7 +61,11 @@ def pinned_model(url, ref, sibling, cache, destination):
         if not (source / '.git').exists():
             source.parent.mkdir(parents=True, exist_ok=True)
             run(['git','clone','--no-checkout','--filter=blob:none',url,str(source)])
-        run(['git','-C',str(source),'fetch','--depth','1','origin',ref])
+        # A warm cache already holds the pinned commit, so the check runs without the network. The cache is a
+        # partial clone, where cat-file would fetch a missing commit by itself; protocol.allow=never keeps the
+        # question local, so a missing pin still goes through the fetch below.
+        if subprocess.run(['git','-c','protocol.allow=never','-C',str(source),'cat-file','-e',ref+'^{commit}'],capture_output=True).returncode:
+            run(['git','-C',str(source),'fetch','--depth','1','origin',ref])
     commit = run(['git','-C',str(source),'rev-parse',ref+'^{commit}']).stdout.strip()
     data = subprocess.run(['git','-C',str(source),'archive',commit,'model'],check=True,capture_output=True).stdout
     destination.mkdir(parents=True,exist_ok=True)
