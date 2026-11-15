@@ -12,10 +12,6 @@ namespace Nami.Collector.Ingestion;
 // narrows what is kept and none widens it beyond the allowlist.
 internal static partial class OtlpConverter
 {
-    // A span status message is free text outside the allowlist. A producer's is kept, because it says why a tool call
-    // or a request failed, but only up to this many UTF-8 bytes (lead's ruling for M2 ingest step 3, 15 Nov 2026).
-    private const int MaxProducerStatusMessageUtf8Bytes = 1024;
-
     private static readonly FrozenDictionary<string, string> s_producerByScope = Producers.Scopes
         .SelectMany(static producer => producer.Value.Select(scope => KeyValuePair.Create(scope, producer.Key)))
         .ToFrozenDictionary(StringComparer.Ordinal);
@@ -153,7 +149,9 @@ internal static partial class OtlpConverter
             ? body
             : OtlpAttributeValue.Empty;
 
+    // A span status message is free text outside the allowlist: no key names it. Claude Code copies the text of its
+    // error attribute into it, which the registry does not persist because it can quote content, so a producer's
+    // span keeps its status code and not its message. Other senders' messages are stored as sent.
     private static string? StatusMessageOf(ProtoStatus? status, string? producer) =>
-        NullIfEmpty(status?.Message) is not { } message ? null :
-        producer is null ? message : BoundedText.Truncate(message, MaxProducerStatusMessageUtf8Bytes);
+        producer is null ? NullIfEmpty(status?.Message) : null;
 }
