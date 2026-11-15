@@ -37,17 +37,20 @@ Claude distributions and deployed Chezmoi files are retained; they are not
 independently maintained source copies. Nami's product-specific
 `fixture-lifecycle` and the portable plugin's `fixture-scope` remain distinct.
 
-## Deferred investigation
+## Deferred investigation (closed)
 
 Qyl and the playground were retained during this cleanup. Subsequently, after consolidation,
 the user explicitly authorized deleting the playground; its directory was removed on 27 October
 2026 while its verified archive was retained. See [workspace-handoff.md](workspace-handoff.md).
-The user explicitly retained Qyl for examination
-of `qyl.telemetry.autoinstrumentation`. Local sources found so far include
-`qyl/internal/qyl.instrumentation` and `qyl/internal/qyl.instrumentation.generators`;
-this is not yet a confirmed mapping to the named package. Follow the approved
-[request/response review](../prd/nami-request-response-review.md): establish the
-needed observation capability before choosing an interceptor or other mechanism.
+On 27 October 2026 the user retained Qyl for an examination of
+`qyl.telemetry.autoinstrumentation`. The local sources found at that time were
+`qyl/internal/qyl.instrumentation` and `qyl/internal/qyl.instrumentation.generators`,
+without a confirmed mapping to the named package. That examination is closed and is not
+an open task: qyl is nami's predecessor, which nami replaces
+([decision 0001](../decisions/0001-remote-connector-and-who-pays.md) of 10 November 2026);
+it is not a source, and nothing is taken from it. nami's application instrumentation
+follows the approved [request/response review](../prd/nami-request-response-review.md):
+establish the needed observation capability before choosing an interceptor or other mechanism.
 No Qyl implementation was imported or changed by this cleanup.
 
 ## Validation

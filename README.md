@@ -2,10 +2,13 @@
 
 nami is an agent-operated application debugging stack: compile-time instrumentation,
 configured observation lifetimes, its own OpenTelemetry collector, DuckDB-backed analysis
-and six read-only MCP tools. Agents use it through a Claude.ai connector
-and/or an OpenAI plugin with bundled MCP integration; local clients are also supported. There is
-no dashboard or human-facing analysis UI. Tomo(not yet build rust app) is an example developer whose application an
-agent investigates, not the only supported application.
+and six read-only MCP tools. The product is a remote Claude connector
+([decision 0001](docs/decisions/0001-remote-connector-and-who-pays.md)). The sign-in that Claude on
+the web, in the desktop app and on the phone needs
+([decision 0002](docs/decisions/0002-sign-in-is-built-into-nami.md)) is not built yet: today nami
+serves MCP clients that start it over stdio or send a project key over Streamable HTTP, such as
+Claude Code. There is no dashboard or human-facing analysis UI. Tomo is an example developer whose
+application an agent investigates, not the only supported application.
 
 The runtime is **TypeScript/Bun MCP + C#/.NET 11 NativeAOT engine**, connected locally by
 private streams/pipes. TypeSpec generates the shared C#/TypeScript wire contracts and JSON Schemas;
@@ -23,7 +26,7 @@ service and its tests. The binding I1–I18 and D1–D6 requirements and their l
 [request/response review](docs/prd/nami-request-response-review.md); implementation and actual
 test evidence, limits and remaining work are mapped per requirement in the
 [I1–I18 / D1–D6 evidence matrix](docs/integration/requirement-evidence.md). The checklist
-summarizes progress, including the outstanding Claude.ai/OpenAI distribution evidence.
+summarizes progress, including the outstanding evidence for the Claude connector.
 
 ## Two surfaces
 

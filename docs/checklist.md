@@ -103,14 +103,21 @@ to the same project. CLI build verification does not by itself prove Rider's liv
 Snapshots, retention, capture-fixture lifetimes and request timeouts do not substitute for an
 observation lifetime. The six read-only tools gain no hidden start/stop/write operations.
 
-## 5. Agent distribution — Claude.ai and OpenAI
+## 5. Agent distribution — Claude connector
 
-- [ ] Implement and verify the actual Claude.ai connector and OpenAI plugin/MCP integration,
-      including each supported host's deployment and project-bound authentication.
-- [ ] Include host-specific skills/metadata for agents to build, run, inspect and query the
-      stack within their authorized scope.
-- [ ] Prove six-tool schemas, errors, freshness, bounds and annotations on those hosts (D1).
-      Local MCP fixtures and inspection are existing evidence, not hosted acceptance.
+nami reaches Claude as a remote connector; an OpenAI plugin is not part of nami. The items follow
+the order of work in [decision 0001](decisions/0001-remote-connector-and-who-pays.md).
+
+- [ ] Sign-in on `/mcp` by nami's own authorization server, with project-bound access
+      ([decision 0002](decisions/0002-sign-in-is-built-into-nami.md)).
+- [ ] The owner's private custom connector at a public HTTPS address, signed in from Claude on
+      the web, in the desktop app, on the phone and in Claude Code.
+- [ ] The template for copies that other people run, with nothing of the owner in it.
+- [ ] The capped hosted service and its directory listing, submitted with a skills-only plugin
+      bundle that points at the same server
+      ([decision 0003](decisions/0003-the-listing-is-a-capped-hosted-service.md)).
+- [ ] Prove six-tool schemas, errors, freshness, bounds and annotations from those Claude
+      clients (D1). Local MCP fixtures and inspection are existing evidence, not hosted acceptance.
 - [ ] Record unavailable credentials, deployment and host review as remaining external proof.
 
 ## 6. Verification and handover
