@@ -48,23 +48,20 @@ theorem health503WhileEngineGone : Verdict.Health503WhileEngineGone :=
 theorem healthAnswersAreReports : Verdict.HealthAnswersAreReports :=
   Host.healthAnswersAreReports_refuted
 
-theorem badFrameNotFatal : Verdict.BadFrameNotFatal :=
-  Engine.badFrameNotFatal_refuted
+theorem badFrameNotFatal : Verdict.BadFrameNotFatal := Engine.badFrameNotFatal
 
-theorem badFrameKeepsOtherCalls : Verdict.BadFrameKeepsOtherCalls :=
-  Engine.badFrameKeepsOtherCalls_refuted
+theorem badFrameKeepsOtherCalls : Verdict.BadFrameKeepsOtherCalls := Engine.badFrameKeepsOtherCalls
 
 theorem wrongRevisionRefusedBeforeDispatch : Verdict.WrongRevisionRefusedBeforeDispatch :=
-  Engine.wrongRevisionRefusedBeforeDispatch_refuted
+  Engine.wrongRevisionRefusedBeforeDispatch
 
 theorem duplicateOrFullRefusedForThatId : Verdict.DuplicateOrFullRefusedForThatId :=
-  Engine.duplicateOrFullRefusedForThatId_refuted
+  Engine.duplicateOrFullRefusedForThatId
 
-theorem onlyEndOfInputEndsTheLoop : Verdict.OnlyEndOfInputEndsTheLoop :=
-  Engine.onlyEndOfInputEndsTheLoop_refuted
+theorem onlyEndOfInputEndsTheLoop : Verdict.OnlyEndOfInputEndsTheLoop := Engine.onlyEndOfInputEndsTheLoop
 
 theorem correctHostNeverEndsTheEngine : Verdict.CorrectHostNeverEndsTheEngine :=
-  System.correctHostNeverEndsTheEngine_refuted
+  System.correctHostNeverEndsTheEngine
 
 theorem slotsAgreeToday : Verdict.SlotsAgreeToday := Design.today_noRefusal_refuted
 theorem slotsAgreeWithRemoveOnCancelOnly : Verdict.SlotsAgreeWithRemoveOnCancelOnly :=
@@ -90,4 +87,13 @@ theorem engineCanAlwaysExitAfterTheLoopEnds_holds : Spec.EngineCanAlwaysExitAfte
   Verdict.engineCanAlwaysExitAfterTheLoopEnds
 theorem readsKeepFrameIdentity_holds : Spec.ReadsKeepFrameIdentity := Verdict.readsKeepFrameIdentity
 theorem slotsAgreeWithBothChanges_holds : Spec.SlotsAgreeWithBothChanges := Verdict.slotsAgreeWithBothChanges
+theorem badFrameNotFatal_holds : Spec.BadFrameNotFatal := Verdict.badFrameNotFatal
+theorem badFrameKeepsOtherCalls_holds : Spec.BadFrameKeepsOtherCalls := Verdict.badFrameKeepsOtherCalls
+theorem wrongRevisionRefusedBeforeDispatch_holds : Spec.WrongRevisionRefusedBeforeDispatch :=
+  Verdict.wrongRevisionRefusedBeforeDispatch
+theorem duplicateOrFullRefusedForThatId_holds : Spec.DuplicateOrFullRefusedForThatId :=
+  Verdict.duplicateOrFullRefusedForThatId
+theorem onlyEndOfInputEndsTheLoop_holds : Spec.OnlyEndOfInputEndsTheLoop := Verdict.onlyEndOfInputEndsTheLoop
+theorem correctHostNeverEndsTheEngine_holds : Spec.CorrectHostNeverEndsTheEngine :=
+  Verdict.correctHostNeverEndsTheEngine
 end NamiProofs.HostEngine.Spec

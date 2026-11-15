@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Nami.Api.Contracts;
+using Nami.Api.Contracts.Engine;
 using Nami.ApiKeys;
 using Nami.Collector.Storage;
 using Nami.Tools;
@@ -24,13 +25,16 @@ public sealed class EngineProtocolTests(TestContext context)
     private static readonly DateTimeOffset s_now = DateTimeOffset.Parse("2026-11-16T00:00:00Z", CultureInfo.InvariantCulture);
 
     // JSON.stringify(EngineCommandJson.toJson(request)) + "\n", as engine.ts encodes a call.
-    private static string Call(string id, string tool, string input, string traceparent = "null",
-        string tracestate = "null") =>
-        $"{{\"id\":\"{id}\",\"revision\":\"{ContractRevision.Value}\",\"method\":\"call\",\"name\":\"{tool}\"," +
+    private static string Call(string id, string tool = "sources_status", string input = "{}", string traceparent = "null",
+        string tracestate = "null", string? revision = null) =>
+        $"{{\"id\":\"{id}\",\"revision\":\"{revision ?? ContractRevision.Value}\",\"method\":\"call\",\"name\":\"{tool}\"," +
         $"\"input\":{input},\"credential\":null,\"traceparent\":{traceparent},\"tracestate\":{tracestate}}}\n";
 
     private static string Health(string id) =>
         $"{{\"id\":\"{id}\",\"revision\":\"{ContractRevision.Value}\",\"method\":\"health\"}}\n";
+
+    private static string Cancel(string id, string? revision = null) =>
+        $"{{\"id\":\"{id}\",\"revision\":\"{revision ?? ContractRevision.Value}\",\"method\":\"cancel\"}}\n";
 
     [TestMethod]
     [DataRow(62, DisplayName = "Inside the reader's default depth")]
@@ -95,6 +99,141 @@ public sealed class EngineProtocolTests(TestContext context)
             Assert.AreEqual("service", reply.GetProperty("result").GetProperty("field").GetString());
         });
 
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public Task Slots_CancelAtTheLimitThenNewCalls_AllAcceptedAndTheCancelledCallIsNotAnswered() =>
+        WithHeldEngineAsync(async engine =>
+        {
+            // eng/proofs Design.traceA: the host frees a slot when its caller goes away (engine.ts, abort) and fills
+            // it at once. 32 calls wait, one is cancelled, and a 33rd arrives in the same write as the cancel.
+            var first = Enumerable.Range(1, 32).Select(static id => id.ToString(CultureInfo.InvariantCulture)).ToArray();
+            await engine.Session.WriteAsync(string.Concat(first.Select(static id => Call(id))), context.CancellationToken);
+            await engine.Store.ArrivedAsync(2, context.CancellationToken);
+            await engine.Session.WriteAsync(Cancel("1") + Call("33"), context.CancellationToken);
+            // The health request is read after call 33: its reply proves the engine took both frames and reads on.
+            await engine.Session.WriteAsync(Cancel("2") + Health("h"), context.CancellationToken);
+            engine.Store.Open();
+            var replies = await engine.RepliesAsync(32, context.CancellationToken);
+            string[] expected = [.. first.Skip(2), "33", "h"];
+            Assert.AreSequenceEqual(expected.Order(StringComparer.Ordinal).ToArray(),
+                replies.Keys.Order(StringComparer.Ordinal).ToArray(), engine.Describe());
+            Assert.IsTrue(replies.Values.All(static reply => !reply.GetProperty("is_error").GetBoolean()),
+                "No call within the host's limit may be refused.");
+            Assert.IsNull(await engine.Session.ReadLineAsync(TimeSpan.FromMilliseconds(300), context.CancellationToken),
+                "A cancelled call is not answered: the host stopped waiting when it wrote the cancel.");
+        });
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public Task Slots_ReplyReadBeforeItsWriteReturned_TheNextCallIsAccepted() =>
+        WithHeldEngineAsync(async engine =>
+        {
+            // eng/proofs Design.traceB: the host frees a slot when it reads the reply and fills it at once, while
+            // the engine's write of that reply has not returned. The entry must be gone before the reply is written.
+            var first = Enumerable.Range(1, 32).Select(static id => id.ToString(CultureInfo.InvariantCulture)).ToArray();
+            await engine.Session.WriteAsync(string.Concat(first.Select(static id => Call(id))), context.CancellationToken);
+            await engine.Store.ArrivedAsync(2, context.CancellationToken);
+            engine.HoldReplies();
+            engine.Store.Open();
+            var one = await engine.RepliesAsync(1, context.CancellationToken);
+            Assert.HasCount(1, one, engine.Describe());
+            await engine.Session.WriteAsync(Call("33"), context.CancellationToken);
+            engine.ReleaseReplies();
+            var rest = await engine.RepliesAsync(32, context.CancellationToken);
+            Assert.HasCount(32, rest, engine.Describe());
+            Assert.IsTrue(rest.ContainsKey("33"), engine.Describe());
+            Assert.IsFalse(rest["33"].GetProperty("is_error").GetBoolean(),
+                "The call that fills the slot of a reply the host has read must be accepted: " + rest["33"].GetRawText());
+            Assert.IsTrue(rest.Values.All(static reply => !reply.GetProperty("is_error").GetBoolean()));
+        });
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public Task Refusal_CallPastThePendingLimit_RefusedForItsIdAndTheOthersFinish() =>
+        WithHeldEngineAsync(async engine =>
+        {
+            var first = Enumerable.Range(1, 32).Select(static id => id.ToString(CultureInfo.InvariantCulture)).ToArray();
+            await engine.Session.WriteAsync(string.Concat(first.Select(static id => Call(id))) + Call("33"),
+                context.CancellationToken);
+            var refusal = (await engine.RepliesAsync(1, context.CancellationToken)).GetValueOrDefault("33");
+            Assert.AreEqual(JsonValueKind.Object, refusal.ValueKind, engine.Describe());
+            Assert.IsTrue(refusal.GetProperty("is_error").GetBoolean());
+            Assert.AreEqual("collector_unavailable", refusal.GetProperty("result").GetProperty("code").GetString());
+            Assert.IsTrue(refusal.GetProperty("result").GetProperty("retryable").GetBoolean(),
+                "A full engine is a state that passes: the refusal must say the call can be repeated.");
+            engine.Store.Open();
+            var replies = await engine.RepliesAsync(32, context.CancellationToken);
+            Assert.AreSequenceEqual(first.Order(StringComparer.Ordinal).ToArray(),
+                replies.Keys.Order(StringComparer.Ordinal).ToArray(), engine.Describe());
+            Assert.IsTrue(replies.Values.All(static reply => !reply.GetProperty("is_error").GetBoolean()));
+        });
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public Task Refusal_DuplicateId_RefusedForThatIdAndTheFirstCallFinishes() =>
+        WithHeldEngineAsync(async engine =>
+        {
+            await engine.Session.WriteAsync(Call("1") + Call("1") + Call("2"), context.CancellationToken);
+            var refusal = (await engine.RepliesAsync(1, context.CancellationToken)).GetValueOrDefault("1");
+            Assert.AreEqual(JsonValueKind.Object, refusal.ValueKind, engine.Describe());
+            Assert.IsTrue(refusal.GetProperty("is_error").GetBoolean());
+            Assert.AreEqual("invalid_argument", refusal.GetProperty("result").GetProperty("code").GetString());
+            Assert.AreEqual("id", refusal.GetProperty("result").GetProperty("field").GetString());
+            engine.Store.Open();
+            var replies = await engine.RepliesAsync(2, context.CancellationToken);
+            Assert.IsTrue(replies.ContainsKey("1") && replies.ContainsKey("2"), engine.Describe());
+            Assert.IsTrue(replies.Values.All(static reply => !reply.GetProperty("is_error").GetBoolean()),
+                "The first call with the id and the call after the duplicate must both finish.");
+        });
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public Task Refusal_WrongRevision_RefusedBeforeDispatchAndTheEngineKeepsServing() =>
+        WithHeldEngineAsync(async engine =>
+        {
+            await engine.Session.WriteAsync(Call("1") + Call("2", revision: "sha256:0") + Cancel("1", "sha256:0"),
+                context.CancellationToken);
+            var refusal = (await engine.RepliesAsync(1, context.CancellationToken)).GetValueOrDefault("2");
+            Assert.AreEqual(JsonValueKind.Object, refusal.ValueKind, engine.Describe());
+            Assert.IsTrue(refusal.GetProperty("is_error").GetBoolean());
+            Assert.AreEqual("collector_contract_mismatch", refusal.GetProperty("result").GetProperty("code").GetString());
+            await engine.Store.ArrivedAsync(1, context.CancellationToken);
+            engine.Store.Open();
+            var replies = await engine.RepliesAsync(1, context.CancellationToken);
+            Assert.IsTrue(replies.TryGetValue("1", out var served) && !served.GetProperty("is_error").GetBoolean(),
+                "A cancel that names another revision is not obeyed, and the call before the refusal finishes: " +
+                engine.Describe());
+            Assert.AreEqual(1, engine.Store.Arrived, "The refused call must not reach the store.");
+            Assert.AreEqual("nami engine: dropped a cancel frame for another contract revision.", engine.Diagnostics.Trim());
+        });
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public Task BadFrames_NotJsonWithoutIdAndOversize_DroppedWithOneLineEachAndCallsInFlightFinish() =>
+        WithHeldEngineAsync(async engine =>
+        {
+            // P14: a frame that cannot be parsed or is too large is dropped up to the next newline, with one line on
+            // standard error; all other running calls finish.
+            var oversize = "{\"id\":\"big\",\"pad\":\"" + new string('x', EngineLimits.MaxFrameBytesDefault + 4096) + "\"}\n";
+            await engine.Session.WriteAsync(Call("1") + "not-json\n" + "{\"id\":7}\n" + oversize + Call("2"),
+                context.CancellationToken);
+            await engine.Store.ArrivedAsync(2, context.CancellationToken);
+            engine.Store.Open();
+            var replies = await engine.RepliesAsync(2, context.CancellationToken);
+            Assert.IsTrue(replies.ContainsKey("1") && replies.ContainsKey("2"), engine.Describe());
+            Assert.IsTrue(replies.Values.All(static reply => !reply.GetProperty("is_error").GetBoolean()));
+            string[] dropped =
+            [
+                "nami engine: dropped a frame that is not an engine request.",
+                "nami engine: dropped a frame that is not an engine request.",
+                "nami engine: dropped a frame longer than the frame limit."
+            ];
+            Assert.AreSequenceEqual(dropped, engine.Diagnostics.Split('\n', StringSplitOptions.RemoveEmptyEntries |
+                                                                          StringSplitOptions.TrimEntries));
+            await engine.Session.CloseInputAsync();
+            await engine.Session.Run.WaitAsync(TimeSpan.FromSeconds(10), context.CancellationToken);
+        });
+
     /// <summary>Serves one engine over pipes for the test body, which exchanges frames for replies.</summary>
     private async Task WithEngineAsync(Func<Func<string, Task<JsonElement>>, Task> body)
     {
@@ -122,5 +261,140 @@ public sealed class EngineProtocolTests(TestContext context)
             using var reply = JsonDocument.Parse(line);
             return reply.RootElement.Clone();
         });
+    }
+
+    /// <summary>
+    ///     Serves one engine whose tool calls wait at the store until the test opens it, so the test decides which
+    ///     calls are in flight when the next frame arrives.
+    /// </summary>
+    private async Task WithHeldEngineAsync(Func<HeldEngine, Task> body)
+    {
+        var clock = new FakeTimeProvider(s_now);
+        await using var inner = new DuckDbStore(":memory:", timeProvider: clock);
+        await using var store = new HeldStore(inner);
+        await using var provider = new ServiceCollection()
+            .AddSingleton<INamiStore>(store)
+            .AddSingleton(Options.Create(new OtlpApiKeyOptions()))
+            .AddSingleton<NamiToolService>()
+            .AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance)
+            .BuildServiceProvider();
+        using var lines = new StringWriter(CultureInfo.InvariantCulture);
+        using var diagnostics = TextWriter.Synchronized(lines);
+        var engine = new HeldEngine(store, diagnostics);
+        await using var session = new EngineSession(provider, diagnostics, engine.ReplyGate);
+        engine.Session = session;
+        Assert.IsNotNull(await session.ReadLineAsync(TimeSpan.FromSeconds(30), context.CancellationToken),
+            "The engine did not report ready.");
+        try
+        {
+            await body(engine);
+        }
+        finally
+        {
+            // Whatever the test judged, nothing may stay held when the session is disposed.
+            store.Open();
+            engine.ReleaseReplies();
+        }
+    }
+
+    /// <summary>A store whose snapshot reads wait until the test opens it, and do not end early when cancelled.</summary>
+    private sealed class HeldStore(INamiStore inner) : INamiStore
+    {
+        private readonly TaskCompletionSource _open = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _arrived;
+
+        /// <summary>The snapshot reads that have started.</summary>
+        internal int Arrived => Volatile.Read(ref _arrived);
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+        public async Task<Nami.Collector.Storage.TelemetrySnapshot> ReadSnapshotAsync(string projectId, string? snapshotId = null,
+            CancellationToken ct = default)
+        {
+            Interlocked.Increment(ref _arrived);
+            // A tool's work does not observe cancellation once it runs (ToolDispatcher.Run); this wait stands for it.
+            await _open.Task;
+            return await inner.ReadSnapshotAsync(projectId, snapshotId, CancellationToken.None);
+        }
+
+        public ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default) => inner.EnqueueAsync(batch, ct);
+
+        public Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default) =>
+            inner.InsertLogsAsync(logs, ct);
+
+        public Task InsertMetricsAsync(IReadOnlyList<MetricSeriesRow> series,
+            IReadOnlyList<MetricObservationRow> observations, CancellationToken ct = default) =>
+            inner.InsertMetricsAsync(series, observations, ct);
+
+        public Task<(long Logs, long Spans, long MetricPoints, long MetricSeries)> DeleteExpiredAsync(
+            ulong cutoffUnixNano, CancellationToken ct = default) => inner.DeleteExpiredAsync(cutoffUnixNano, ct);
+
+        public StorageFileMetrics GetStorageFileMetrics() => inner.GetStorageFileMetrics();
+
+        public Task<StorageStats> GetStorageStatsAsync(string projectId, CancellationToken ct = default) =>
+            inner.GetStorageStatsAsync(projectId, ct);
+
+        internal void Open() => _open.TrySetResult();
+
+        internal async Task ArrivedAsync(int count, CancellationToken ct)
+        {
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            deadline.CancelAfter(TimeSpan.FromSeconds(20));
+            while (Arrived < count) await Task.Delay(10, deadline.Token);
+        }
+    }
+
+    private sealed class HeldEngine(HeldStore store, TextWriter diagnostics)
+    {
+        private readonly Lock _gate = new();
+        private TaskCompletionSource _replies = Completed();
+
+        internal HeldStore Store => store;
+        internal EngineSession Session { get; set; } = null!;
+
+        /// <summary>What the engine wrote to its diagnostics stream so far.</summary>
+        internal string Diagnostics => diagnostics.ToString() ?? "";
+
+        private static TaskCompletionSource Completed()
+        {
+            var source = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            source.SetResult();
+            return source;
+        }
+
+        internal Task ReplyGate()
+        {
+            lock (_gate) return _replies.Task;
+        }
+
+        /// <summary>From now on a reply's write does not return, though its bytes can be read.</summary>
+        internal void HoldReplies()
+        {
+            lock (_gate) _replies = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+
+        internal void ReleaseReplies()
+        {
+            lock (_gate) _replies.TrySetResult();
+        }
+
+        internal string Describe() =>
+            Session.Run.IsCompleted
+                ? "the engine stopped: " + (Session.Run.Exception?.InnerException?.Message ?? Session.Run.Status.ToString())
+                : "the engine is running";
+
+        /// <summary>The next <paramref name="count" /> replies by id; fewer when the engine stops or stays silent.</summary>
+        internal async Task<Dictionary<string, JsonElement>> RepliesAsync(int count, CancellationToken ct)
+        {
+            var replies = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+            while (replies.Count < count && await Session.ReadLineAsync(TimeSpan.FromSeconds(20), ct) is { } line)
+            {
+                using var reply = JsonDocument.Parse(line);
+                // A refusal of a duplicate id and the first call's reply share the id: keep the first seen.
+                replies.TryAdd(reply.RootElement.GetProperty("id").GetString()!, reply.RootElement.Clone());
+            }
+
+            return replies;
+        }
     }
 }

@@ -6,20 +6,19 @@ import NamiProofs.HostEngine.Engine
 
 The steady state after readiness: callers enter and abort requests on the host
 (`Host.step`), the engine's read loop takes frames from the stdin pipe in order
-(`Engine.step` on `.frame`), its tasks work and reply (`Engine.step` on `enter`,
-`respond`, `release`, `drop`), and the host's `data` handler takes reply frames in order
-(`Host.step` on `.reply`). Both pipes are FIFO and lose nothing (engine.ts:45-56 and
-EngineProtocol.cs:57-89 read complete frames in order; `Framing.lean` proves that the
-splitting into frames does not depend on how the bytes arrive).
+(`Engine.step` on `.frame`), its tasks work and reply (`Engine.step` on `enter`, `respond`,
+`drop`, `unwindEnter`, `unwind`), and the host's `data` handler takes reply frames in order
+(`Host.step` on `.reply`). Both pipes are FIFO and lose nothing (both readers take complete
+frames in order; `Framing.lean` proves that the splitting into frames does not depend on how
+the bytes arrive).
 
 Engine death and shutdown are left to the two machines on their own; this composition asks
-only what frames a correct host can send. A call frame carries the agent's arguments and
-`_meta` trace context unchanged (server.ts:41-48, 86-89), so a frame the host writes may be
-one the engine cannot decode: `deliverUndecodable` delivers the next call frame as `garbage`.
-Two such frames end the published engine today (checked in this container, exit -6): input
-nested 70 deep (`JsonDocument` depth 64, EngineProtocol.cs:203) and a lone surrogate in
-`traceparent` (`GetString()` while validating, EngineProtocol.cs:204); the host audit found
-both reachable from ordinary MCP requests.
+only what frames a correct host can send. A call frame carries an agent's arguments, so the
+model keeps the case that the engine cannot decode one: `deliverUndecodable` delivers the
+next call frame as `undecodable` with its id, which the engine answers with an error for
+that id (`Decode` in EngineProtocol.cs). Whether the host still writes such a frame is the
+host's matter (server.ts: arguments its schema refused, a malformed trace context); the
+engine's answer to one is what this event models.
 -/
 
 namespace NamiProofs.HostEngine.System
@@ -52,7 +51,7 @@ inductive Ev where
   | host (e : Host.Ev)
   /-- The read loop takes the next frame of the stdin pipe. -/
   | deliver
-  /-- An engine task: `enter`, `respond`, `release` or `drop`. -/
+  /-- An engine task: `enter`, `respond`, `drop`, `unwindEnter` or `unwind`. -/
   | eng (e : Engine.Ev)
   /-- The host's `data` handler takes the next reply frame. -/
   | receive
@@ -60,23 +59,25 @@ inductive Ev where
   | deliverUndecodable
   deriving DecidableEq, Repr
 
-def step (s : St) : Ev → Option St
+/-- One step of the composition over a given engine step function, so that broken engines can
+be checked against the same claims (`Mutants.lean`). -/
+def stepBy (estp : Engine.St → Engine.Ev → Option Engine.St) (s : St) : Ev → Option St
   | .host e =>
     match e with
     | .requestTool _ | .requestHealth | .abort _ => (Host.step s.host e).map ({ s with host := · })
     | _ => none
   | .deliver =>
     match s.host.sent[s.delivered]? with
-    | some f => (Engine.step s.eng (.frame (toEngine f))).map
+    | some f => (estp s.eng (.frame (toEngine f))).map
         (fun g => { s with eng := g, delivered := s.delivered + 1 })
     | none => none
   | .eng e =>
     match e with
-    | .enter _ | .respond _ _ | .release _ | .drop _ => (Engine.step s.eng e).map ({ s with eng := · })
+    | .enter _ | .respond _ _ | .drop _ | .unwindEnter | .unwind _ => (estp s.eng e).map ({ s with eng := · })
     | _ => none
   | .deliverUndecodable =>
     match s.host.sent[s.delivered]? with
-    | some (.call _) | some (.health _) => (Engine.step s.eng (.frame .garbage)).map
+    | some (.call id) | some (.health id) => (estp s.eng (.frame (.undecodable id))).map
         (fun g => { s with eng := g, delivered := s.delivered + 1 })
     | _ => none
   | .receive =>
@@ -85,11 +86,18 @@ def step (s : St) : Ev → Option St
         (fun h => { s with host := h, received := s.received + 1 })
     | none => none
 
-def run (s : St) : List Ev → Option St
-  | [] => some s
-  | e :: es => (step s e).bind (run · es)
+def step : St → Ev → Option St := stepBy Engine.step
 
-def Reachable (s : St) : Prop := ∃ es, run init es = some s
+def runBy (estp : Engine.St → Engine.Ev → Option Engine.St) (s : St) : List Ev → Option St
+  | [] => some s
+  | e :: es => (stepBy estp s e).bind (runBy estp · es)
+
+def ReachableBy (estp : Engine.St → Engine.Ev → Option Engine.St) (s : St) : Prop :=
+  ∃ es, runBy estp init es = some s
+
+def run : St → List Ev → Option St := runBy Engine.step
+
+def Reachable (s : St) : Prop := ReachableBy Engine.step s
 
 def accepts (es : List Ev) : Bool := (run init es).isSome
 

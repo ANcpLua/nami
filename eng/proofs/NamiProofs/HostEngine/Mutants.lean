@@ -1,6 +1,7 @@
 import NamiProofs.HostEngine.Spec
 import NamiProofs.HostEngine.Proofs.HostRefute
 import NamiProofs.HostEngine.Proofs.Engine
+import NamiProofs.HostEngine.Proofs.System
 import NamiProofs.HostEngine.Proofs.Framing
 
 /-!
@@ -43,6 +44,34 @@ theorem witness_cancel : ∃ s, Host.Reachable s ∧ s.exit = none ∧ s.pending
 
 theorem witness_engineExit : ∃ s, Engine.Reachable s ∧ s.loop ≠ .reading ∧ s.pending ≠ [] :=
   ⟨(Engine.run Engine.init [.frame (.req 1 .call true), .eof]).get!, ⟨[.frame (.req 1 .call true), .eof], rfl⟩,
+    by decide, by decide⟩
+
+/-- A bad frame arrives while a call is in flight. -/
+theorem witness_badFrame : ∃ s s', Engine.Reachable s ∧ s.loop = .reading ∧ s.pending ≠ [] ∧
+    Engine.step s (.frame .garbage) = some s' :=
+  ⟨Engine.oneCall, _, Engine.oneCall_reachable, rfl, by decide, rfl⟩
+
+theorem witness_wrongRevision : ∃ s s', Engine.Reachable s ∧ s.loop = .reading ∧
+    Engine.step s (.frame (.req 1 .call false)) = some s' :=
+  ⟨Engine.init, _, Engine.init_reachable, rfl, rfl⟩
+
+/-- A repeated id, and a 33rd call at a full table. -/
+theorem witness_duplicate : ∃ s, Engine.Reachable s ∧ s.loop = .reading ∧ (Engine.ids s).contains 1 = true :=
+  ⟨Engine.oneCall, Engine.oneCall_reachable, rfl, by decide⟩
+
+def fullTable : List Engine.Ev := (List.range 32).map (fun i => .frame (.req (i + 1) .call true))
+
+theorem witness_full : ∃ s, Engine.Reachable s ∧ s.loop = .reading ∧ s.pending.length ≥ Engine.maxPending :=
+  ⟨(Engine.run Engine.init fullTable).get!, ⟨fullTable, by decide⟩, by decide, by decide⟩
+
+/-- The end of the input does end the loop. -/
+theorem witness_endOfInput : ∃ s s', Engine.Reachable s ∧ s.loop = .reading ∧
+    Engine.step s .eof = some s' ∧ s'.loop ≠ .reading :=
+  ⟨Engine.init, _, Engine.init_reachable, rfl, rfl, by decide⟩
+
+/-- The composition reaches a full table on both sides (`System.cancelAtFullQueue`). -/
+theorem witness_correctHost : ∃ s, System.Reachable s ∧ s.host.pending.length = 32 ∧ s.eng.pending.length = 32 :=
+  ⟨(System.run System.init System.cancelAtFullQueue).get!, ⟨System.cancelAtFullQueue, by decide⟩,
     by decide, by decide⟩
 
 /-- A frame cut across reads and two frames in one read. -/
@@ -114,12 +143,69 @@ theorem mutant_cancel : ¬ Claim.CancelCompletesWaitingCall hostNoCancelFrame :=
   subst this
   revert hsent; decide
 
-/-- A cancelled call that ends without a reply keeps its `_pending` entry (the `TryRemove` in
-EngineProtocol.cs:173 skipped on that path). -/
+/-- The engine before P14 and A1 = H3 (commit 843383e): a frame it cannot serve throws out of
+the read loop, and a cancel frame only cancels the entry's token, so the entry stays until
+its task has ended. -/
+def engineBefore (s : Engine.St) : Engine.Ev → Option Engine.St
+  | .frame f =>
+    if s.loop == .reading then
+      match f with
+      | .garbage | .oversize | .undecodable _ | .req _ _ false | .cancel _ false => some (Engine.fault s)
+      | .cancel id true =>
+        some { s with pending := s.pending.map (fun c => if c.id == id then { c with cancelled := true } else c) }
+      | .req id m true =>
+        if s.pending.length ≥ Engine.maxPending || (Engine.ids s).contains id then some (Engine.fault s)
+        else Engine.step s (.frame (.req id m true))
+    else none
+  | e => Engine.step s e
+
+def oneCallBefore : Engine.St := (Engine.runBy engineBefore Engine.init [.frame (.req 1 .call true)]).get!
+
+theorem oneCallBefore_reachable : Engine.ReachableBy engineBefore oneCallBefore :=
+  ⟨[.frame (.req 1 .call true)], rfl⟩
+
+theorem initBefore_reachable : Engine.ReachableBy engineBefore Engine.init := ⟨[], rfl⟩
+
+theorem mutant_badFrameNotFatal : ¬ Claim.BadFrameNotFatal engineBefore := by
+  intro hc
+  have := hc Engine.init initBefore_reachable rfl .garbage rfl (Engine.fault Engine.init) rfl
+  revert this; decide
+
+theorem mutant_badFrameKeepsOtherCalls : ¬ Claim.BadFrameKeepsOtherCalls engineBefore := by
+  intro hc
+  have := hc oneCallBefore oneCallBefore_reachable rfl .garbage rfl (Engine.fault oneCallBefore) rfl
+    ⟨1, .call, .waiting, false⟩ (by decide)
+  revert this; decide
+
+theorem mutant_wrongRevision : ¬ Claim.WrongRevisionRefusedBeforeDispatch engineBefore := by
+  intro hc
+  have := hc Engine.init initBefore_reachable rfl 1 .call (Engine.fault Engine.init) rfl
+  revert this; decide
+
+theorem mutant_duplicateOrFull : ¬ Claim.DuplicateOrFullRefusedForThatId engineBefore := by
+  intro hc
+  have := hc oneCallBefore oneCallBefore_reachable rfl 1 .call (Or.inl (by decide)) (Engine.fault oneCallBefore) rfl
+  revert this; decide
+
+theorem mutant_onlyEndOfInput : ¬ Claim.OnlyEndOfInputEndsTheLoop engineBefore := by
+  intro hc
+  have := hc Engine.init initBefore_reachable rfl (.frame .garbage) (Engine.fault Engine.init) rfl (by decide)
+  revert this; decide
+
+/-- With the engine as it was, a caller that goes away at the host's limit ends the engine
+(`System.cancelAtFullQueue`): the reproduced finding A1 = H3. -/
+theorem mutant_correctHost : ¬ Claim.CorrectHostNeverEndsTheEngine engineBefore := by
+  intro hc
+  have := hc (System.runBy engineBefore System.init System.cancelAtFullQueue).get!
+    ⟨System.cancelAtFullQueue, by decide⟩
+  revert this; decide
+
+/-- A call cancelled through `_lifetime` that ends without a reply keeps its `_pending` entry
+(the `TryRemove` in the `finally` of `Execute` skipped). -/
 def engineDropKeepsEntry (s : Engine.St) : Engine.Ev → Option Engine.St
   | .drop id =>
     match Engine.findCall s id with
-    | some c => if c.cancelled && c.phase != .replied then some s else none
+    | some c => if c.cancelled then some s else none
     | none => none
   | e => Engine.step s e
 
@@ -127,21 +213,18 @@ def engineDropKeepsEntry (s : Engine.St) : Engine.Ev → Option Engine.St
 exit: the entry never leaves `_pending`. -/
 theorem mutant_engineExit_stuck : ∀ (es : List Engine.Ev) (s s' : Engine.St),
     s.loop ≠ .reading → s.lifetime = true → s.exit = none →
-    (∃ c ∈ s.pending, c.id = 1) → (∀ c ∈ s.pending, c.id = 1 → c.phase ≠ .replied) →
+    (∃ c ∈ s.pending, c.id = 1) →
     Engine.runBy engineDropKeepsEntry s es = some s' → s'.exit = none := by
   intro es
   induction es with
-  | nil => intro s s' _ _ hx _ _ hr; simp [Engine.runBy] at hr; subst hr; exact hx
+  | nil => intro s s' _ _ hx _ hr; simp [Engine.runBy] at hr; subst hr; exact hx
   | cons e es ih =>
-    intro s s' hl hlt hx hex hall hr
+    intro s s' hl hlt hx hex hr
     simp only [Engine.runBy] at hr
     cases hs : engineDropKeepsEntry s e with
     | none => simp [hs] at hr
     | some s1 =>
       simp only [hs, Option.bind_some] at hr
-      have hfind : ∀ {id c}, Engine.findCall s id = some c → c ∈ s.pending ∧ c.id = id := by
-        intro id c h
-        exact ⟨List.mem_of_find?_eq_some h, by simpa using List.find?_some h⟩
       obtain ⟨c1, hc1, hc1id⟩ := hex
       have hreading : (s.loop == .reading) = false := by simpa using hl
       cases e with
@@ -152,34 +235,21 @@ theorem mutant_engineExit_stuck : ∀ (es : List Engine.Ev) (s s' : Engine.St),
         simp only [engineDropKeepsEntry, Engine.step, hx, Option.isNone_none, ite_true,
           Option.some.injEq] at hs
         subst hs
-        apply ih _ s' _ _ _ _ _ hr
+        apply ih _ s' _ _ _ _ hr
         · simp [Engine.cancelAll, hreading, hl]
         · simp [Engine.cancelAll]
         · simp only [Engine.cancelAll]
         · exact ⟨{ c1 with cancelled := true }, by simp [Engine.cancelAll]; exact ⟨c1, hc1, by simp⟩, hc1id⟩
-        · intro c hc hcid
-          simp [Engine.cancelAll] at hc
-          obtain ⟨d, hd, rfl⟩ := hc
-          exact hall d hd hcid
       | enter id =>
         simp only [engineDropKeepsEntry, Engine.step] at hs
         split at hs
-        · rename_i c hfc
-          split at hs
+        · split at hs
           · simp only [Option.some.injEq] at hs
             subst hs
-            apply ih _ s' (by simpa using hl) (by simpa using hlt) (by simpa using hx) ?_ ?_ hr
-            · refine ⟨if c1.id == id then { c1 with phase := .running } else c1, ?_, ?_⟩
-              · simp only [Engine.setPhase, List.mem_map]; exact ⟨c1, hc1, rfl⟩
-              · split <;> simp [hc1id]
-            · intro c hc hcid
-              simp only [Engine.setPhase, List.mem_map] at hc
-              obtain ⟨d, hd, rfl⟩ := hc
-              by_cases hdi : d.id = id
-              · simp [hdi]
-              · have hne : (d.id == id) = false := by simpa using hdi
-                simp only [hne, Bool.false_eq_true, ite_false] at hcid ⊢
-                exact hall d hd hcid
+            apply ih _ s' (by simpa using hl) (by simpa using hlt) (by simpa using hx) ?_ hr
+            refine ⟨if c1.id == id then { c1 with phase := .running } else c1, ?_, ?_⟩
+            · simp only [Engine.setPhase, List.mem_map]; exact ⟨c1, hc1, rfl⟩
+            · split <;> simp [hc1id]
           · simp at hs
         · simp at hs
       | respond id isError =>
@@ -189,35 +259,34 @@ theorem mutant_engineExit_stuck : ∀ (es : List Engine.Ev) (s s' : Engine.St),
           · rename_i hcond; simp [hlt] at hcond
           · simp at hs
         · simp at hs
-      | release id =>
-        simp only [engineDropKeepsEntry, Engine.step] at hs
-        split at hs
-        · rename_i c hfc
-          split at hs
-          · rename_i hph
-            simp only [Option.some.injEq] at hs
-            subst hs
-            obtain ⟨hcm, hcid⟩ := hfind hfc
-            have hid : id ≠ 1 := by
-              intro h1; subst h1
-              exact hall c hcm hcid (by simpa using hph)
-            apply ih _ s' (by simpa using hl) (by simpa using hlt) (by simpa using hx) ?_ ?_ hr
-            · refine ⟨c1, ?_, hc1id⟩
-              simp only [Engine.remove, List.mem_filter]
-              refine ⟨hc1, ?_⟩
-              simp [hc1id]; omega
-            · intro c' hc' hcid'
-              exact hall c' (List.mem_filter.mp hc').1 hcid'
-          · simp at hs
-        · simp at hs
       | drop id =>
         simp only [engineDropKeepsEntry] at hs
         split at hs
         · split at hs
           · simp only [Option.some.injEq] at hs; subst hs
-            exact ih _ s' hl hlt hx ⟨c1, hc1, hc1id⟩ hall hr
+            exact ih _ s' hl hlt hx ⟨c1, hc1, hc1id⟩ hr
           · simp at hs
         · simp at hs
+      | unwindEnter =>
+        simp only [engineDropKeepsEntry, Engine.step] at hs
+        split at hs
+        · simp only [Option.some.injEq] at hs; subst hs
+          apply ih _ s' (by simpa using hl) (by simpa using hlt) (by simpa using hx) ?_ hr
+          exact ⟨c1, hc1, hc1id⟩
+        · simp at hs
+      | unwind worker =>
+        simp only [engineDropKeepsEntry, Engine.step] at hs
+        split at hs
+        · split at hs
+          · simp only [Option.some.injEq] at hs; subst hs
+            apply ih _ s' (by simpa using hl) (by simpa using hlt) (by simpa using hx) ?_ hr
+            exact ⟨c1, hc1, hc1id⟩
+          · simp at hs
+        · split at hs
+          · simp only [Option.some.injEq] at hs; subst hs
+            apply ih _ s' (by simpa using hl) (by simpa using hlt) (by simpa using hx) ?_ hr
+            exact ⟨c1, hc1, hc1id⟩
+          · simp at hs
       | exitProcess =>
         simp only [engineDropKeepsEntry, Engine.step] at hs
         split at hs
@@ -230,8 +299,7 @@ theorem mutant_engineExit : ¬ Claim.EngineCanAlwaysExitAfterTheLoopEnds engineD
   intro hc
   let s0 := (Engine.runBy engineDropKeepsEntry Engine.init [.frame (.req 1 .call true), .eof]).get!
   obtain ⟨es, s', hr, hx⟩ := hc s0 ⟨[.frame (.req 1 .call true), .eof], rfl⟩ (by decide)
-  have := mutant_engineExit_stuck es s0 s' (by decide) rfl rfl ⟨⟨1, .call, .waiting, true⟩, by decide, rfl⟩
-    (by decide) hr
+  have := mutant_engineExit_stuck es s0 s' (by decide) rfl rfl ⟨⟨1, .call, .waiting, true⟩, by decide, rfl⟩ hr
   rw [this] at hx; simp at hx
 
 /-- A reader that forgets the bytes it kept between reads. -/

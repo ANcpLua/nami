@@ -207,7 +207,7 @@
  "src/nami.mcp/src/engine.ts|request|throw|2": {
   "memberHash": "3a499d9361aa3fa3",
   "line": 69,
-  "model": "Host.request (full: Err.plain)"
+  "model": "Host.request (full: Err.unavailable)"
  },
  "src/nami.mcp/src/engine.ts|<top level>|throw|1": {
   "memberHash": "3bd930833d52453d",
@@ -221,62 +221,62 @@
  },
  "src/nami.mcp/src/main.ts|<top level>|closing|1": {
   "memberHash": "07c0948b035a2bc5",
-  "line": 71,
+  "line": 76,
   "model": "Host.St.closing (initially false)"
  },
  "src/nami.mcp/src/main.ts|close|closing|1": {
   "memberHash": "302c1707a06174ba",
-  "line": 74,
+  "line": 79,
   "model": "Host.step .hostSignal"
  },
  "src/nami.mcp/src/main.ts|fetch|engineCall|1": {
   "memberHash": "ce26cd7191cfc0ab",
-  "line": 60,
+  "line": 65,
   "model": "Host.step .requestHealth"
  },
  "src/nami.mcp/src/main.ts|close|engineCall|1": {
   "memberHash": "302c1707a06174ba",
-  "line": 76,
+  "line": 81,
   "model": "Host.step .transportStopped (engine.close)"
  },
  "src/nami.mcp/src/main.ts|fetch|healthAnswer|1": {
   "memberHash": "ce26cd7191cfc0ab",
-  "line": 61,
+  "line": 66,
   "model": "Host.replyOutcome .health, Host.outcomeOf .health (a throw is Bun's 500)"
  },
  "src/nami.mcp/src/main.ts|<top level>|signalHandler|1": {
   "memberHash": "38ac5d25f68ffdef",
-  "line": 78,
-  "model": "Host.step .hostSignal"
+  "line": 83,
+  "model": "Host.step .hostSignal (the handler stays registered)"
  },
  "src/nami.mcp/src/main.ts|<top level>|signalHandler|2": {
   "memberHash": "8d6e7c26ccb03b2e",
-  "line": 79,
-  "model": "Host.step .hostSignal"
+  "line": 84,
+  "model": "Host.step .hostSignal (the handler stays registered)"
  },
  "src/nami.mcp/src/main.ts|<top level>|signalHandler|3": {
   "memberHash": "a2b94f7da6533cd1",
-  "line": 81,
+  "line": 86,
   "model": "Host.step .hostSignal (stdio end of input)"
  },
  "src/nami.mcp/src/main.ts|<top level>|transport|1": {
   "memberHash": "38e7d44466e769ee",
-  "line": 39,
+  "line": 44,
   "model": "Host.step .transportStopped"
  },
  "src/nami.mcp/src/main.ts|<top level>|transport|2": {
   "memberHash": "c6536ee10583bc1a",
-  "line": 69,
+  "line": 74,
   "model": "Host.step .transportStopped"
  },
  "src/nami.mcp/src/main.ts|<top level>|serve|1": {
   "memberHash": "cea586cc72a009b5",
-  "line": 38,
+  "line": 43,
   "model": "Host.step .readyFrame (serving)"
  },
  "src/nami.mcp/src/main.ts|<top level>|serve|2": {
   "memberHash": "ed412e3b5b567f7b",
-  "line": 55,
+  "line": 60,
   "model": "Host.step .readyFrame (serving)"
  },
  "src/nami.mcp/src/main.ts|<top level>|ready|1": {
@@ -294,150 +294,195 @@
   "line": 52,
   "model": "Host.Outcome.cancelled"
  },
- "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|pending|1": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 70,
-  "model": "Engine.accept .cancel"
+ "src/nami/Hosting/EngineProtocol.cs|Accept|pending|1": {
+  "memberHash": "dfcb7d356d41a124",
+  "line": 136,
+  "model": "Engine.accept .cancel _ true (findCall)"
  },
- "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|pending|2": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 77,
-  "model": "Engine.accept .req (add)"
+ "src/nami/Hosting/EngineProtocol.cs|Accept|pending|2": {
+  "memberHash": "dfcb7d356d41a124",
+  "line": 137,
+  "model": "Engine.accept .cancel _ true (the entry leaves pending when the cancel is read; Design.Fix.removeOnCancel)"
+ },
+ "src/nami/Hosting/EngineProtocol.cs|Accept|pending|3": {
+  "memberHash": "dfcb7d356d41a124",
+  "line": 157,
+  "model": "Engine.accept .req _ _ true (add; a repeated id is refused: Engine.refuse)"
  },
  "src/nami/Hosting/EngineProtocol.cs|Execute|pending|1": {
-  "memberHash": "7e469f9c90ecae0f",
-  "line": 173,
-  "model": "Engine.step .release and .drop"
+  "memberHash": "54f506776a5c1401",
+  "line": 243,
+  "model": "Engine.step .drop (a call cancelled through _lifetime); no effect after Reply or a cancel frame removed the entry"
  },
- "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|cancelCall|1": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 70,
-  "model": "Engine.accept .cancel (cancelled)"
+ "src/nami/Hosting/EngineProtocol.cs|Reply|pending|1": {
+  "memberHash": "17db659968a01e2b",
+  "line": 255,
+  "model": "Engine.step .respond (the entry leaves pending before the reply is written; Design.Fix.removeBeforeReply)"
+ },
+ "src/nami/Hosting/EngineProtocol.cs|Accept|cancelCall|1": {
+  "memberHash": "dfcb7d356d41a124",
+  "line": 138,
+  "model": "Engine.accept .cancel _ true (the task moves to endingIdle or endingBusy)"
  },
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|lifetime|1": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 101,
+  "memberHash": "2bcfbc304f253202",
+  "line": 106,
   "model": "Engine.cancelAll (finally)"
  },
  "src/nami/Hosting/EngineProtocol.cs|Execute|worker|1": {
-  "memberHash": "7e469f9c90ecae0f",
-  "line": 113,
-  "model": "Engine.step .enter"
+  "memberHash": "54f506776a5c1401",
+  "line": 182,
+  "model": "Engine.step .enter and .unwindEnter"
  },
  "src/nami/Hosting/EngineProtocol.cs|Execute|worker|2": {
-  "memberHash": "7e469f9c90ecae0f",
-  "line": 172,
-  "model": "Engine.step .release and .drop (busy - 1)"
+  "memberHash": "54f506776a5c1401",
+  "line": 241,
+  "model": "Engine.step .drop and .unwind true (busy - 1)"
  },
- "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|tasks|1": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 83,
-  "model": "abstraction: _tasks are the Execute tasks; Engine.step .exitProcess waits for pending = []"
+ "src/nami/Hosting/EngineProtocol.cs|Accept|tasks|1": {
+  "memberHash": "dfcb7d356d41a124",
+  "line": 165,
+  "model": "abstraction: _tasks are the Execute tasks; Engine.step .exitProcess waits for pending = [] and endingIdle = endingBusy = 0"
  },
- "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|tasks|2": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 84,
-  "model": "abstraction: _tasks are the Execute tasks; Engine.step .exitProcess waits for pending = []"
+ "src/nami/Hosting/EngineProtocol.cs|Accept|tasks|2": {
+  "memberHash": "dfcb7d356d41a124",
+  "line": 166,
+  "model": "abstraction: _tasks are the Execute tasks; Engine.step .exitProcess waits for pending = [] and endingIdle = endingBusy = 0"
  },
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|throw|1": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 63,
-  "model": "Engine.accept .oversize"
- },
- "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|throw|2": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 67,
-  "model": "Engine.accept (.req _ _ false, .cancel _ false)"
- },
- "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|throw|3": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 75,
-  "model": "Engine.accept .req (full or duplicate: fault)"
- },
- "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|throw|4": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 80,
-  "model": "Engine.accept .req (duplicate: fault)"
- },
- "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|throw|5": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 88,
-  "model": "Framing.drain (rest over the limit), Engine.accept .oversize"
- },
- "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|throw|6": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 92,
+  "memberHash": "2bcfbc304f253202",
+  "line": 97,
   "model": "Engine.step .eofPartial"
  },
  "src/nami/Hosting/EngineProtocol.cs|Decode|throw|1": {
-  "memberHash": "068adceccfc07607",
-  "line": 205,
-  "model": "Engine.accept .garbage"
+  "memberHash": "f6261c8434830e04",
+  "line": 294,
+  "model": "Engine.accept .undecodable and .garbage (caught in Decode)"
  },
  "src/nami/Hosting/EngineProtocol.cs|Decode|throw|2": {
-  "memberHash": "068adceccfc07607",
-  "line": 207,
-  "model": "Engine.accept .garbage"
+  "memberHash": "f6261c8434830e04",
+  "line": 296,
+  "model": "Engine.accept .undecodable and .garbage (caught in Decode)"
  },
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|respond|1": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 54,
+  "memberHash": "2bcfbc304f253202",
+  "line": 68,
   "model": "Engine.init (the ready frame precedes the initial state)"
  },
- "src/nami/Hosting/EngineProtocol.cs|Execute|respond|1": {
-  "memberHash": "7e469f9c90ecae0f",
-  "line": 117,
+ "src/nami/Hosting/EngineProtocol.cs|Accept|respond|1": {
+  "memberHash": "dfcb7d356d41a124",
+  "line": 127,
+  "model": "Engine.accept .undecodable (Engine.refuse)"
+ },
+ "src/nami/Hosting/EngineProtocol.cs|Accept|respond|2": {
+  "memberHash": "dfcb7d356d41a124",
+  "line": 144,
+  "model": "Engine.accept .req _ _ false (Engine.refuse)"
+ },
+ "src/nami/Hosting/EngineProtocol.cs|Accept|respond|3": {
+  "memberHash": "dfcb7d356d41a124",
+  "line": 151,
+  "model": "Engine.accept .req _ _ true at maxPending (Engine.refuse)"
+ },
+ "src/nami/Hosting/EngineProtocol.cs|Accept|respond|4": {
+  "memberHash": "dfcb7d356d41a124",
+  "line": 160,
+  "model": "Engine.accept .req _ _ true with a repeated id (Engine.refuse)"
+ },
+ "src/nami/Hosting/EngineProtocol.cs|Reply|respond|1": {
+  "memberHash": "17db659968a01e2b",
+  "line": 255,
   "model": "Engine.step .respond"
  },
- "src/nami/Hosting/EngineProtocol.cs|Execute|respond|2": {
-  "memberHash": "7e469f9c90ecae0f",
-  "line": 126,
+ "src/nami/Hosting/EngineProtocol.cs|Execute|reply|1": {
+  "memberHash": "54f506776a5c1401",
+  "line": 186,
   "model": "Engine.step .respond"
  },
- "src/nami/Hosting/EngineProtocol.cs|Execute|respond|3": {
-  "memberHash": "7e469f9c90ecae0f",
-  "line": 149,
+ "src/nami/Hosting/EngineProtocol.cs|Execute|reply|2": {
+  "memberHash": "54f506776a5c1401",
+  "line": 195,
   "model": "Engine.step .respond"
  },
- "src/nami/Hosting/EngineProtocol.cs|Execute|respond|4": {
-  "memberHash": "7e469f9c90ecae0f",
-  "line": 166,
+ "src/nami/Hosting/EngineProtocol.cs|Execute|reply|3": {
+  "memberHash": "54f506776a5c1401",
+  "line": 218,
   "model": "Engine.step .respond"
+ },
+ "src/nami/Hosting/EngineProtocol.cs|Execute|reply|4": {
+  "memberHash": "54f506776a5c1401",
+  "line": 235,
+  "model": "Engine.step .respond"
+ },
+ "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|drop|1": {
+  "memberHash": "2bcfbc304f253202",
+  "line": 82,
+  "model": "Engine.accept .oversize (a frame over the limit that arrived whole)"
+ },
+ "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|drop|2": {
+  "memberHash": "2bcfbc304f253202",
+  "line": 89,
+  "model": "Engine.accept .oversize (a frame over the limit, discarded as it arrives)"
+ },
+ "src/nami/Hosting/EngineProtocol.cs|Accept|drop|1": {
+  "memberHash": "dfcb7d356d41a124",
+  "line": 125,
+  "model": "Engine.accept .garbage"
+ },
+ "src/nami/Hosting/EngineProtocol.cs|Accept|drop|2": {
+  "memberHash": "dfcb7d356d41a124",
+  "line": 135,
+  "model": "Engine.accept .cancel _ false"
+ },
+ "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|skipping|1": {
+  "memberHash": "2bcfbc304f253202",
+  "line": 70,
+  "model": "abstraction: Engine.accept .oversize is one event; Framing.onChunk models the reader for frames within the limit only (the skip path is not re-proved)"
+ },
+ "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|skipping|2": {
+  "memberHash": "2bcfbc304f253202",
+  "line": 80,
+  "model": "abstraction: Engine.accept .oversize is one event; Framing.onChunk models the reader for frames within the limit only (the skip path is not re-proved)"
+ },
+ "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|skipping|3": {
+  "memberHash": "2bcfbc304f253202",
+  "line": 90,
+  "model": "abstraction: Engine.accept .oversize is one event; Framing.onChunk models the reader for frames within the limit only (the skip path is not re-proved)"
  },
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|advance|1": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 89,
-  "model": "Framing.onChunk (kept bytes)"
+  "memberHash": "2bcfbc304f253202",
+  "line": 94,
+  "model": "Framing.onChunk (kept bytes), for frames within the limit"
  },
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|loopEnd|1": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 93,
+  "memberHash": "2bcfbc304f253202",
+  "line": 98,
   "model": "Engine.step .eof"
  },
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|readCompleted|1": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 90,
+  "memberHash": "2bcfbc304f253202",
+  "line": 95,
   "model": "Engine.step .eof and .eofPartial"
  },
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|catchCancel|1": {
-  "memberHash": "4415d918aaf74d72",
-  "line": 96,
+  "memberHash": "2bcfbc304f253202",
+  "line": 101,
   "model": "Engine.step .stop"
  },
  "src/nami/Hosting/EngineProtocol.cs|Execute|catchCancel|1": {
-  "memberHash": "7e469f9c90ecae0f",
-  "line": 158,
-  "model": "Engine.step .drop"
+  "memberHash": "54f506776a5c1401",
+  "line": 227,
+  "model": "Engine.step .drop, and .unwind for a task whose entry a cancel frame removed"
  },
  "src/nami/Hosting/EngineProtocol.cs|Dispose|disposed|1": {
   "memberHash": "82b9631ef5a9a6df",
-  "line": 247,
+  "line": 365,
   "model": "abstraction: PendingCall disposal has no model state (Cancel after Dispose does nothing)"
  },
  "src/nami/Hosting/EngineProtocol.cs|Cancel|sourceCancel|1": {
   "memberHash": "53c8097db84f73ef",
-  "line": 256,
-  "model": "Engine.accept .cancel and Engine.cancelAll"
+  "line": 374,
+  "model": "Engine.accept .cancel _ true and Engine.cancelAll"
  },
  "src/nami/Program.cs|<top level>|run|1": {
   "memberHash": "e67638e5b57abf8e",

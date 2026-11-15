@@ -5,30 +5,34 @@ import NamiProofs.HostEngine.System
 /-!
 # Real runs replayed through the models
 
-Each trace is the event sequence of one real run, written from what the run printed, and the
-observation the run made. A trace is accepted when every event is enabled in turn (`step`
-returns `some`) and the model's final state shows the same observation. All runs were made
-in this container on 15 Nov 2026 against the code at 843383e (the product files are
-unchanged on this branch):
+Each trace is the event sequence of one real run, written from what the run printed or
+asserted, and the observation the run made. A trace is accepted when every event is enabled
+in turn (`step` returns `some`) and the model's final state shows the same observation.
 
 * Host runs: `bun tests/Nami.IntegrationTests/Fixtures/mcp-supervisor.ts <scenario> <dir>`,
-  the scripts `McpSupervisorTests` runs, over the fixture engine `mcp-engine.ts`.
-* Engine runs: the published NativeAOT engine `artifacts/publish/nami --engine`, driven over
-  its standard input and output by a scratch probe that writes the same frames as
-  `EnginePipeTests`; and the engine auditor's run of `audit/engine_pending_race.py` (evidence
-  `audit-out/engine-pending-race*.txt` in the audit-engine worktree).
+  the scripts `McpSupervisorTests` runs, over the fixture engine `mcp-engine.ts`; made on
+  15 Nov 2026 against the host at 843383e, which this model still describes.
+* Engine runs: the tests of `tests/Nami.IntegrationTests/EngineProtocolTests.cs`, which serve
+  the real `EngineProtocol` over in-memory pipes and write the frames `engine.ts` writes. Its
+  `Slots_*`, `Refusal_*` and `BadFrames_*` tests hold every tool call at the store until the
+  test opens it, so the order of the events below is the order the test forced, not one
+  possible order. `fragments` and `cancelThenNewCalls` are runs of the published NativeAOT
+  engine over its real standard input and output (`tests/Nami.EndToEndTests/EnginePipeTests.cs`).
+  The runs of the engine at 843383e, which ended it (exit -6), are in this file's history
+  (commit 333fad0) and are what `Mutants.engineBefore` still does.
 
 Mapping: `/health` probes that fail to connect are not host events; the engine's ids are
 renumbered from 1 in the order the engine received them; `mcp-engine.ts` ends on end of input
-unless its mode ignores it.
+unless its mode ignores it. Where a run does not fix the order of two replies, the trace
+picks one.
 
 Transitions the accepted traces exercise: host 13 of 16 events (not `stdinError`,
-`startupTimeout`, `externalKill`); engine 7 of 9 (not `eofPartial`, `stop`); system all 5.
-Line coverage of the runs was not measured.
+`startupTimeout`, `externalKill`); engine 8 of 10 (not `eofPartial`, `stop`; `unwindEnter`
+and `drop` only where noted); system all 5. Line coverage of the runs was not measured.
 
-One trace was first rejected: `busy` ended with exit code 1 after SIGTERM where the model
-predicted 0. Bun ends a process with code 1 once a `fetch` handler has thrown, even after a
-clean shutdown; `St.threw` models that now, and the trace is accepted.
+One host trace was first rejected: `busy` ended with exit code 1 after SIGTERM where the
+model predicted 0. Bun ends a process with code 1 once a `fetch` handler has thrown, even
+after a clean shutdown; `St.threw` models that now, and the trace is accepted.
 -/
 
 namespace NamiProofs.HostEngine.Traces
@@ -114,81 +118,135 @@ def stdio : List Host.Ev :=
 theorem stdio_accepted :
     (Host.run Host.init stdio).map hostObs = some ([], some (.code 0), .exited, false, false) := by decide
 
-/-! ## Engine (published NativeAOT engine) -/
+/-! ## Engine -/
 
 def engineObs (s : Engine.St) : Engine.Loop × List (Nat × Bool) × Option Bool :=
   (s.loop, s.out, s.exit)
 
-/-- One write: a call, `not-json`, a call. Run: no reply, exit -6 (SIGABRT). -/
-def malformed : List Engine.Ev :=
-  [.frame (.req 1 .call true), .enter 1, .frame .garbage, .drop 1, .exitProcess]
+/-- Serving `id` from a free worker: the call enters, replies, and its task ends. -/
+def serve (id : Nat) (isError : Bool := false) : List Engine.Ev :=
+  [.enter id, .respond id isError, .unwind true]
 
-theorem malformed_accepted :
-    (Engine.run Engine.init malformed).map engineObs = some (.faulted, [], some false) := by decide
+/-- `BadFrames_NotJsonWithoutIdAndOversize_DroppedWithOneLineEachAndCallsInFlightFinish`: one
+write of a call, `not-json`, `{"id":7}`, a frame of more than 1 MiB, and a call. Run: three
+lines on the diagnostics stream, both calls answered, a clean end at end of input. -/
+def badFrames : List Engine.Ev :=
+  [.frame (.req 1 .call true), .enter 1, .frame .garbage, .frame .garbage, .frame .oversize,
+   .frame (.req 2 .call true), .enter 2, .respond 1 false, .respond 2 false, .unwind true, .unwind true,
+   .eof, .exitProcess]
 
-/-- One write: a call with revision `sha256:0`, a call. Run: no reply, exit -6. -/
-def wrongRevision : List Engine.Ev := [.frame (.req 1 .call false), .exitProcess]
+theorem badFrames_accepted :
+    (Engine.run Engine.init badFrames).map engineObs = some (.eof, [(1, false), (2, false)], some true) := by
+  decide
+
+/-- `Refusal_WrongRevision_RefusedBeforeDispatchAndTheEngineKeepsServing`: a call, a call
+with revision `sha256:0`, a cancel of the first call with that revision. Run: the second
+call refused at once, one line for the cancel, the first call answered after the store
+opened, one snapshot read in all. -/
+def wrongRevision : List Engine.Ev :=
+  [.frame (.req 1 .call true), .enter 1, .frame (.req 2 .call false), .frame (.cancel 1 false),
+   .respond 1 false, .unwind true]
 
 theorem wrongRevision_accepted :
-    (Engine.run Engine.init wrongRevision).map engineObs = some (.faulted, [], some false) := by decide
+    (Engine.run Engine.init wrongRevision).map engineObs = some (.reading, [(2, true), (1, false)], none) := by
+  decide
 
-/-- One write: call 1, call 1, call 2. Run: no reply, exit -6. -/
+/-- `Refusal_DuplicateId_RefusedForThatIdAndTheFirstCallFinishes`: call 1, call 1, call 2.
+Run: an `invalid_argument` refusal for id 1 at once; both calls answered after the store
+opened. -/
 def duplicate : List Engine.Ev :=
-  [.frame (.req 1 .call true), .enter 1, .frame (.req 1 .call true), .drop 1, .exitProcess]
+  [.frame (.req 1 .call true), .enter 1, .frame (.req 1 .call true), .frame (.req 2 .call true), .enter 2,
+   .respond 1 false, .respond 2 false, .unwind true, .unwind true]
 
 theorem duplicate_accepted :
-    (Engine.run Engine.init duplicate).map engineObs = some (.faulted, [], some false) := by decide
+    (Engine.run Engine.init duplicate).map engineObs =
+      some (.reading, [(1, true), (1, false), (2, false)], none) := by decide
 
-/-- Frames cut across writes and inside a two-byte character (a, b, c, d renumbered 1 to 4).
+def calls (first count : Nat) : List Engine.Ev :=
+  (List.range count).map (fun i => .frame (.req (first + i) .call true))
+
+/-- `Refusal_CallPastThePendingLimit_RefusedForItsIdAndTheOthersFinish`: 33 calls in one
+write. Run: a retryable `collector_unavailable` for the 33rd at once; the 32 answered after
+the store opened. -/
+def pastTheLimit : List Engine.Ev :=
+  [.frame (.req 1 .call true), .enter 1, .frame (.req 2 .call true), .enter 2] ++ calls 3 31 ++
+  [.respond 1 false, .respond 2 false, .unwind true, .unwind true] ++
+  ((List.range 30).map (fun i => serve (i + 3))).flatten
+
+set_option maxRecDepth 20000 in
+theorem pastTheLimit_accepted :
+    (Engine.run Engine.init pastTheLimit).map
+      (fun s => (s.loop, s.out.head?, (s.out.filter (!·.2)).length, s.pending.length)) =
+      some (.reading, some (33, true), 32, 0) := by decide
+
+/-- `Slots_CancelAtTheLimitThenNewCalls_AllAcceptedAndTheCancelledCallIsNotAnswered`
+(Design.traceA): 32 calls, the first two at the store; then cancel 1 and call 33, cancel 2
+and a health request (34). Run: after the store opened, 32 replies, none an error, none for
+1 or 2. The two cancelled tasks end without a reply (`unwind`). -/
+def cancelAtTheLimit : List Engine.Ev :=
+  [.frame (.req 1 .call true), .enter 1, .frame (.req 2 .call true), .enter 2] ++ calls 3 30 ++
+  [.frame (.cancel 1 true), .frame (.req 33 .call true), .frame (.cancel 2 true), .frame (.req 34 .health true),
+   .unwind true, .unwind true] ++
+  ((List.range 32).map (fun i => serve (i + 3))).flatten
+
+set_option maxRecDepth 20000 in
+theorem cancelAtTheLimit_accepted :
+    (Engine.run Engine.init cancelAtTheLimit).map
+      (fun s => (s.loop, s.out.length, s.out.any (·.2), s.out.any (·.1 ≤ 2), s.pending.length, s.endingBusy)) =
+      some (.reading, 32, false, false, 0, 0) := by decide
+
+/-- `Slots_ReplyReadBeforeItsWriteReturned_TheNextCallIsAccepted` (Design.traceB): 32 calls;
+the reply to the first is readable while its write has not returned; call 33 arrives. Run:
+33 replies in all, none an error. -/
+def replyReadBeforeWriteReturned : List Engine.Ev :=
+  [.frame (.req 1 .call true), .enter 1, .frame (.req 2 .call true), .enter 2] ++ calls 3 30 ++
+  [.respond 1 false, .frame (.req 33 .call true), .unwind true, .respond 2 false, .unwind true] ++
+  ((List.range 31).map (fun i => serve (i + 3))).flatten
+
+set_option maxRecDepth 20000 in
+theorem replyReadBeforeWriteReturned_accepted :
+    (Engine.run Engine.init replyReadBeforeWriteReturned).map
+      (fun s => (s.loop, s.out.length, s.out.any (·.2), s.pending.length)) =
+      some (.reading, 33, false, 0) := by decide
+
+/-- `EngineProtocol_FragmentedAndCoalescedReads_KeepRequestIdentity` (published engine):
+frames cut across writes and inside a two-byte character (a, b, c, d renumbered 1 to 4).
 Run: four replies, b an `invalid_argument` refusal of its cursor; exit 0 at end of input. -/
 def fragments : List Engine.Ev :=
-  [.frame (.req 1 .health true), .enter 1, .respond 1 false, .release 1,
-   .frame (.req 2 .call true), .enter 2, .respond 2 true, .release 2,
-   .frame (.req 3 .call true), .enter 3, .respond 3 false, .release 3,
-   .frame (.req 4 .health true), .enter 4, .respond 4 false, .release 4, .eof, .exitProcess]
+  [.frame (.req 1 .health true)] ++ serve 1 ++ [.frame (.req 2 .call true)] ++ serve 2 true ++
+  [.frame (.req 3 .call true)] ++ serve 3 ++ [.frame (.req 4 .health true)] ++ serve 4 ++ [.eof, .exitProcess]
 
 theorem fragments_accepted :
     (Engine.run Engine.init fragments).map engineObs =
       some (.eof, [(1, false), (2, true), (3, false), (4, false)], some true) := by decide
 
-/-! ## Host and engine (published engine; frames as engine.ts writes them) -/
+/-! ## Host and engine (frames as engine.ts writes them) -/
 
 def systemObs (s : System.St) : Engine.Loop × Nat × Nat :=
-  (s.eng.loop, s.host.pending.length, (s.eng.out.filter (·.1 ≥ 3)).length)
+  (s.eng.loop, s.host.pending.length, (s.eng.out.filter (fun r => r.1 ≥ 3 && !r.2)).length)
 
-/-- Own probe, 3 of 3 runs: call 1 (`traces_get` over a 20 000-span trace) and call 2; call 2
-answers while call 1 still runs; then the cancel of 1 and 32 new calls in one write. Run:
-`InvalidDataException: Duplicate or excessive pending engine requests.`, exit -6, 0 of the
-32 new calls answered. -/
+/-- `EngineProtocol_CancelThenNewCalls_WithinTheHostLimit_KeepServing` (published engine):
+call 1 (`traces_get` over a 20 000-span trace) and call 2; call 2 answers while call 1 still
+runs; then the cancel of 1 and 32 new calls in one write. Run: all 32 answered. Call 1 keeps
+its worker until its work ends, so the other worker serves the 32 one after another. -/
 def cancelThenNewCalls : List System.Ev :=
   [.host (.requestTool true), .host (.requestTool true), .deliver, .deliver, .eng (.enter 1),
-   .eng (.enter 2), .eng (.respond 2 false), .eng (.release 2), .receive, .host (.abort 1)] ++
-  List.replicate 32 (.host (.requestTool true)) ++ List.replicate 33 .deliver
+   .eng (.enter 2), .eng (.respond 2 false), .eng (.unwind true), .receive, .host (.abort 1)] ++
+  List.replicate 32 (.host (.requestTool true)) ++ List.replicate 33 .deliver ++
+  ((List.range 32).map (fun i => (serve (i + 3)).map System.Ev.eng)).flatten ++
+  List.replicate 32 .receive
 
-set_option maxRecDepth 20000 in
+set_option maxRecDepth 40000 in
 theorem cancelThenNewCalls_accepted :
-    (System.run System.init cancelThenNewCalls).map systemObs = some (.faulted, 32, 0) := by decide
+    (System.run System.init cancelThenNewCalls).map systemObs = some (.reading, 0, 32) := by decide
 
-/-- The engine auditor's run (2 of 2 at 15:03 and 15:04, and once on its own debug build):
-2 running calls, 30 waiting, 32 cancels, 32 new calls. Run: the same exception, exit -6, 0 of
-32 answered. The 30 waiting calls unwind (`drop`) before the new calls arrive in this
-rendering; without those drops the fault comes earlier, at the first new call. -/
-def auditorRace : List System.Ev :=
-  List.replicate 32 (.host (.requestTool true)) ++ List.replicate 32 .deliver ++
-  [.eng (.enter 1), .eng (.enter 2)] ++ (List.range 32).map (fun i => .host (.abort (i + 1))) ++
-  List.replicate 32 .deliver ++ (List.range 30).map (fun i => .eng (.drop (i + 3))) ++
-  List.replicate 32 (.host (.requestTool true)) ++ List.replicate 31 .deliver
-
-set_option maxRecDepth 20000 in
-theorem auditorRace_accepted :
-    (System.run System.init auditorRace).map systemObs = some (.faulted, 32, 0) := by decide
-
-/-- `decode_probe.py deep` and `surrogate`: one call frame as engine.ts writes it for
-arguments nested 70 deep, and for a lone surrogate in `traceparent`. Run: no reply, exit -6
-(`JsonReaderException` depth 64; `InvalidOperationException` missing low surrogate). -/
-def undecodable : List System.Ev := [.host (.requestTool true), .deliverUndecodable]
+/-- `HostFrame_ArgumentsNestedPastTheReaderDepth_RefusedAloneAndTheEngineKeepsServing` and
+`HostFrame_TraceContextWithAnUnpairedSurrogate_...`: one call frame the engine cannot decode.
+Run: an `invalid_argument` reply for its id, and the engine answers the next request. -/
+def undecodable : List System.Ev := [.host (.requestTool true), .deliverUndecodable, .receive]
 
 theorem undecodable_accepted :
-    (System.run System.init undecodable).map systemObs = some (.faulted, 1, 0) := by decide
+    (System.run System.init undecodable).map (fun s => (s.eng.loop, s.host.pending.length, s.eng.out)) =
+      some (.reading, 0, [(1, true)]) := by decide
 
 end NamiProofs.HostEngine.Traces

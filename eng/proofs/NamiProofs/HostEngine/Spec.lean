@@ -84,7 +84,7 @@ def CancelCompletesWaitingCall (stp : Host.St → Host.Ev → Option Host.St) : 
 /-! ## Engine (P14) -/
 
 def badFrame : Engine.Frame → Bool
-  | .garbage | .oversize | .req _ _ false | .cancel _ false => true
+  | .garbage | .oversize | .undecodable _ | .req _ _ false | .cancel _ false => true
   | _ => false
 
 /-- P14: "A frame that cannot be parsed or is too large is dropped ... A frame with a wrong
@@ -148,8 +148,8 @@ namespace Claim
 /-- engine.tsp: "Fixed bounds for the private protocol, shared by both implementations":
 the host's bound of 32 waiting requests keeps every frame it sends acceptable to the
 engine, so no frame a correct host sends ends the engine. -/
-def CorrectHostNeverEndsTheEngine : Prop :=
-  ∀ s, System.Reachable s → s.eng.loop ≠ .faulted
+def CorrectHostNeverEndsTheEngine (estp : Engine.St → Engine.Ev → Option Engine.St) : Prop :=
+  ∀ s, System.ReachableBy estp s → s.eng.loop ≠ .faulted
 
 end Claim
 
@@ -169,14 +169,14 @@ def DuplicateOrFullRefusedForThatId : Prop := Claim.DuplicateOrFullRefusedForTha
 def OnlyEndOfInputEndsTheLoop : Prop := Claim.OnlyEndOfInputEndsTheLoop Engine.step
 def EngineCanAlwaysExitAfterTheLoopEnds : Prop := Claim.EngineCanAlwaysExitAfterTheLoopEnds Engine.step
 def ReadsKeepFrameIdentity : Prop := Claim.ReadsKeepFrameIdentity Framing.onChunk
-def CorrectHostNeverEndsTheEngine : Prop := Claim.CorrectHostNeverEndsTheEngine
-/-- engine.tsp: shared bounds. The slot accounting as it is (`Design.lean`). -/
+def CorrectHostNeverEndsTheEngine : Prop := Claim.CorrectHostNeverEndsTheEngine Engine.step
+/-- engine.tsp: shared bounds. The slot accounting as it was at 843383e (`Design.lean`). -/
 def SlotsAgreeToday : Prop := Design.NoRefusal Design.today
 /-- With only "a cancel frame removes the entry". -/
 def SlotsAgreeWithRemoveOnCancelOnly : Prop := Design.NoRefusal ⟨true, false⟩
 /-- With only "remove the entry before writing the reply". -/
 def SlotsAgreeWithRemoveBeforeReplyOnly : Prop := Design.NoRefusal ⟨false, true⟩
-/-- With both changes. -/
+/-- With both changes, which is the engine as it is: `Accept` and `Reply` in EngineProtocol.cs. -/
 def SlotsAgreeWithBothChanges : Prop := Design.NoRefusal Design.fixed
 end Spec
 
@@ -189,17 +189,18 @@ def Health503OnEngineError : Prop := Spec.Health503OnEngineError
 def CancelCompletesWaitingCall : Prop := Spec.CancelCompletesWaitingCall
 def EngineCanAlwaysExitAfterTheLoopEnds : Prop := Spec.EngineCanAlwaysExitAfterTheLoopEnds
 def ReadsKeepFrameIdentity : Prop := Spec.ReadsKeepFrameIdentity
+-- Held since the engine refuses instead of ending (P14) and frees a slot when the host does (A1 = H3).
+def BadFrameNotFatal : Prop := Spec.BadFrameNotFatal
+def BadFrameKeepsOtherCalls : Prop := Spec.BadFrameKeepsOtherCalls
+def WrongRevisionRefusedBeforeDispatch : Prop := Spec.WrongRevisionRefusedBeforeDispatch
+def DuplicateOrFullRefusedForThatId : Prop := Spec.DuplicateOrFullRefusedForThatId
+def OnlyEndOfInputEndsTheLoop : Prop := Spec.OnlyEndOfInputEndsTheLoop
+def CorrectHostNeverEndsTheEngine : Prop := Spec.CorrectHostNeverEndsTheEngine
 -- Refuted on the code as it is.
 def HostExitsNonZeroWhenEngineDies : Prop := ¬ Spec.HostExitsNonZeroWhenEngineDies
 def Health503WhileEngineGone : Prop := ¬ Spec.Health503WhileEngineGone
 def HealthAnswersAreReports : Prop := ¬ Spec.HealthAnswersAreReports
-def BadFrameNotFatal : Prop := ¬ Spec.BadFrameNotFatal
-def BadFrameKeepsOtherCalls : Prop := ¬ Spec.BadFrameKeepsOtherCalls
-def WrongRevisionRefusedBeforeDispatch : Prop := ¬ Spec.WrongRevisionRefusedBeforeDispatch
-def DuplicateOrFullRefusedForThatId : Prop := ¬ Spec.DuplicateOrFullRefusedForThatId
-def OnlyEndOfInputEndsTheLoop : Prop := ¬ Spec.OnlyEndOfInputEndsTheLoop
-def CorrectHostNeverEndsTheEngine : Prop := ¬ Spec.CorrectHostNeverEndsTheEngine
--- The proposed fix (design model).
+-- The slot accounting (design model): the code before the fix, each change alone, and the fix.
 def SlotsAgreeToday : Prop := ¬ Spec.SlotsAgreeToday
 def SlotsAgreeWithRemoveOnCancelOnly : Prop := ¬ Spec.SlotsAgreeWithRemoveOnCancelOnly
 def SlotsAgreeWithRemoveBeforeReplyOnly : Prop := ¬ Spec.SlotsAgreeWithRemoveBeforeReplyOnly

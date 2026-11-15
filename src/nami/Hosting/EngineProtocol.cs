@@ -15,16 +15,22 @@ namespace Nami.Hosting;
 
 /// <summary>
 ///     The private, bounded JSONL connection owned by the TypeScript supervisor, over the process's standard input and
-///     output unless other streams are given.
+///     output unless other streams are given. Only the end of the input ends it: a frame it cannot serve is refused for
+///     its id, or dropped with one line on <paramref name="diagnostics" /> when it names none.
 /// </summary>
 internal sealed class EngineProtocol(
     IServiceProvider services,
     CancellationToken stopping,
     Stream? input = null,
-    Stream? output = null) : IAsyncDisposable
+    Stream? output = null,
+    TextWriter? diagnostics = null) : IAsyncDisposable
 {
+    /// <summary>The longest id a refusal echoes; a longer one is the host's fault and is dropped like a frame without id.</summary>
+    private const int MaxRefusedIdLength = 128;
+
     private static readonly byte[] s_lineTerminator = [10];
 
+    private readonly TextWriter _diagnostics = diagnostics ?? Console.Error;
     private readonly SemaphoreSlim _execution = new(EngineLimits.WorkersDefault);
     private readonly CancellationTokenSource _lifetime = CancellationTokenSource.CreateLinkedTokenSource(stopping);
     private readonly PipeWriter _output = PipeWriter.Create(output ?? Console.OpenStandardOutput());
@@ -49,9 +55,9 @@ internal sealed class EngineProtocol(
     }
 
     internal static async Task RunAsync(IServiceProvider services, CancellationToken stopping, Stream? input = null,
-        Stream? output = null)
+        Stream? output = null, TextWriter? diagnostics = null)
     {
-        await using var protocol = new EngineProtocol(services, stopping, input, output);
+        await using var protocol = new EngineProtocol(services, stopping, input, output, diagnostics);
         await protocol.ProcessAsync();
     }
 
@@ -60,6 +66,8 @@ internal sealed class EngineProtocol(
         try
         {
             await Respond("ready", await HealthAsync(services, _lifetime.Token), false);
+            // Inside a frame longer than the limit: its bytes are discarded as they arrive, up to the next newline.
+            var skipping = false;
             while (!_lifetime.IsCancellationRequested)
             {
                 var read = await _reader.ReadAsync(_lifetime.Token);
@@ -67,40 +75,22 @@ internal sealed class EngineProtocol(
                 while (buffer.PositionOf((byte)'\n') is { } end)
                 {
                     var frame = buffer.Slice(0, end);
-                    if (frame.Length > EngineLimits.MaxFrameBytesDefault)
-                        throw new InvalidDataException("Engine frame exceeds its limit.");
-                    var request = Decode(frame, out var refused);
                     buffer = buffer.Slice(buffer.GetPosition(1, end));
-                    if (request is null)
-                    {
-                        await Respond(refused!, ToolDispatcher.Error("invalid_argument",
-                            "The engine could not decode this request.").Content, true);
-                        continue;
-                    }
-
-                    if (request.Revision != ContractRevision.Value)
-                        throw new InvalidDataException("Engine contract revision mismatch.");
-                    if (request.Method == "cancel")
-                    {
-                        if (_pending.TryGetValue(request.Id, out var active)) active.Cancel();
-                        continue;
-                    }
-
-                    if (_pending.Count >= EngineLimits.MaxPendingDefault || _pending.ContainsKey(request.Id))
-                        throw new InvalidDataException("Duplicate or excessive pending engine requests.");
-                    var cancellation = new PendingCall(_lifetime.Token);
-                    if (!_pending.TryAdd(request.Id, cancellation))
-                    {
-                        cancellation.Dispose();
-                        throw new InvalidDataException("Duplicate engine request.");
-                    }
-
-                    _tasks.RemoveAll(static task => task.IsCompletedSuccessfully);
-                    _tasks.Add(Execute(request, cancellation));
+                    if (skipping)
+                        skipping = false;
+                    else if (frame.Length > EngineLimits.MaxFrameBytesDefault)
+                        Drop("a frame longer than the frame limit");
+                    else
+                        await Accept(frame);
                 }
 
-                if (buffer.Length > EngineLimits.MaxFrameBytesDefault)
-                    throw new InvalidDataException("Engine frame exceeds its limit.");
+                if (skipping || buffer.Length > EngineLimits.MaxFrameBytesDefault)
+                {
+                    if (!skipping) Drop("a frame longer than the frame limit");
+                    skipping = true;
+                    buffer = buffer.Slice(buffer.End);
+                }
+
                 _reader.AdvanceTo(buffer.Start, buffer.End);
                 if (!read.IsCompleted)
                     continue;
@@ -118,6 +108,70 @@ internal sealed class EngineProtocol(
         }
     }
 
+    /// <summary>
+    ///     One complete frame within the limit. The host frees a request's slot when it reads the reply or when its
+    ///     caller goes away, and may fill that slot with its next frame at once; so the entry of a cancelled call
+    ///     leaves <see cref="_pending" /> here, when the cancel is read, and the entry of an answered call before its
+    ///     reply is written (<see cref="Reply" />). With both, no frame of a host that keeps the shared limit meets a
+    ///     full table (eng/proofs, Design.fixed_noRefusal; either change alone is refuted there). A frame that does,
+    ///     or that repeats a live id or names another contract revision, is refused for its id and the loop reads on.
+    /// </summary>
+    private async ValueTask Accept(ReadOnlySequence<byte> frame)
+    {
+        var request = Decode(frame, out var refused);
+        if (request is null)
+        {
+            if (refused is null)
+                Drop("a frame that is not an engine request");
+            else
+                await Respond(refused, ToolDispatcher.Error("invalid_argument",
+                    "The engine could not decode this request.").Content, true);
+            return;
+        }
+
+        if (request.Method == "cancel")
+        {
+            if (request.Revision != ContractRevision.Value)
+                Drop("a cancel frame for another contract revision");
+            else if (_pending.TryGetValue(request.Id, out var active) &&
+                     _pending.TryRemove(KeyValuePair.Create(request.Id, active)))
+                active.Cancel();
+            return;
+        }
+
+        if (request.Revision != ContractRevision.Value)
+        {
+            await Respond(request.Id, ToolDispatcher.Error("collector_contract_mismatch",
+                "The request names a different contract revision than this engine serves.").Content, true);
+            return;
+        }
+
+        if (_pending.Count >= EngineLimits.MaxPendingDefault)
+        {
+            await Respond(request.Id, ToolDispatcher.Error("collector_unavailable",
+                "The engine already serves its limit of pending requests.", retryable: true).Content, true);
+            return;
+        }
+
+        var call = new PendingCall(_lifetime.Token);
+        if (!_pending.TryAdd(request.Id, call))
+        {
+            call.Dispose();
+            await Respond(request.Id, ToolDispatcher.Error("invalid_argument",
+                "The engine already serves a request with this id.", "id").Content, true);
+            return;
+        }
+
+        _tasks.RemoveAll(static task => task.IsCompletedSuccessfully);
+        _tasks.Add(Execute(request, call));
+    }
+
+    /// <summary>One line on the diagnostics stream for a frame that names no request to refuse.</summary>
+    private void Drop(string what)
+    {
+        _diagnostics.WriteLine("nami engine: dropped " + what + ".");
+    }
+
     private async Task Execute(EngineRequest request, PendingCall cancellation)
     {
         var entered = false;
@@ -129,7 +183,7 @@ internal sealed class EngineProtocol(
             entered = true;
             if (request.Method == "health")
             {
-                await Respond(request.Id, await HealthAsync(services, cancellation.Token), false);
+                await Reply(request.Id, cancellation, await HealthAsync(services, cancellation.Token), false);
                 return;
             }
 
@@ -138,7 +192,7 @@ internal sealed class EngineProtocol(
             if (options.IsApiKeyMode && (credential is null || !credential.Roles.HasFlag(ApiKeyRoles.Read)))
             {
                 var denied = ToolDispatcher.Error("unauthorized", "A project-bound read credential is required.");
-                await Respond(request.Id, denied.Content, true);
+                await Reply(request.Id, cancellation, denied.Content, true);
                 return;
             }
 
@@ -161,7 +215,7 @@ internal sealed class EngineProtocol(
                         activity?.SetTag(ErrorAttributes.Type, code.GetString());
                 }
 
-                await Respond(request.Id, result.Content, result.IsError);
+                await Reply(request.Id, cancellation, result.Content, result.IsError);
             }
             finally
             {
@@ -178,16 +232,27 @@ internal sealed class EngineProtocol(
             activity?.SetStatus(ActivityStatusCode.Error);
             NamiTelemetry.RecordException(error, services.GetRequiredService<ILoggerFactory>().CreateLogger("nami"));
             var failure = ToolDispatcher.Error("internal_error", "The engine could not complete the request.");
-            await Respond(request.Id, failure.Content, true);
+            await Reply(request.Id, cancellation, failure.Content, true);
         }
         finally
         {
             activity?.Dispose();
             Activity.Current = previous;
             if (entered) _execution.Release();
-            _pending.TryRemove(request.Id, out _);
+            // By value: after a cancel freed this id, the same id may name a newer call.
+            _pending.TryRemove(KeyValuePair.Create(request.Id, cancellation));
             cancellation.Dispose();
         }
+    }
+
+    /// <summary>
+    ///     Frees the call's slot, then writes its reply: the host frees its own slot when it reads the reply, so the
+    ///     entry must be gone before the reply can arrive. A call whose entry a cancel frame already removed is not
+    ///     answered; the host stopped waiting for it when it wrote the cancel.
+    /// </summary>
+    private async Task Reply(string id, PendingCall call, JsonElement result, bool error)
+    {
+        if (_pending.TryRemove(KeyValuePair.Create(id, call))) await Respond(id, result, error);
     }
 
     private async Task Respond(string id, JsonElement result, bool error)
@@ -217,7 +282,7 @@ internal sealed class EngineProtocol(
     ///     Decodes one frame. The host forwards an agent's tool arguments and <c>_meta</c> trace context unchanged, so a
     ///     frame can name its request and still not decode: arguments nested past the reader's depth, a string holding an
     ///     unpaired UTF-16 surrogate. That request is refused alone, by the id in <paramref name="refused" />; a frame
-    ///     whose id cannot be read still ends the connection.
+    ///     whose id cannot be read leaves it null.
     /// </summary>
     private static EngineRequest? Decode(ReadOnlySequence<byte> frame, out string? refused)
     {
@@ -230,10 +295,9 @@ internal sealed class EngineProtocol(
             return document.RootElement.Deserialize(ContractTypes.TypeInfo<EngineRequest>())
                    ?? throw new InvalidDataException("Missing engine request.");
         }
-        catch (Exception error) when (error is JsonException or InvalidDataException or InvalidOperationException &&
-                                      RequestId(frame) is { } id)
+        catch (Exception error) when (error is JsonException or InvalidDataException or InvalidOperationException)
         {
-            refused = id;
+            refused = RequestId(frame) is { Length: <= MaxRefusedIdLength } id ? id : null;
             return null;
         }
     }

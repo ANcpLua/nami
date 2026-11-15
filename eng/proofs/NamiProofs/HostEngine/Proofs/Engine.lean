@@ -40,6 +40,9 @@ theorem inv_cancelAll {s : St} (h : (s.pending.map (·.id)).Nodup) (hl : s.loop 
     rw [this]; exact h
   · intro _; exact hl
 
+theorem inv_refuse {s : St} (h : Inv s) (id : Nat) : Inv (refuse s id) :=
+  ⟨h.ended_cancelled, h.ids_nodup, h.exit_ended⟩
+
 theorem inv_step {s s' : St} {e : Ev} (h : Inv s) (hs : step s e = some s') : Inv s' := by
   obtain ⟨h1, h2, h3⟩ := h
   cases e <;> simp only [step] at hs
@@ -47,15 +50,17 @@ theorem inv_step {s s' : St} {e : Ev} (h : Inv s) (hs : step s e = some s') : In
     split at hs <;> simp at hs; subst hs
     rename_i hr
     have hr' : s.loop = .reading := by simpa using hr
+    have h : Inv s := ⟨h1, h2, h3⟩
     cases f with
-    | oversize => exact inv_cancelAll h2 (by simp)
-    | garbage => exact inv_cancelAll h2 (by simp)
+    | oversize => exact h
+    | garbage => exact h
+    | undecodable id => exact inv_refuse h id
     | req id m ok =>
       cases ok
-      · exact inv_cancelAll h2 (by simp)
+      · exact inv_refuse h id
       · simp only [accept]
         split
-        · exact inv_cancelAll h2 (by simp)
+        · exact inv_refuse h id
         · rename_i hc
           constructor
           · intro hl; simp [hr'] at hl
@@ -72,15 +77,14 @@ theorem inv_step {s s' : St} {e : Ev} (h : Inv s) (hs : step s e = some s') : In
           · intro hx; simp [hr'] at hx ⊢; exact h3 hx |>.elim (by simp [hr'])
     | cancel id ok =>
       cases ok
-      · exact inv_cancelAll h2 (by simp)
-      · constructor
-        · intro hl; simp [accept, hr'] at hl
-        · simp only [accept, List.map_map]
-          have : ((fun c : Call => c.id) ∘ fun c => if c.id == id then { c with cancelled := true } else c)
-              = (fun c : Call => c.id) := by
-            funext c; simp only [Function.comp]; split <;> rfl
-          rw [this]; exact h2
-        · intro hx; simp only [accept] at hx; exact absurd hr' (h3 hx)
+      · exact h
+      · simp only [accept]
+        split
+        · constructor
+          · intro hl; exact absurd hr' hl
+          · exact nodup_remove s id h2
+          · intro hx; exact absurd hr' (h3 hx)
+        · exact h
   case eof =>
     split at hs <;> simp at hs; subst hs; exact inv_cancelAll h2 (by simp)
   case eofPartial =>
@@ -101,14 +105,6 @@ theorem inv_step {s s' : St} {e : Ev} (h : Inv s) (hs : step s e = some s') : In
       · exact h3
     · simp at hs
   case respond id isError =>
-    split at hs
-    · split at hs <;> simp at hs; subst hs
-      constructor
-      · intro hl; obtain ⟨a, b⟩ := h1 hl; exact ⟨a, cancelled_setPhase s id _ b⟩
-      · rw [map_id_setPhase]; exact h2
-      · exact h3
-    · simp at hs
-  case release id =>
     split at hs
     · split at hs <;> simp at hs; subst hs
       constructor
@@ -133,14 +129,20 @@ theorem inv_step {s s' : St} {e : Ev} (h : Inv s) (hs : step s e = some s') : In
         · exact nodup_remove s id h2
         · exact h3
     · simp at hs
+  case unwindEnter =>
+    split at hs <;> simp at hs; subst hs; exact ⟨h1, h2, h3⟩
+  case unwind worker =>
+    split at hs
+    · split at hs <;> simp at hs; subst hs; exact ⟨h1, h2, h3⟩
+    · split at hs <;> simp at hs; subst hs; exact ⟨h1, h2, h3⟩
   case exitProcess =>
     split at hs <;> simp at hs; subst hs
     rename_i hc
-    simp at hc
+    have hne : s.loop ≠ .reading := by intro heq; simp [heq] at hc
     constructor
     · intro hl; exact h1 hl
     · exact h2
-    · intro _; exact hc.1.1
+    · intro _; exact hne
 
 theorem inv_runBy {s s' : St} : ∀ {es : List Ev}, Inv s → runBy step s es = some s' → Inv s'
   | [], h, hr => by simp [runBy] at hr; subst hr; exact h
@@ -164,14 +166,32 @@ theorem filter_head (c : Call) (rest : List Call) (h : ((c :: rest).map (·.id))
   have : x.id ≠ c.id := fun heq => h.1 ⟨x, hx, heq⟩
   simpa using this
 
+/-- The tasks whose entries are gone end one by one, then the process exits. -/
+theorem drain_ending : ∀ (n : Nat) (s : St), s.endingIdle + s.endingBusy = n → s.pending = [] →
+    s.loop ≠ .reading → s.exit = none → ∃ es s', runBy step s es = some s' ∧ s'.exit.isSome = true
+  | 0, s, hn, hp, hl, hx => by
+    have hi : s.endingIdle = 0 := by omega
+    have hb : s.endingBusy = 0 := by omega
+    refine ⟨[.exitProcess], { s with exit := some (s.loop != .faulted) }, ?_, by simp⟩
+    have hl' : (s.loop != .reading) = true := by simpa using hl
+    simp [runBy, step, hl', hp, hx, hi, hb]
+  | n + 1, s, hn, hp, hl, hx => by
+    by_cases hi : s.endingIdle > 0
+    · obtain ⟨es, s', hr, hx'⟩ := drain_ending n { s with endingIdle := s.endingIdle - 1 }
+        (by simp only; omega) hp hl hx
+      refine ⟨.unwind false :: es, s', ?_, hx'⟩
+      simp [runBy, step, hi, hr]
+    · have hb : s.endingBusy > 0 := by omega
+      obtain ⟨es, s', hr, hx'⟩ := drain_ending n
+        { s with endingBusy := s.endingBusy - 1, busy := s.busy - 1 } (by simp only; omega) hp hl hx
+      refine ⟨.unwind true :: es, s', ?_, hx'⟩
+      simp [runBy, step, hb, hr]
+
 theorem drain_to_exit : ∀ (n : Nat) (s : St), s.pending.length = n → s.loop ≠ .reading →
     s.lifetime = true → (∀ c ∈ s.pending, c.cancelled = true) → (s.pending.map (·.id)).Nodup →
     s.exit = none → ∃ es s', runBy step s es = some s' ∧ s'.exit.isSome = true
-  | 0, s, hn, hl, _, _, _, hx => by
-    have hp : s.pending = [] := List.eq_nil_of_length_eq_zero hn
-    refine ⟨[.exitProcess], { s with exit := some (s.loop != .faulted) }, ?_, by simp⟩
-    have hl' : (s.loop != .reading) = true := by simpa using hl
-    simp [runBy, step, hl', hp, hx]
+  | 0, s, hn, hl, _, _, _, hx =>
+    drain_ending _ s rfl (List.eq_nil_of_length_eq_zero hn) hl hx
   | n + 1, s, hn, hl, hlt, hc, hnd, hx => by
     match hp : s.pending, hn with
     | c :: rest, hn =>
@@ -183,14 +203,8 @@ theorem drain_to_exit : ∀ (n : Nat) (s : St), s.pending.length = n → s.loop 
         have := hp ▸ hnd; simp only [List.map_cons, List.nodup_cons] at this; exact this.2
       have hc' : ∀ d ∈ rest, d.cancelled = true := fun d hd => hc d (by simp [hp, hd])
       have hlen : rest.length = n := by simpa using hn
-      -- the call ends: `release` after a written reply, otherwise `drop` (its token is cancelled)
+      -- the call ends without a reply: its token is cancelled through `_lifetime`
       cases hph : c.phase with
-      | replied =>
-        obtain ⟨es, s', hr, hx'⟩ := drain_to_exit n { s with pending := rest, busy := s.busy - 1 }
-          hlen hl hlt hc' hnd' hx
-        refine ⟨.release c.id :: es, s', ?_, hx'⟩
-        simp only [runBy, step, hfind, hph]
-        simp [hrem, hr]
       | waiting =>
         obtain ⟨es, s', hr, hx'⟩ := drain_to_exit n { s with pending := rest } hlen hl hlt hc' hnd' hx
         refine ⟨.drop c.id :: es, s', ?_, hx'⟩
@@ -212,7 +226,117 @@ theorem engineCanAlwaysExitAfterTheLoopEnds : Claim.EngineCanAlwaysExitAfterTheL
     obtain ⟨hlt, hc⟩ := h.ended_cancelled hl
     exact drain_to_exit _ s rfl hl hlt hc h.ids_nodup hx
 
-/-! ## Counterexamples -/
+/-! ## A frame never ends the read loop (P14) -/
+
+theorem frame_loop {s s' : St} {f : Frame} (hs : step s (.frame f) = some s') : s'.loop = s.loop := by
+  simp only [step] at hs
+  split at hs <;> simp at hs; subst hs
+  cases f with
+  | oversize => rfl
+  | garbage => rfl
+  | undecodable id => rfl
+  | req id m ok =>
+    cases ok
+    · rfl
+    · simp only [accept]; split <;> rfl
+  | cancel id ok =>
+    cases ok
+    · rfl
+    · simp only [accept]; split <;> rfl
+
+/-- Only the end of the input and the stop signal change `loop`. -/
+theorem step_loop {s s' : St} {e : Ev} (hs : step s e = some s') (h1 : e ≠ .eof) (h2 : e ≠ .eofPartial)
+    (h3 : e ≠ .stop) : s'.loop = s.loop := by
+  cases e with
+  | frame f => exact frame_loop hs
+  | eof => exact absurd rfl h1
+  | eofPartial => exact absurd rfl h2
+  | stop => exact absurd rfl h3
+  | enter id =>
+    simp only [step] at hs
+    split at hs
+    · split at hs <;> simp at hs; subst hs; rfl
+    · simp at hs
+  | respond id isError =>
+    simp only [step] at hs
+    split at hs
+    · split at hs <;> simp at hs; subst hs; rfl
+    · simp at hs
+  | drop id =>
+    simp only [step] at hs
+    split at hs
+    · split at hs
+      · simp at hs; subst hs; rfl
+      · split at hs <;> simp at hs; subst hs; rfl
+    · simp at hs
+  | unwindEnter =>
+    simp only [step] at hs
+    split at hs <;> simp at hs; subst hs; rfl
+  | unwind worker =>
+    simp only [step] at hs
+    split at hs
+    · split at hs <;> simp at hs; subst hs; rfl
+    · split at hs <;> simp at hs; subst hs; rfl
+  | exitProcess =>
+    simp only [step] at hs
+    split at hs <;> simp at hs; subst hs; rfl
+
+/-- A frame the engine cannot serve leaves the accepted calls as they were. -/
+theorem badFrame_pending {s s' : St} {f : Frame} (hb : Claim.badFrame f = true)
+    (hs : step s (.frame f) = some s') : s'.pending = s.pending := by
+  simp only [step] at hs
+  split at hs <;> simp at hs; subst hs
+  cases f with
+  | oversize => rfl
+  | garbage => rfl
+  | undecodable id => rfl
+  | req id m ok =>
+    cases ok
+    · rfl
+    · simp [Claim.badFrame] at hb
+  | cancel id ok =>
+    cases ok
+    · rfl
+    · simp [Claim.badFrame] at hb
+
+theorem badFrameNotFatal : Claim.BadFrameNotFatal step := by
+  intro s _ hl f _ s' hs
+  rw [frame_loop hs]; exact hl
+
+theorem badFrameKeepsOtherCalls : Claim.BadFrameKeepsOtherCalls step := by
+  intro s _ _ f hb s' hs c hc
+  rw [badFrame_pending hb hs]; exact hc
+
+theorem wrongRevisionRefusedBeforeDispatch : Claim.WrongRevisionRefusedBeforeDispatch step := by
+  intro s _ hl id m s' hs
+  refine ⟨by rw [frame_loop hs]; exact hl, badFrame_pending rfl hs, ?_⟩
+  simp only [step] at hs
+  split at hs <;> simp at hs; subst hs
+  simp [accept, refuse]
+
+theorem duplicateOrFullRefusedForThatId : Claim.DuplicateOrFullRefusedForThatId step := by
+  intro s _ hl id m hcond s' hs
+  refine ⟨by rw [frame_loop hs]; exact hl, ?_⟩
+  simp only [step] at hs
+  split at hs <;> simp at hs; subst hs
+  have hc : (decide (s.pending.length ≥ maxPending) || (ids s).contains id) = true := by
+    rcases hcond with h | h
+    · simp only [Bool.or_eq_true, decide_eq_true_eq]; exact Or.inr h
+    · simp only [Bool.or_eq_true, decide_eq_true_eq]; exact Or.inl h
+  simp only [accept, hc, ite_true, refuse]
+  exact fun c hc => hc
+
+theorem onlyEndOfInputEndsTheLoop : Claim.OnlyEndOfInputEndsTheLoop step := by
+  intro s _ hl e s' hs hne
+  by_cases h1 : e = .eof
+  · exact Or.inl h1
+  · by_cases h2 : e = .eofPartial
+    · exact Or.inr (Or.inl h2)
+    · by_cases h3 : e = .stop
+      · exact Or.inr (Or.inr h3)
+      · exact absurd (by rw [step_loop hs h1 h2 h3]; exact hl) hne
+
+/-! ## States used as witnesses -/
 
 /-- One accepted call, waiting for a worker. -/
 def oneCall : St := (run init [.frame (.req 1 .call true)]).get!
@@ -220,35 +344,5 @@ def oneCall : St := (run init [.frame (.req 1 .call true)]).get!
 theorem oneCall_reachable : Reachable oneCall := ⟨[.frame (.req 1 .call true)], rfl⟩
 
 theorem init_reachable : Reachable init := ⟨[], rfl⟩
-
-/-- A garbage frame ends the loop (P14: refused, not fatal). -/
-theorem badFrameNotFatal_refuted : ¬ Claim.BadFrameNotFatal step := by
-  intro hc
-  have := hc init init_reachable rfl .garbage rfl (fault init) rfl
-  revert this; decide
-
-/-- A garbage frame cancels the call accepted before it. -/
-theorem badFrameKeepsOtherCalls_refuted : ¬ Claim.BadFrameKeepsOtherCalls step := by
-  intro hc
-  have := hc oneCall oneCall_reachable rfl .garbage rfl (fault oneCall) rfl ⟨1, .call, .waiting, false⟩ (by decide)
-  revert this; decide
-
-/-- A wrong revision ends the loop instead of an error reply for that id. -/
-theorem wrongRevisionRefusedBeforeDispatch_refuted : ¬ Claim.WrongRevisionRefusedBeforeDispatch step := by
-  intro hc
-  have := hc init init_reachable rfl 1 .call (fault init) rfl
-  revert this; decide
-
-/-- A duplicate id ends the loop. -/
-theorem duplicateOrFullRefusedForThatId_refuted : ¬ Claim.DuplicateOrFullRefusedForThatId step := by
-  intro hc
-  have := hc oneCall oneCall_reachable rfl 1 .call (Or.inl (by decide)) (fault oneCall) rfl
-  revert this; decide
-
-/-- Not only end of input ends the loop. -/
-theorem onlyEndOfInputEndsTheLoop_refuted : ¬ Claim.OnlyEndOfInputEndsTheLoop step := by
-  intro hc
-  have := hc init init_reachable rfl (.frame .garbage) (fault init) rfl (by decide)
-  revert this; decide
 
 end NamiProofs.HostEngine.Engine
