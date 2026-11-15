@@ -25,6 +25,20 @@ public sealed class ContractIntegrationTests(TestContext context)
     }
 
     [TestMethod]
+    public async Task Tools_EngineAndHost_NameTheSameToolsAndContracts()
+    {
+        const string Script = "import { TOOLS } from './src/nami.mcp/src/contracts/generated/manifest.ts'; console.log(JSON.stringify(TOOLS.map(tool => `${tool.name} ${tool.input} ${tool.output}`)));";
+        var result = await ProcessRunner.RunAsync("node", ["--input-type=module", "-e", Script],
+            ProcessRunner.RepositoryRoot, context.CancellationToken);
+        Assert.AreEqual(0, result.ExitCode, result.Error);
+        using var host = JsonDocument.Parse(result.Output);
+
+        Assert.AreSequenceEqual(
+            ContractTypes.Tools.Select(static name => $"{name} {ContractTypes.Analysis(name).Input} {ContractTypes.Analysis(name).Output}"),
+            host.RootElement.EnumerateArray().Select(static tool => tool.GetString()!));
+    }
+
+    [TestMethod]
     public void SerializerContext_CoversEveryContractType()
     {
         var schemaPath = Path.Combine(ProcessRunner.RepositoryRoot,

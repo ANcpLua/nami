@@ -7,9 +7,12 @@ export function $tool(ctx: DecoratorContext, target: Model, name: string, result
   ctx.program.stateMap(stateKeys.tool).set(target, {name, input: target, result, error});
 }
 export function $wireRoot(ctx: DecoratorContext, target: Model | Union): void { ctx.program.stateSet(stateKeys.wireRoot).add(target); }
+/** The `@tool` contracts by tool name: the one list both the engine's ContractTypes and the host's manifest come from. */
+export function toolContracts(program: Program): ToolContract[] {
+  return ([...program.stateMap(stateKeys.tool).values()] as ToolContract[]).sort((a,b) => a.name.localeCompare(b.name));
+}
 export async function emitToolMetadata(program: Program, csharpDir: string): Promise<void> {
-  const tools = [...program.stateMap(stateKeys.tool).values()] as ToolContract[];
-  tools.sort((a,b) => a.name.localeCompare(b.name));
+  const tools = toolContracts(program);
   const rootTypes = new Set<Type>(program.stateSet(stateKeys.wireRoot));
   for (const tool of tools) for (const type of [tool.input,tool.result,tool.error]) rootTypes.add(type);
   const configuration = Object.fromEntries([...program.stateMap(stateKeys.environment)].map(([property,value]) => [pascal((property as ModelProperty).name),value]));
