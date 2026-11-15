@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Google.Protobuf;
 using Nami.Api.Contracts.Common;
 using Nami.Collector.Storage;
 using Nami.SemanticConventions;
@@ -205,37 +206,78 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     }
 
     /// <summary>
-    ///     Claude Code copies the text of its <c>error</c> attribute, which the registry does not persist, into the
-    ///     status message of a failed span: "Shell command failed" on the failing test run of s1, the API client's
-    ///     message on the three failed requests of the capture without a credential. nami keeps that such a span
-    ///     failed, its status code, and not the text: no span has a status message, and the text is in no column.
+    ///     Claude Code copies the text of its <c>error</c> attribute into the status message of a failed span: "Shell
+    ///     command failed" on the failing test run of s1, the API client's message on the three failed requests of the
+    ///     capture without a credential. nami keeps the status code and the message of these spans; the captured
+    ///     messages hold no credential and are shorter than 1024 bytes, so they are stored as sent.
     /// </summary>
     [TestMethod]
     [DataRow(ClaudeCodeCapture.SignedIn, 1)]
     [DataRow(ClaudeCodeCapture.NotSignedIn, 3)]
-    public async Task Ingest_ClaudeCodeCapture_KeepsTheStatusCodeOfASpan_AndNotItsMessage(string capture, int failed)
+    public async Task Ingest_ClaudeCodeCapture_KeepsTheStatusCodeAndMessageOfAFailedSpan(string capture, int failed)
     {
         var exports = ClaudeCodeCapture.Load(capture);
         var sent = exports.Where(static export => export.Signal == Signals.Traces)
             .SelectMany(static export => ExportTraceServiceRequest.Parser.ParseFrom(export.Payload).ResourceSpans)
             .SelectMany(static resource => resource.ScopeSpans).SelectMany(static scope => scope.Spans)
-            .Where(static span => span.Status is { Message.Length: > 0 }).Select(static span => span.Status.Message).ToArray();
+            .Where(static span => span.Status is { Message.Length: > 0 }).Select(static span => span.Status.Message)
+            .Order(StringComparer.Ordinal).ToArray();
         Assert.HasCount(failed, sent, "the capture's spans with a status message");
+        Assert.IsTrue(sent.All(static message => Encoding.UTF8.GetByteCount(message) < 1024));
 
         var path = await IngestAsync(exports);
 
         var stored = StoredRows.Rows(path, "SELECT status_code, status_message FROM spans WHERE project_id = $1", Project);
         Assert.HasCount(failed, stored.Where(static row => row[0] == "2"), "the failed spans keep STATUS_CODE_ERROR");
-        Assert.IsEmpty(stored.Where(static row => row[1] is not null).ToArray(), "no span keeps a status message");
-        foreach (var message in sent.Distinct(StringComparer.Ordinal))
-            Assert.IsEmpty(StoredRows.ColumnsContaining(path, message), "the text of the message is stored nowhere");
+        Assert.AreSequenceEqual(sent,
+            stored.Select(static row => row[1]).OfType<string>().Order(StringComparer.Ordinal).ToArray());
+    }
+
+    /// <summary>
+    ///     A span status message is error text: nami keeps a Claude Code span's through the sanitizer that exception
+    ///     text gets and up to 1024 UTF-8 bytes (observer's ruling, 15 Nov). The failing test run of s1 gets a status
+    ///     message that carries a bearer token, a password assignment and a URL with user information and a query,
+    ///     followed by more text than fits: the credentials reach no column of any table, what was cut off neither,
+    ///     and the rest of the message is stored on the span.
+    /// </summary>
+    [TestMethod]
+    public async Task Ingest_CredentialsInAClaudeCodeSpanStatusMessage_ReachNoStoredRow()
+    {
+        const string secret = "nami-secret-8f2b61d0";
+        const string tail = "nami-tail-5c0a97e4";
+        var message = "Shell command failed: could not push\n" +
+                      $"Authorization: Bearer {secret}-token\n" +
+                      $"remote https://builder:{secret}-userinfo@git.example.test/nami.git?access={secret}-query rejected the push\n" +
+                      $"password={secret}-password;retry in 5 s\n" +
+                      new string('é', 1024) + tail;
+        var exports = ClaudeCodeCapture.Load(ClaudeCodeCapture.SignedIn).Select(export =>
+        {
+            if (export.Signal != Signals.Traces) return export;
+            var request = ExportTraceServiceRequest.Parser.ParseFrom(export.Payload);
+            foreach (var span in request.ResourceSpans.SelectMany(static resource => resource.ScopeSpans)
+                         .SelectMany(static scope => scope.Spans).Where(static span => span.Status is { Message.Length: > 0 }))
+                span.Status.Message = message;
+            return export with { Payload = request.ToByteArray() };
+        }).ToArray();
+
+        var path = await IngestAsync(exports);
+
+        var stored = Assert.ContainsSingle(StoredRows.Rows(path,
+            "SELECT status_message FROM spans WHERE project_id = $1 AND status_message IS NOT NULL", Project))[0]!;
+        Assert.IsEmpty(StoredRows.ColumnsContaining(path, secret), "no credential is stored: " + stored);
+        Assert.IsEmpty(StoredRows.ColumnsContaining(path, tail), "the part beyond 1024 bytes is stored nowhere");
+        Assert.StartsWith("Shell command failed: could not push\nAuthorization: Bearer [REDACTED]\n", stored);
+        Assert.Contains("remote https://git.example.test/nami.git rejected the push\n", stored);
+        Assert.Contains("password=[REDACTED];retry in 5 s\n", stored);
+        Assert.EndsWith(TruncationMarker, stored);
+        Assert.IsLessThanOrEqualTo(1024, Encoding.UTF8.GetByteCount(stored));
     }
 
     /// <summary>
     ///     Finish-line item 5: nami stores no prompt or response text, even when a session sends it. The sentinel goes
-    ///     into every content-bearing attribute and event Claude Code can send, into the body of the added content
-    ///     events and into the status message of every planted span (<see cref="ClaudeCodeContent" />), and no column
-    ///     of any table may hold it afterwards, whatever the registry says.
+    ///     into every content-bearing attribute and event Claude Code can send, and into the body of the added
+    ///     content events (<see cref="ClaudeCodeContent" />), and no column of any table may hold it afterwards,
+    ///     whatever the registry says.
     /// </summary>
     [TestMethod]
     public async Task Ingest_ContentInEveryClaudeCodeContentCarrier_ReachesNoStoredRow()

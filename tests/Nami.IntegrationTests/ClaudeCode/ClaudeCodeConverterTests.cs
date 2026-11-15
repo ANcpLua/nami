@@ -18,9 +18,9 @@ namespace Nami.IntegrationTests.ClaudeCode;
 ///     What the registry declares for a producer, at the converter: on records under one of Claude Code's
 ///     instrumentation scopes (<c>Producers.Scopes</c>) the event name is the registry's, the body is kept only when
 ///     it is that name, string values become the stored type, the named members of <c>tool_parameters</c> become
-///     attributes and the container goes, <c>full_command</c> is cut at the registry's bound, and a span keeps its
-///     status code and not its status message. On any other scope the same keys are another sender's unknown keys.
-///     Each rule is shown on both sides, so a rule that fired everywhere, or nowhere, fails.
+///     attributes and the container goes, <c>full_command</c> is cut at the registry's bound, and a span status
+///     message loses its credentials and is cut at 1024 bytes. On any other scope the same keys are another sender's
+///     unknown keys. Each rule is shown on both sides, so a rule that fired everywhere, or nowhere, fails.
 /// </summary>
 [TestClass]
 [TestCategory("Integration")]
@@ -352,21 +352,30 @@ public sealed class ClaudeCodeConverterTests
 
     /// <summary>
     ///     A span status message is free text outside the allowlist, and Claude Code copies the text of its
-    ///     <c>error</c> attribute into it, which the registry does not persist because it can quote content (the
-    ///     evaluator's findings on steps 2 and 3). On a producer's span the status code is kept and the message is not.
+    ///     <c>error</c> attribute into it. A producer's is kept as error text is kept elsewhere (observer's ruling, 15
+    ///     Nov): through the sanitizer exception text gets, then up to 1024 UTF-8 bytes with the marker. Another
+    ///     sender's is stored as sent.
     /// </summary>
     [TestMethod]
-    public void SpanStatusMessage_OnAProducersScope_IsNotKept_AndTheStatusCodeIs()
+    public void SpanStatusMessage_OnAProducersScope_LosesItsCredentials_AndIsKeptUpTo1024Bytes()
     {
         const string failure = "Shell command failed";
+        const string leaking = "Request failed with 401\nAuthorization: Bearer sk-live-0123456789abcdef\n" +
+                               "connection password=hunter2-and-more;retry in 5 s";
+        var text = new string('é', 2000);
 
-        var ours = ConvertSpan(TracingScope, WithStatus(failure));
-        var theirs = ConvertSpan(ForeignScope, WithStatus(failure));
-
-        Assert.IsNull(ours.StatusMessage);
+        var ours = ConvertSpan(TracingScope, WithStatus(leaking));
+        Assert.AreEqual("Request failed with 401\nAuthorization: Bearer [REDACTED]\nconnection password=[REDACTED];retry in 5 s",
+            ours.StatusMessage);
         Assert.AreEqual((int)Status.Types.StatusCode.Error, ours.StatusCode.GetValueOrDefault());
-        Assert.AreEqual(failure, theirs.StatusMessage, "no general rule yet: another sender's status message is stored as sent");
-        Assert.AreEqual((int)Status.Types.StatusCode.Error, theirs.StatusCode.GetValueOrDefault());
+        Assert.AreEqual(failure, ConvertSpan(TracingScope, WithStatus(failure)).StatusMessage, "text without credentials is kept");
+        var cut = ConvertSpan(TracingScope, WithStatus(text)).StatusMessage!;
+        Assert.AreEqual(new string('é', (1024 - Marker.Length) / 2) + Marker, cut);
+        Assert.IsLessThanOrEqualTo(1024, Encoding.UTF8.GetByteCount(cut));
+
+        Assert.AreEqual(leaking, ConvertSpan(ForeignScope, WithStatus(leaking)).StatusMessage,
+            "no general rule yet: another sender's status message is stored as sent");
+        Assert.AreEqual(text, ConvertSpan(ForeignScope, WithStatus(text)).StatusMessage);
 
         static Span WithStatus(string message)
         {
