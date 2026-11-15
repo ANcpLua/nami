@@ -89,6 +89,12 @@ internal static class ToolDispatcher
         {
             return Error("invalid_argument", "Timestamp is outside its supported range.", "since");
         }
+        catch (JsonException)
+        {
+            // A retained value nested past the JSON readers' depth, stored before ingest bounded nesting, cannot be
+            // rendered; the read is refused instead of failing the engine call.
+            return Error("data_unavailable", "A retained record is nested too deeply to render.");
+        }
     }
 
     internal static ToolRunResult InvalidArgument(ContractIssue issue)

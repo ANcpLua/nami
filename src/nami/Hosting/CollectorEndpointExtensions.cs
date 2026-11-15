@@ -149,8 +149,9 @@ internal static class CollectorEndpointExtensions
         {
             throw;
         }
-        catch (InvalidDataException ex)
+        catch (Exception ex) when (ex is InvalidDataException or JsonException)
         {
+            // A record storage cannot encode as JSON fails the same way on every retry: never a retryable 503.
             return Failure(ex, StatusCodes.Status400BadRequest, $"The OTLP {signal} payload is invalid.");
         }
         catch (Exception ex)
