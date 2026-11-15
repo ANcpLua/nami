@@ -16,7 +16,7 @@
   },
   "suites": {
     "Unit": 239,
-    "Integration": 499,
+    "Integration": 502,
     "EndToEnd": 45
   },
   "nodeTests": {
@@ -32,6 +32,6 @@
     "eng/scripts/tests/test_inspection_packages.py": 3,
     "eng/scripts/tests/test_run_tests.py": 3,
     "eng/scripts/tests/test_toolchain_pins.py": 1,
-    "eng/scripts/tests/test_update_typespec.py": 19
+    "eng/scripts/tests/test_update_typespec.py": 20
   }
 }
