@@ -376,11 +376,246 @@ public sealed class StorageLifetimeTests(TestContext context)
         Assert.ContainsSingle(snapshot.Spans);
     }
 
+    [TestMethod]
+    public async Task Ingestion_CanceledBeforeClaim_IsNotCommitted()
+    {
+        // A caller told "cancelled" may send the batch again, so a batch cancelled before the writer took it
+        // is never written. Lean: Spec.CancelledBeforeClaimNeverRuns and Spec.ReportedFailureMeansNotWritten
+        // (eng/proofs/storage).
+        var gate = new WriteGate();
+        await using var store = new DuckDbStore(DatabasePath("ingest-cancel.duckdb"), beforeWrite: gate.WaitAsync);
+        var running = SeedTrace(store, context.CancellationToken);
+        try
+        {
+            await gate.Entered.Task.WaitAsync(context.CancellationToken);
+            using var cancellation = new CancellationTokenSource();
+            var queued = StorageTestData.SeedTraces(store,
+                OtlpData.Traces(TestData.Nanos(TestData.s_now), offset: 1), cancellation.Token);
+            await cancellation.CancelAsync();
+            await Assert.ThrowsAsync<OperationCanceledException>(() => queued);
+        }
+        finally
+        {
+            gate.Release();
+        }
+
+        await running;
+        Assert.ContainsSingle((await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
+        Assert.AreEqual(2, gate.Calls);
+    }
+
+    [TestMethod]
+    public async Task Dispose_QueuedJobs_EndCanceledAndUncommitted()
+    {
+        // I18 at the store: jobs still in the channel when disposal starts get a result (cancelled), none
+        // commits, and disposal ends. Lean: Spec.ShutdownLeavesNoPendingQueuedJob and
+        // Spec.ReportedFailureMeansNotWritten (eng/proofs/storage).
+        var gate = new WriteGate();
+        var path = DatabasePath("queued-dispose.duckdb");
+        var store = new DuckDbStore(path, beforeWrite: gate.WaitAsync);
+        var running = SeedTrace(store, context.CancellationToken);
+        Task queuedWrite;
+        Task<Nami.Collector.Storage.TelemetrySnapshot> queuedRead;
+        try
+        {
+            await gate.Entered.Task.WaitAsync(context.CancellationToken);
+            queuedWrite = StorageTestData.SeedTraces(store,
+                OtlpData.Traces(TestData.Nanos(TestData.s_now), offset: 1), context.CancellationToken);
+            queuedRead = store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+            Assert.IsFalse(queuedWrite.IsCompleted);
+            Assert.IsFalse(queuedRead.IsCompleted);
+            var disposal = store.DisposeAsync().AsTask();
+            await gate.Canceled.Task.WaitAsync(context.CancellationToken);
+            gate.Release();
+            await disposal;
+        }
+        finally
+        {
+            gate.Release();
+        }
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => running);
+        await Assert.ThrowsAsync<OperationCanceledException>(() => queuedWrite);
+        await Assert.ThrowsAsync<OperationCanceledException>(() => queuedRead);
+        await using var reopened = new DuckDbStore(path);
+        Assert.AreEqual(0L, (await reopened.GetStorageStatsAsync("default", context.CancellationToken)).SpanCount);
+    }
+
+    [TestMethod]
+    public async Task Trace_SequentialCalls_MatchTheModel()
+    {
+        // A run recorded without hooks in product code; eng/proofs/storage replays the same lines through the
+        // model's step (NamiStorage/Queue/Traces.lean, theorem sequential_accepted).
+        var log = new TraceLog();
+        var connections = new Connections();
+        await using var store = DuckDbStore.CreateForTesting(connections.Create, DatabasePath("trace-sequential.duckdb"),
+            beforeWrite: log.Claim);
+        log.Observe(connections.Items[0]);
+
+        log.Add("call ingest 0");
+        await SeedTrace(store, context.CancellationToken);
+        log.Add("call read 1");
+        var captured = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        log.Add("call replay:1 2");
+        var replayed = await store.ReadSnapshotAsync("default", captured.Id, context.CancellationToken);
+        log.Add("outcome 0 ok");
+        log.Add("outcome 1 ok");
+        log.Add("outcome 2 ok");
+
+        Assert.AreEqual(captured.Id, replayed.Id);
+        Assert.AreSequenceEqual(
+            ["call ingest 0", "claim", "commit", "call read 1", "claim", "commit", "call replay:1 2", "claim", "commit",
+             "outcome 0 ok", "outcome 1 ok", "outcome 2 ok"],
+            log.Lines);
+    }
+
+    [TestMethod]
+    public async Task Trace_CancelledBeforeClaim_MatchesTheModel()
+    {
+        // The writer skips the cancelled read without running it and takes the next job
+        // (NamiStorage/Queue/Traces.lean, theorem cancelledBeforeClaim_accepted).
+        var gate = new WriteGate();
+        var log = new TraceLog(gate);
+        var connections = new Connections();
+        await using var store = DuckDbStore.CreateForTesting(connections.Create, DatabasePath("trace-cancel.duckdb"),
+            beforeWrite: log.Claim);
+        log.Observe(connections.Items[0]);
+
+        log.Add("call ingest 0");
+        var first = SeedTrace(store, context.CancellationToken);
+        Task next;
+        try
+        {
+            await gate.Entered.Task.WaitAsync(context.CancellationToken);
+            using var cancellation = new CancellationTokenSource();
+            log.Add("call read 1");
+            var read = store.ReadSnapshotAsync("default", ct: cancellation.Token);
+            log.Add("cancel 1");
+            await cancellation.CancelAsync();
+            await Assert.ThrowsAsync<OperationCanceledException>(() => read);
+            log.Add("call ingest 2");
+            next = StorageTestData.SeedTraces(store,
+                OtlpData.Traces(TestData.Nanos(TestData.s_now), offset: 1), context.CancellationToken);
+        }
+        finally
+        {
+            gate.Release();
+        }
+
+        await first;
+        await next;
+        log.Add("outcome 0 ok");
+        log.Add("outcome 1 canceled");
+        log.Add("outcome 2 ok");
+        Assert.AreSequenceEqual(
+            ["call ingest 0", "claim", "call read 1", "cancel 1", "call ingest 2", "commit", "claim", "commit",
+             "outcome 0 ok", "outcome 1 canceled", "outcome 2 ok"],
+            log.Lines);
+    }
+
+    [TestMethod]
+    public async Task Trace_DisposeWithQueuedJobs_MatchesTheModel()
+    {
+        // Disposal while one job holds the writer and two wait: all three end cancelled, none commits
+        // (NamiStorage/Queue/Traces.lean, theorem disposeQueued_accepted).
+        var gate = new WriteGate();
+        var log = new TraceLog(gate);
+        var connections = new Connections();
+        var store = DuckDbStore.CreateForTesting(connections.Create, DatabasePath("trace-dispose.duckdb"),
+            beforeWrite: log.Claim);
+        log.Observe(connections.Items[0]);
+
+        log.Add("call ingest 0");
+        var first = SeedTrace(store, context.CancellationToken);
+        Task second;
+        Task<Nami.Collector.Storage.TelemetrySnapshot> third;
+        try
+        {
+            await gate.Entered.Task.WaitAsync(context.CancellationToken);
+            log.Add("call ingest 1");
+            second = StorageTestData.SeedTraces(store,
+                OtlpData.Traces(TestData.Nanos(TestData.s_now), offset: 1), context.CancellationToken);
+            log.Add("call read 2");
+            third = store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+            log.MarkDisposal();
+            var disposal = store.DisposeAsync().AsTask();
+            await gate.Canceled.Task.WaitAsync(context.CancellationToken);
+            gate.Release();
+            await disposal;
+            log.Add("stopped");
+        }
+        finally
+        {
+            gate.Release();
+        }
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => first);
+        await Assert.ThrowsAsync<OperationCanceledException>(() => second);
+        await Assert.ThrowsAsync<OperationCanceledException>(() => third);
+        log.Add("outcome 0 canceled");
+        log.Add("outcome 1 canceled");
+        log.Add("outcome 2 canceled");
+        Assert.AreSequenceEqual(
+            ["call ingest 0", "claim", "call ingest 1", "call read 2", "dispose", "stopped",
+             "outcome 0 canceled", "outcome 1 canceled", "outcome 2 canceled"],
+            log.Lines);
+    }
+
     private static Task SeedTrace(DuckDbStore store, CancellationToken token) =>
         StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now)), token);
 
     private string DatabasePath(string name) =>
         Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("No test directory"), name);
+
+    /// <summary>
+    ///     Records a run in the replay format of eng/proofs/storage (NamiStorage/Queue/Trace.lean): the test
+    ///     writes its own calls, the store's beforeWrite seam marks each claim, and the writer connection marks
+    ///     each COMMIT (or a maintenance CHECKPOINT before disposal).
+    /// </summary>
+    private sealed class TraceLog(WriteGate? gate = null)
+    {
+        private readonly Lock _lock = new();
+        private readonly List<string> _lines = [];
+        private bool _disposing;
+
+        public IReadOnlyList<string> Lines
+        {
+            get
+            {
+                lock (_lock) return [.. _lines];
+            }
+        }
+
+        public void Add(string line)
+        {
+            lock (_lock) _lines.Add(line);
+        }
+
+        public void MarkDisposal()
+        {
+            lock (_lock)
+            {
+                _disposing = true;
+                _lines.Add("dispose");
+            }
+        }
+
+        public ValueTask Claim(CancellationToken token)
+        {
+            Add("claim");
+            return gate?.WaitAsync(token) ?? ValueTask.CompletedTask;
+        }
+
+        public void Observe(ObservedConnection writer) => writer.AfterNonQuery = command =>
+        {
+            var text = command.CommandText.Trim().TrimEnd(';');
+            lock (_lock)
+            {
+                if (text == "COMMIT" || (text == "CHECKPOINT" && !_disposing))
+                    _lines.Add("commit");
+            }
+        };
+    }
 
     private sealed class ReadGate(CancellationToken cancellationToken) : IDisposable
     {
