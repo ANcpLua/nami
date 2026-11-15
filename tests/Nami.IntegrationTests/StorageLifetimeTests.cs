@@ -561,6 +561,135 @@ public sealed class StorageLifetimeTests(TestContext context)
             log.Lines);
     }
 
+    [TestMethod]
+    public async Task FreshCall_HoldingTheWriter_IngestStillCommits()
+    {
+        // P13 asks that ingest continues during a fresh call. Both kinds of read run as jobs of the single
+        // writer (DuckDbStore.Snapshots.cs:10, cancelAfterClaim: true), so an ingest batch queued behind a
+        // fresh read waits until the read ends. Lean: Spec.IngestStallsWhileReadRuns (eng/proofs/storage).
+        var connections = new Connections();
+        using var gate = new ReadGate(context.CancellationToken);
+        await using var store = DuckDbStore.CreateForTesting(connections.Create,
+            DatabasePath("fresh-holds-writer.duckdb"));
+        await SeedTrace(store, context.CancellationToken);
+        HoldFirstRead(connections, gate, " FROM spans WHERE project_id = $1 ORDER BY ");
+        var fresh = store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        Task ingest;
+        try
+        {
+            await gate.Entered.WaitAsync(context.CancellationToken);
+            ingest = StorageTestData.SeedTraces(store,
+                OtlpData.Traces(TestData.Nanos(TestData.s_now), offset: 1), context.CancellationToken);
+            await AssertCommitsWhileHeld(ingest, "a fresh call");
+        }
+        finally
+        {
+            gate.Release();
+        }
+
+        await fresh;
+        await ingest;
+        Assert.HasCount(2, (await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
+    }
+
+    [TestMethod]
+    public async Task Replay_HoldingTheWriter_IngestStillCommits()
+    {
+        // P13: "reusing snapshot_id saves the copy and the watermark write, but it does not free the write
+        // queue." A replay reads, decompresses and deserialises the stored copy inside the writer job.
+        // Lean: ingestStallsWhileReplayRuns (eng/proofs/storage).
+        var connections = new Connections();
+        using var gate = new ReadGate(context.CancellationToken);
+        await using var store = DuckDbStore.CreateForTesting(connections.Create,
+            DatabasePath("replay-holds-writer.duckdb"));
+        await SeedTrace(store, context.CancellationToken);
+        var captured = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        HoldFirstRead(connections, gate, " FROM read_snapshots WHERE project_id = $1 AND snapshot_id = $2");
+        var replay = store.ReadSnapshotAsync("default", captured.Id, context.CancellationToken);
+        Task ingest;
+        try
+        {
+            await gate.Entered.WaitAsync(context.CancellationToken);
+            ingest = StorageTestData.SeedTraces(store,
+                OtlpData.Traces(TestData.Nanos(TestData.s_now), offset: 1), context.CancellationToken);
+            await AssertCommitsWhileHeld(ingest, "a replay of a stored snapshot");
+        }
+        finally
+        {
+            gate.Release();
+        }
+
+        Assert.AreEqual(captured.Id, (await replay).Id);
+        await ingest;
+    }
+
+    [TestMethod]
+    public async Task CancelledCall_ReleasesItsQueueSlot()
+    {
+        // P13: "A cancelled or timed-out call frees the store's single write queue." A read cancelled before
+        // the writer takes it ends for its caller at once (CancelBeforeClaim, DuckDbStore.cs:1047), but the
+        // job stays in the bounded channel until the writer dequeues it (DuckDbStore.cs:457-460), so it
+        // still counts against jobQueueCapacity. Lean: Spec.CancelledCallKeepsItsSlot (eng/proofs/storage).
+        var gate = new WriteGate();
+        await using var store = new DuckDbStore(DatabasePath("cancelled-slot.duckdb"), jobQueueCapacity: 1,
+            beforeWrite: gate.WaitAsync);
+        var running = SeedTrace(store, context.CancellationToken);
+        Task next;
+        try
+        {
+            await gate.Entered.Task.WaitAsync(context.CancellationToken);
+            using var cancellation = new CancellationTokenSource();
+            var read = store.ReadSnapshotAsync("default", ct: cancellation.Token);
+            await cancellation.CancelAsync();
+            await Assert.ThrowsAsync<OperationCanceledException>(() => read);
+            next = StorageTestData.SeedTraces(store,
+                OtlpData.Traces(TestData.Nanos(TestData.s_now), offset: 1), context.CancellationToken);
+        }
+        finally
+        {
+            gate.Release();
+        }
+
+        await running;
+        try
+        {
+            await next;
+        }
+        catch (NamiStoreUnavailableException error)
+        {
+            Assert.Fail("A read cancelled before the writer took it still held the only queue slot: " +
+                        error.Message);
+        }
+
+        Assert.HasCount(2, (await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
+    }
+
+    private static void HoldFirstRead(Connections connections, ReadGate gate, string sql)
+    {
+        var held = 0;
+        foreach (var connection in connections.Items)
+        {
+            connection.BeforeRead = command =>
+            {
+                if (command.CommandText.Contains(sql, StringComparison.Ordinal) &&
+                    Interlocked.Exchange(ref held, 1) == 0)
+                    gate.Wait();
+            };
+        }
+    }
+
+    private static async Task AssertCommitsWhileHeld(Task ingest, string holder)
+    {
+        try
+        {
+            await ingest.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        catch (TimeoutException)
+        {
+            Assert.Fail($"An ingest batch did not commit within 5 s while {holder} held the store's single writer.");
+        }
+    }
+
     private static Task SeedTrace(DuckDbStore store, CancellationToken token) =>
         StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now)), token);
 
