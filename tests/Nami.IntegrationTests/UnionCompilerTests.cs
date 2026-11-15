@@ -182,7 +182,8 @@ public sealed partial class UnionCompilerTests(TestContext context)
                                 && line.Contains(consumer, StringComparison.Ordinal), output.Split('\n'), output);
     }
 
-    private static void AddActualSources(FixtureProject project, string? replacedPath = null, string? replacement = null)
+    /// <summary>Gives a library fixture the production list of warnings that fail the build; blanket promotion stays off.</summary>
+    internal static void UseProductionWarningPolicy(FixtureProject project)
     {
         project.WithProperty("OutputType", "Library")
             .WithProperty("TreatWarningsAsErrors", "false")
@@ -192,6 +193,11 @@ public sealed partial class UnionCompilerTests(TestContext context)
                     .Elements("WarningsAsErrors")
                     .Select(static property => property.Value.Replace("$(WarningsAsErrors)", "", StringComparison.Ordinal))))
             .RecordProperties("TreatWarningsAsErrors", "WarningsAsErrors");
+    }
+
+    private static void AddActualSources(FixtureProject project, string? replacedPath = null, string? replacement = null)
+    {
+        UseProductionWarningPolicy(project);
         foreach (var file in Directory.EnumerateFiles(RepositoryPath(ContractDirectory), "*.cs")
                      .Concat(Directory.EnumerateFiles(RepositoryPath(ContractDirectory + "/Generated"), "*.cs"))
                      .Concat(Directory.EnumerateFiles(RepositoryPath(ContractDirectory + "/Nami"), "*.cs", SearchOption.AllDirectories))

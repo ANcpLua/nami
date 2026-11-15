@@ -250,6 +250,46 @@ public sealed partial class RegistryGateTests(TestContext context)
         }
     }
 
+    [TestMethod]
+    [Timeout(240000, CooperativeCancellation = true)]
+    [DoNotParallelize]
+    public async Task Build_UseOfDeprecatedRegistryConstant_FailsUnderProductionPolicy()
+    {
+        await using var current = new FixtureProject("CurrentKeyConsumer", context: context);
+        UseRegistryConstants(current, "AndroidAttributes.AppState", "Metrics.SystemCpuTime.Name");
+        var accepted = await current.BuildAsync(context.CancellationToken);
+        Assert.AreEqual(0, accepted.ExitCode, accepted.Output + accepted.Error);
+        Assert.AreEqual("false", accepted.GetRecordedProperty("TreatWarningsAsErrors"));
+
+        await using var deprecated = new FixtureProject("DeprecatedKeyConsumer", context: context);
+        UseRegistryConstants(deprecated, "AndroidAttributes.State", "Metrics.CpuTime.Name");
+        var rejected = await deprecated.BuildAsync(context.CancellationToken);
+        var output = rejected.Output + rejected.Error;
+        Assert.AreNotEqual(0, rejected.ExitCode,
+            "A hand-written use of a deprecated registry constant must fail the build:\n" + output);
+        var errors = CompilerError().Matches(output).Select(static match => match.Groups[1].Value).Distinct().ToArray();
+        Assert.AreSequenceEqual(["CS0618"], errors, output);
+        Assert.Contains("'AndroidAttributes.State' is obsolete: 'Replaced by android.app.state.'", output);
+        Assert.Contains("'Metrics.CpuTime' is obsolete: 'Replaced by system.cpu.time.'", output);
+    }
+
+    private static void UseRegistryConstants(FixtureProject project, string attributeKey, string metricName)
+    {
+        UnionCompilerTests.UseProductionWarningPolicy(project);
+        project.AddAssemblyReference(typeof(RegistryInfo).Assembly.Location);
+        project.AddSource("Keys.cs", $$"""
+            using Nami.SemanticConventions;
+
+            namespace RegistryConsumer;
+
+            public static class Keys
+            {
+                public static string Attribute => {{attributeKey}};
+                public static string Metric => {{metricName}};
+            }
+            """);
+    }
+
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
     [TestMethod]
     public void EnumValues_MatchSchemaStability()
@@ -513,4 +553,7 @@ public sealed partial class RegistryGateTests(TestContext context)
 
     [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant)]
     private static partial Regex Whitespace();
+
+    [GeneratedRegex(@"\berror ([A-Z]+\d+)\b", RegexOptions.CultureInvariant)]
+    private static partial Regex CompilerError();
 }
