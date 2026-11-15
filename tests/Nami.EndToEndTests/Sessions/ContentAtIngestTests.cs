@@ -15,15 +15,6 @@ public sealed class ContentAtIngestTests(TestContext context)
 {
     internal const string SentinelPrefix = "NAMI-SENTINEL-";
 
-    /// <summary>The names <see cref="ClaudeCodeCapture.WithContentSentinels" /> appends to the prefix.</summary>
-    private static readonly string[] s_planted =
-    [
-        "prompt", "prompt_text", "system_prompt", "system_prompt.prompt", "response", "tool_input",
-        "api_request_body", "api_response_body", "user_prompt", "new_context", "system_reminders",
-        "system_prompt_preview", "user_system_prompt", "response.model_output", "tool.output.content",
-        "tool.output.output", "tool.output.diff"
-    ];
-
     /// <summary>Text that exists in the capture only inside <c>tool_input</c>: the subagent's prompt and an Edit.</summary>
     private static readonly string[] s_toolInputText =
         ["Reply in one line: which functions calc.py defines", "return a + b"];
@@ -68,7 +59,7 @@ public sealed class ContentAtIngestTests(TestContext context)
         }
 
         AssertAbsentFromAnswers(answers, SentinelPrefix);
-        await AssertAbsentFromStoreAsync(directory, SentinelPrefix, s_planted);
+        await AssertAbsentFromStoreAsync(directory, SentinelPrefix, ClaudeCodeCapture.ContentSentinelNames);
         await AssertSessionIdsStoredAsync(directory);
     }
 

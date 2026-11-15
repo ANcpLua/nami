@@ -44,6 +44,15 @@ internal static class ClaudeCodeCapture
     /// <summary>The content attributes of the <c>tool.output</c> span event that OTEL_LOG_TOOL_CONTENT adds.</summary>
     private static readonly string[] s_toolOutputContentKeys = ["content", "output", "diff"];
 
+    /// <summary>The names <see cref="WithContentSentinels" /> appends to its prefix, one per planted attribute.</summary>
+    internal static IReadOnlyList<string> ContentSentinelNames { get; } =
+    [
+        "prompt", "prompt_text", "system_prompt", "system_prompt.prompt", "response", "tool_input",
+        "api_request_body", "api_response_body", "user_prompt", "new_context", "system_reminders",
+        "system_prompt_preview", "user_system_prompt", "response.model_output", "tool.output.content",
+        "tool.output.output", "tool.output.diff"
+    ];
+
     internal static string SignedInDirectory => Path.Combine(ProcessRunner.RepositoryRoot, "tests",
         "Nami.IntegrationTests", "Fixtures", "ClaudeCodeOtlp", "signed-in");
 
