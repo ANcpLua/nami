@@ -24,11 +24,6 @@ public sealed class FixtureTarget
     public string? AfterTargets { get; }
     public string? Condition { get; }
 
-    public FixtureTarget Message(string text, string? condition = null)
-    {
-        return AddTask("Message", text, null, condition);
-    }
-
     public FixtureTarget Warning(string code, string text, string? condition = null)
     {
         return AddTask("Warning", text, code, condition);
