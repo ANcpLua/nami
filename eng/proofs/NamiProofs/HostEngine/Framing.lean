@@ -2,17 +2,23 @@
 # Framing: newline-delimited frames from reads of any size
 
 Both readers keep the unconsumed bytes of the previous read, append the new read, take
-complete frames up to each newline, and keep the rest:
+complete frames up to each newline, and keep the rest. They differ in what a frame longer
+than the limit does:
 
-* engine side, EngineProtocol.cs:57-89: `ReadAsync` returns the unconsumed bytes plus new
-  ones (`AdvanceTo(buffer.Start, buffer.End)`, line 89), `PositionOf('\n')` finds the next
-  frame (59), a frame or a rest longer than the limit is a fault (62-63, 87-88);
-* host side, engine.ts:44-57: `Buffer.concat`, `indexOf(10)`, `subarray`, the same two
-  limit checks (50, 57).
+* host side, engine.ts (the `data` handler): `Buffer.concat`, `indexOf(10)`, `subarray`; a
+  frame or a rest longer than the limit is a fault, and the host fails its engine. `onChunk`
+  is that loop for one read (`none` is the fault).
+* engine side, EngineProtocol.cs (`ProcessAsync`): `ReadAsync` returns the unconsumed bytes
+  plus new ones (`AdvanceTo(buffer.Start, buffer.End)`), `PositionOf('\n')` finds the next
+  frame; a frame longer than the limit is dropped, and once the kept rest is longer than the
+  limit its bytes are discarded as they arrive, up to the next newline (`skipping`).
+  `onChunkSkip` is that loop for one read.
 
-`onChunk` is that loop for one read. The claim (`Spec.ReadsKeepFrameIdentity`) is that the
+The claims (`Spec.ReadsKeepFrameIdentity`, `Spec.EngineReadsKeepFrameIdentity`) are that the
 result does not depend on how the bytes were cut into reads: fragmented and coalesced reads
-give the same frames, and the same fault, as one read of the whole stream.
+give the same frames (and for the host the same fault) as one read of the whole stream; and
+(`Spec.EngineReaderKeepsAtMostTheLimit`) that the engine's reader never keeps more bytes
+than one frame may have.
 
 Abstraction: bytes are `Nat`; decoding a frame is not part of framing (it is in
 `Engine.lean`). `PipeReader` is assumed to return all unconsumed bytes followed by new ones,
@@ -77,5 +83,49 @@ def byteStep (lim : Nat) (rd : Reader) (b : Nat) : Option Reader :=
   if b = NL then some ⟨rd.done ++ [rd.buffer], []⟩
   else if rd.buffer.length ≥ lim then none
   else some ⟨rd.done, rd.buffer ++ [b]⟩
+
+/-! ## The engine's reader: a frame over the limit is skipped, not a fault -/
+
+/-- What the engine's reader has handed on, the bytes it keeps, and whether it is inside a
+frame that is longer than the limit (`skipping`). -/
+structure SkipReader where
+  done : List (List Nat)
+  buffer : List Nat
+  skipping : Bool
+  deriving DecidableEq, Repr
+
+def SkipReader.empty : SkipReader := ⟨[], [], false⟩
+
+/-- The inner loop of `ProcessAsync` over one buffer: the frames within the limit, the kept
+rest, and whether the reader is now inside a frame it skips. A frame that ends while
+`skipping` is the tail of a skipped frame. -/
+def drainSkip (lim : Nat) (skipping : Bool) (buf : List Nat) : List (List Nat) × List Nat × Bool :=
+  match h : splitAtNL buf with
+  | none => if skipping || buf.length > lim then ([], [], true) else ([], buf, false)
+  | some (f, r) =>
+    let rest := drainSkip lim false r
+    if skipping || f.length > lim then rest else (f :: rest.1, rest.2)
+termination_by buf.length
+decreasing_by exact splitAtNL_length h
+
+/-- One read of the engine: append it to the kept bytes and drain. -/
+def onChunkSkip (lim : Nat) (rd : SkipReader) (data : List Nat) : SkipReader :=
+  let p := drainSkip lim rd.skipping (rd.buffer ++ data)
+  ⟨rd.done ++ p.1, p.2.1, p.2.2⟩
+
+/-- All reads in order, from an empty reader, with a given read function. -/
+def readAllSkipBy (oc : Nat → SkipReader → List Nat → SkipReader) (lim : Nat) (cs : List (List Nat)) :
+    SkipReader :=
+  cs.foldl (oc lim) SkipReader.empty
+
+/-- The meaning of a stream for the engine, one byte at a time: a frame ends at each
+newline; a frame longer than the limit is given up as soon as it is too long, and nothing of
+it is handed on or kept. -/
+def skipByte (lim : Nat) (rd : SkipReader) (b : Nat) : SkipReader :=
+  if b = NL then
+    if rd.skipping then ⟨rd.done, [], false⟩ else ⟨rd.done ++ [rd.buffer], [], false⟩
+  else if rd.skipping then rd
+  else if rd.buffer.length ≥ lim then ⟨rd.done, [], true⟩
+  else ⟨rd.done, rd.buffer ++ [b], false⟩
 
 end NamiProofs.HostEngine.Framing

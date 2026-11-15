@@ -91,6 +91,16 @@ theorem witness_framing :
   rw [Framing.foldlM_onChunk_eq_flatten _ _ _ ⟨by simp [Framing.Reader.empty], by simp [Framing.Reader.empty]⟩]
   decide
 
+/-- The engine's reader over a frame of three bytes at a limit of two, cut across three reads:
+the frame is skipped, the next one is handed on, and nothing of the skipped frame is kept. -/
+theorem witness_skipReader :
+    Framing.readAllSkipBy Framing.onChunkSkip 2 [[1, 2], [3], [4, 10, 5, 10, 6]] = ⟨[[5]], [6], false⟩ ∧
+    Framing.readAllSkipBy Framing.onChunkSkip 2 [[1, 2], [3]] = ⟨[], [], true⟩ := by
+  unfold Framing.readAllSkipBy
+  rw [Framing.foldl_onChunkSkip_eq_flatten _ _ _ (Framing.goodSkip_empty 2),
+    Framing.foldl_onChunkSkip_eq_flatten _ _ _ (Framing.goodSkip_empty 2)]
+  decide
+
 /-! ## Broken models -/
 
 /-- The host forgets to fail on the child's `exit` (engine.ts:61 removed). -/
@@ -422,6 +432,35 @@ theorem drain_bytes (lim : Nat) (buf : List Nat) :
     Framing.drain lim buf =
       (buf.foldlM (Framing.byteStep lim) Framing.Reader.empty).map (fun rd => (rd.done, rd.buffer)) :=
   Framing.drain_eq_bytes lim (buf.length + 1) buf (by omega)
+
+theorem drainSkip_bytes (lim : Nat) (sk : Bool) (buf : List Nat) :
+    Framing.drainSkip lim sk buf =
+      ((buf.foldl (Framing.skipByte lim) ⟨[], [], sk⟩).done, (buf.foldl (Framing.skipByte lim) ⟨[], [], sk⟩).buffer,
+        (buf.foldl (Framing.skipByte lim) ⟨[], [], sk⟩).skipping) :=
+  Framing.drainSkip_eq_bytes lim (buf.length + 1) buf sk (by omega)
+
+/-- An engine reader that forgets that it is skipping when a read ends: the rest of the long
+frame is taken for a frame of its own. -/
+def onChunkSkipForgets (lim : Nat) (rd : Framing.SkipReader) (data : List Nat) : Framing.SkipReader :=
+  let p := Framing.drainSkip lim false (rd.buffer ++ data)
+  ⟨rd.done ++ p.1, p.2.1, p.2.2⟩
+
+theorem mutant_engineFraming : ¬ Claim.EngineReadsKeepFrameIdentity onChunkSkipForgets := by
+  intro hc
+  have := hc 2 [[1, 2, 3], [4, 10]]
+  simp only [Framing.readAllSkipBy, List.foldl, onChunkSkipForgets, drainSkip_bytes] at this
+  revert this; decide
+
+/-- An engine reader that keeps the bytes of the frame it skips. -/
+def onChunkSkipBuffers (lim : Nat) (rd : Framing.SkipReader) (data : List Nat) : Framing.SkipReader :=
+  let p := Framing.drainSkip lim rd.skipping (rd.buffer ++ data)
+  ⟨rd.done ++ p.1, if p.2.2 then rd.buffer ++ data else p.2.1, p.2.2⟩
+
+theorem mutant_engineReaderKeeps : ¬ Claim.EngineReaderKeepsAtMostTheLimit onChunkSkipBuffers := by
+  intro hc
+  have := hc 2 [[1, 2, 3]]
+  simp only [Framing.readAllSkipBy, List.foldl, onChunkSkipBuffers, drainSkip_bytes] at this
+  revert this; decide
 
 theorem mutant_framing : ¬ Claim.ReadsKeepFrameIdentity onChunkNoKeep := by
   intro hc

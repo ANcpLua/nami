@@ -134,12 +134,26 @@ end Claim
 
 namespace Claim
 
-/-- P14: `EngineProtocol_FragmentedAndCoalescedReads_KeepRequestIdentity`: both readers
-(EngineProtocol.cs:57-89, engine.ts:44-57) give the same frames, and the same fault, for any
-cutting of the byte stream into reads as for one read of the whole stream. -/
+/-- P14: `EngineProtocol_FragmentedAndCoalescedReads_KeepRequestIdentity`, for the reader
+that faults on a frame over the limit (the host's, engine.ts): the same frames, and the same
+fault, for any cutting of the byte stream into reads as for one read of the whole stream. -/
 def ReadsKeepFrameIdentity (onChunk : Nat → Framing.Reader → List Nat → Option Framing.Reader) : Prop :=
   ∀ lim (cs : List (List Nat)),
     Framing.readAllBy onChunk lim cs = Framing.readAllBy onChunk lim [cs.flatten]
+
+/-- The same for the engine's reader (EngineProtocol.cs, `ProcessAsync`), which since P14
+drops a frame over the limit "up to the next newline" instead of faulting: which frames it
+hands on, what it keeps and whether it is skipping do not depend on the cutting into reads. -/
+def EngineReadsKeepFrameIdentity
+    (onChunk : Nat → Framing.SkipReader → List Nat → Framing.SkipReader) : Prop :=
+  ∀ lim (cs : List (List Nat)),
+    Framing.readAllSkipBy onChunk lim cs = Framing.readAllSkipBy onChunk lim [cs.flatten]
+
+/-- P14: "Do not buffer a too-large frame while skipping it": after any reads the engine's
+reader keeps at most as many bytes as one frame may have. -/
+def EngineReaderKeepsAtMostTheLimit
+    (onChunk : Nat → Framing.SkipReader → List Nat → Framing.SkipReader) : Prop :=
+  ∀ lim (cs : List (List Nat)), (Framing.readAllSkipBy onChunk lim cs).buffer.length ≤ lim
 
 end Claim
 
@@ -171,6 +185,8 @@ def DuplicateOrFullRefusedForThatId : Prop := Claim.DuplicateOrFullRefusedForTha
 def OnlyEndOfInputEndsTheLoop : Prop := Claim.OnlyEndOfInputEndsTheLoop Engine.step
 def EngineCanAlwaysExitAfterTheLoopEnds : Prop := Claim.EngineCanAlwaysExitAfterTheLoopEnds Engine.step
 def ReadsKeepFrameIdentity : Prop := Claim.ReadsKeepFrameIdentity Framing.onChunk
+def EngineReadsKeepFrameIdentity : Prop := Claim.EngineReadsKeepFrameIdentity Framing.onChunkSkip
+def EngineReaderKeepsAtMostTheLimit : Prop := Claim.EngineReaderKeepsAtMostTheLimit Framing.onChunkSkip
 def CorrectHostNeverEndsTheEngine : Prop := Claim.CorrectHostNeverEndsTheEngine Engine.step
 /-- engine.tsp: shared bounds. The slot accounting as it was at 843383e (`Design.lean`). -/
 def SlotsAgreeToday : Prop := Design.NoRefusal Design.today
@@ -191,6 +207,8 @@ def Health503OnEngineError : Prop := Spec.Health503OnEngineError
 def CancelCompletesWaitingCall : Prop := Spec.CancelCompletesWaitingCall
 def EngineCanAlwaysExitAfterTheLoopEnds : Prop := Spec.EngineCanAlwaysExitAfterTheLoopEnds
 def ReadsKeepFrameIdentity : Prop := Spec.ReadsKeepFrameIdentity
+def EngineReadsKeepFrameIdentity : Prop := Spec.EngineReadsKeepFrameIdentity
+def EngineReaderKeepsAtMostTheLimit : Prop := Spec.EngineReaderKeepsAtMostTheLimit
 -- Held since the engine refuses instead of ending (P14) and frees a slot when the host does (A1 = H3).
 def BadFrameNotFatal : Prop := Spec.BadFrameNotFatal
 def BadFrameKeepsOtherCalls : Prop := Spec.BadFrameKeepsOtherCalls

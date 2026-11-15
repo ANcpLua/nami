@@ -477,12 +477,12 @@
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|drop|1": {
   "memberHash": "2bcfbc304f253202",
   "line": 82,
-  "model": "Engine.accept .oversize (a frame over the limit that arrived whole)"
+  "model": "Framing.drainSkip (a frame over the limit that ended in this read); Engine.accept .oversize"
  },
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|drop|2": {
   "memberHash": "2bcfbc304f253202",
   "line": 89,
-  "model": "Engine.accept .oversize (a frame over the limit, discarded as it arrives)"
+  "model": "Framing.drainSkip (a rest over the limit: skipping begins); Engine.accept .oversize"
  },
  "src/nami/Hosting/EngineProtocol.cs|Accept|drop|1": {
   "memberHash": "dfcb7d356d41a124",
@@ -497,22 +497,22 @@
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|skipping|1": {
   "memberHash": "2bcfbc304f253202",
   "line": 70,
-  "model": "abstraction: Engine.accept .oversize is one event; Framing.onChunk models the reader for frames within the limit only (the skip path is not re-proved)"
+  "model": "Framing.SkipReader.skipping (Framing.drainSkip, Framing.onChunkSkip)"
  },
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|skipping|2": {
   "memberHash": "2bcfbc304f253202",
   "line": 80,
-  "model": "abstraction: Engine.accept .oversize is one event; Framing.onChunk models the reader for frames within the limit only (the skip path is not re-proved)"
+  "model": "Framing.SkipReader.skipping (Framing.drainSkip, Framing.onChunkSkip)"
  },
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|skipping|3": {
   "memberHash": "2bcfbc304f253202",
   "line": 90,
-  "model": "abstraction: Engine.accept .oversize is one event; Framing.onChunk models the reader for frames within the limit only (the skip path is not re-proved)"
+  "model": "Framing.SkipReader.skipping (Framing.drainSkip, Framing.onChunkSkip)"
  },
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|advance|1": {
   "memberHash": "2bcfbc304f253202",
   "line": 94,
-  "model": "Framing.onChunk (kept bytes), for frames within the limit"
+  "model": "Framing.onChunkSkip (kept bytes; none while skipping)"
  },
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|loopEnd|1": {
   "memberHash": "2bcfbc304f253202",

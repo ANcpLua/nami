@@ -39,6 +39,12 @@ theorem engineCanAlwaysExitAfterTheLoopEnds : Verdict.EngineCanAlwaysExitAfterTh
 theorem readsKeepFrameIdentity : Verdict.ReadsKeepFrameIdentity :=
   Framing.readAll_chunking_invariant
 
+theorem engineReadsKeepFrameIdentity : Verdict.EngineReadsKeepFrameIdentity :=
+  Framing.readAllSkip_chunking_invariant
+
+theorem engineReaderKeepsAtMostTheLimit : Verdict.EngineReaderKeepsAtMostTheLimit :=
+  Framing.readAllSkip_keeps_at_most_limit
+
 theorem hostExitsNonZeroWhenEngineDies : Verdict.HostExitsNonZeroWhenEngineDies :=
   Host.hostExitsNonZeroWhenEngineDies
 
@@ -84,6 +90,10 @@ theorem cancelCompletesWaitingCall_holds : Spec.CancelCompletesWaitingCall := Ve
 theorem engineCanAlwaysExitAfterTheLoopEnds_holds : Spec.EngineCanAlwaysExitAfterTheLoopEnds :=
   Verdict.engineCanAlwaysExitAfterTheLoopEnds
 theorem readsKeepFrameIdentity_holds : Spec.ReadsKeepFrameIdentity := Verdict.readsKeepFrameIdentity
+theorem engineReadsKeepFrameIdentity_holds : Spec.EngineReadsKeepFrameIdentity :=
+  Verdict.engineReadsKeepFrameIdentity
+theorem engineReaderKeepsAtMostTheLimit_holds : Spec.EngineReaderKeepsAtMostTheLimit :=
+  Verdict.engineReaderKeepsAtMostTheLimit
 theorem slotsAgreeWithBothChanges_holds : Spec.SlotsAgreeWithBothChanges := Verdict.slotsAgreeWithBothChanges
 theorem hostExitsNonZeroWhenEngineDies_holds : Spec.HostExitsNonZeroWhenEngineDies :=
   Verdict.hostExitsNonZeroWhenEngineDies

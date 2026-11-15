@@ -190,4 +190,182 @@ theorem readAll_chunking_invariant (lim : Nat) (cs : List (List Nat)) :
   rw [foldlM_onChunk_eq_flatten lim cs _ hg, foldlM_onChunk_eq_flatten lim [cs.flatten] _ hg]
   simp
 
+/-! ## The engine's reader -/
+
+/-- While skipping, bytes without a newline change nothing. -/
+theorem foldl_skipByte_skipping (lim : Nat) : ∀ (xs : List Nat) (D : List (List Nat)),
+    (∀ b ∈ xs, b ≠ NL) → xs.foldl (skipByte lim) ⟨D, [], true⟩ = ⟨D, [], true⟩
+  | [], _, _ => rfl
+  | x :: xs, D, h => by
+    have hx : x ≠ NL := h x (by simp)
+    simp only [List.foldl_cons, skipByte, hx, ite_false, ite_true]
+    exact foldl_skipByte_skipping lim xs D (fun b hb => h b (by simp [hb]))
+
+/-- A run of bytes without a newline grows the kept frame, or starts skipping once it is
+longer than the limit. -/
+theorem foldl_skipByte_segment (lim : Nat) : ∀ (xs : List Nat) (D : List (List Nat)) (p : List Nat),
+    p.length ≤ lim → (∀ b ∈ xs, b ≠ NL) →
+    xs.foldl (skipByte lim) ⟨D, p, false⟩ =
+      if p.length + xs.length ≤ lim then ⟨D, p ++ xs, false⟩ else ⟨D, [], true⟩
+  | [], D, p, hp, _ => by simp [hp]
+  | x :: xs, D, p, hp, h => by
+    have hx : x ≠ NL := h x (by simp)
+    have hxs : ∀ b ∈ xs, b ≠ NL := fun b hb => h b (by simp [hb])
+    simp only [List.foldl_cons, skipByte, hx, ite_false, Bool.false_eq_true]
+    by_cases hl : p.length ≥ lim
+    · simp only [hl, ite_true]
+      rw [foldl_skipByte_skipping lim xs D hxs]
+      have : ¬ p.length + (xs.length + 1) ≤ lim := by omega
+      simp only [List.length_cons, this, ite_false]
+    · simp only [hl, ite_false]
+      have hp' : (p ++ [x]).length ≤ lim := by simp; omega
+      rw [foldl_skipByte_segment lim xs D (p ++ [x]) hp' hxs]
+      simp only [List.length_append, List.length_cons, List.length_nil, List.append_assoc,
+        List.singleton_append]
+      have : p.length + (0 + 1) + xs.length = p.length + (xs.length + 1) := by omega
+      rw [this]
+
+/-- Frames handed on earlier do not change what later bytes do. -/
+theorem foldl_skipByte_prefix (lim : Nat) : ∀ (xs : List Nat) (D E : List (List Nat)) (p : List Nat)
+    (sk : Bool), xs.foldl (skipByte lim) ⟨D ++ E, p, sk⟩ =
+      ⟨D ++ (xs.foldl (skipByte lim) ⟨E, p, sk⟩).done, (xs.foldl (skipByte lim) ⟨E, p, sk⟩).buffer,
+        (xs.foldl (skipByte lim) ⟨E, p, sk⟩).skipping⟩
+  | [], D, E, p, sk => rfl
+  | x :: xs, D, E, p, sk => by
+    simp only [List.foldl_cons, skipByte]
+    by_cases hx : x = NL
+    · simp only [hx, ite_true]
+      cases sk
+      · simp only [Bool.false_eq_true, ite_false]
+        rw [List.append_assoc]
+        exact foldl_skipByte_prefix lim xs D (E ++ [p]) [] false
+      · simp only [ite_true]
+        exact foldl_skipByte_prefix lim xs D E [] false
+    · simp only [hx, ite_false]
+      cases sk
+      · simp only [Bool.false_eq_true, ite_false]
+        by_cases hl : p.length ≥ lim
+        · simp only [hl, ite_true]
+          exact foldl_skipByte_prefix lim xs D E [] true
+        · simp only [hl, ite_false]
+          exact foldl_skipByte_prefix lim xs D E (p ++ [x]) false
+      · simp only [ite_true]
+        exact foldl_skipByte_prefix lim xs D E p true
+
+/-- The engine's inner loop over one buffer is the byte-at-a-time meaning of that buffer. -/
+theorem drainSkip_eq_bytes (lim : Nat) : ∀ (n : Nat) (buf : List Nat) (sk : Bool), buf.length < n →
+    drainSkip lim sk buf =
+      ((buf.foldl (skipByte lim) ⟨[], [], sk⟩).done, (buf.foldl (skipByte lim) ⟨[], [], sk⟩).buffer,
+        (buf.foldl (skipByte lim) ⟨[], [], sk⟩).skipping)
+  | 0, _, _, h => by simp at h
+  | n + 1, buf, sk, hn => by
+    rw [drainSkip]
+    split
+    · rename_i hs
+      have hno := splitAtNL_none hs
+      cases sk
+      · rw [foldl_skipByte_segment lim buf [] [] (by simp) hno]
+        by_cases hl : buf.length > lim
+        · have : ¬ buf.length ≤ lim := by omega
+          simp [hl, this]
+        · have : buf.length ≤ lim := by omega
+          simp [hl, this]
+      · rw [foldl_skipByte_skipping lim buf [] hno]
+        simp
+    · rename_i f r hs
+      obtain ⟨hbuf, hf⟩ := splitAtNL_some hs
+      have hr : r.length < n := by
+        have := splitAtNL_length hs; omega
+      have ih := drainSkip_eq_bytes lim n r false hr
+      rw [hbuf, List.foldl_append, List.foldl_cons]
+      cases sk
+      · rw [foldl_skipByte_segment lim f [] [] (by simp) hf]
+        by_cases hl : f.length > lim
+        · have : ¬ ([] : List Nat).length + f.length ≤ lim := by simp; omega
+          simp only [hl, this, Bool.false_or, decide_true, ite_true, ite_false, skipByte]
+          exact ih
+        · have h0 : ([] : List Nat).length + f.length ≤ lim := by simp; omega
+          simp only [hl, h0, Bool.false_or, decide_false, Bool.false_eq_true, ite_true, ite_false, skipByte,
+            List.nil_append]
+          rw [ih]
+          have := foldl_skipByte_prefix lim r [f] [] [] false
+          simp only [List.append_nil] at this
+          rw [this]
+          rfl
+      · rw [foldl_skipByte_skipping lim f [] hf]
+        simp only [Bool.true_or, ite_true, skipByte]
+        exact ih
+
+/-- The bytes the engine's reader keeps: no newline, within the limit, and none while it
+skips a frame. -/
+def GoodSkip (lim : Nat) (rd : SkipReader) : Prop :=
+  (∀ b ∈ rd.buffer, b ≠ NL) ∧ rd.buffer.length ≤ lim ∧ (rd.skipping = true → rd.buffer = [])
+
+theorem skipByte_good {lim : Nat} {rd : SkipReader} (b : Nat) (hg : GoodSkip lim rd) :
+    GoodSkip lim (skipByte lim rd b) := by
+  obtain ⟨h1, h2, h3⟩ := hg
+  unfold skipByte
+  by_cases hb : b = NL
+  · simp only [hb, ite_true]
+    split <;> simp [GoodSkip]
+  · simp only [hb, ite_false]
+    by_cases hsk : rd.skipping = true
+    · simp only [hsk, ite_true]; exact ⟨h1, h2, h3⟩
+    · simp only [hsk, Bool.false_eq_true, ite_false]
+      by_cases hl : rd.buffer.length ≥ lim
+      · simp [hl, GoodSkip]
+      · simp only [hl, ite_false]
+        refine ⟨?_, by simp; omega, by simp⟩
+        intro x hx
+        simp at hx
+        rcases hx with hx | rfl
+        · exact h1 x hx
+        · exact hb
+
+theorem foldl_skipByte_good (lim : Nat) : ∀ (xs : List Nat) {rd : SkipReader},
+    GoodSkip lim rd → GoodSkip lim (xs.foldl (skipByte lim) rd)
+  | [], _, hg => hg
+  | x :: xs, _, hg => foldl_skipByte_good lim xs (skipByte_good x hg)
+
+/-- One read of the engine equals feeding its bytes one at a time. -/
+theorem onChunkSkip_eq_bytes (lim : Nat) (rd : SkipReader) (data : List Nat) (hg : GoodSkip lim rd) :
+    onChunkSkip lim rd data = data.foldl (skipByte lim) rd := by
+  obtain ⟨h1, h2, h3⟩ := hg
+  have hkept : rd.buffer.foldl (skipByte lim) ⟨[], [], rd.skipping⟩ = ⟨[], rd.buffer, rd.skipping⟩ := by
+    cases hsk : rd.skipping
+    · rw [foldl_skipByte_segment lim rd.buffer [] [] (by simp) h1]
+      simp [h2]
+    · rw [h3 hsk]; rfl
+  unfold onChunkSkip
+  simp only
+  rw [drainSkip_eq_bytes lim ((rd.buffer ++ data).length + 1) _ _ (by omega), List.foldl_append, hkept]
+  have hpre := foldl_skipByte_prefix lim data rd.done [] rd.buffer rd.skipping
+  simp only [List.append_nil] at hpre
+  exact hpre.symm
+
+theorem foldl_onChunkSkip_eq_flatten (lim : Nat) : ∀ (cs : List (List Nat)) (rd : SkipReader),
+    GoodSkip lim rd → cs.foldl (onChunkSkip lim) rd = cs.flatten.foldl (skipByte lim) rd
+  | [], _, _ => rfl
+  | c :: cs, rd, hg => by
+    simp only [List.foldl_cons, List.flatten_cons, List.foldl_append, onChunkSkip_eq_bytes lim rd c hg]
+    exact foldl_onChunkSkip_eq_flatten lim cs _ (foldl_skipByte_good lim c hg)
+
+theorem goodSkip_empty (lim : Nat) : GoodSkip lim SkipReader.empty :=
+  ⟨by simp [SkipReader.empty], by simp [SkipReader.empty], by simp [SkipReader.empty]⟩
+
+/-- For the engine too, fragmented and coalesced reads give the same frames as one read. -/
+theorem readAllSkip_chunking_invariant (lim : Nat) (cs : List (List Nat)) :
+    readAllSkipBy onChunkSkip lim cs = readAllSkipBy onChunkSkip lim [cs.flatten] := by
+  unfold readAllSkipBy
+  rw [foldl_onChunkSkip_eq_flatten lim cs _ (goodSkip_empty lim),
+    foldl_onChunkSkip_eq_flatten lim [cs.flatten] _ (goodSkip_empty lim)]
+  simp
+
+/-- The engine's reader never keeps more than the limit: a frame it skips is not buffered. -/
+theorem readAllSkip_keeps_at_most_limit (lim : Nat) (cs : List (List Nat)) :
+    (readAllSkipBy onChunkSkip lim cs).buffer.length ≤ lim := by
+  unfold readAllSkipBy
+  rw [foldl_onChunkSkip_eq_flatten lim cs _ (goodSkip_empty lim)]
+  exact (foldl_skipByte_good lim cs.flatten (goodSkip_empty lim)).2.1
+
 end NamiProofs.HostEngine.Framing
