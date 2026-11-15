@@ -72,6 +72,17 @@ public sealed partial class RegistryGateTests(TestContext context)
 
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
     [TestMethod]
+    public void SchemaUrls_NameTheSourcesOfTheCatalog()
+    {
+        // Each attribute records the schema it came from. The three schema constants must be
+        // exactly those sources, so that a move of a pinned registry cannot leave one behind.
+        var sources = AttributeCatalog.All.Select(static attribute => attribute.SourceSchema)
+            .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        string[] constants = [RegistryInfo.CoreSchemaUrl, RegistryInfo.GenAiSchemaUrl, RegistryInfo.NamiSchemaUrl];
+        CollectionAssert.AreEqual(constants.Order(StringComparer.Ordinal).ToArray(), sources);
+    }
+
+    [TestMethod]
     public void Registry_NestedCoreDependency_ResolvesOnce()
     {
         Assert.HasCount(1, AttributeCatalog.All.Where(static a => a.Key == "http.request.method").ToArray());
