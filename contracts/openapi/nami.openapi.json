@@ -862,24 +862,6 @@
           }
         }
       },
-      "Engine.EngineEnvelope": {
-        "type": "object",
-        "required": [
-          "id",
-          "revision"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "revision": {
-            "type": "string"
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        }
-      },
       "Engine.EngineHealth": {
         "type": "object",
         "required": [
@@ -2269,26 +2251,6 @@
             "active": "#/components/schemas/Tools.ActiveSignalStatus",
             "silent": "#/components/schemas/Tools.SilentSignalStatus"
           }
-        },
-        "description": "The latest receipt time for one signal, or how long it has been silent."
-      },
-      "Tools.SignalStatusFields": {
-        "type": "object",
-        "required": [
-          "signal"
-        ],
-        "properties": {
-          "signal": {
-            "type": "string",
-            "enum": [
-              "traces",
-              "metrics",
-              "logs"
-            ]
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
         },
         "description": "The latest receipt time for one signal, or how long it has been silent."
       },

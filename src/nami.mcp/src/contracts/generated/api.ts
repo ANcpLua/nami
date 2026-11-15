@@ -325,10 +325,6 @@ export interface SourceStatus {
   "signals": SignalStatus[];
 }
 
-export interface SignalStatusFields {
-  "signal": "traces" | "metrics" | "logs";
-}
-
 export interface ErrorsRecentInput extends ToolReadInput {
 }
 
@@ -474,11 +470,6 @@ export interface EngineLimits {
   "maxFrameBytes": number;
   "maxPending": number;
   "workers": number;
-}
-
-export interface EngineEnvelope {
-  "id": string;
-  "revision": string;
 }
 
 export interface EngineCall {
