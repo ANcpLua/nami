@@ -29,7 +29,7 @@ public class GrpcMethodBindingTests
     }
 
     [TestMethod]
-    public async Task Should_BindEachOtlpExportOnceAndWithoutAWarning_When_TheCollectorServicesAreMapped()
+    public async Task Should_BindEachOtlpExportOnceAndFindItsBindMethod_When_TheCollectorServicesAreMapped()
     {
         using var warnings = new WarningLog();
         await using var app = BuildCollectorHost(warnings);
@@ -52,6 +52,8 @@ public class GrpcMethodBindingTests
         var builder = WebApplication.CreateSlimBuilder();
         _ = builder.Logging.ClearProviders();
         _ = builder.Logging.AddProvider(warnings);
+        // The binder reports a service without a bind method at Debug.
+        _ = builder.Logging.SetMinimumLevel(LogLevel.Debug);
         builder.Services.AddNamiCollectorCore(builder.Configuration);
         return builder.Build();
     }
@@ -91,13 +93,14 @@ public class GrpcMethodBindingTests
 
             public bool IsEnabled(LogLevel logLevel)
             {
-                return logLevel >= LogLevel.Warning;
+                return logLevel >= LogLevel.Debug;
             }
 
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
                 Func<TState, Exception?, string> formatter)
             {
-                if (IsEnabled(logLevel)) entries.Enqueue($"{logLevel} {category}: {formatter(state, exception)}");
+                if (logLevel >= LogLevel.Warning || eventId.Name == "BindMethodNotFound")
+                    entries.Enqueue($"{logLevel} {eventId.Name} {category}: {formatter(state, exception)}");
             }
         }
     }
