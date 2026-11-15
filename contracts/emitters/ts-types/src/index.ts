@@ -5,6 +5,7 @@ import type {
   DecoratorContext,
   EmitContext,
   Enum,
+  EnumMember,
   IntrinsicType,
   Model,
   NumericLiteral,
@@ -27,6 +28,7 @@ import {
   isArrayModelType,
   isRecordModelType,
   navigateProgram,
+  resolveEncodedEnumMemberValue,
   resolveEncodedName,
   setTypeSpecNamespace,
 } from "@typespec/compiler";
@@ -181,7 +183,7 @@ function collectMediaType(
 function renderEnum(program: Program, e: Enum): string {
   const name = languageName(program,e,e.name,"typescript");
   const entries = [...e.members.values()]
-    .map((m) => `  ${JSON.stringify(m.name)}: ${JSON.stringify(m.value ?? m.name)}`)
+    .map((m) => `  ${JSON.stringify(m.name)}: ${JSON.stringify(resolveEncodedEnumMemberValue(program, m, "application/json"))}`)
     .join(",\n");
   return `export const ${name}Values = {\n${entries},\n} as const;\nexport type ${name} = typeof ${name}Values[keyof typeof ${name}Values];\n`;
 }
@@ -272,9 +274,9 @@ function mapType(program: Program, type: Type): string {
       // reference stands for the referenced property's type.
       return mapType(program, (type as { type: Type }).type);
     case "EnumMember": {
-      const m = type as { value?: string | number; name: string };
-      const v = m.value ?? m.name;
-      return typeof v === "number" ? String(v) : `"${v}"`;
+      // The JSON value OpenAPI publishes: an @encodedName replaces the value (TypeSpec 1.18.0).
+      const v = resolveEncodedEnumMemberValue(program, type as EnumMember, "application/json");
+      return typeof v === "number" ? String(v) : JSON.stringify(v);
     }
     case "Union":
       if (type.name) return languageName(program,type,type.name,"typescript");
