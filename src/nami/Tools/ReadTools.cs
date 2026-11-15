@@ -38,9 +38,7 @@ internal static class SourcesStatusTool
                     {
                         Signal = signal,
                         LastSeen = lastSeen == 0 ? null : ToolDispatcher.Timestamp(lastSeen),
-                        SilentFor = XmlConvert.ToString(window.End > last
-                            ? window.End - last
-                            : TimeSpan.Zero)
+                        SilentFor = WholeSeconds(window.End > last ? window.End - last : TimeSpan.Zero)
                     };
                 }
 
@@ -52,6 +50,15 @@ internal static class SourcesStatusTool
 
         return new ToolRows("services", rows, snapshot.Signals.Count, ["traces", "metrics", "logs"],
             ContractFields.For<ProjectedSourceStatus>());
+    }
+
+    /// <summary>
+    ///     The contract's IsoDuration has no fraction, so the silence is reported in the whole seconds that have
+    ///     passed: 2.5 s is PT2S, less than a second is PT0S.
+    /// </summary>
+    private static string WholeSeconds(TimeSpan silence)
+    {
+        return XmlConvert.ToString(new TimeSpan(silence.Ticks - silence.Ticks % TimeSpan.TicksPerSecond));
     }
 }
 
