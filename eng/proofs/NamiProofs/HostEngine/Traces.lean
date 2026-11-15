@@ -57,6 +57,15 @@ theorem gone_accepted :
     (Host.run Host.init gone).map hostObs =
       some ([.http 200, .http 200, .http 503], some (.code 1), .exited, true, true) := by decide
 
+/-- `killed` (P04): one tool call waits in the engine, the engine is killed. Run: the call is
+answered `collector_unavailable`, retryable; hostExit 1; childGone true. -/
+def killed : List Host.Ev :=
+  [.readyFrame, .requestHealth, .reply 1 false, .requestTool true, .childExit, .childClose, .failureExit]
+
+theorem killed_accepted :
+    (Host.run Host.init killed).map hostObs =
+      some ([.http 200, .unavailable], some (.code 1), .exited, false, false) := by decide
+
 /-- `twice`: closingBegan true, hostExit 1, hostSignal null, childGone true. The engine
 ignores SIGTERM and the end of its input; the second SIGTERM ends the host through
 `process.exit`, whose `exit` listener SIGKILLs the engine. -/

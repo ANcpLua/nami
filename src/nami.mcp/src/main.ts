@@ -63,7 +63,8 @@ async function health(signal: AbortSignal): Promise<Response> {
   }
 }
 
-let closeTransport: () => Promise<void>;
+// Ends the transport: at once, or (force false, HTTP only) after the requests being answered have their answers.
+let closeTransport: (force?: boolean) => Promise<void>;
 if (stdio) {
   const handle = serveStdio(() => createServer(engine), { onerror: report });
   closeTransport = () => handle.close();
@@ -110,7 +111,7 @@ if (stdio) {
       return createMcpHandler(() => createServer(engine, access), { onerror: report, keepAliveMs: 5000 }).fetch(request);
     }
   });
-  closeTransport = async () => { await server.stop(true); };
+  closeTransport = async (force = true) => { await server.stop(force); };
 }
 let closing = false;
 async function close() {
@@ -134,7 +135,8 @@ void engine.failed.then(async (error) => {
   console.error("The native engine failed: " + error.message);
   if (!closing) {
     closing = true;
-    await closeTransport().catch(report);
+    // The calls this failure rejected are being answered right now: they get their answer, within two seconds.
+    await Promise.race([closeTransport(false), new Promise(resolve => setTimeout(resolve, 2000))]).catch(report);
   }
   process.exit(1);
 });

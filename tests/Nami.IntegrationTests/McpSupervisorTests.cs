@@ -95,6 +95,25 @@ public sealed class McpSupervisorTests(TestContext context)
 
     [TestMethod]
     [Timeout(30000, CooperativeCancellation = true)]
+    public async Task Host_EngineKilledMidCall_AnswersTheCallThenExitsNonZero()
+    {
+        // P04 over the fixture engine: the host must not end before the call its engine's death failed is answered.
+        using var result = await RunAsync("killed");
+        var observed = result.RootElement;
+        Assert.IsTrue(observed.GetProperty("waiting").GetBoolean(), "Precondition: the call waits in the engine.");
+        Assert.AreEqual(JsonValueKind.Null, observed.GetProperty("transportError").ValueKind,
+            "The waiting call must get an answer, not a closed connection.");
+        Assert.IsTrue(observed.GetProperty("isError").GetBoolean());
+        Assert.AreEqual("collector_unavailable", observed.GetProperty("code").GetString());
+        Assert.IsTrue(observed.GetProperty("retryable").GetBoolean());
+        var exit = observed.GetProperty("hostExit");
+        Assert.AreEqual(JsonValueKind.Number, exit.ValueKind, "The host must exit after its engine died; it was still " + exit);
+        Assert.AreNotEqual(0, exit.GetInt32());
+        Assert.IsTrue(observed.GetProperty("childGone").GetBoolean());
+    }
+
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
     public async Task Host_SecondSigtermWhileClosing_EndsByItselfAndTakesTheEngineWithIt()
     {
         // The engine ignores SIGTERM and the end of its input, so the first SIGTERM leaves the host waiting

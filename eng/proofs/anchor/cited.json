@@ -226,17 +226,17 @@
  },
  "src/nami.mcp/src/main.ts|<top level>|closing|1": {
   "memberHash": "07c0948b035a2bc5",
-  "line": 115,
+  "line": 116,
   "model": "Host.St.closing (initially false)"
  },
  "src/nami.mcp/src/main.ts|close|closing|1": {
   "memberHash": "302c1707a06174ba",
-  "line": 118,
+  "line": 119,
   "model": "Host.step .hostSignal"
  },
  "src/nami.mcp/src/main.ts|<top level>|closing|2": {
   "memberHash": "4bab0f50c3a9ebe8",
-  "line": 136,
+  "line": 137,
   "model": "Host.step .failureExit (closing := true)"
  },
  "src/nami.mcp/src/main.ts|health|engineCall|1": {
@@ -246,7 +246,7 @@
  },
  "src/nami.mcp/src/main.ts|close|engineCall|1": {
   "memberHash": "302c1707a06174ba",
-  "line": 120,
+  "line": 121,
   "model": "Host.step .transportStopped (engine.close)"
  },
  "src/nami.mcp/src/main.ts|unhealthy|healthAnswer|1": {
@@ -266,62 +266,62 @@
  },
  "src/nami.mcp/src/main.ts|<top level>|healthAnswer|1": {
   "memberHash": "568bc44a653a28d0",
-  "line": 92,
+  "line": 93,
   "model": "abstraction: a request refused before any engine call (400) or failed unexpectedly (500) is no Host event"
  },
  "src/nami.mcp/src/main.ts|<top level>|signalHandler|1": {
   "memberHash": "c9fe1e3bc34148e4",
-  "line": 128,
+  "line": 129,
   "model": "Host.step .hostSignal (the handler stays registered)"
  },
  "src/nami.mcp/src/main.ts|<top level>|signalHandler|2": {
   "memberHash": "79395713503c1c10",
-  "line": 129,
+  "line": 130,
   "model": "Host.step .hostSignal (the handler stays registered)"
  },
  "src/nami.mcp/src/main.ts|<top level>|signalHandler|3": {
   "memberHash": "a2b94f7da6533cd1",
-  "line": 142,
+  "line": 144,
   "model": "Host.step .hostSignal (stdio end of input)"
  },
  "src/nami.mcp/src/main.ts|stop|exit|1": {
   "memberHash": "3022c402bf95bf64",
-  "line": 125,
+  "line": 126,
   "model": "Host.step .hostSignal while closing (exitWith 1)"
  },
  "src/nami.mcp/src/main.ts|<top level>|exit|1": {
   "memberHash": "110941b932196864",
-  "line": 133,
+  "line": 134,
   "model": "Host.step .loopEmpty (code 1 once failed)"
  },
  "src/nami.mcp/src/main.ts|<top level>|exit|2": {
   "memberHash": "0335548aa49004cd",
-  "line": 139,
+  "line": 141,
   "model": "Host.step .failureExit (exitWith 1)"
  },
  "src/nami.mcp/src/main.ts|<top level>|failed|1": {
   "memberHash": "5471aeade42b4684",
-  "line": 132,
+  "line": 133,
   "model": "Host.step .failureExit"
  },
  "src/nami.mcp/src/main.ts|<top level>|transport|1": {
   "memberHash": "38e7d44466e769ee",
-  "line": 69,
+  "line": 70,
   "model": "Host.step .transportStopped"
  },
  "src/nami.mcp/src/main.ts|<top level>|transport|2": {
-  "memberHash": "c6536ee10583bc1a",
-  "line": 113,
+  "memberHash": "cbb7b6f0af822680",
+  "line": 114,
   "model": "Host.step .transportStopped"
  },
  "src/nami.mcp/src/main.ts|<top level>|serve|1": {
   "memberHash": "cea586cc72a009b5",
-  "line": 68,
+  "line": 69,
   "model": "Host.step .readyFrame (serving)"
  },
  "src/nami.mcp/src/main.ts|<top level>|serve|2": {
   "memberHash": "c19dfb4392192124",
-  "line": 93,
+  "line": 94,
   "model": "Host.step .readyFrame (serving)"
  },
  "src/nami.mcp/src/main.ts|<top level>|ready|1": {
@@ -331,17 +331,17 @@
  },
  "src/nami.mcp/src/server.ts|execute|failureCode|1": {
   "memberHash": "8801ea0ae32420ba",
-  "line": 135,
+  "line": 137,
   "model": "Host.outcomeOf .tool"
  },
  "src/nami.mcp/src/server.ts|execute|abortRethrow|1": {
   "memberHash": "8801ea0ae32420ba",
-  "line": 134,
+  "line": 136,
   "model": "Host.Outcome.cancelled"
  },
  "src/nami.mcp/src/server.ts|execute|engineCall|1": {
   "memberHash": "8801ea0ae32420ba",
-  "line": 130,
+  "line": 132,
   "model": "Host.step .requestTool (only arguments the input schema accepted enter Engine.request)"
  },
  "src/nami.mcp/src/server.ts|<top level>|refusal|1": {
@@ -351,7 +351,7 @@
  },
  "src/nami.mcp/src/server.ts|register|refusal|1": {
   "memberHash": "b776a843a785847c",
-  "line": 169,
+  "line": 171,
   "model": "abstraction: a call whose arguments the schema refused is answered by the host and is no Host event"
  },
  "src/nami/Hosting/EngineProtocol.cs|Accept|pending|1": {

@@ -81,8 +81,9 @@ async function startHost(mode: string) {
   return { url, exited: processUnderTest.exited, child: await pid() };
 }
 // The exit code once the host ends within the deadline, otherwise "alive".
+// The deadline's timer does not keep this script running once the host has ended.
 const exitWithin = (exited: Promise<number>, ms: number) =>
-  Promise.race([exited, sleep(ms).then(() => "alive" as const)]);
+  Promise.race([exited, new Promise<"alive">(resolve => { setTimeout(() => resolve("alive"), ms).unref(); })]);
 const gone = (child: number) => {
   try { return readFileSync(`/proc/${child}/stat`, "utf8").split(") ")[1]?.startsWith("Z") ?? true; }
   catch { return true; }
@@ -232,6 +233,17 @@ try {
       healthBefore: before.status, engineFailed: failed, healthStatus: during.status, healthReportStatus: during.reportStatus,
       hostExit: exit, childGone: gone(host.child)
     }));
+  } else if (scenario === "killed") {
+    // P04: the engine dies while a call waits on it. The call must still get its typed answer before the host ends.
+    const host = await startHost("holding");
+    const call = toolCall(host.url).then(toolResult).catch((error: Error) => ({ transport: error.name }));
+    const waiting = await observed(async () => (await lines("calls")).length === 1);
+    process.kill(host.child, "SIGKILL");
+    const outcome = await call as { isError?: boolean; structuredContent?: { code?: string; retryable?: boolean }; transport?: string };
+    const exit = await exitWithin(host.exited, 10_000);
+    console.log(JSON.stringify({ waiting, transportError: outcome.transport ?? null, isError: outcome.isError ?? null,
+      code: outcome.structuredContent?.code ?? null, retryable: outcome.structuredContent?.retryable ?? null,
+      hostExit: exit, childGone: gone(host.child) }));
   } else if (scenario === "twice") {
     // The engine ignores SIGTERM and the end of its input, so the host's close waits for it. A second
     // SIGTERM during that wait must still end the host by itself, which takes the engine with it.
