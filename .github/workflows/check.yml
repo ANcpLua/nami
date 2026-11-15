@@ -39,3 +39,4 @@ jobs:
         with:
           name: logs
           path: ${{ env.NAMI_DIAGNOSTICS_HOME }}/
+          retention-days: 1
