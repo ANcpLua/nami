@@ -247,20 +247,6 @@
         },
         "description": "Collection of attributes"
       },
-      "Common.ByteSize": {
-        "type": "integer",
-        "format": "int64",
-        "minimum": 0,
-        "maximum": 9007199254740991,
-        "description": "Size in bytes"
-      },
-      "Common.ContentType": {
-        "type": "string",
-        "description": "MIME content type",
-        "examples": [
-          "application/json"
-        ]
-      },
       "Common.ContractRevision": {
         "type": "string",
         "minLength": 71,
@@ -270,12 +256,6 @@
         "examples": [
           "sha256:0f1e2d3c4b5a69780f1e2d3c4b5a69780f1e2d3c4b5a69780f1e2d3c4b5a6978"
         ]
-      },
-      "Common.CostUsd": {
-        "type": "number",
-        "format": "double",
-        "minimum": 0,
-        "description": "Cost in USD (floating point)"
       },
       "Common.Count": {
         "type": "integer",
@@ -299,12 +279,6 @@
         "format": "uint64",
         "minimum": 0,
         "description": "Duration in nanoseconds, encoded as a decimal string"
-      },
-      "Common.DurationS": {
-        "type": "number",
-        "format": "double",
-        "minimum": 0,
-        "description": "Duration in seconds"
       },
       "Common.EntityAttributeKey": {
         "type": "string",
@@ -410,28 +384,6 @@
         },
         "description": "Evidence completeness for the requested window. Unknown counts remain null."
       },
-      "Common.HttpMethod": {
-        "type": "string",
-        "description": "HTTP method name (uppercase)",
-        "examples": [
-          "GET"
-        ]
-      },
-      "Common.IPv4Address": {
-        "type": "string",
-        "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?![\\s\\S])",
-        "description": "IPv4 address in dotted-decimal notation",
-        "examples": [
-          "192.168.1.1"
-        ]
-      },
-      "Common.IPv6Address": {
-        "type": "string",
-        "description": "IPv6 address in standard notation",
-        "examples": [
-          "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
-        ]
-      },
       "Common.InstrumentationScope": {
         "type": "object",
         "properties": {
@@ -464,10 +416,6 @@
         },
         "description": "Instrumentation scope identifying the library/component emitting telemetry"
       },
-      "Common.IpAddress": {
-        "type": "string",
-        "description": "IP address (IPv4 or IPv6)"
-      },
       "Common.IsoDuration": {
         "type": "string",
         "pattern": "^P(?!$)(([0-9]+Y)?([0-9]+M)?([0-9]+D)?(T(?=[0-9])([0-9]+H)?([0-9]+M)?([0-9]+S)?)?|([0-9]+W)?)(?![\\s\\S])",
@@ -480,22 +428,6 @@
         "maximum": 9007199254740991,
         "description": "A JSON integer exactly representable in both JavaScript and C#. Larger integers use decimal string encoding."
       },
-      "Common.LanguageCode": {
-        "type": "string",
-        "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(?![\\s\\S])",
-        "description": "Language/locale code (BCP 47)",
-        "examples": [
-          "en-US"
-        ]
-      },
-      "Common.MacAddress": {
-        "type": "string",
-        "pattern": "^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}(?![\\s\\S])",
-        "description": "MAC address in colon-separated hex notation",
-        "examples": [
-          "00:1A:2B:3C:4D:5E"
-        ]
-      },
       "Common.OtlpFlags": {
         "type": "integer",
         "format": "uint32",
@@ -503,48 +435,12 @@
         "maximum": 4294967295,
         "description": "The complete unsigned 32-bit OTLP flags field, including protocol bits unknown to this API revision."
       },
-      "Common.Percentage": {
-        "type": "number",
-        "format": "double",
-        "minimum": 0,
-        "maximum": 100,
-        "description": "Percentage value (0.0 to 100.0)"
-      },
-      "Common.Port": {
-        "type": "integer",
-        "format": "int32",
-        "minimum": 1,
-        "maximum": 65535,
-        "description": "Network port number (1-65535)"
-      },
-      "Common.Ratio": {
-        "type": "number",
-        "format": "double",
-        "minimum": 0,
-        "maximum": 1,
-        "description": "Ratio value (0.0 to 1.0)"
-      },
-      "Common.SemVer": {
-        "type": "string",
-        "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?(?![\\s\\S])",
-        "description": "Semantic version string (e.g., 1.2.3)",
-        "examples": [
-          "2.1.0"
-        ]
-      },
       "Common.SessionId": {
         "type": "string",
         "minLength": 1,
         "maxLength": 128,
         "pattern": "^(?!\\.+$)[A-Za-z0-9._~-]{1,128}(?![\\s\\S])",
         "description": "Unique session identifier: URL-safe characters, at least one, at most 128, not only dots. The same rule the SDK enforces on the baggage header."
-      },
-      "Common.Sha256Hash": {
-        "type": "string",
-        "minLength": 64,
-        "maxLength": 64,
-        "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
-        "description": "SHA-256 hash in lowercase hex"
       },
       "Common.SnapshotId": {
         "type": "string",
@@ -561,13 +457,6 @@
         "examples": [
           "b7ad6b7169203331"
         ]
-      },
-      "Common.Temperature": {
-        "type": "number",
-        "format": "double",
-        "minimum": 0,
-        "maximum": 2,
-        "description": "Temperature setting for LLM requests (0.0-2.0)"
       },
       "Common.TimeSpec": {
         "type": "string",
@@ -698,14 +587,6 @@
           "0af7651916cd43dd8448eb211c80319c"
         ]
       },
-      "Common.TraceParent": {
-        "type": "string",
-        "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}(?![\\s\\S])",
-        "description": "W3C Trace Context traceparent header format",
-        "examples": [
-          "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
-        ]
-      },
       "Common.TraceState": {
         "type": "string",
         "description": "W3C Trace Context tracestate header (vendor-specific key-value pairs)",
@@ -718,32 +599,6 @@
         "format": "uint64",
         "minimum": 0,
         "description": "Unsigned Unix timestamp in nanoseconds since epoch, encoded as a decimal string"
-      },
-      "Common.UrlPath": {
-        "type": "string",
-        "description": "URL path component",
-        "examples": [
-          "/api/v1/users"
-        ]
-      },
-      "Common.UrlQuery": {
-        "type": "string",
-        "description": "URL query string (without leading ?)",
-        "examples": [
-          "page=1&limit=100"
-        ]
-      },
-      "Common.UrlString": {
-        "type": "string",
-        "pattern": "^(?:[A-Za-z][A-Za-z0-9+\\-.]*:)(?:\\/?\\/(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=:]|%[0-9A-Fa-f]{2})*@)?(?:\\[(?:(?:(?:(?:[0-9A-Fa-f]{1,4}:){6}|::(?:[0-9A-Fa-f]{1,4}:){5}|(?:[0-9A-Fa-f]{1,4})?::(?:[0-9A-Fa-f]{1,4}:){4}|(?:(?:[0-9A-Fa-f]{1,4}:){0,1}[0-9A-Fa-f]{1,4})?::(?:[0-9A-Fa-f]{1,4}:){3}|(?:(?:[0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})?::(?:[0-9A-Fa-f]{1,4}:){2}|(?:(?:[0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})?::[0-9A-Fa-f]{1,4}:|(?:(?:[0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})?::)(?:[0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{1,4}|(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?))|(?:(?:[0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})?::[0-9A-Fa-f]{1,4}|(?:(?:[0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})?::)|[Vv][0-9A-Fa-f]+\\.[A-Za-z0-9\\-._~!$&'()*+,;=:]+)\\]|(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)|(?:[A-Za-z0-9\\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})*)(?::\\d*)?(?:\\/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*|\\/(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})+(?:\\/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*)?|(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})+(?:\\/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*)(?:\\?(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?(?:#(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?(?![\\s\\S])",
-        "description": "URL string (absolute)"
-      },
-      "Common.UserAgent": {
-        "type": "string",
-        "description": "User agent string",
-        "examples": [
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        ]
       },
       "Common.UserId": {
         "type": "string",
