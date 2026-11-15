@@ -49,7 +49,8 @@ public sealed class ClaimCheckAcceptanceTests(TestContext context)
     [Timeout(120000, CooperativeCancellation = true)]
     [DataRow("./eng/test.sh 2>&1 | tail -n 5", DisplayName = "Piped into tail")]
     [DataRow("./eng/test.sh && echo done", DisplayName = "Chained with &&")]
-    [DataRow("./eng/test.sh; echo done", DisplayName = "Chained with ;")]
+    // A display name becomes the test's temp directory, and nami's DuckDB connection string breaks on a ';' in it.
+    [DataRow("./eng/test.sh; echo done", DisplayName = "Chained with a semicolon")]
     [DataRow("./eng/test.sh || true", DisplayName = "Failure masked with || true")]
     [DataRow("./eng/test.sh --suite Unit", DisplayName = "One suite only")]
     public async Task ClaimCheck_SucceedingCommandThatIsNotExactlyTheGate_LeavesTheClaimUnverified(string command)
