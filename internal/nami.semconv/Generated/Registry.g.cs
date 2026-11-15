@@ -15,7 +15,7 @@ public sealed record AttributeDefinition(string Key, string Type, Stability Stab
 
 public static class RegistryInfo
 {
-    public const string CoreSchemaUrl = "https://opentelemetry.io/schemas/1.44.0";
+    public const string CoreSchemaUrl = "https://opentelemetry.io/schemas/1.45.0";
     public const string GenAiSchemaUrl = "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev";
     public const string NamiSchemaUrl = "https://ancplua.github.io/nami/schemas/0.3.0";
     public const string WeaverVersion = "0.28.0";

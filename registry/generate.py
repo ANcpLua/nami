@@ -196,10 +196,17 @@ def main():
             else:
                 canonical.write_bytes(expected_bytes)
         run([weaver,'--future','registry','check','--v2','-r',str(ROOT/'registry'),'-p',str(ROOT/'registry/policies')])
+        # Every attribute records the schema it came from; the schema constants of the generated
+        # catalog are taken from those records, so a move of a pinned registry moves them too.
+        sources={v.get('annotations',{}).get('nami.source_schema') for v in normalized['attribute_catalog']}
+        core_schemas=sorted(s for s in sources if s and re.fullmatch(r'https://opentelemetry\.io/schemas/\d+\.\d+\.\d+',s))
+        genai_schemas=sorted(s for s in sources if s and s.startswith('https://opentelemetry.io/schemas/gen-ai'))
+        if core_schemas!=['https://opentelemetry.io/schemas/'+CORE_TAG.removeprefix('v')] or len(genai_schemas)!=1:
+            raise RuntimeError('Unexpected source schemas in the resolved catalog: '+json.dumps(sorted(s for s in sources if s)))
         destinations=[('csharp','internal/nami.semconv/Generated'),('markdown','docs/semconv')]
         for target,destination in destinations:
             output=temp/target
-            run([weaver,'registry','generate','--v2','-r',str(materialized),'-p',str(ROOT/'registry/policies'),'-t',str(ROOT/'templates/registry'),'-D','core_commit='+core,'-D','genai_commit='+genai,target,str(output)])
+            run([weaver,'registry','generate','--v2','-r',str(materialized),'-p',str(ROOT/'registry/policies'),'-t',str(ROOT/'templates/registry'),'-D','core_commit='+core,'-D','genai_commit='+genai,'-D','core_schema_url='+core_schemas[0],'-D','genai_schema_url='+genai_schemas[0],target,str(output)])
             actual=ROOT/destination
             files={p.relative_to(output):p.read_bytes() for p in output.rglob('*') if p.is_file()}
             if target == 'csharp':
