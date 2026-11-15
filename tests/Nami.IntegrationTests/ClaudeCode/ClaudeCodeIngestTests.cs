@@ -35,8 +35,9 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     private const string PassingTestRun = "toolu_01FIXTURE000000000000004";
     private const string TruncationMarker = "...[truncated]";
 
-    // What the capture stores: the four primitive types, and lists, all of them empty (managed_settings.sources).
-    private static readonly string[] s_storedKinds = ["[]", "boolean", "double", "int", "string"];
+    // What the capture stores: the four primitive types, the empty lists of managed_settings.sources and the string
+    // lists of gen_ai.response.finish_reasons on the 17 llm_request spans.
+    private static readonly string[] s_storedKinds = ["[]", "boolean", "double", "int", "string", "string[]"];
     private static readonly string[] s_persistedDetails = ["bash_command", "file_path", "full_command"];
     private static readonly string[] s_droppedDetails = ["error", "tool_parameters"];
     private static readonly string[] s_liftedMembers = ["bash_command", "full_command", "subagent_type"];
