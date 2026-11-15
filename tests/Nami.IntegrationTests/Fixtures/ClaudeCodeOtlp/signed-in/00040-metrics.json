@@ -1,0 +1,557 @@
+{
+  "resourceMetrics": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "gen_ai.agent.name",
+            "value": {
+              "stringValue": "fixture-builder"
+            }
+          },
+          {
+            "key": "host.arch",
+            "value": {
+              "stringValue": "arm64"
+            }
+          },
+          {
+            "key": "os.type",
+            "value": {
+              "stringValue": "darwin"
+            }
+          },
+          {
+            "key": "os.version",
+            "value": {
+              "stringValue": "27.2.0"
+            }
+          },
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "claude-code"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "2.1.325"
+            }
+          }
+        ]
+      },
+      "scopeMetrics": [
+        {
+          "scope": {
+            "name": "com.anthropic.claude_code",
+            "version": "2.1.325"
+          },
+          "metrics": [
+            {
+              "name": "claude_code.cost.usage",
+              "description": "Cost of the Claude Code session",
+              "unit": "USD",
+              "sum": {
+                "dataPoints": [
+                  {
+                    "startTimeUnixNano": "1794746024615000000",
+                    "timeUnixNano": "1794746026615000000",
+                    "asDouble": 0.00041039000000000006,
+                    "attributes": [
+                      {
+                        "key": "gen_ai.agent.name",
+                        "value": {
+                          "stringValue": "fixture-builder"
+                        }
+                      },
+                      {
+                        "key": "user.id",
+                        "value": {
+                          "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                        }
+                      },
+                      {
+                        "key": "session.id",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000018"
+                        }
+                      },
+                      {
+                        "key": "organization.id",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000002"
+                        }
+                      },
+                      {
+                        "key": "user.email",
+                        "value": {
+                          "stringValue": "scrubbed-email-1"
+                        }
+                      },
+                      {
+                        "key": "user.account_uuid",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000003"
+                        }
+                      },
+                      {
+                        "key": "user.account_id",
+                        "value": {
+                          "stringValue": "user_scrubbed0001"
+                        }
+                      },
+                      {
+                        "key": "anthropic.provider",
+                        "value": {
+                          "stringValue": "firstParty"
+                        }
+                      },
+                      {
+                        "key": "anthropic.custom_base_url",
+                        "value": {
+                          "boolValue": false
+                        }
+                      },
+                      {
+                        "key": "anthropic.plan",
+                        "value": {
+                          "stringValue": "max"
+                        }
+                      },
+                      {
+                        "key": "terminal.type",
+                        "value": {
+                          "stringValue": "ghostty"
+                        }
+                      },
+                      {
+                        "key": "model",
+                        "value": {
+                          "stringValue": "claude-haiku-5-5"
+                        }
+                      },
+                      {
+                        "key": "query_source",
+                        "value": {
+                          "stringValue": "main"
+                        }
+                      },
+                      {
+                        "key": "effort",
+                        "value": {
+                          "stringValue": "medium"
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "aggregationTemporality": "AGGREGATION_TEMPORALITY_DELTA",
+                "isMonotonic": true
+              }
+            },
+            {
+              "name": "claude_code.token.usage",
+              "description": "Number of tokens used",
+              "unit": "tokens",
+              "sum": {
+                "dataPoints": [
+                  {
+                    "startTimeUnixNano": "1794746024615000000",
+                    "timeUnixNano": "1794746026615000000",
+                    "asDouble": 2.0,
+                    "attributes": [
+                      {
+                        "key": "gen_ai.agent.name",
+                        "value": {
+                          "stringValue": "fixture-builder"
+                        }
+                      },
+                      {
+                        "key": "user.id",
+                        "value": {
+                          "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                        }
+                      },
+                      {
+                        "key": "session.id",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000018"
+                        }
+                      },
+                      {
+                        "key": "organization.id",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000002"
+                        }
+                      },
+                      {
+                        "key": "user.email",
+                        "value": {
+                          "stringValue": "scrubbed-email-1"
+                        }
+                      },
+                      {
+                        "key": "user.account_uuid",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000003"
+                        }
+                      },
+                      {
+                        "key": "user.account_id",
+                        "value": {
+                          "stringValue": "user_scrubbed0001"
+                        }
+                      },
+                      {
+                        "key": "anthropic.provider",
+                        "value": {
+                          "stringValue": "firstParty"
+                        }
+                      },
+                      {
+                        "key": "anthropic.custom_base_url",
+                        "value": {
+                          "boolValue": false
+                        }
+                      },
+                      {
+                        "key": "anthropic.plan",
+                        "value": {
+                          "stringValue": "max"
+                        }
+                      },
+                      {
+                        "key": "terminal.type",
+                        "value": {
+                          "stringValue": "ghostty"
+                        }
+                      },
+                      {
+                        "key": "model",
+                        "value": {
+                          "stringValue": "claude-haiku-5-5"
+                        }
+                      },
+                      {
+                        "key": "query_source",
+                        "value": {
+                          "stringValue": "main"
+                        }
+                      },
+                      {
+                        "key": "effort",
+                        "value": {
+                          "stringValue": "medium"
+                        }
+                      },
+                      {
+                        "key": "type",
+                        "value": {
+                          "stringValue": "input"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "startTimeUnixNano": "1794746024615000000",
+                    "timeUnixNano": "1794746026615000000",
+                    "asDouble": 107.0,
+                    "attributes": [
+                      {
+                        "key": "gen_ai.agent.name",
+                        "value": {
+                          "stringValue": "fixture-builder"
+                        }
+                      },
+                      {
+                        "key": "user.id",
+                        "value": {
+                          "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                        }
+                      },
+                      {
+                        "key": "session.id",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000018"
+                        }
+                      },
+                      {
+                        "key": "organization.id",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000002"
+                        }
+                      },
+                      {
+                        "key": "user.email",
+                        "value": {
+                          "stringValue": "scrubbed-email-1"
+                        }
+                      },
+                      {
+                        "key": "user.account_uuid",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000003"
+                        }
+                      },
+                      {
+                        "key": "user.account_id",
+                        "value": {
+                          "stringValue": "user_scrubbed0001"
+                        }
+                      },
+                      {
+                        "key": "anthropic.provider",
+                        "value": {
+                          "stringValue": "firstParty"
+                        }
+                      },
+                      {
+                        "key": "anthropic.custom_base_url",
+                        "value": {
+                          "boolValue": false
+                        }
+                      },
+                      {
+                        "key": "anthropic.plan",
+                        "value": {
+                          "stringValue": "max"
+                        }
+                      },
+                      {
+                        "key": "terminal.type",
+                        "value": {
+                          "stringValue": "ghostty"
+                        }
+                      },
+                      {
+                        "key": "model",
+                        "value": {
+                          "stringValue": "claude-haiku-5-5"
+                        }
+                      },
+                      {
+                        "key": "query_source",
+                        "value": {
+                          "stringValue": "main"
+                        }
+                      },
+                      {
+                        "key": "effort",
+                        "value": {
+                          "stringValue": "medium"
+                        }
+                      },
+                      {
+                        "key": "type",
+                        "value": {
+                          "stringValue": "output"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "startTimeUnixNano": "1794746024615000000",
+                    "timeUnixNano": "1794746026615000000",
+                    "asDouble": 20329.0,
+                    "attributes": [
+                      {
+                        "key": "gen_ai.agent.name",
+                        "value": {
+                          "stringValue": "fixture-builder"
+                        }
+                      },
+                      {
+                        "key": "user.id",
+                        "value": {
+                          "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                        }
+                      },
+                      {
+                        "key": "session.id",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000018"
+                        }
+                      },
+                      {
+                        "key": "organization.id",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000002"
+                        }
+                      },
+                      {
+                        "key": "user.email",
+                        "value": {
+                          "stringValue": "scrubbed-email-1"
+                        }
+                      },
+                      {
+                        "key": "user.account_uuid",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000003"
+                        }
+                      },
+                      {
+                        "key": "user.account_id",
+                        "value": {
+                          "stringValue": "user_scrubbed0001"
+                        }
+                      },
+                      {
+                        "key": "anthropic.provider",
+                        "value": {
+                          "stringValue": "firstParty"
+                        }
+                      },
+                      {
+                        "key": "anthropic.custom_base_url",
+                        "value": {
+                          "boolValue": false
+                        }
+                      },
+                      {
+                        "key": "anthropic.plan",
+                        "value": {
+                          "stringValue": "max"
+                        }
+                      },
+                      {
+                        "key": "terminal.type",
+                        "value": {
+                          "stringValue": "ghostty"
+                        }
+                      },
+                      {
+                        "key": "model",
+                        "value": {
+                          "stringValue": "claude-haiku-5-5"
+                        }
+                      },
+                      {
+                        "key": "query_source",
+                        "value": {
+                          "stringValue": "main"
+                        }
+                      },
+                      {
+                        "key": "effort",
+                        "value": {
+                          "stringValue": "medium"
+                        }
+                      },
+                      {
+                        "key": "type",
+                        "value": {
+                          "stringValue": "cacheRead"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "startTimeUnixNano": "1794746024615000000",
+                    "timeUnixNano": "1794746026615000000",
+                    "asDouble": 767.0,
+                    "attributes": [
+                      {
+                        "key": "gen_ai.agent.name",
+                        "value": {
+                          "stringValue": "fixture-builder"
+                        }
+                      },
+                      {
+                        "key": "user.id",
+                        "value": {
+                          "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                        }
+                      },
+                      {
+                        "key": "session.id",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000018"
+                        }
+                      },
+                      {
+                        "key": "organization.id",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000002"
+                        }
+                      },
+                      {
+                        "key": "user.email",
+                        "value": {
+                          "stringValue": "scrubbed-email-1"
+                        }
+                      },
+                      {
+                        "key": "user.account_uuid",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000003"
+                        }
+                      },
+                      {
+                        "key": "user.account_id",
+                        "value": {
+                          "stringValue": "user_scrubbed0001"
+                        }
+                      },
+                      {
+                        "key": "anthropic.provider",
+                        "value": {
+                          "stringValue": "firstParty"
+                        }
+                      },
+                      {
+                        "key": "anthropic.custom_base_url",
+                        "value": {
+                          "boolValue": false
+                        }
+                      },
+                      {
+                        "key": "anthropic.plan",
+                        "value": {
+                          "stringValue": "max"
+                        }
+                      },
+                      {
+                        "key": "terminal.type",
+                        "value": {
+                          "stringValue": "ghostty"
+                        }
+                      },
+                      {
+                        "key": "model",
+                        "value": {
+                          "stringValue": "claude-haiku-5-5"
+                        }
+                      },
+                      {
+                        "key": "query_source",
+                        "value": {
+                          "stringValue": "main"
+                        }
+                      },
+                      {
+                        "key": "effort",
+                        "value": {
+                          "stringValue": "medium"
+                        }
+                      },
+                      {
+                        "key": "type",
+                        "value": {
+                          "stringValue": "cacheCreation"
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "aggregationTemporality": "AGGREGATION_TEMPORALITY_DELTA",
+                "isMonotonic": true
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
