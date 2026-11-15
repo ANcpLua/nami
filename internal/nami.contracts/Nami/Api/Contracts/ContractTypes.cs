@@ -41,7 +41,6 @@ public static class ContractTypes
         _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineCommand) => "Engine.EngineCommand",
         _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineHealth) => "Engine.EngineHealth",
         _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineLimits) => "Engine.EngineLimits",
-        _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineRequest) => "Engine.EngineRequest",
         _ when type == typeof(global::Nami.Api.Contracts.Engine.EngineResponse) => "Engine.EngineResponse",
         _ when type == typeof(global::Nami.Api.Contracts.Health.HealthCheckEntry) => "Health.HealthCheckEntry",
         _ when type == typeof(global::Nami.Api.Contracts.Health.HealthReport) => "Health.HealthReport",
@@ -115,7 +114,6 @@ public static class ContractTypes
         "Engine.EngineCommand" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineCommand))!,
         "Engine.EngineHealth" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineHealth))!,
         "Engine.EngineLimits" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineLimits))!,
-        "Engine.EngineRequest" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineRequest))!,
         "Engine.EngineResponse" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Engine.EngineResponse))!,
         "Health.HealthCheckEntry" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Health.HealthCheckEntry))!,
         "Health.HealthReport" => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::Nami.Api.Contracts.Health.HealthReport))!,
@@ -191,7 +189,6 @@ public static class ContractTypes
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineCommand))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineHealth))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineLimits))]
-[JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineRequest))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Engine.EngineResponse))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Health.HealthCheckEntry))]
 [JsonSerializable(typeof(global::Nami.Api.Contracts.Health.HealthReport))]

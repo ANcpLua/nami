@@ -352,11 +352,6 @@ export const ChangeJson = {
   toJson: (value: Model.Change): Json.Change => convert(value, ChangeShape, true) as Json.Change,
   fromJson: (value: Json.Change): Model.Change => convert(value, ChangeShape, false) as Model.Change,
 };
-const EngineRequestShape: Shape = { fields: [["id", "id", "string"], ["revision", "revision", "string"], ["method", "method", { union: [{ literal: "call" }, { literal: "health" }, { literal: "cancel" }] }], ["name", "name", { union: ["string", { literal: null }] }], ["input", "input", "unknown"], ["credential", "credential", { union: ["string", { literal: null }] }], ["traceparent", "traceparent", { union: ["string", { literal: null }] }], ["tracestate", "tracestate", { union: ["string", { literal: null }] }]] };
-export const EngineRequestJson = {
-  toJson: (value: Model.EngineRequest): Json.EngineRequest => convert(value, EngineRequestShape, true) as Json.EngineRequest,
-  fromJson: (value: Json.EngineRequest): Model.EngineRequest => convert(value, EngineRequestShape, false) as Model.EngineRequest,
-};
 const EngineResponseShape: Shape = { fields: [["id", "id", "string"], ["revision", "revision", "string"], ["result", "result", "unknown"], ["isError", "is_error", "boolean"]] };
 export const EngineResponseJson = {
   toJson: (value: Model.EngineResponse): Json.EngineResponse => convert(value, EngineResponseShape, true) as Json.EngineResponse,

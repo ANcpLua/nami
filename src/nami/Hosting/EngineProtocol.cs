@@ -61,27 +61,34 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
                     var frame = buffer.Slice(0, end);
                     if (frame.Length > EngineLimits.MaxFrameBytesDefault)
                         throw new InvalidDataException("Engine frame exceeds its limit.");
-                    var request = Decode(frame);
+                    var command = Decode(frame);
                     buffer = buffer.Slice(buffer.GetPosition(1, end));
-                    if (request.Revision != ContractRevision.Value)
-                        throw new InvalidDataException("Engine contract revision mismatch.");
-                    if (request.Method == "cancel")
+                    var (id, revision) = command switch
                     {
-                        if (_pending.TryGetValue(request.Id, out var active)) active.Cancel();
+                        EngineCall call => (call.Id, call.Revision),
+                        EngineHealth health => (health.Id, health.Revision),
+                        EngineCancel cancel => (cancel.Id, cancel.Revision),
+                        null => throw new InvalidDataException("Missing engine request.")
+                    };
+                    if (revision != ContractRevision.Value)
+                        throw new InvalidDataException("Engine contract revision mismatch.");
+                    if (command is EngineCancel)
+                    {
+                        if (_pending.TryGetValue(id, out var active)) active.Cancel();
                         continue;
                     }
 
-                    if (_pending.Count >= EngineLimits.MaxPendingDefault || _pending.ContainsKey(request.Id))
+                    if (_pending.Count >= EngineLimits.MaxPendingDefault || _pending.ContainsKey(id))
                         throw new InvalidDataException("Duplicate or excessive pending engine requests.");
                     var cancellation = new PendingCall(_lifetime.Token);
-                    if (!_pending.TryAdd(request.Id, cancellation))
+                    if (!_pending.TryAdd(id, cancellation))
                     {
                         cancellation.Dispose();
                         throw new InvalidDataException("Duplicate engine request.");
                     }
 
                     _tasks.RemoveAll(static task => task.IsCompletedSuccessfully);
-                    _tasks.Add(Execute(request, cancellation));
+                    _tasks.Add(Execute(id, command, cancellation));
                 }
 
                 if (buffer.Length > EngineLimits.MaxFrameBytesDefault)
@@ -103,7 +110,7 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
         }
     }
 
-    private async Task Execute(EngineRequest request, PendingCall cancellation)
+    private async Task Execute(string id, EngineCommand command, PendingCall cancellation)
     {
         var entered = false;
         var previous = Activity.Current;
@@ -112,31 +119,31 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
         {
             await _execution.WaitAsync(cancellation.Token);
             entered = true;
-            if (request.Method == "health")
+            if (command is not EngineCall call)
             {
-                await Respond(request.Id, await HealthAsync(services, cancellation.Token), false);
+                await Respond(id, await HealthAsync(services, cancellation.Token), false);
                 return;
             }
 
             var options = services.GetRequiredService<IOptions<OtlpApiKeyOptions>>().Value;
-            var credential = OtlpApiKeyValidator.Resolve(request.Credential.Value, options);
+            var credential = OtlpApiKeyValidator.Resolve(call.Credential, options);
             if (options.IsApiKeyMode && (credential is null || !credential.Roles.HasFlag(ApiKeyRoles.Read)))
             {
                 var denied = ToolDispatcher.Error("unauthorized", "A project-bound read credential is required.");
-                await Respond(request.Id, denied.Content, true);
+                await Respond(id, denied.Content, true);
                 return;
             }
 
-            if (!ActivityContext.TryParse(request.Traceparent.Value, request.Tracestate.Value, out var parent))
+            if (!ActivityContext.TryParse(call.Traceparent, call.Tracestate, out var parent))
                 Activity.Current = null;
-            activity = NamiTelemetry.Source.StartActivity("tools/call " + request.Name.Value, ActivityKind.Server, parent);
+            activity = NamiTelemetry.Source.StartActivity("tools/call " + call.Name, ActivityKind.Server, parent);
             activity?.SetTag("mcp.method.name", "tools/call");
-            activity?.SetTag("gen_ai.tool.name", request.Name.Value);
+            activity?.SetTag("gen_ai.tool.name", call.Name);
             var started = Stopwatch.GetTimestamp();
             try
             {
                 var result = await services.GetRequiredService<NamiToolService>().InvokeAsync(
-                    request.Name.Value ?? "", request.Input.GetValueOrDefault(),
+                    call.Name, call.Input,
                     credential?.ProjectId ?? ProjectScope.DefaultProjectId,
                     cancellation.Token);
                 if (result.IsError)
@@ -146,13 +153,13 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
                         activity?.SetTag(ErrorAttributes.Type, code.GetString());
                 }
 
-                await Respond(request.Id, result.Content, result.IsError);
+                await Respond(id, result.Content, result.IsError);
             }
             finally
             {
                 NamiTelemetry.Duration.Record(Stopwatch.GetElapsedTime(started).TotalSeconds,
                     new KeyValuePair<string, object?>("mcp.method.name", "tools/call"),
-                    new KeyValuePair<string, object?>("gen_ai.tool.name", request.Name.Value));
+                    new KeyValuePair<string, object?>("gen_ai.tool.name", call.Name));
             }
         }
         catch (OperationCanceledException) when (cancellation.Token.IsCancellationRequested)
@@ -163,14 +170,14 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
             activity?.SetStatus(ActivityStatusCode.Error);
             NamiTelemetry.RecordException(error, services.GetRequiredService<ILoggerFactory>().CreateLogger("nami"));
             var failure = ToolDispatcher.Error("internal_error", "The engine could not complete the request.");
-            await Respond(request.Id, failure.Content, true);
+            await Respond(id, failure.Content, true);
         }
         finally
         {
             activity?.Dispose();
             Activity.Current = previous;
             if (entered) _execution.Release();
-            _pending.TryRemove(request.Id, out _);
+            _pending.TryRemove(id, out _);
             cancellation.Dispose();
         }
     }
@@ -198,13 +205,12 @@ internal sealed class EngineProtocol(IServiceProvider services, CancellationToke
         }
     }
 
-    private static EngineRequest Decode(ReadOnlySequence<byte> frame)
+    private static EngineCommand Decode(ReadOnlySequence<byte> frame)
     {
         using var document = JsonDocument.Parse(frame);
-        if (ContractJson.Validate("Engine.EngineRequest", document.RootElement) is { } issue)
+        if (ContractJson.Validate("Engine.EngineCommand", document.RootElement) is { } issue)
             throw new InvalidDataException("Invalid engine request: " + issue.Field);
-        return document.RootElement.Deserialize(ContractTypes.TypeInfo<EngineRequest>())
-               ?? throw new InvalidDataException("Missing engine request.");
+        return document.RootElement.Deserialize(ContractTypes.TypeInfo<EngineCommand>());
     }
 
     private static async Task<JsonElement> HealthAsync(IServiceProvider services, CancellationToken cancellation)

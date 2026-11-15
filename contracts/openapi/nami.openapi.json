@@ -860,7 +860,8 @@
             "health": "#/components/schemas/Engine.EngineHealth",
             "cancel": "#/components/schemas/Engine.EngineCancel"
           }
-        }
+        },
+        "description": "One private engine request. Credentials select the project; client tool arguments never do."
       },
       "Engine.EngineHealth": {
         "type": "object",
@@ -915,75 +916,6 @@
           "not": {}
         },
         "description": "Fixed bounds for the private protocol, shared by both implementations."
-      },
-      "Engine.EngineRequest": {
-        "type": "object",
-        "required": [
-          "id",
-          "revision",
-          "method"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "revision": {
-            "type": "string"
-          },
-          "method": {
-            "type": "string",
-            "enum": [
-              "call",
-              "health",
-              "cancel"
-            ]
-          },
-          "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "input": {},
-          "credential": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "traceparent": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "tracestate": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "unevaluatedProperties": {
-          "not": {}
-        },
-        "description": "One private engine request. Credentials select the project; client tool arguments never do."
       },
       "Engine.EngineResponse": {
         "type": "object",

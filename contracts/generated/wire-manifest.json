@@ -34,7 +34,6 @@
     "Common.ToolError",
     "Engine.EngineCommand",
     "Engine.EngineLimits",
-    "Engine.EngineRequest",
     "Engine.EngineResponse",
     "Tools.ChangesRecentInput",
     "Tools.ChangesRecentResult",

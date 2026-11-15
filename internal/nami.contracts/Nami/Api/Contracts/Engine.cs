@@ -39,35 +39,6 @@ public sealed class EngineCommandJsonConverter : JsonConverter<EngineCommand>
     }
 }
 
-public sealed class EngineRequest
-{
-    [JsonPropertyName("id")]
-    public required string Id { get; init; }
-    [JsonPropertyName("revision")]
-    public required string Revision { get; init; }
-    [JsonPropertyName("method")]
-    public required string Method { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    [JsonConverter(typeof(global::Nami.Api.Contracts.OptionalValueConverter<string?>))]
-    [JsonPropertyName("name")]
-    public global::Nami.Api.Contracts.OptionalValue<string?> Name { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("input")]
-    public JsonElement? Input { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    [JsonConverter(typeof(global::Nami.Api.Contracts.OptionalValueConverter<string?>))]
-    [JsonPropertyName("credential")]
-    public global::Nami.Api.Contracts.OptionalValue<string?> Credential { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    [JsonConverter(typeof(global::Nami.Api.Contracts.OptionalValueConverter<string?>))]
-    [JsonPropertyName("traceparent")]
-    public global::Nami.Api.Contracts.OptionalValue<string?> Traceparent { get; init; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    [JsonConverter(typeof(global::Nami.Api.Contracts.OptionalValueConverter<string?>))]
-    [JsonPropertyName("tracestate")]
-    public global::Nami.Api.Contracts.OptionalValue<string?> Tracestate { get; init; }
-}
-
 public sealed class EngineResponse
 {
     [JsonPropertyName("id")]

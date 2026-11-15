@@ -2,19 +2,6 @@ import "../common/types.tsp";
 
 namespace Nami.Api.Contracts.Engine;
 
-#suppress "@ancplua/typespec-nami-lint/wire-root-twin" "C05: one message, two wire roots; engine.ts writes EngineCommand and EngineProtocol.cs reads EngineRequest, so move one side to the other shape before removing either root"
-@doc("One private engine request. Credentials select the project; client tool arguments never do.")
-model EngineRequest {
-  id: string;
-  revision: string;
-  method: "call" | "health" | "cancel";
-  name?: string | null;
-  input?: unknown;
-  credential?: string | null;
-  traceparent?: string | null;
-  tracestate?: string | null;
-}
-
 @doc("One complete private response. A tool refusal is an explicit error value, never a lost reply.")
 model EngineResponse {
   id: string;
@@ -45,5 +32,6 @@ model EngineCall {
 }
 model EngineHealth { ...EngineEnvelope; method: "health"; }
 model EngineCancel { ...EngineEnvelope; method: "cancel"; }
+@doc("One private engine request. Credentials select the project; client tool arguments never do.")
 @discriminated(#{envelope: "none", discriminatorPropertyName: "method"})
 union EngineCommand { call: EngineCall, health: EngineHealth, cancel: EngineCancel }

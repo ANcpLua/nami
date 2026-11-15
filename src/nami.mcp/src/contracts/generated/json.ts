@@ -448,17 +448,6 @@ export interface Change {
   "source_key": string;
 }
 
-export interface EngineRequest {
-  "id": string;
-  "revision": string;
-  "method": "call" | "health" | "cancel";
-  "name"?: string | null;
-  "input"?: unknown;
-  "credential"?: string | null;
-  "traceparent"?: string | null;
-  "tracestate"?: string | null;
-}
-
 export interface EngineResponse {
   "id": string;
   "revision": string;
