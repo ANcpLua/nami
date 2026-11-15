@@ -13,8 +13,6 @@ const args = process.argv.slice(2);
 const engineIndex = args.indexOf("--engine");
 const enginePath = engineIndex >= 0 ? args[engineIndex + 1] : undefined;
 if (!enginePath) throw new Error("Pass --engine with the published NativeAOT engine path.");
-const engine = new Engine(resolve(enginePath));
-await engine.ready;
 const stdio = args.includes("--stdio");
 // The host answers /mcp before the engine sees a call, so it repeats two engine rules on purpose: the default mode
 // (CollectorAuthExtensions: Unsecured only in Development; WebApplication.CreateSlimBuilder adds DOTNET_ variables
@@ -23,6 +21,12 @@ const stdio = args.includes("--stdio");
 // so a drift between the copies can refuse a call early but never admit one the engine refuses.
 const environment = process.env.DOTNET_ENVIRONMENT ?? process.env.ASPNETCORE_ENVIRONMENT;
 const mode = process.env[CONFIG.AuthMode] ?? (environment?.toLowerCase() === "development" ? CONFIG_DEFAULTS.AuthMode : "ApiKey");
+// Stdio carries no credential, and in ApiKey mode the engine answers every call without one "unauthorized".
+if (stdio && mode.toLowerCase() === "apikey")
+  throw new Error(`--stdio cannot be used with ${CONFIG.AuthMode}=ApiKey: stdio carries no project key, so every tool call would be refused. `
+    + `Serve Streamable HTTP and send a project's read key in x-otlp-api-key, or set ${CONFIG.AuthMode}=Unsecured for a local engine with the default project.`);
+const engine = new Engine(resolve(enginePath));
+await engine.ready;
 const keyDocument: unknown = JSON.parse(process.env[CONFIG.ProjectKeys] ?? "{}");
 // Engine readiness follows validation of this shared credential configuration.
 const keys = Object.values(keyDocument as ProjectKeyDocument)
@@ -82,18 +86,30 @@ if (stdio) {
   // every call that ran longer). A call being served is exempt: its client may wait for the result without a byte
   // in either direction. Event streams also carry a keep-alive comment every 5 seconds, below the 10 seconds at
   // which this server used to and many proxies do close a silent stream.
-  const server = Bun.serve({ hostname, port, idleTimeout: 255, async fetch(request, listener) {
-    const url = new URL(request.url);
-    const refused = dnsRebindingResponse(request, [...allowedHosts], [...allowedHosts]);
-    if (refused) return refused;
-    if (url.pathname === "/health") return health(request.signal);
-    if (url.pathname !== "/mcp") return new Response(null, { status: 404 });
-    const access = credential(request);
-    if (access instanceof Response) return access;
-    listener.timeout(request, 0);
-    // Stateless factory: both modern discovery and legacy initialize use the official SDK.
-    return createMcpHandler(() => createServer(engine, access), { onerror: report, keepAliveMs: 5000 }).fetch(request);
-  } });
+  // Nothing this listener answers carries a path or a stack: no development error page, and an unexpected
+  // failure is a JSON-RPC internal error.
+  const failure = (status: number, code: number, message: string) =>
+    Response.json({ jsonrpc: "2.0", error: { code, message }, id: null }, { status });
+  const server = Bun.serve({
+    hostname, port, idleTimeout: 255, development: false,
+    error(error) { report(error); return failure(500, -32603, "Internal error."); },
+    async fetch(request, listener) {
+      // Host and Origin are judged before the URL is read: with a malformed Host header the URL does not parse.
+      let url: URL;
+      try {
+        const refused = dnsRebindingResponse(request, [...allowedHosts], [...allowedHosts]);
+        if (refused) return refused;
+        url = new URL(request.url);
+      } catch { return failure(400, -32600, "Invalid Host header or request target."); }
+      if (url.pathname === "/health") return health(request.signal);
+      if (url.pathname !== "/mcp") return new Response(null, { status: 404 });
+      const access = credential(request);
+      if (access instanceof Response) return access;
+      listener.timeout(request, 0);
+      // Stateless factory: both modern discovery and legacy initialize use the official SDK.
+      return createMcpHandler(() => createServer(engine, access), { onerror: report, keepAliveMs: 5000 }).fetch(request);
+    }
+  });
   closeTransport = async () => { await server.stop(true); };
 }
 let closing = false;

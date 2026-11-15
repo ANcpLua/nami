@@ -16,6 +16,6 @@ WORKDIR /app
 COPY --from=build /app .
 COPY --from=mcp /usr/local/bin/bun /usr/local/bin/bun
 COPY --from=mcp /source/dist/main.js ./mcp/main.js
-ENV NAMI_BIND_ADDRESS=0.0.0.0 NAMI_DATA_PATH=/data/nami.duckdb
+ENV NAMI_BIND_ADDRESS=0.0.0.0 NAMI_DATA_PATH=/data/nami.duckdb NODE_ENV=production
 EXPOSE 4318 4317 5100
 ENTRYPOINT ["/usr/local/bin/bun", "/app/mcp/main.js", "--engine", "/app/nami"]

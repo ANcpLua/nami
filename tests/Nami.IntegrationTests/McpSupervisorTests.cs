@@ -271,6 +271,46 @@ public sealed class McpSupervisorTests(TestContext context)
         Assert.AreEqual(0, observed.GetProperty("exitCodeAfterSignal").GetInt32());
     }
 
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    public async Task MalformedHostHeader_RefusedAsJsonRpc_WithoutAnErrorPage()
+    {
+        // H6: the URL was read before the Host check, and a Host that is no host made that throw: Bun answered 500
+        // with its development page, 50 KB of source lines, paths and a stack, to a caller without a credential.
+        using var result = await RunAsync("badhost");
+        var seen = result.RootElement;
+        string[] cases = ["space", "openBracket", "portOutOfRange", "foreign"];
+        foreach (var name in cases)
+        {
+            var answer = seen.GetProperty(name);
+            var status = answer.GetProperty("status").GetInt32();
+            Assert.IsTrue(status is 400 or 403, $"{name}: a Host that is not allowed is refused, not a failure; got {status}.");
+            Assert.AreEqual("application/json", answer.GetProperty("contentType").GetString(), name);
+            Assert.IsNotNull(answer.GetProperty("rpcCode").GetString(), name + ": the body must be a JSON-RPC error.");
+            Assert.IsLessThan(1024, answer.GetProperty("bytes").GetInt32(), name);
+            Assert.IsFalse(answer.GetProperty("disclosesSource").GetBoolean(), name + ": no page, path or stack.");
+        }
+
+        Assert.AreEqual(200, seen.GetProperty("healthAfter").GetInt32(), "The host must keep serving.");
+        Assert.AreEqual(0, seen.GetProperty("exitCodeAfterSignal").GetInt32());
+    }
+
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    public async Task Stdio_InApiKeyMode_RefusedAtStartWithItsReason()
+    {
+        // H11: stdio carries no credential, so in ApiKey mode every call over it was answered "unauthorized".
+        using var result = await RunAsync("stdio-apikey");
+        var observed = result.RootElement;
+        var exit = observed.GetProperty("hostExit");
+        Assert.AreEqual(JsonValueKind.Number, exit.ValueKind, "The host must refuse to start; it was still " + exit);
+        Assert.AreNotEqual(0, exit.GetInt32());
+        Assert.IsFalse(observed.GetProperty("engineStarted").GetBoolean(), "The refusal comes before the engine starts.");
+        Assert.IsTrue(observed.GetProperty("namesTheTransport").GetBoolean(), "The reason must name --stdio.");
+        Assert.IsTrue(observed.GetProperty("namesTheMode").GetBoolean(), "The reason must name the mode.");
+        Assert.IsTrue(observed.GetProperty("namesTheWayOut").GetBoolean(), "The reason must say what works instead.");
+    }
+
     private async Task<JsonDocument> RunAsync(string scenario)
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory.");

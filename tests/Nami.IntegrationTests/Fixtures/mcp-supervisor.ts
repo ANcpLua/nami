@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
+import { connect } from "node:net";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Engine } from "../../../src/nami.mcp/src/engine.ts";
@@ -244,6 +245,47 @@ try {
     const exit = await exitWithin(host.exited, 3_000);
     const childGone = await observed(() => gone(host.child));
     console.log(JSON.stringify({ closingBegan, hostExit: exit, hostSignal: processUnderTest!.signalCode ?? null, childGone }));
+  } else if (scenario === "badhost") {
+    // H6: a Host header that is no host. fetch() cannot send one, so the request is written to the socket.
+    const host = await startHost("normal");
+    const port = Number(new URL(host.url).port);
+    const raw = (header: string, path: string) => new Promise<Record<string, unknown>>(resolve => {
+      const socket = connect(port, "127.0.0.1");
+      let data = "";
+      const done = () => resolve({
+        status: Number(data.split(" ")[1] ?? 0), contentType: /^content-type: *([^;\r\n]*)/im.exec(data)?.[1]?.toLowerCase() ?? null,
+        bytes: data.length, disclosesSource: /main\.ts|\/src\/|<html|stack/i.test(data),
+        rpcCode: /"code":(-?[0-9]+)/.exec(data)?.[1] ?? null });
+      socket.setEncoding("latin1");
+      socket.setTimeout(3_000, () => socket.destroy());
+      socket.on("connect", () => socket.write(`GET ${path} HTTP/1.1\r\nHost: ${header}\r\nConnection: close\r\n\r\n`));
+      socket.on("data", chunk => { data += chunk; });
+      socket.on("close", done);
+      socket.on("error", () => {});
+    });
+    const seen: Record<string, unknown> = {};
+    for (const [name, header] of Object.entries({ space: "a b", openBracket: "[::1", portOutOfRange: "localhost:99999", foreign: "evil.example" }))
+      seen[name] = await raw(header, "/mcp");
+    seen.healthAfter = (await healthOf(host.url)).status;
+    processUnderTest!.kill("SIGTERM");
+    console.log(JSON.stringify({ ...seen, exitCodeAfterSignal: await host.exited }));
+  } else if (scenario === "stdio-apikey") {
+    // H11: stdio carries no credential, so in ApiKey mode no call could ever be authorized.
+    const args = [process.execPath, fileURLToPath(new URL("../../../src/nami.mcp/src/main.ts", import.meta.url)), "--engine", await launcher("normal"), "--stdio"];
+    const refusing = Bun.spawn(args, { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: {
+      ...process.env, DOTNET_ENVIRONMENT: "Production", ASPNETCORE_ENVIRONMENT: "Production", NAMI_OTLP_AUTH_MODE: "ApiKey", NAMI_OTLP_PROJECT_KEYS: "{}"
+    } });
+    processUnderTest = refusing;
+    const exit = await exitWithin(refusing.exited, 3_000);
+    const engineStarted = existsSync(join(state, "engine.json"));
+    let reason = "";
+    if (exit !== "alive") {
+      reason = await new Response(refusing.stderr).text();
+      processUnderTest = undefined;
+    }
+    console.log(JSON.stringify({ hostExit: exit, engineStarted,
+      namesTheTransport: reason.includes("--stdio"), namesTheMode: reason.includes("NAMI_OTLP_AUTH_MODE=ApiKey"),
+      namesTheWayOut: reason.includes("Streamable HTTP") && reason.includes("NAMI_OTLP_AUTH_MODE=Unsecured") }));
   } else if (scenario === "slow") {
     // H5: a 2025-11-25 call is answered as an event stream; the engine takes 15 seconds to answer it.
     // Beside it a 2026-07-28 call, which is answered as one JSON body: no byte travels until the result.
