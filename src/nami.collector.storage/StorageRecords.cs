@@ -11,6 +11,4 @@ internal sealed class SnapshotUnavailableException(string? message, Exception? i
 {
     public SnapshotUnavailableException()
         : this("Snapshot is unknown, expired, or belongs to another project.", null) { }
-
-    public SnapshotUnavailableException(string? message) : this(message, null) { }
 }
