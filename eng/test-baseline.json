@@ -17,7 +17,11 @@
   "suites": {
     "Unit": 241,
     "Integration": 502,
-    "EndToEnd": 45
+    "EndToEnd": 47
+  },
+  "lanes": {
+    "m2-acceptance": 29,
+    "live-nami": 1
   },
   "nodeTests": {
     "contracts/scripts/lib/canonical-schema.test.mjs": 2,

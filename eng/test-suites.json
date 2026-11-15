@@ -13,8 +13,24 @@
   },
   "EndToEnd": {
     "project": "tests/Nami.EndToEndTests/Nami.EndToEndTests.csproj",
-    "minimumExpectedTests": 45,
+    "minimumExpectedTests": 47,
     "verbosity": "Detailed",
     "timeout": "20m"
+  },
+  "lanes": {
+    "m2-acceptance": {
+      "suite": "EndToEnd",
+      "category": "M2Acceptance",
+      "minimumExpectedTests": 29,
+      "timeout": "30m",
+      "purpose": "M2's acceptance tests (campaign.md finish-line items 3 to 5), written before the tools exist. When M2 lands and they pass, delete this lane: they join the EndToEnd gate, and its floor and the baseline grow by this lane's count."
+    },
+    "live-nami": {
+      "suite": "EndToEnd",
+      "category": "LiveNami",
+      "minimumExpectedTests": 1,
+      "timeout": "10m",
+      "purpose": "Finish-line item 6's live check against the nami running on the Mac; run there while the sessions export to it. It has no CI job: no runner reaches that nami."
+    }
   }
 }

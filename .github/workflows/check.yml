@@ -3,13 +3,22 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      lane:
+        description: The gate, or one test lane of eng/test-suites.json (plan rule 14), which the gate never runs
+        type: choice
+        options:
+          - gate
+          - m2-acceptance
+        default: gate
 permissions:
   contents: read
 concurrency:
-  group: check-${{ github.ref }}
+  group: check-${{ github.ref }}-${{ inputs.lane || 'gate' }}
   cancel-in-progress: true
 jobs:
   check:
+    if: ${{ (inputs.lane || 'gate') == 'gate' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -38,5 +47,27 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: logs
+          path: ${{ env.NAMI_DIAGNOSTICS_HOME }}/
+          retention-days: 1
+  lane:
+    # A test lane on manual start. live-nami has no entry: it reads the nami running on the Mac.
+    if: ${{ (inputs.lane || 'gate') != 'gate' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NAMI_DIAGNOSTICS_HOME: /tmp/nami-diagnostics
+      LANE: ${{ inputs.lane }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca
+      - name: NativeAOT prerequisites
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+      - name: Test lane
+        run: ./eng/test.sh --lane "$LANE"
+      - name: Keep diagnostic logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: logs-${{ inputs.lane }}
           path: ${{ env.NAMI_DIAGNOSTICS_HOME }}/
           retention-days: 1

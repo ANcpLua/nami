@@ -75,8 +75,10 @@ internal sealed class McpHarness : IAsyncDisposable
         return port;
     }
 
+    /// <param name="environment">Further engine settings, such as <c>NAMI_RETENTION_DAYS</c>; they override the defaults.</param>
     internal static async Task<McpHarness> StartAsync(string binary, bool stdio, string directory,
-        CancellationToken cancellationToken, string? keys = null, string? readKey = null)
+        CancellationToken cancellationToken, string? keys = null, string? readKey = null,
+        IReadOnlyDictionary<string, string?>? environment = null)
     {
         Directory.CreateDirectory(directory);
         var httpPort = FreePort();
@@ -94,6 +96,8 @@ internal sealed class McpHarness : IAsyncDisposable
             ["NAMI_OTLP_PROJECT_KEYS"] = keys,
             ["DOTNET_ENVIRONMENT"] = "Development"
         };
+        foreach (var pair in environment ?? new Dictionary<string, string?>())
+            env[pair.Key] = pair.Value;
         const string Command = "bun";
         var args = new List<string>
         {
