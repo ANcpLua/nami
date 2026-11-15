@@ -87,7 +87,7 @@ there only. Bun and Weaver are pinned in more places, which move together with `
 | Item | Version | Set in |
 | --- | --- | --- |
 | .NET SDK | 11.0.100 | `global.json` (`rollForward: disable`) and `mise.toml`, which must agree; the container builds with `mcr.microsoft.com/dotnet/sdk:11.0.100` and runs on `runtime-deps:11.0.0`, the runtime of `DotNetRuntimeVersion` in `Version.props` (`src/nami/Dockerfile:8` and `:14`) |
-| C# language version, every C# project | `preview`: C# 15 plus the features this compiler still marks as preview; the SDK's default is 15.0 | `LangVersion` in `Directory.Build.props`, repeated in the ingestion and storage projects |
+| C# language version | 15.0, the SDK's default for `net11.0`; the `netstandard2.0` DuckDB generator sets `latest`, because its target framework would otherwise default to 7.3 | no `LangVersion` in `Directory.Build.props`; `internal/nami.collector.storage.generators/nami.collector.storage.generators.csproj:5` |
 | Roslyn inside the SDK | 5.12.0-1.26529.118 | ships with SDK 11.0.100 (`csc -version`); it compiles every project and runs the DuckDB generator |
 | Roslyn the DuckDB generator compiles against | 5.9.0 | `RoslynVersion` in `Version.props`, the `Microsoft.CodeAnalysis.CSharp` reference of `internal/nami.collector.storage.generators` |
 | Target framework, product, tests and build | `net11.0` | `Directory.Build.props`; `eng/build/build.csproj` |
