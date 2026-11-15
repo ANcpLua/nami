@@ -192,13 +192,14 @@ theorem pastTheLimit_accepted :
       some (.reading, some (33, true), 32, 0) := by decide
 
 /-- `Slots_CancelAtTheLimitThenNewCalls_AllAcceptedAndTheCancelledCallIsNotAnswered`
-(Design.traceA): 32 calls, the first two at the store; then cancel 1 and call 33, cancel 2
-and a health request (34). Run: after the store opened, 32 replies, none an error, none for
+(Design.traceA): 32 calls, the first two at the store; then cancel 1 and call 33, cancel 2,
+a health request (34) and a line that is no request, whose drop tells the test that the
+engine has read them all. Run: after the store opened, 32 replies, none an error, none for
 1 or 2. The two cancelled tasks end without a reply (`unwind`). -/
 def cancelAtTheLimit : List Engine.Ev :=
   [.frame (.req 1 .call true), .enter 1, .frame (.req 2 .call true), .enter 2] ++ calls 3 30 ++
   [.frame (.cancel 1 true), .frame (.req 33 .call true), .frame (.cancel 2 true), .frame (.req 34 .health true),
-   .unwind true, .unwind true] ++
+   .frame .garbage, .unwind true, .unwind true] ++
   ((List.range 32).map (fun i => serve (i + 3))).flatten
 
 set_option maxRecDepth 20000 in
@@ -208,11 +209,13 @@ theorem cancelAtTheLimit_accepted :
       some (.reading, 32, false, false, 0, 0) := by decide
 
 /-- `Slots_ReplyReadBeforeItsWriteReturned_TheNextCallIsAccepted` (Design.traceB): 32 calls;
-the reply to the first is readable while its write has not returned; call 33 arrives. Run:
+the reply to the first is readable while its write has not returned; call 33 arrives, and
+behind it a line that is no request, whose drop tells the test that call 33 was read. Run:
 33 replies in all, none an error. -/
 def replyReadBeforeWriteReturned : List Engine.Ev :=
   [.frame (.req 1 .call true), .enter 1, .frame (.req 2 .call true), .enter 2] ++ calls 3 30 ++
-  [.respond 1 false, .frame (.req 33 .call true), .unwind true, .respond 2 false, .unwind true] ++
+  [.respond 1 false, .frame (.req 33 .call true), .frame .garbage, .unwind true, .respond 2 false,
+   .unwind true] ++
   ((List.range 31).map (fun i => serve (i + 3))).flatten
 
 set_option maxRecDepth 20000 in

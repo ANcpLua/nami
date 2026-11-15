@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -110,8 +111,9 @@ public sealed class EngineProtocolTests(TestContext context)
             await engine.Session.WriteAsync(string.Concat(first.Select(static id => Call(id))), context.CancellationToken);
             await engine.Store.ArrivedAsync(2, context.CancellationToken);
             await engine.Session.WriteAsync(Cancel("1") + Call("33"), context.CancellationToken);
-            // The health request is read after call 33: its reply proves the engine took both frames and reads on.
-            await engine.Session.WriteAsync(Cancel("2") + Health("h"), context.CancellationToken);
+            // The line for the frame that is no request is written once the engine has read every frame before it.
+            await engine.Session.WriteAsync(Cancel("2") + Health("h") + "not-json\n", context.CancellationToken);
+            await engine.DroppedAsync(1, context.CancellationToken);
             engine.Store.Open();
             var replies = await engine.RepliesAsync(32, context.CancellationToken);
             string[] expected = [.. first.Skip(2), "33", "h"];
@@ -137,7 +139,10 @@ public sealed class EngineProtocolTests(TestContext context)
             engine.Store.Open();
             var one = await engine.RepliesAsync(1, context.CancellationToken);
             Assert.HasCount(1, one, engine.Describe());
-            await engine.Session.WriteAsync(Call("33"), context.CancellationToken);
+            // The reply's write returns only after the engine has read call 33: the line for the frame behind it
+            // says so. An engine that ends at call 33 never writes that line.
+            await engine.Session.WriteAsync(Call("33") + "not-json\n", context.CancellationToken);
+            await engine.DroppedAsync(1, context.CancellationToken);
             engine.ReleaseReplies();
             var rest = await engine.RepliesAsync(32, context.CancellationToken);
             Assert.HasCount(32, rest, engine.Describe());
@@ -198,13 +203,15 @@ public sealed class EngineProtocolTests(TestContext context)
             Assert.IsTrue(refusal.GetProperty("is_error").GetBoolean());
             Assert.AreEqual("collector_contract_mismatch", refusal.GetProperty("result").GetProperty("code").GetString());
             await engine.Store.ArrivedAsync(1, context.CancellationToken);
+            await engine.DroppedAsync(1, context.CancellationToken);
             engine.Store.Open();
             var replies = await engine.RepliesAsync(1, context.CancellationToken);
             Assert.IsTrue(replies.TryGetValue("1", out var served) && !served.GetProperty("is_error").GetBoolean(),
                 "A cancel that names another revision is not obeyed, and the call before the refusal finishes: " +
                 engine.Describe());
             Assert.AreEqual(1, engine.Store.Arrived, "The refused call must not reach the store.");
-            Assert.AreEqual("nami engine: dropped a cancel frame for another contract revision.", engine.Diagnostics.Trim());
+            string[] dropped = ["nami engine: dropped a cancel frame for another contract revision."];
+            Assert.AreSequenceEqual(dropped, engine.Diagnostics);
         });
 
     [TestMethod]
@@ -228,8 +235,7 @@ public sealed class EngineProtocolTests(TestContext context)
                 "nami engine: dropped a frame that is not an engine request.",
                 "nami engine: dropped a frame longer than the frame limit."
             ];
-            Assert.AreSequenceEqual(dropped, engine.Diagnostics.Split('\n', StringSplitOptions.RemoveEmptyEntries |
-                                                                          StringSplitOptions.TrimEntries));
+            Assert.AreSequenceEqual(dropped, engine.Diagnostics);
             await engine.Session.CloseInputAsync();
             await engine.Session.Run.WaitAsync(TimeSpan.FromSeconds(10), context.CancellationToken);
         });
@@ -278,8 +284,7 @@ public sealed class EngineProtocolTests(TestContext context)
             .AddSingleton<NamiToolService>()
             .AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance)
             .BuildServiceProvider();
-        using var lines = new StringWriter(CultureInfo.InvariantCulture);
-        using var diagnostics = TextWriter.Synchronized(lines);
+        using var diagnostics = new Lines();
         var engine = new HeldEngine(store, diagnostics);
         await using var session = new EngineSession(provider, diagnostics, engine.ReplyGate);
         engine.Session = session;
@@ -344,7 +349,26 @@ public sealed class EngineProtocolTests(TestContext context)
         }
     }
 
-    private sealed class HeldEngine(HeldStore store, TextWriter diagnostics)
+    /// <summary>The lines the engine writes to its diagnostics stream, which is standard error in production.</summary>
+    private sealed class Lines() : TextWriter(CultureInfo.InvariantCulture)
+    {
+        private readonly Lock _gate = new();
+        private readonly List<string> _written = [];
+
+        public override Encoding Encoding => Encoding.UTF8;
+
+        public override void WriteLine(string? value)
+        {
+            lock (_gate) _written.Add(value ?? "");
+        }
+
+        internal string[] Written()
+        {
+            lock (_gate) return [.. _written];
+        }
+    }
+
+    private sealed class HeldEngine(HeldStore store, Lines diagnostics)
     {
         private readonly Lock _gate = new();
         private TaskCompletionSource _replies = Completed();
@@ -352,8 +376,20 @@ public sealed class EngineProtocolTests(TestContext context)
         internal HeldStore Store => store;
         internal EngineSession Session { get; set; } = null!;
 
-        /// <summary>What the engine wrote to its diagnostics stream so far.</summary>
-        internal string Diagnostics => diagnostics.ToString() ?? "";
+        /// <summary>The lines the engine wrote to its diagnostics stream so far.</summary>
+        internal string[] Diagnostics => diagnostics.Written();
+
+        /// <summary>
+        ///     Waits until the engine has dropped <paramref name="count" /> frames, which it does in the order it reads
+        ///     them: every frame written before the dropped one has then been read. Returns when the engine stops or
+        ///     20 seconds pass, too; the assertions that follow judge that.
+        /// </summary>
+        internal async Task DroppedAsync(int count, CancellationToken ct)
+        {
+            var until = TimeProvider.System.GetTimestamp() + 20 * TimeProvider.System.TimestampFrequency;
+            while (Diagnostics.Length < count && !Session.Run.IsCompleted && TimeProvider.System.GetTimestamp() < until)
+                await Task.Delay(10, ct);
+        }
 
         private static TaskCompletionSource Completed()
         {
