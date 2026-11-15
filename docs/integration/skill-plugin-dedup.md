@@ -43,7 +43,7 @@ Qyl and the playground were retained during this cleanup. Subsequently, after co
 the user explicitly authorized deleting the playground; its directory was removed on 27 October
 2026 while its verified archive was retained. See [workspace-handoff.md](workspace-handoff.md).
 On 27 October 2026 the user retained Qyl for an examination of
-`qyl.telemetry.autoinstrumentation`. The local sources found at that time were
+`qyl.telemetry.autoinstrumentation`. The local sources found at that time included
 `qyl/internal/qyl.instrumentation` and `qyl/internal/qyl.instrumentation.generators`,
 without a confirmed mapping to the named package. That examination is closed and is not
 an open task: qyl is nami's predecessor, which nami replaces

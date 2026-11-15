@@ -113,9 +113,11 @@ the order of work in [decision 0001](decisions/0001-remote-connector-and-who-pay
 - [ ] The owner's private custom connector at a public HTTPS address, signed in from Claude on
       the web, in the desktop app, on the phone and in Claude Code.
 - [ ] The template for copies that other people run, with nothing of the owner in it.
-- [ ] The capped hosted service and its directory listing, submitted with a skills-only plugin
-      bundle that points at the same server
+- [ ] The capped hosted service and its directory listing
       ([decision 0003](decisions/0003-the-listing-is-a-capped-hosted-service.md)).
+- [ ] A skills-only plugin bundle that points at the same server and is submitted with the
+      listing: skills and metadata for agents to build, run, inspect and query the stack within
+      their authorized scope.
 - [ ] Prove six-tool schemas, errors, freshness, bounds and annotations from those Claude
       clients (D1). Local MCP fixtures and inspection are existing evidence, not hosted acceptance.
 - [ ] Record unavailable credentials, deployment and host review as remaining external proof.

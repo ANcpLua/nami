@@ -6,9 +6,10 @@ and six read-only MCP tools. The product is a remote Claude connector
 ([decision 0001](docs/decisions/0001-remote-connector-and-who-pays.md)). The sign-in that Claude on
 the web, in the desktop app and on the phone needs
 ([decision 0002](docs/decisions/0002-sign-in-is-built-into-nami.md)) is not built yet: today nami
-serves MCP clients that start it over stdio or send a project key over Streamable HTTP, such as
-Claude Code. There is no dashboard or human-facing analysis UI. Tomo is an example developer whose
-application an agent investigates, not the only supported application.
+serves MCP clients, such as Claude Code, that start it over stdio or connect over Streamable HTTP,
+with a project key unless the local `Unsecured` mode is on. There is no dashboard or human-facing
+analysis UI. Tomo is an example developer whose application an agent investigates, not the only
+supported application.
 
 The runtime is **TypeScript/Bun MCP + C#/.NET 11 NativeAOT engine**, connected locally by
 private streams/pipes. TypeSpec generates the shared C#/TypeScript wire contracts and JSON Schemas;
