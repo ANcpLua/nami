@@ -1,4 +1,5 @@
 """Checks that keep the gate able to fail. GateTests.cs runs this file inside the gate."""
+import hashlib
 import json
 import re
 import unittest
@@ -10,11 +11,74 @@ SUITES = ("Unit", "Integration", "EndToEnd")
 # calls such as pattern.test( inside a test do not count; a Python test is a def test_ function.
 NODE_TEST = re.compile(r"^test\(", re.M)
 PYTHON_TEST = re.compile(r"^[ \t]*(?:async[ \t]+)?def test_", re.M)
+PRODUCT_PROTOS = "src/nami.collector.ingestion/Protos"
+TEST_PROTOS = "tests/Nami.Tests/Protos"
+TEST_NAMESPACE = b'option csharp_namespace = "Nami.Tests.Wire.'
+# A test copy may differ from upstream beyond its csharp_namespace line only as named here, with the reason. The
+# test puts the upstream byte back before hashing; it skips no file. Repairing the copy instead is the owner's call.
+TEST_COPY_EXCEPTIONS = {
+    "opentelemetry/proto/trace/v1/trace.proto":
+        (362, "upstream ends line 362 with a carriage return; the product copy kept it, the test copy lost it"),
+}
 
 
 def counted(folder, pattern, expression):
     return {path.relative_to(ROOT).as_posix(): len(expression.findall(path.read_text(encoding="utf-8")))
             for path in sorted((ROOT / folder).glob(pattern))}
+
+
+def sha256(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def proto_differences(root):
+    """Compare both vendored OTLP proto copies under root with their lock files; one line per difference."""
+    differences = []
+    product = root / PRODUCT_PROTOS
+    lock = json.loads((product / "upstream.lock.json").read_text(encoding="utf-8"))
+    upstream, listed = {}, set()
+    for source in lock["sources"]:
+        for entry in source["files"]:
+            path = entry["path"]
+            listed.add(path)
+            upstream[source["repository"], source["revision"], path] = entry["upstreamSha256"]
+            data = (product / path).read_bytes()
+            if sha256(data) != entry["vendoredSha256"]:
+                differences.append(f"{PRODUCT_PROTOS}/{path}: SHA-256 is not its vendoredSha256")
+            # A named canonicalization appends line feeds to the upstream bytes; without them the copy is upstream.
+            canonicalization = entry.get("canonicalization", {})
+            if set(canonicalization) - {"justification", "appendTrailingLineFeeds"}:
+                differences.append(f"{PRODUCT_PROTOS}/{path}: unknown canonicalization {sorted(canonicalization)}")
+            feeds = canonicalization.get("appendTrailingLineFeeds", 0)
+            if not data.endswith(b"\n" * feeds) or sha256(data[:len(data) - feeds]) != entry["upstreamSha256"]:
+                differences.append(f"{PRODUCT_PROTOS}/{path}: without its canonicalization it is not upstreamSha256")
+    unlisted = {p.relative_to(product).as_posix() for p in product.rglob("*.proto")} - listed
+    differences += [f"{PRODUCT_PROTOS}/{path}: not in upstream.lock.json" for path in sorted(unlisted)]
+
+    test = root / TEST_PROTOS
+    pin = json.loads((test / "upstream.json").read_text(encoding="utf-8"))
+    for path, expected in pin["files"].items():
+        if expected != upstream.get((pin["repository"], pin["commit"], path)):
+            differences.append(f"{TEST_PROTOS}/upstream.json: {path} is not the upstreamSha256 that "
+                               f"upstream.lock.json records for {pin['repository']} at {pin['commit']}")
+        lines = (test / path).read_bytes().split(b"\n")
+        rewritten = [index for index, line in enumerate(lines) if b"Nami.Tests.Wire." in line]
+        if len(rewritten) != 1 or not lines[rewritten[0]].startswith(TEST_NAMESPACE):
+            differences.append(f"{TEST_PROTOS}/{path}: expected exactly one rewritten csharp_namespace line")
+            continue
+        # Put the line back to the upstream value, then any named exception, then hash.
+        lines[rewritten[0]] = lines[rewritten[0]].replace(b"Nami.Tests.Wire.", b"", 1)
+        if path in TEST_COPY_EXCEPTIONS:
+            number = TEST_COPY_EXCEPTIONS[path][0]
+            if lines[number - 1].endswith(b"\r"):
+                differences.append(f"{TEST_PROTOS}/{path}: line {number} has its carriage return; drop the exception")
+                continue
+            lines[number - 1] += b"\r"
+        if sha256(b"\n".join(lines)) != expected:
+            differences.append(f"{TEST_PROTOS}/{path}: differs from upstream beyond its csharp_namespace line")
+    unlisted = {p.relative_to(test).as_posix() for p in test.rglob("*.proto")} - set(pin["files"])
+    differences += [f"{TEST_PROTOS}/{path}: not in upstream.json" for path in sorted(unlisted)]
+    return differences
 
 
 class GateTests(unittest.TestCase):
@@ -39,6 +103,11 @@ class GateTests(unittest.TestCase):
                      if not re.search(r'["/]' + re.escape(path.name) + '"', sources)]
         self.assertEqual([], unwrapped, "Each Python test file needs an MSTest method in tests/Nami.IntegrationTests "
                                         "that runs it.")
+
+    def test_vendored_protos_match_their_lock_files(self):
+        # Offline: the lock files record the upstream hashes. A difference outside TEST_COPY_EXCEPTIONS is reported,
+        # never fixed by editing a proto or a lock file.
+        self.assertEqual([], proto_differences(ROOT))
 
 
 if __name__ == "__main__":
