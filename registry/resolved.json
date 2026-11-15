@@ -7859,17 +7859,18 @@
     },
     {
       "annotations": {
-        "nami.persisted": false,
+        "nami.max_utf8_bytes": 4096,
+        "nami.persisted": true,
         "nami.producer": "claude_code",
         "nami.source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
         "nami.token_exempt": false
       },
-      "brief": "Command line of a Bash tool call.\n",
+      "brief": "Command line of a Bash tool call, kept up to 4096 UTF-8 bytes.\n",
       "examples": [
         "python3 -m unittest -q"
       ],
       "key": "full_command",
-      "note": "On the `claude_code.tool` span, and inside the `tool_parameters` JSON of `tool_decision` and `tool_result`, with `OTEL_LOG_TOOL_DETAILS=1`. Not persisted: a command line can carry free text, such as a commit message, a heredoc or an inline script. `bash_command`, `bash_argv0` and `bash_command_class` keep which program ran.\n",
+      "note": "On the `claude_code.tool` span, and inside the `tool_parameters` JSON of `tool_decision` and `tool_result`, with `OTEL_LOG_TOOL_DETAILS=1`; ingest lifts it out of `tool_parameters`. A tool detail, kept in the local store so that the claim check can compare it with the gate command. A command line can carry free text, such as a commit message or a heredoc, so `nami.max_utf8_bytes` bounds what ingest keeps of it.\n",
       "stability": "development",
       "type": "string"
     },
@@ -21149,7 +21150,7 @@
         "{\"bash_command\":\"python3\",\"full_command\":\"python3 -m unittest -q\"}"
       ],
       "key": "tool_parameters",
-      "note": "With `OTEL_LOG_TOOL_DETAILS=1`. Bash: `bash_command`, `full_command`, `description`, `timeout`, `dangerouslyDisableSandbox`, and `git_commit_id` and `git_branch` after a commit; MCP: `mcp_server_name`, `mcp_tool_name`; Skill: `skill_name`; Agent: `subagent_type`. Not persisted as a whole: ingest lifts the members that the registry marks with `nami.wire_container` out of it and drops the rest, such as `full_command` and the model-written `description`. The commit comes from `vcs.ref.head.revision`.\n",
+      "note": "With `OTEL_LOG_TOOL_DETAILS=1`. Bash: `bash_command`, `full_command`, `description`, `timeout`, `dangerouslyDisableSandbox`, and `git_commit_id` and `git_branch` after a commit; MCP: `mcp_server_name`, `mcp_tool_name`; Skill: `skill_name`; Agent: `subagent_type`. Not persisted as a whole: ingest lifts the members that the registry marks with `nami.wire_container` out of it and drops the rest, such as the model-written `description`. The commit comes from `vcs.ref.head.revision`.\n",
       "stability": "development",
       "type": "string"
     },
@@ -27707,6 +27708,20 @@
       ],
       "key": "bash_command",
       "note": "Claude Code sends it inside the `tool_parameters` JSON of `tool_decision` and `tool_result`, and on the `tool.output` span event, with `OTEL_LOG_TOOL_DETAILS=1`. Ingest lifts it out of `tool_parameters`.\n",
+      "stability": "development",
+      "type": "string"
+    },
+    {
+      "annotations": {
+        "nami.source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
+        "nami.wire_container": "tool_parameters"
+      },
+      "brief": "Command line of a Bash tool call, kept up to 4096 UTF-8 bytes.\n",
+      "examples": [
+        "python3 -m unittest -q"
+      ],
+      "key": "full_command",
+      "note": "On the `claude_code.tool` span, and inside the `tool_parameters` JSON of `tool_decision` and `tool_result`, with `OTEL_LOG_TOOL_DETAILS=1`; ingest lifts it out of `tool_parameters`. A tool detail, kept in the local store so that the claim check can compare it with the gate command. A command line can carry free text, such as a commit message or a heredoc, so `nami.max_utf8_bytes` bounds what ingest keeps of it.\n",
       "stability": "development",
       "type": "string"
     },
@@ -34341,7 +34356,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1346,
+            "base": 1347,
             "requirement_level": "recommended"
           }
         ],
@@ -35450,7 +35465,7 @@
         ],
         "id": "os",
         "identity": [
-          1347,
+          1348,
           845
         ],
         "note": "In case of virtualized environments, this is the operating system as it is observed by the process, i.e., the virtualized guest rather than the underlying host.\n",
@@ -36935,6 +36950,10 @@
             "requirement_level": "required"
           },
           {
+            "base": 1335,
+            "requirement_level": "opt_in"
+          },
+          {
             "base": 412,
             "requirement_level": {
               "conditionally_required": "When `OTEL_RESOURCE_ATTRIBUTES` sets it on the resource; Claude Code copies resource attributes onto every record."
@@ -36969,7 +36988,7 @@
             "requirement_level": "required"
           },
           {
-            "base": 1335,
+            "base": 1336,
             "requirement_level": "opt_in"
           },
           {
@@ -37043,7 +37062,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1336,
+            "base": 1337,
             "requirement_level": "required"
           },
           {
@@ -37059,6 +37078,10 @@
           {
             "base": 318,
             "requirement_level": "required"
+          },
+          {
+            "base": 1335,
+            "requirement_level": "opt_in"
           },
           {
             "base": 412,
@@ -37087,11 +37110,11 @@
             }
           },
           {
-            "base": 1335,
+            "base": 1336,
             "requirement_level": "opt_in"
           },
           {
-            "base": 1337,
+            "base": 1338,
             "requirement_level": "required"
           },
           {
@@ -37105,7 +37128,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1338,
+            "base": 1339,
             "requirement_level": "required"
           },
           {
@@ -37117,7 +37140,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1339,
+            "base": 1340,
             "requirement_level": "recommended"
           },
           {
@@ -37206,7 +37229,7 @@
             "requirement_level": "required"
           },
           {
-            "base": 1340,
+            "base": 1341,
             "requirement_level": "required"
           },
           {
@@ -37359,7 +37382,7 @@
         },
         "attributes": [
           {
-            "base": 1341,
+            "base": 1342,
             "requirement_level": {
               "conditionally_required": "If and only if an error occurred during flag evaluation."
             }
@@ -37369,7 +37392,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1342,
+            "base": 1343,
             "requirement_level": {
               "recommended": "If and only if an error occurred during flag evaluation and `error.type` does not sufficiently describe the error."
             }
@@ -37941,7 +37964,7 @@
             }
           },
           {
-            "base": 1343,
+            "base": 1344,
             "requirement_level": {
               "recommended": "When available."
             }
@@ -38301,7 +38324,7 @@
         },
         "attributes": [
           {
-            "base": 1344,
+            "base": 1345,
             "requirement_level": "required"
           }
         ],
@@ -38317,7 +38340,7 @@
         },
         "attributes": [
           {
-            "base": 1345,
+            "base": 1346,
             "requirement_level": "required"
           },
           {
@@ -43833,11 +43856,11 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1348,
+            "base": 1349,
             "requirement_level": "required"
           },
           {
-            "base": 1349,
+            "base": 1350,
             "requirement_level": "required"
           },
           {
@@ -43940,7 +43963,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1350,
+            "base": 1351,
             "requirement_level": "required"
           },
           {
@@ -53451,7 +53474,7 @@
         },
         "attributes": [
           {
-            "base": 1351,
+            "base": 1352,
             "requirement_level": {
               "conditionally_required": "If and only if the operation failed."
             }
@@ -53463,11 +53486,11 @@
             }
           },
           {
-            "base": 1352,
+            "base": 1353,
             "requirement_level": "required"
           },
           {
-            "base": 1353,
+            "base": 1354,
             "requirement_level": "required"
           },
           {
@@ -55849,7 +55872,7 @@
             }
           },
           {
-            "base": 1354,
+            "base": 1355,
             "requirement_level": {
               "conditionally_required": "If and only if the operation failed."
             }
@@ -55902,10 +55925,6 @@
             }
           },
           {
-            "base": 1355,
-            "requirement_level": "opt_in"
-          },
-          {
             "base": 1356,
             "requirement_level": "opt_in"
           },
@@ -55915,22 +55934,26 @@
           },
           {
             "base": 1358,
-            "requirement_level": "required"
+            "requirement_level": "opt_in"
           },
           {
             "base": 1359,
+            "requirement_level": "required"
+          },
+          {
+            "base": 1360,
             "requirement_level": "required",
             "sampling_relevant": true
           },
           {
-            "base": 1360,
+            "base": 1361,
             "requirement_level": {
               "recommended": "when available."
             },
             "sampling_relevant": true
           },
           {
-            "base": 1361,
+            "base": 1362,
             "requirement_level": {
               "conditionally_required": "If `server.address` is set and the port is present in `:authority`."
             },
@@ -56377,7 +56400,7 @@
             }
           },
           {
-            "base": 1362,
+            "base": 1363,
             "requirement_level": {
               "recommended": "When applicable."
             }
@@ -56463,13 +56486,13 @@
             }
           },
           {
-            "base": 1363,
+            "base": 1364,
             "requirement_level": {
               "recommended": "When available and non-zero."
             }
           },
           {
-            "base": 1364,
+            "base": 1365,
             "requirement_level": {
               "recommended": "When available and non-zero."
             }
@@ -56493,7 +56516,7 @@
             }
           },
           {
-            "base": 1365,
+            "base": 1366,
             "requirement_level": "recommended"
           },
           {
@@ -56889,7 +56912,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1366,
+            "base": 1367,
             "requirement_level": "recommended"
           },
           {
@@ -56901,7 +56924,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1367,
+            "base": 1368,
             "requirement_level": "recommended"
           },
           {
@@ -56992,7 +57015,7 @@
         },
         "attributes": [
           {
-            "base": 1368,
+            "base": 1369,
             "requirement_level": "recommended"
           },
           {
@@ -57035,7 +57058,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1369,
+            "base": 1370,
             "requirement_level": {
               "conditionally_required": "When applicable and if the request includes an output format."
             }
@@ -57211,11 +57234,11 @@
             }
           },
           {
-            "base": 1370,
+            "base": 1371,
             "requirement_level": "recommended"
           },
           {
-            "base": 1371,
+            "base": 1372,
             "requirement_level": "recommended"
           },
           {
@@ -57310,7 +57333,7 @@
             }
           },
           {
-            "base": 1372,
+            "base": 1373,
             "requirement_level": "recommended"
           },
           {
@@ -57332,7 +57355,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1373,
+            "base": 1374,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -57346,13 +57369,13 @@
             "sampling_relevant": false
           },
           {
-            "base": 1374,
+            "base": 1375,
             "requirement_level": {
               "conditionally_required": "if response was received and returned any rows"
             }
           },
           {
-            "base": 1375,
+            "base": 1376,
             "requirement_level": {
               "conditionally_required": "if response was received"
             }
@@ -57364,7 +57387,7 @@
             }
           },
           {
-            "base": 1376,
+            "base": 1377,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -57387,7 +57410,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1377,
+            "base": 1378,
             "requirement_level": "recommended"
           }
         ],
@@ -58309,14 +58332,14 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1378,
+            "base": 1379,
             "requirement_level": {
               "conditionally_required": "If readily available and if a database call is performed on a single collection."
             },
             "sampling_relevant": true
           },
           {
-            "base": 1379,
+            "base": 1380,
             "requirement_level": {
               "conditionally_required": "If available."
             },
@@ -58356,13 +58379,13 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1380,
+            "base": 1381,
             "requirement_level": {
               "conditionally_required": "If the operation failed and status code is available."
             }
           },
           {
-            "base": 1381,
+            "base": 1382,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -58373,7 +58396,7 @@
             }
           },
           {
-            "base": 1382,
+            "base": 1383,
             "requirement_level": "recommended"
           },
           {
@@ -58532,20 +58555,20 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1383,
+            "base": 1384,
             "requirement_level": {
               "conditionally_required": "If readily available."
             },
             "sampling_relevant": true
           },
           {
-            "base": 1384,
+            "base": 1385,
             "requirement_level": {
               "conditionally_required": "If response was received and the HTTP response code is available."
             }
           },
           {
-            "base": 1385,
+            "base": 1386,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -58584,12 +58607,12 @@
         },
         "attributes": [
           {
-            "base": 1386,
+            "base": 1387,
             "requirement_level": "recommended",
             "sampling_relevant": true
           },
           {
-            "base": 1387,
+            "base": 1388,
             "requirement_level": "recommended",
             "sampling_relevant": true
           },
@@ -58598,36 +58621,36 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1388,
+            "base": 1389,
             "requirement_level": "required",
             "sampling_relevant": true
           },
           {
-            "base": 1389,
+            "base": 1390,
             "requirement_level": {
               "conditionally_required": "when the URL has path parameters"
             }
           },
           {
-            "base": 1390,
+            "base": 1391,
             "requirement_level": {
               "recommended": "Should be collected by default for search-type queries and only if there is sanitization that excludes sensitive information.\n"
             },
             "sampling_relevant": true
           },
           {
-            "base": 1391,
+            "base": 1392,
             "requirement_level": {
               "conditionally_required": "If response was received."
             }
           },
           {
-            "base": 1392,
+            "base": 1393,
             "requirement_level": "required",
             "sampling_relevant": true
           },
           {
-            "base": 1393,
+            "base": 1394,
             "requirement_level": "recommended"
           },
           {
@@ -58654,7 +58677,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1394,
+            "base": 1395,
             "requirement_level": "required",
             "sampling_relevant": true
           }
@@ -58675,14 +58698,14 @@
         },
         "attributes": [
           {
-            "base": 1395,
+            "base": 1396,
             "requirement_level": {
               "conditionally_required": "If applicable."
             },
             "sampling_relevant": true
           },
           {
-            "base": 1396,
+            "base": 1397,
             "requirement_level": {
               "conditionally_required": "If applicable."
             },
@@ -58693,18 +58716,18 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1397,
+            "base": 1398,
             "requirement_level": "required",
             "sampling_relevant": true
           },
           {
-            "base": 1398,
+            "base": 1399,
             "requirement_level": {
               "conditionally_required": "If response was received."
             }
           },
           {
-            "base": 1399,
+            "base": 1400,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -58743,14 +58766,14 @@
         },
         "attributes": [
           {
-            "base": 1400,
+            "base": 1401,
             "requirement_level": {
               "recommended": "If the operation is executed via a higher-level API that does not support multiple collection names."
             },
             "sampling_relevant": false
           },
           {
-            "base": 1401,
+            "base": 1402,
             "requirement_level": {
               "conditionally_required": "If available without an additional network call."
             },
@@ -58761,7 +58784,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1402,
+            "base": 1403,
             "requirement_level": {
               "recommended": "If the operation is executed via a higher-level API that does not support multiple operation names."
             },
@@ -58790,7 +58813,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1403,
+            "base": 1404,
             "requirement_level": {
               "conditionally_required": "If response has ended with warning or an error."
             }
@@ -58802,7 +58825,7 @@
             }
           },
           {
-            "base": 1404,
+            "base": 1405,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -58841,12 +58864,12 @@
         },
         "attributes": [
           {
-            "base": 1405,
+            "base": 1406,
             "requirement_level": "required",
             "sampling_relevant": true
           },
           {
-            "base": 1406,
+            "base": 1407,
             "requirement_level": {
               "conditionally_required": "If available."
             },
@@ -58857,18 +58880,18 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1407,
+            "base": 1408,
             "requirement_level": "required",
             "sampling_relevant": true
           },
           {
-            "base": 1408,
+            "base": 1409,
             "requirement_level": {
               "conditionally_required": "If the operation failed and error code is available."
             }
           },
           {
-            "base": 1409,
+            "base": 1410,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -58907,14 +58930,14 @@
         },
         "attributes": [
           {
-            "base": 1400,
+            "base": 1401,
             "requirement_level": {
               "recommended": "If the operation is executed via a higher-level API that does not support multiple collection names."
             },
             "sampling_relevant": false
           },
           {
-            "base": 1401,
+            "base": 1402,
             "requirement_level": {
               "conditionally_required": "If available without an additional network call."
             },
@@ -58925,7 +58948,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1402,
+            "base": 1403,
             "requirement_level": {
               "recommended": "If the operation is executed via a higher-level API that does not support multiple operation names."
             },
@@ -58954,7 +58977,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1410,
+            "base": 1411,
             "requirement_level": {
               "conditionally_required": "If response has ended with warning or an error."
             }
@@ -58966,7 +58989,7 @@
             }
           },
           {
-            "base": 1411,
+            "base": 1412,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -59005,14 +59028,14 @@
         },
         "attributes": [
           {
-            "base": 1400,
+            "base": 1401,
             "requirement_level": {
               "recommended": "If the operation is executed via a higher-level API that does not support multiple collection names."
             },
             "sampling_relevant": false
           },
           {
-            "base": 1412,
+            "base": 1413,
             "requirement_level": {
               "conditionally_required": "If available without an additional network call."
             },
@@ -59023,7 +59046,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1402,
+            "base": 1403,
             "requirement_level": {
               "recommended": "If the operation is executed via a higher-level API that does not support multiple operation names."
             },
@@ -59041,7 +59064,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1413,
+            "base": 1414,
             "requirement_level": {
               "recommended": "Non-parameterized query text SHOULD NOT be collected by default unless there is sanitization that excludes sensitive data, e.g. by redacting all literal values present in the query text. See [Sanitization of `db.query.text`](/docs/db/database-spans.md#sanitization-of-dbquerytext).\nParameterized query text SHOULD be collected by default (the query parameter values themselves are opt-in, see [`db.query.parameter.<key>`](/docs/registry/attributes/db.md)).\n"
             },
@@ -59052,7 +59075,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1414,
+            "base": 1415,
             "requirement_level": {
               "conditionally_required": "If response has ended with warning or an error."
             }
@@ -59064,7 +59087,7 @@
             }
           },
           {
-            "base": 1415,
+            "base": 1416,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -59128,14 +59151,14 @@
         },
         "attributes": [
           {
-            "base": 1400,
+            "base": 1401,
             "requirement_level": {
               "recommended": "If the operation is executed via a higher-level API that does not support multiple collection names."
             },
             "sampling_relevant": false
           },
           {
-            "base": 1416,
+            "base": 1417,
             "requirement_level": {
               "conditionally_required": "If available without an additional network call."
             },
@@ -59146,7 +59169,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1402,
+            "base": 1403,
             "requirement_level": {
               "recommended": "If the operation is executed via a higher-level API that does not support multiple operation names."
             },
@@ -59175,7 +59198,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1417,
+            "base": 1418,
             "requirement_level": {
               "conditionally_required": "If response has ended with warning or an error."
             }
@@ -59187,7 +59210,7 @@
             }
           },
           {
-            "base": 1418,
+            "base": 1419,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -59226,7 +59249,7 @@
         },
         "attributes": [
           {
-            "base": 1419,
+            "base": 1420,
             "requirement_level": {
               "conditionally_required": "If and only if it can be captured reliably."
             },
@@ -59237,29 +59260,29 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1420,
+            "base": 1421,
             "requirement_level": "required",
             "sampling_relevant": true
           },
           {
-            "base": 1421,
+            "base": 1422,
             "requirement_level": "recommended",
             "sampling_relevant": true
           },
           {
-            "base": 1422,
+            "base": 1423,
             "requirement_level": {
               "conditionally_required": "If the operation failed and status code is available."
             }
           },
           {
-            "base": 1423,
+            "base": 1424,
             "requirement_level": {
               "recommended": "If operation applies to a specific Lua script."
             }
           },
           {
-            "base": 1424,
+            "base": 1425,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -59270,7 +59293,7 @@
             }
           },
           {
-            "base": 1382,
+            "base": 1383,
             "requirement_level": "recommended"
           },
           {
@@ -59308,14 +59331,14 @@
         },
         "attributes": [
           {
-            "base": 1400,
+            "base": 1401,
             "requirement_level": {
               "recommended": "If the operation is executed via a higher-level API that does not support multiple collection names."
             },
             "sampling_relevant": false
           },
           {
-            "base": 1425,
+            "base": 1426,
             "requirement_level": {
               "conditionally_required": "If available without an additional network call."
             },
@@ -59326,7 +59349,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1402,
+            "base": 1403,
             "requirement_level": {
               "recommended": "If the operation is executed via a higher-level API that does not support multiple operation names."
             },
@@ -59355,7 +59378,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1426,
+            "base": 1427,
             "requirement_level": {
               "conditionally_required": "If response has ended with warning or an error."
             }
@@ -59367,7 +59390,7 @@
             }
           },
           {
-            "base": 1427,
+            "base": 1428,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -59406,14 +59429,14 @@
         },
         "attributes": [
           {
-            "base": 1400,
+            "base": 1401,
             "requirement_level": {
               "recommended": "If the operation is executed via a higher-level API that does not support multiple collection names."
             },
             "sampling_relevant": false
           },
           {
-            "base": 1428,
+            "base": 1429,
             "requirement_level": {
               "conditionally_required": "If available without an additional network call."
             },
@@ -59424,7 +59447,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1402,
+            "base": 1403,
             "requirement_level": {
               "recommended": "If the operation is executed via a higher-level API that does not support multiple operation names."
             },
@@ -59453,7 +59476,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1429,
+            "base": 1430,
             "requirement_level": {
               "conditionally_required": "If response has ended with warning or an error."
             }
@@ -59465,7 +59488,7 @@
             }
           },
           {
-            "base": 1430,
+            "base": 1431,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -59798,7 +59821,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1431,
+            "base": 1432,
             "requirement_level": "recommended"
           },
           {
@@ -59852,7 +59875,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1431,
+            "base": 1432,
             "requirement_level": "recommended"
           },
           {
@@ -59898,7 +59921,7 @@
         },
         "attributes": [
           {
-            "base": 1431,
+            "base": 1432,
             "requirement_level": "recommended"
           },
           {
@@ -59944,7 +59967,7 @@
         },
         "attributes": [
           {
-            "base": 1431,
+            "base": 1432,
             "requirement_level": "recommended"
           },
           {
@@ -60002,7 +60025,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1431,
+            "base": 1432,
             "requirement_level": "recommended"
           },
           {
@@ -60188,7 +60211,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1431,
+            "base": 1432,
             "requirement_level": "recommended"
           },
           {
@@ -60274,7 +60297,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1431,
+            "base": 1432,
             "requirement_level": "recommended"
           },
           {
@@ -60332,7 +60355,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1431,
+            "base": 1432,
             "requirement_level": "recommended"
           },
           {
@@ -60398,7 +60421,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1431,
+            "base": 1432,
             "requirement_level": "recommended"
           },
           {
@@ -63009,7 +63032,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1432,
+            "base": 1433,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -63076,7 +63099,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1433,
+            "base": 1434,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -63128,7 +63151,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1434,
+            "base": 1435,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -63144,7 +63167,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1435,
+            "base": 1436,
             "requirement_level": {
               "conditionally_required": "If span describes operation on a single message or if the value applies to all messages in the batch."
             },
@@ -63195,7 +63218,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1436,
+            "base": 1437,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -63235,7 +63258,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1434,
+            "base": 1435,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -63251,7 +63274,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1435,
+            "base": 1436,
             "requirement_level": {
               "conditionally_required": "If span describes operation on a single message or if the value applies to all messages in the batch."
             },
@@ -63302,7 +63325,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1436,
+            "base": 1437,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -63354,7 +63377,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1434,
+            "base": 1435,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -63370,7 +63393,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1435,
+            "base": 1436,
             "requirement_level": {
               "conditionally_required": "If span describes operation on a single message or if the value applies to all messages in the batch."
             },
@@ -63421,7 +63444,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1436,
+            "base": 1437,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -63599,7 +63622,7 @@
             }
           },
           {
-            "base": 1437,
+            "base": 1438,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -63764,7 +63787,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1438,
+            "base": 1439,
             "requirement_level": "recommended",
             "sampling_relevant": true
           },
@@ -63808,7 +63831,7 @@
             }
           },
           {
-            "base": 1439,
+            "base": 1440,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -63872,7 +63895,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1438,
+            "base": 1439,
             "requirement_level": "recommended",
             "sampling_relevant": true
           },
@@ -63916,7 +63939,7 @@
             }
           },
           {
-            "base": 1440,
+            "base": 1441,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -64027,7 +64050,7 @@
             }
           },
           {
-            "base": 1441,
+            "base": 1442,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -64138,7 +64161,7 @@
             }
           },
           {
-            "base": 1441,
+            "base": 1442,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -64210,7 +64233,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1438,
+            "base": 1439,
             "requirement_level": "recommended",
             "sampling_relevant": true
           },
@@ -64222,7 +64245,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1442,
+            "base": 1443,
             "requirement_level": {
               "conditionally_required": "If available."
             },
@@ -64246,7 +64269,7 @@
             }
           },
           {
-            "base": 1443,
+            "base": 1444,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -64302,7 +64325,7 @@
         },
         "attributes": [
           {
-            "base": 1444,
+            "base": 1445,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -64353,7 +64376,7 @@
             }
           },
           {
-            "base": 1445,
+            "base": 1446,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -64365,7 +64388,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1446,
+            "base": 1447,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -64397,7 +64420,7 @@
         },
         "attributes": [
           {
-            "base": 1444,
+            "base": 1445,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -64433,123 +64456,9 @@
               "recommended": "When applicable."
             },
             "sampling_relevant": true
-          },
-          {
-            "base": 1447,
-            "requirement_level": {
-              "conditionally_required": "If applicable."
-            },
-            "sampling_relevant": true
-          },
-          {
-            "base": 733,
-            "requirement_level": {
-              "conditionally_required": "If available. Instrumentations MUST NOT use `messaging.destination.name` as template unless low-cardinality of destination name is guaranteed.\n"
-            },
-            "sampling_relevant": true
-          },
-          {
-            "base": 1305,
-            "requirement_level": "opt_in"
-          },
-          {
-            "base": 751,
-            "requirement_level": "recommended"
-          },
-          {
-            "base": 752,
-            "requirement_level": "opt_in"
-          },
-          {
-            "base": 753,
-            "requirement_level": {
-              "recommended": "If span describes operation on a single message."
-            }
           },
           {
             "base": 1448,
-            "requirement_level": "required",
-            "sampling_relevant": true
-          },
-          {
-            "base": 1316,
-            "requirement_level": {
-              "conditionally_required": "If applicable."
-            },
-            "sampling_relevant": true
-          },
-          {
-            "base": 1446,
-            "requirement_level": "required",
-            "sampling_relevant": true
-          },
-          {
-            "base": 1221,
-            "requirement_level": "recommended",
-            "sampling_relevant": true
-          },
-          {
-            "base": 980,
-            "requirement_level": "recommended",
-            "sampling_relevant": true
-          }
-        ],
-        "brief": "Describes a consumer processing one or more messages from Google Cloud Pub/Sub (push-based).",
-        "id": "messaging.gcp_pubsub.process.consumer",
-        "kind": "consumer",
-        "name": {
-          "note": "SHOULD be `{messaging.operation.name} {destination}`, see [Span name](/docs/messaging/messaging-spans.md#span-name).\n"
-        },
-        "note": "\"Process\" spans are created for push-based scenarios, where messages are passed to\nthe application through a callback or handler. See\n[Consumer spans](/docs/messaging/messaging-spans.md#consumer-spans) for details.\n\nExclusively for single-message scenarios, when the\nmessage creation context is used as the parent, see\n[Message creation context as parent of \"Process\" span](/docs/messaging/messaging-spans.md#message-creation-context-as-parent-of-process-span).\n",
-        "requirement_level": "recommended",
-        "stability": "development",
-        "type": "messaging.process.consumer"
-      },
-      {
-        "annotations": {
-          "nami.source_schema": "https://opentelemetry.io/schemas/1.45.0"
-        },
-        "attributes": [
-          {
-            "base": 1444,
-            "requirement_level": {
-              "conditionally_required": "If and only if the messaging operation has failed."
-            }
-          },
-          {
-            "base": 407,
-            "requirement_level": "recommended"
-          },
-          {
-            "base": 408,
-            "requirement_level": "recommended"
-          },
-          {
-            "base": 725,
-            "requirement_level": {
-              "conditionally_required": "If the span describes an operation on a batch of messages."
-            }
-          },
-          {
-            "base": 726,
-            "requirement_level": "recommended"
-          },
-          {
-            "base": 1309,
-            "requirement_level": {
-              "conditionally_required": "If span describes operation on a single message or if the value applies to all messages in the batch."
-            },
-            "sampling_relevant": true
-          },
-          {
-            "base": 731,
-            "requirement_level": {
-              "recommended": "When applicable."
-            },
-            "sampling_relevant": true
-          },
-          {
-            "base": 1447,
             "requirement_level": {
               "conditionally_required": "If applicable."
             },
@@ -64586,6 +64495,120 @@
             "sampling_relevant": true
           },
           {
+            "base": 1316,
+            "requirement_level": {
+              "conditionally_required": "If applicable."
+            },
+            "sampling_relevant": true
+          },
+          {
+            "base": 1447,
+            "requirement_level": "required",
+            "sampling_relevant": true
+          },
+          {
+            "base": 1221,
+            "requirement_level": "recommended",
+            "sampling_relevant": true
+          },
+          {
+            "base": 980,
+            "requirement_level": "recommended",
+            "sampling_relevant": true
+          }
+        ],
+        "brief": "Describes a consumer processing one or more messages from Google Cloud Pub/Sub (push-based).",
+        "id": "messaging.gcp_pubsub.process.consumer",
+        "kind": "consumer",
+        "name": {
+          "note": "SHOULD be `{messaging.operation.name} {destination}`, see [Span name](/docs/messaging/messaging-spans.md#span-name).\n"
+        },
+        "note": "\"Process\" spans are created for push-based scenarios, where messages are passed to\nthe application through a callback or handler. See\n[Consumer spans](/docs/messaging/messaging-spans.md#consumer-spans) for details.\n\nExclusively for single-message scenarios, when the\nmessage creation context is used as the parent, see\n[Message creation context as parent of \"Process\" span](/docs/messaging/messaging-spans.md#message-creation-context-as-parent-of-process-span).\n",
+        "requirement_level": "recommended",
+        "stability": "development",
+        "type": "messaging.process.consumer"
+      },
+      {
+        "annotations": {
+          "nami.source_schema": "https://opentelemetry.io/schemas/1.45.0"
+        },
+        "attributes": [
+          {
+            "base": 1445,
+            "requirement_level": {
+              "conditionally_required": "If and only if the messaging operation has failed."
+            }
+          },
+          {
+            "base": 407,
+            "requirement_level": "recommended"
+          },
+          {
+            "base": 408,
+            "requirement_level": "recommended"
+          },
+          {
+            "base": 725,
+            "requirement_level": {
+              "conditionally_required": "If the span describes an operation on a batch of messages."
+            }
+          },
+          {
+            "base": 726,
+            "requirement_level": "recommended"
+          },
+          {
+            "base": 1309,
+            "requirement_level": {
+              "conditionally_required": "If span describes operation on a single message or if the value applies to all messages in the batch."
+            },
+            "sampling_relevant": true
+          },
+          {
+            "base": 731,
+            "requirement_level": {
+              "recommended": "When applicable."
+            },
+            "sampling_relevant": true
+          },
+          {
+            "base": 1448,
+            "requirement_level": {
+              "conditionally_required": "If applicable."
+            },
+            "sampling_relevant": true
+          },
+          {
+            "base": 733,
+            "requirement_level": {
+              "conditionally_required": "If available. Instrumentations MUST NOT use `messaging.destination.name` as template unless low-cardinality of destination name is guaranteed.\n"
+            },
+            "sampling_relevant": true
+          },
+          {
+            "base": 1305,
+            "requirement_level": "opt_in"
+          },
+          {
+            "base": 751,
+            "requirement_level": "recommended"
+          },
+          {
+            "base": 752,
+            "requirement_level": "opt_in"
+          },
+          {
+            "base": 753,
+            "requirement_level": {
+              "recommended": "If span describes operation on a single message."
+            }
+          },
+          {
+            "base": 1450,
+            "requirement_level": "required",
+            "sampling_relevant": true
+          },
+          {
             "base": 1318,
             "requirement_level": {
               "conditionally_required": "If applicable."
@@ -64593,7 +64616,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1446,
+            "base": 1447,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -64637,7 +64660,7 @@
         },
         "attributes": [
           {
-            "base": 1444,
+            "base": 1445,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -64698,7 +64721,7 @@
             }
           },
           {
-            "base": 1450,
+            "base": 1451,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -64710,7 +64733,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1446,
+            "base": 1447,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -64754,7 +64777,7 @@
         },
         "attributes": [
           {
-            "base": 1444,
+            "base": 1445,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -64815,7 +64838,7 @@
             }
           },
           {
-            "base": 1450,
+            "base": 1451,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -64827,7 +64850,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1446,
+            "base": 1447,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -64871,7 +64894,7 @@
         },
         "attributes": [
           {
-            "base": 1444,
+            "base": 1445,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -64913,7 +64936,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1447,
+            "base": 1448,
             "requirement_level": {
               "conditionally_required": "If applicable."
             },
@@ -64937,7 +64960,7 @@
             }
           },
           {
-            "base": 1451,
+            "base": 1452,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -64949,7 +64972,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1446,
+            "base": 1447,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -64993,7 +65016,7 @@
         },
         "attributes": [
           {
-            "base": 1452,
+            "base": 1453,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -65062,7 +65085,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1453,
+            "base": 1454,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -65094,7 +65117,7 @@
         },
         "attributes": [
           {
-            "base": 1452,
+            "base": 1453,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -65132,7 +65155,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1454,
+            "base": 1455,
             "requirement_level": {
               "conditionally_required": "If applicable."
             },
@@ -65146,7 +65169,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1455,
+            "base": 1456,
             "requirement_level": "recommended",
             "sampling_relevant": true
           },
@@ -65188,7 +65211,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1453,
+            "base": 1454,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -65220,7 +65243,7 @@
         },
         "attributes": [
           {
-            "base": 1452,
+            "base": 1453,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -65258,7 +65281,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1454,
+            "base": 1455,
             "requirement_level": {
               "conditionally_required": "If applicable."
             },
@@ -65316,7 +65339,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1453,
+            "base": 1454,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -65360,7 +65383,7 @@
         },
         "attributes": [
           {
-            "base": 1452,
+            "base": 1453,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -65449,7 +65472,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1453,
+            "base": 1454,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -65493,7 +65516,7 @@
         },
         "attributes": [
           {
-            "base": 1452,
+            "base": 1453,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -65582,7 +65605,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1453,
+            "base": 1454,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -65626,7 +65649,7 @@
         },
         "attributes": [
           {
-            "base": 1452,
+            "base": 1453,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -65652,7 +65675,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1454,
+            "base": 1455,
             "requirement_level": {
               "conditionally_required": "If applicable."
             },
@@ -65702,7 +65725,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1453,
+            "base": 1454,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -65845,7 +65868,7 @@
         },
         "attributes": [
           {
-            "base": 1456,
+            "base": 1457,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -65867,7 +65890,7 @@
             }
           },
           {
-            "base": 1457,
+            "base": 1458,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -65896,7 +65919,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1458,
+            "base": 1459,
             "requirement_level": "recommended"
           },
           {
@@ -65922,7 +65945,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1459,
+            "base": 1460,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -65966,7 +65989,7 @@
         },
         "attributes": [
           {
-            "base": 1456,
+            "base": 1457,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -65988,7 +66011,7 @@
             }
           },
           {
-            "base": 1457,
+            "base": 1458,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -66017,7 +66040,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1458,
+            "base": 1459,
             "requirement_level": "recommended"
           },
           {
@@ -66043,7 +66066,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1459,
+            "base": 1460,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -66097,7 +66120,7 @@
         },
         "attributes": [
           {
-            "base": 1456,
+            "base": 1457,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -66119,7 +66142,7 @@
             }
           },
           {
-            "base": 1460,
+            "base": 1461,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -66148,7 +66171,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1458,
+            "base": 1459,
             "requirement_level": "recommended"
           },
           {
@@ -66174,7 +66197,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1459,
+            "base": 1460,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -66222,7 +66245,7 @@
         },
         "attributes": [
           {
-            "base": 1456,
+            "base": 1457,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -66238,7 +66261,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1457,
+            "base": 1458,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -66257,7 +66280,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1458,
+            "base": 1459,
             "requirement_level": "recommended"
           },
           {
@@ -66279,7 +66302,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1459,
+            "base": 1460,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -66438,7 +66461,7 @@
         },
         "attributes": [
           {
-            "base": 1461,
+            "base": 1462,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -66454,7 +66477,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1462,
+            "base": 1463,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -66510,7 +66533,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1463,
+            "base": 1464,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -66568,7 +66591,7 @@
         },
         "attributes": [
           {
-            "base": 1461,
+            "base": 1462,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -66584,7 +66607,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1462,
+            "base": 1463,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -66640,7 +66663,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1463,
+            "base": 1464,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -66710,7 +66733,7 @@
         },
         "attributes": [
           {
-            "base": 1461,
+            "base": 1462,
             "requirement_level": {
               "conditionally_required": "If and only if the messaging operation has failed."
             }
@@ -66777,7 +66800,7 @@
             "sampling_relevant": true
           },
           {
-            "base": 1463,
+            "base": 1464,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -67122,7 +67145,7 @@
             }
           },
           {
-            "base": 1464,
+            "base": 1465,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -67345,7 +67368,7 @@
             }
           },
           {
-            "base": 1465,
+            "base": 1466,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -67461,7 +67484,7 @@
             }
           },
           {
-            "base": 1466,
+            "base": 1467,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -67572,7 +67595,7 @@
             }
           },
           {
-            "base": 1467,
+            "base": 1468,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -67683,7 +67706,7 @@
             }
           },
           {
-            "base": 1467,
+            "base": 1468,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -67799,7 +67822,7 @@
             }
           },
           {
-            "base": 1468,
+            "base": 1469,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -67990,7 +68013,7 @@
             }
           },
           {
-            "base": 1469,
+            "base": 1470,
             "requirement_level": "recommended"
           },
           {
@@ -68002,7 +68025,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1470,
+            "base": 1471,
             "requirement_level": "recommended"
           },
           {
@@ -68014,7 +68037,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1471,
+            "base": 1472,
             "requirement_level": "recommended"
           },
           {
@@ -68091,7 +68114,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1369,
+            "base": 1370,
             "requirement_level": {
               "conditionally_required": "When applicable and if the request includes an output format."
             }
@@ -68147,7 +68170,7 @@
             }
           },
           {
-            "base": 1472,
+            "base": 1473,
             "requirement_level": {
               "recommended": "When applicable."
             }
@@ -68235,7 +68258,7 @@
             }
           },
           {
-            "base": 1473,
+            "base": 1474,
             "requirement_level": {
               "recommended": "When available and non-zero."
             }
@@ -68265,7 +68288,7 @@
             }
           },
           {
-            "base": 1474,
+            "base": 1475,
             "requirement_level": "recommended"
           },
           {
@@ -68273,7 +68296,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1475,
+            "base": 1476,
             "requirement_level": {
               "recommended": "When available and non-zero."
             }
@@ -68540,10 +68563,6 @@
             }
           },
           {
-            "base": 1476,
-            "requirement_level": "opt_in"
-          },
-          {
             "base": 1477,
             "requirement_level": "opt_in"
           },
@@ -68553,17 +68572,21 @@
           },
           {
             "base": 1479,
+            "requirement_level": "opt_in"
+          },
+          {
+            "base": 1480,
             "requirement_level": {
               "conditionally_required": "if available."
             }
           },
           {
-            "base": 1480,
+            "base": 1481,
             "requirement_level": "required",
             "sampling_relevant": true
           },
           {
-            "base": 1481,
+            "base": 1482,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -68625,10 +68648,6 @@
             }
           },
           {
-            "base": 1476,
-            "requirement_level": "opt_in"
-          },
-          {
             "base": 1477,
             "requirement_level": "opt_in"
           },
@@ -68637,13 +68656,17 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1482,
+            "base": 1479,
+            "requirement_level": "opt_in"
+          },
+          {
+            "base": 1483,
             "requirement_level": {
               "conditionally_required": "if available."
             }
           },
           {
-            "base": 1480,
+            "base": 1481,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -68683,7 +68706,7 @@
         },
         "attributes": [
           {
-            "base": 1483,
+            "base": 1484,
             "requirement_level": {
               "conditionally_required": "If and only if the operation failed."
             }
@@ -68710,31 +68733,31 @@
             }
           },
           {
-            "base": 1484,
-            "requirement_level": "opt_in"
-          },
-          {
             "base": 1485,
             "requirement_level": "opt_in"
           },
           {
             "base": 1486,
+            "requirement_level": "opt_in"
+          },
+          {
+            "base": 1487,
             "requirement_level": "required"
           },
           {
-            "base": 1353,
+            "base": 1354,
             "requirement_level": "required",
             "sampling_relevant": true
           },
           {
-            "base": 1487,
+            "base": 1488,
             "requirement_level": {
               "conditionally_required": "If available."
             },
             "sampling_relevant": true
           },
           {
-            "base": 1488,
+            "base": 1489,
             "requirement_level": {
               "conditionally_required": "If `server.address` is set and a port is specified in the direct provider target URL."
             },
@@ -68762,7 +68785,7 @@
         },
         "attributes": [
           {
-            "base": 1351,
+            "base": 1352,
             "requirement_level": {
               "conditionally_required": "If and only if the operation failed."
             }
@@ -68791,19 +68814,19 @@
             }
           },
           {
-            "base": 1484,
-            "requirement_level": "opt_in"
-          },
-          {
             "base": 1485,
             "requirement_level": "opt_in"
           },
           {
-            "base": 1352,
-            "requirement_level": "required"
+            "base": 1486,
+            "requirement_level": "opt_in"
           },
           {
             "base": 1353,
+            "requirement_level": "required"
+          },
+          {
+            "base": 1354,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -68843,7 +68866,7 @@
         },
         "attributes": [
           {
-            "base": 1354,
+            "base": 1355,
             "requirement_level": {
               "conditionally_required": "If and only if the operation failed."
             }
@@ -68870,10 +68893,6 @@
             }
           },
           {
-            "base": 1355,
-            "requirement_level": "opt_in"
-          },
-          {
             "base": 1356,
             "requirement_level": "opt_in"
           },
@@ -68882,21 +68901,25 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1489,
-            "requirement_level": "required"
-          },
-          {
-            "base": 1359,
-            "requirement_level": "required",
-            "sampling_relevant": true
+            "base": 1358,
+            "requirement_level": "opt_in"
           },
           {
             "base": 1490,
+            "requirement_level": "required"
+          },
+          {
+            "base": 1360,
             "requirement_level": "required",
             "sampling_relevant": true
           },
           {
             "base": 1491,
+            "requirement_level": "required",
+            "sampling_relevant": true
+          },
+          {
+            "base": 1492,
             "requirement_level": {
               "conditionally_required": "If and only if the port is available and `server.address` is set."
             },
@@ -68924,7 +68947,7 @@
         },
         "attributes": [
           {
-            "base": 1354,
+            "base": 1355,
             "requirement_level": {
               "conditionally_required": "If and only if the operation failed."
             }
@@ -68953,10 +68976,6 @@
             }
           },
           {
-            "base": 1355,
-            "requirement_level": "opt_in"
-          },
-          {
             "base": 1356,
             "requirement_level": "opt_in"
           },
@@ -68966,22 +68985,26 @@
           },
           {
             "base": 1358,
-            "requirement_level": "required"
+            "requirement_level": "opt_in"
           },
           {
             "base": 1359,
+            "requirement_level": "required"
+          },
+          {
+            "base": 1360,
             "requirement_level": "required",
             "sampling_relevant": true
           },
           {
-            "base": 1360,
+            "base": 1361,
             "requirement_level": {
               "recommended": "when available."
             },
             "sampling_relevant": true
           },
           {
-            "base": 1361,
+            "base": 1362,
             "requirement_level": {
               "conditionally_required": "If `server.address` is set and the port is present in `:authority`."
             },
@@ -69035,7 +69058,7 @@
             }
           },
           {
-            "base": 1492,
+            "base": 1493,
             "requirement_level": "opt_in",
             "sampling_relevant": true
           },
@@ -69058,18 +69081,18 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1493,
+            "base": 1494,
             "requirement_level": {
               "conditionally_required": "when available"
             }
           },
           {
-            "base": 1494,
+            "base": 1495,
             "requirement_level": "required",
             "sampling_relevant": true
           },
           {
-            "base": 1495,
+            "base": 1496,
             "requirement_level": {
               "recommended": "Instrumentations that have access to the transport-level information and can reliably extract domain name or another low-cardinality server address from it SHOULD set this attribute.\n"
             },
@@ -69130,7 +69153,7 @@
             }
           },
           {
-            "base": 1492,
+            "base": 1493,
             "requirement_level": "opt_in",
             "sampling_relevant": true
           },
@@ -69153,13 +69176,13 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1496,
+            "base": 1497,
             "requirement_level": {
               "conditionally_required": "when available"
             }
           },
           {
-            "base": 1494,
+            "base": 1495,
             "requirement_level": "required",
             "sampling_relevant": true
           },
@@ -71030,7 +71053,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1346,
+            "base": 1347,
             "requirement_level": "recommended"
           }
         ],
@@ -72090,7 +72113,7 @@
           }
         ],
         "identity": [
-          1347,
+          1348,
           845
         ],
         "note": "In case of virtualized environments, this is the operating system as it is observed by the process, i.e., the virtualized guest rather than the underlying host.\n",
@@ -73547,6 +73570,10 @@
             "requirement_level": "required"
           },
           {
+            "base": 1335,
+            "requirement_level": "opt_in"
+          },
+          {
             "base": 412,
             "requirement_level": {
               "conditionally_required": "When `OTEL_RESOURCE_ATTRIBUTES` sets it on the resource; Claude Code copies resource attributes onto every record."
@@ -73581,7 +73608,7 @@
             "requirement_level": "required"
           },
           {
-            "base": 1335,
+            "base": 1336,
             "requirement_level": "opt_in"
           },
           {
@@ -73654,7 +73681,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1336,
+            "base": 1337,
             "requirement_level": "required"
           },
           {
@@ -73670,6 +73697,10 @@
           {
             "base": 318,
             "requirement_level": "required"
+          },
+          {
+            "base": 1335,
+            "requirement_level": "opt_in"
           },
           {
             "base": 412,
@@ -73698,11 +73729,11 @@
             }
           },
           {
-            "base": 1335,
+            "base": 1336,
             "requirement_level": "opt_in"
           },
           {
-            "base": 1337,
+            "base": 1338,
             "requirement_level": "required"
           },
           {
@@ -73716,7 +73747,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1338,
+            "base": 1339,
             "requirement_level": "required"
           },
           {
@@ -73728,7 +73759,7 @@
             "requirement_level": "opt_in"
           },
           {
-            "base": 1339,
+            "base": 1340,
             "requirement_level": "recommended"
           },
           {
@@ -73816,7 +73847,7 @@
             "requirement_level": "required"
           },
           {
-            "base": 1340,
+            "base": 1341,
             "requirement_level": "required"
           },
           {
@@ -73964,7 +73995,7 @@
         },
         "attributes": [
           {
-            "base": 1341,
+            "base": 1342,
             "requirement_level": {
               "conditionally_required": "If and only if an error occurred during flag evaluation."
             }
@@ -73974,7 +74005,7 @@
             "requirement_level": "recommended"
           },
           {
-            "base": 1342,
+            "base": 1343,
             "requirement_level": {
               "recommended": "If and only if an error occurred during flag evaluation and `error.type` does not sufficiently describe the error."
             }
@@ -74537,7 +74568,7 @@
             }
           },
           {
-            "base": 1343,
+            "base": 1344,
             "requirement_level": {
               "recommended": "When available."
             }
@@ -74884,7 +74915,7 @@
         },
         "attributes": [
           {
-            "base": 1344,
+            "base": 1345,
             "requirement_level": "required"
           }
         ],
@@ -74899,7 +74930,7 @@
         },
         "attributes": [
           {
-            "base": 1345,
+            "base": 1346,
             "requirement_level": "required"
           },
           {

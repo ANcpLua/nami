@@ -427,17 +427,19 @@ attributes:
     type: string
     stability: development
     brief: >
-      Command line of a Bash tool call.
+      Command line of a Bash tool call, kept up to 4096 UTF-8 bytes.
     note: >
       On the `claude_code.tool` span, and inside the `tool_parameters` JSON of
-      `tool_decision` and `tool_result`, with `OTEL_LOG_TOOL_DETAILS=1`. Not persisted: a
-      command line can carry free text, such as a commit message, a heredoc or an inline
-      script. `bash_command`, `bash_argv0` and `bash_command_class` keep which program ran.
+      `tool_decision` and `tool_result`, with `OTEL_LOG_TOOL_DETAILS=1`; ingest lifts it out
+      of `tool_parameters`. A tool detail, kept in the local store so that the claim check can
+      compare it with the gate command. A command line can carry free text, such as a commit
+      message or a heredoc, so `nami.max_utf8_bytes` bounds what ingest keeps of it.
     examples: ["python3 -m unittest -q"]
     annotations:
       nami.producer: claude_code
-      nami.persisted: false
+      nami.persisted: true
       nami.token_exempt: false
+      nami.max_utf8_bytes: 4096
   - key: has_hooks
     type: boolean
     stability: development
@@ -1063,8 +1065,8 @@ attributes:
       `timeout`, `dangerouslyDisableSandbox`, and `git_commit_id` and `git_branch` after a
       commit; MCP: `mcp_server_name`, `mcp_tool_name`; Skill: `skill_name`; Agent:
       `subagent_type`. Not persisted as a whole: ingest lifts the members that the registry
-      marks with `nami.wire_container` out of it and drops the rest, such as `full_command` and
-      the model-written `description`. The commit comes from `vcs.ref.head.revision`.
+      marks with `nami.wire_container` out of it and drops the rest, such as the model-written
+      `description`. The commit comes from `vcs.ref.head.revision`.
     examples: ["{\"bash_command\":\"python3\",\"full_command\":\"python3 -m unittest -q\"}"]
     annotations:
       nami.producer: claude_code

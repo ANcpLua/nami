@@ -185,6 +185,10 @@ events:
         requirement_level: opt_in
         annotations:
           nami.wire_container: tool_parameters
+      - ref: full_command
+        requirement_level: opt_in
+        annotations:
+          nami.wire_container: tool_parameters
       - ref: subagent_type
         requirement_level: opt_in
         annotations:
@@ -241,6 +245,10 @@ events:
       - ref: tool_input
         requirement_level: opt_in
       - ref: bash_command
+        requirement_level: opt_in
+        annotations:
+          nami.wire_container: tool_parameters
+      - ref: full_command
         requirement_level: opt_in
         annotations:
           nami.wire_container: tool_parameters

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Time.Testing;
 using Nami.Collector.Ingestion;
@@ -39,14 +40,14 @@ public sealed class ClaudeCodeRegistryTests(TestContext context)
         "claude_code.system_prompt"
     ];
 
-    // Members of tool_parameters that ingest drops: the model-written description, the command line,
-    // which can carry free text, and the commit, which vcs.ref.head.revision and .name carry.
-    private static readonly string[] s_droppedParameters = ["description", "full_command", "git_branch", "git_commit_id"];
+    // Members of tool_parameters that ingest drops: the model-written description, and the commit,
+    // which vcs.ref.head.revision and vcs.ref.head.name carry at the top level.
+    private static readonly string[] s_droppedParameters = ["description", "git_branch", "git_commit_id"];
 
     // Finish-line item 5: prompt and response text, tool input, raw bodies and tool content.
     private static readonly string[] s_content =
     [
-        "body", "body_ref", "content", "diff", "error", "full_command", "gen_ai.input.messages", "gen_ai.output.messages",
+        "body", "body_ref", "content", "diff", "error", "gen_ai.input.messages", "gen_ai.output.messages",
         "gen_ai.system_instructions", "gen_ai.tool.call.arguments", "gen_ai.tool.call.result", "new_context",
         "output", "prompt", "prompt_text", "response", "response.model_output", "system_prompt_preview",
         "system_reminders", "tool_input", "tool_parameters", "user_prompt", "user_system_prompt"
@@ -60,7 +61,7 @@ public sealed class ClaudeCodeRegistryTests(TestContext context)
     private static readonly string[] s_evidence =
     [
         "agent_id", "bash_command", "cache_creation_tokens", "cache_read_tokens", "cost_usd", "cost_usd_micros",
-        "duration_ms", "effort", "error_type", "event.sequence", "gen_ai.agent.name",
+        "duration_ms", "effort", "error_type", "event.sequence", "full_command", "gen_ai.agent.name",
         "input_tokens", "model", "output_tokens", "prompt.id", "query_source", "session.id", "success",
         "tool_name", "tool_use_id", "vcs.ref.head.revision"
     ];
@@ -179,7 +180,7 @@ public sealed class ClaudeCodeRegistryTests(TestContext context)
     public void Capture_ToolParametersMembers_AreLiftedOrDropped()
     {
         Assert.IsTrue(WireContainers.Members.TryGetValue(ToolParameters, out var lifted));
-        Assert.AreSequenceEqual(["bash_command", "subagent_type"], lifted);
+        Assert.AreSequenceEqual(["bash_command", "full_command", "subagent_type"], lifted);
         Assert.IsFalse(RegistryPolicy.IsPersisted(ToolParameters));
         foreach (var key in lifted)
         {
@@ -202,6 +203,15 @@ public sealed class ClaudeCodeRegistryTests(TestContext context)
         Assert.IsTrue(members.Where(member => lifted.Contains(member.Key)).All(static member => member.Kind == JsonValueKind.String));
         foreach (var key in lifted.Concat(s_droppedParameters))
             Assert.Contains(key, members.Select(static member => member.Key), key + " no longer occurs in the capture");
+
+        // The observer's bound on full_command (15 Nov): ingest keeps at most 4096 UTF-8 bytes of it.
+        Assert.AreEqual(4096, ValueLimits.MaxUtf8Bytes["full_command"]);
+        Assert.IsTrue(ValueLimits.MaxUtf8Bytes.Keys.All(static key =>
+            RegistryPolicy.IsPersisted(key) && AttributeCatalog.Find(key)!.Type == "string"));
+        var commands = s_capture.Value.Values.Where(static value => value.Key == "full_command")
+            .Select(static value => value.Value.GetProperty("stringValue").GetString()!).ToArray();
+        Assert.IsGreaterThan(0, commands.Length);
+        Assert.IsTrue(commands.All(static command => Encoding.UTF8.GetByteCount(command) <= 4096));
     }
 
     [TestMethod]
@@ -317,6 +327,7 @@ public sealed class ClaudeCodeRegistryTests(TestContext context)
         foreach (var key in new[] { "tool_name", "tool_use_id", "success", "duration_ms", "prompt.id", "event.sequence", "session.id" })
             Assert.IsTrue(results.All(json => TopLevelKeys(json).Contains(key)), key);
         Assert.HasCount(2, results.Where(static json => TopLevelKeys(json).Contains("vcs.ref.head.revision")));
+        Assert.HasCount(6, snapshot.Spans.Where(static span => TopLevelKeys(span.AttributesJson!).Contains("full_command")));
         var tokens = snapshot.Metrics.Where(static series => series.MetricName == "claude_code.token.usage")
             .Select(static series => series.AttributesJson!).ToArray();
         Assert.IsTrue(tokens.All(static json => TopLevelKeys(json).IsSupersetOf(["type", "model", "query_source", "session.id"])));
@@ -327,24 +338,18 @@ public sealed class ClaudeCodeRegistryTests(TestContext context)
         Assert.IsTrue(snapshot.Logs.All(static log => log.AttributesJson!.Contains("\"gen_ai.agent.name\":\"fixture-builder\"", StringComparison.Ordinal)));
     }
 
-    // Values in the capture that are prompt, response, tool input or command text, ten characters or more.
-    // Kept members are not content: the program name, the subagent type, the file path (a tool detail) and
-    // the commit and branch, which vcs.ref.head.* carry.
+    // Values in the capture that are prompt, response or tool input text, ten characters or more. Kept
+    // members are not content: the program name, the command line and the file path (tool details), the
+    // subagent type, and the commit and branch, which vcs.ref.head.* carry.
     private static IEnumerable<string> ContentOfTheCapture()
     {
         var texts = new HashSet<string>(StringComparer.Ordinal) { "<REDACTED>" };
-        foreach (var value in s_capture.Value.Values.Where(static value => value.Key is "tool_input" or "tool_parameters" or "full_command"))
+        foreach (var value in s_capture.Value.Values.Where(static value => value.Key is "tool_input" or "tool_parameters"))
         {
-            var text = value.Value.GetProperty("stringValue").GetString()!;
-            if (value.Key == "full_command")
-            {
-                texts.Add(text);
-                continue;
-            }
-
-            using var parameters = JsonDocument.Parse(text);
+            using var parameters = JsonDocument.Parse(value.Value.GetProperty("stringValue").GetString()!);
             foreach (var member in parameters.RootElement.EnumerateObject())
-                if (member.Name is not ("bash_command" or "subagent_type" or "file_path" or "git_commit_id" or "git_branch") &&
+                if (member.Name is not ("bash_command" or "command" or "full_command" or "subagent_type" or "file_path" or
+                        "git_commit_id" or "git_branch") &&
                     member.Value.ValueKind == JsonValueKind.String)
                     texts.Add(member.Value.GetString()!);
         }

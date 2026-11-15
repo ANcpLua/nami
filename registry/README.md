@@ -63,7 +63,9 @@ and, like a `nami.*` key, a brief, a stability and `nami.persisted`. Its type is
 stores. Where the sender puts another primitive type on the wire, the signal's reference says
 so in `nami.wire_type`, and ingest converts; where it nests the key inside a JSON string
 attribute, the reference names that attribute in `nami.wire_container`, and ingest lifts the
-key out and drops the container. A producer's signals name the instrumentation scope they
+key out and drops the container. A key may declare `nami.max_utf8_bytes`, the longest value
+in UTF-8 bytes that ingest keeps of it (generated as `ValueLimits.MaxUtf8Bytes`; ingest
+enforces it). A producer's signals name the instrumentation scope they
 arrive under (`nami.instrumentation_scope`); a producer's key means what the registry says
 only on records from those scopes. Weaver 0.28.0 replaces, rather than merges, a definition's
 annotations with those of a reference, so persistence is always read from the definition.

@@ -408,7 +408,7 @@ public static class AttributeCatalog
         new("file_path", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.4.0", null, "claude_code"),
         new("final_model", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.4.0", null, "claude_code"),
         new("first_content_ms", "int", Stability.Development, true, true, "https://ancplua.github.io/nami/schemas/0.4.0", null, "claude_code"),
-        new("full_command", "string", Stability.Development, false, false, "https://ancplua.github.io/nami/schemas/0.4.0", null, "claude_code"),
+        new("full_command", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.4.0", null, "claude_code"),
         new("gcp.apphub.application.container", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null, null),
         new("gcp.apphub.application.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null, null),
         new("gcp.apphub.application.location", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null, null),
@@ -1192,6 +1192,17 @@ public static class RegistryPolicy
     public static string? ProducerOf(string key) => AttributeCatalog.Find(key)?.Producer;
 }
 
+// The longest value, in UTF-8 bytes, that ingest keeps of a key (annotation nami.max_utf8_bytes).
+// Ingest enforces the bound; a key without one keeps its value as sent.
+public static class ValueLimits
+{
+    public static FrozenDictionary<string, int> MaxUtf8Bytes { get; } =
+        new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            ["full_command"] = 4096,
+        }.ToFrozenDictionary(StringComparer.Ordinal);
+}
+
 // The instrumentation scopes a producer's signals arrive under. A key whose definition names a
 // producer means what the registry says only on records from these scopes.
 public static class Producers
@@ -1210,7 +1221,7 @@ public static class WireContainers
     public static FrozenDictionary<string, IReadOnlyList<string>> Members { get; } =
         new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
         {
-            ["tool_parameters"] = Array.AsReadOnly(new string[] { "bash_command", "subagent_type" }),
+            ["tool_parameters"] = Array.AsReadOnly(new string[] { "bash_command", "full_command", "subagent_type" }),
         }.ToFrozenDictionary(StringComparer.Ordinal);
 }
 public static class AttributeStability

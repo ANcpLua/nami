@@ -95,3 +95,21 @@ deny contains finding if {
     object.get(annotations, "nami.instrumentation_scope", "") == ""
     finding := {"id": "nami_producer_scope_required", "level": "violation", "message": sprintf("%s %v of producer %v requires nami.instrumentation_scope", [kind, object.get(signal, "name", object.get(signal, "type", "")), annotations["nami.producer"]])}
 }
+
+# `nami.max_utf8_bytes` bounds, in UTF-8 bytes, the value ingest keeps of a persisted string key.
+deny contains finding if {
+    some attr in input.registry.attributes
+    annotations := object.get(attr, "annotations", {})
+    bound := object.get(annotations, "nami.max_utf8_bytes", null)
+    bound != null
+    not valid_bound(attr, bound)
+    finding := {"id": "nami_max_utf8_bytes_invalid", "level": "violation", "message": sprintf("Attribute %s: nami.max_utf8_bytes %v must be a positive integer on a persisted string attribute", [attr.key, bound])}
+}
+
+valid_bound(attr, bound) if {
+    is_number(bound)
+    bound == floor(bound)
+    bound > 0
+    attr.type == "string"
+    object.get(object.get(attr, "annotations", {}), "nami.persisted", true) == true
+}

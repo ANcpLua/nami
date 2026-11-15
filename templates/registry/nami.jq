@@ -307,6 +307,10 @@ def nami_cs:
      metrics:[nami_merge("metrics"; .name)[] | select(nami_excluded_from_codegen|not) | {name:(.name|nami_pascal_name),json:(.name|tojson),unit:(.unit//""|tojson),instrument:(.instrument|nami_instrument_variant),stability:nami_cs_stability,obsolete:nami_cs_obsolete}],
      spans:[(([($root.refinements.spans // [])[] | . + {shape_id:.id}] + [nami_merge("spans"; .type)[] | . + {shape_id:.type}]) | unique_by(.shape_id))[] | select(nami_excluded_from_codegen|not) | {name:(.shape_id|nami_pascal_name),id_json:(.shape_id|tojson),json:(.type|tojson),stability:nami_cs_stability,obsolete:nami_cs_obsolete,kind:(.kind|nami_pascal_name),required:[.attributes[]|select(.requirement_level=="required")|.key|tojson]}],
      events:[nami_merge("events"; .name)[] | select(nami_excluded_from_codegen|not) | {name:(.name|nami_pascal_name),json:(.name|tojson),stability:nami_cs_stability,obsolete:nami_cs_obsolete}],
+     # The longest value ingest keeps of a key, in UTF-8 bytes, by key.
+     value_limits:([$attrs[] | select(.annotations."nami.max_utf8_bytes" != null)
+                    | {json: (.key | tojson), bytes: (.annotations."nami.max_utf8_bytes" | tostring)}]
+                   | sort_by(.json)),
      # The instrumentation scopes a producer's signals arrive under, by producer.
      producer_scopes:([$root.registry.events[]?, $root.registry.metrics[]?, $root.registry.spans[]?
                        | select(.annotations."nami.producer" and .annotations."nami.instrumentation_scope")
