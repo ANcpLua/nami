@@ -9,10 +9,7 @@ internal sealed partial class RetentionService(
     TimeProvider timeProvider,
     ILogger<RetentionService> logger) : BackgroundService
 {
-    private const int DeleteBatchSize = 1000;
-
     private static readonly TimeSpan s_initialDelay = TimeSpan.FromSeconds(10);
-    private static readonly TimeSpan s_shutdownCheckpointTimeout = TimeSpan.FromSeconds(30);
 
     private readonly RetentionOptions _options = configured.Value;
 
@@ -63,83 +60,18 @@ internal sealed partial class RetentionService(
 
         var startedAt = Stopwatch.GetTimestamp();
         var fileBefore = store.GetStorageFileMetrics();
-        long deletedLogs = 0;
-        long deletedSpans = 0;
-        long deletedMetricPoints = 0;
-        long deletedMetricSeries = 0;
-        long deletedMetadata = 0;
-
-        try
-        {
-            var now = timeProvider.GetUtcNow();
-            var cutoff = _options.Days > (now - DateTimeOffset.UnixEpoch).Days
-                ? 0UL
-                : NamiTimeConversions.ToUnixNanoUnsigned(now.AddDays(-_options.Days));
-
-            while (true)
-            {
-                var deleted = await store.DeleteExpiredLogsBatchAsync(
-                        cutoff,
-                        DeleteBatchSize,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-                deletedLogs += deleted;
-                if (deleted < DeleteBatchSize)
-                    break;
-            }
-
-            while (true)
-            {
-                var deleted = await store.DeleteExpiredSpansBatchAsync(
-                        cutoff,
-                        DeleteBatchSize,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-                deletedSpans += deleted;
-                if (deleted is 0)
-                    break;
-            }
-
-            while (true)
-            {
-                var deleted = await store.DeleteExpiredMetricsBatchAsync(
-                        cutoff,
-                        DeleteBatchSize,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-                deletedMetricPoints += deleted.Points;
-                deletedMetricSeries += deleted.Series;
-                if (deleted.Points < DeleteBatchSize)
-                    break;
-            }
-
-            deletedMetadata = await store.DeleteExpiredMetadataAsync(cutoff, cancellationToken).ConfigureAwait(false);
-        }
-        finally
-        {
-            if (deletedLogs + deletedSpans + deletedMetricPoints + deletedMetricSeries + deletedMetadata > 0)
-                await CheckpointAfterDeletionAsync(cancellationToken).ConfigureAwait(false);
-        }
-
+        var now = timeProvider.GetUtcNow();
+        var cutoff = _options.Days > (now - DateTimeOffset.UnixEpoch).Days
+            ? 0UL
+            : NamiTimeConversions.ToUnixNanoUnsigned(now.AddDays(-_options.Days));
+        var deleted = await store.DeleteExpiredAsync(cutoff, cancellationToken).ConfigureAwait(false);
         var duration = Stopwatch.GetElapsedTime(startedAt);
         var fileAfter = store.GetStorageFileMetrics();
-        if (deletedLogs + deletedSpans + deletedMetricPoints + deletedMetricSeries > 0)
+        if (deleted.Logs + deleted.Spans + deleted.MetricPoints + deleted.MetricSeries > 0)
         {
-            LogCycleCompleted(logger, deletedLogs, deletedSpans, deletedMetricPoints, deletedMetricSeries,
+            LogCycleCompleted(logger, deleted.Logs, deleted.Spans, deleted.MetricPoints, deleted.MetricSeries,
                 duration.TotalMilliseconds, fileBefore.ManagedStorageBytes, fileAfter.ManagedStorageBytes);
         }
-    }
-
-    private async Task CheckpointAfterDeletionAsync(CancellationToken cancellationToken)
-    {
-        if (!cancellationToken.IsCancellationRequested)
-        {
-            await store.CheckpointAsync(cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        using var checkpointTimeout = new CancellationTokenSource(s_shutdownCheckpointTimeout, timeProvider);
-        await store.CheckpointAsync(checkpointTimeout.Token).ConfigureAwait(false);
     }
 
     [LoggerMessage(
