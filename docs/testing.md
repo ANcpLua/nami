@@ -33,6 +33,13 @@ assets for the build host. An explicitly supplied `RuntimeIdentifier` takes prec
 test assemblies stay `AnyCPU`; the RID selects their apphost and native dependencies. Library
 projects outside the test harness remain RID-independent.
 
+Release builds and every build on CI (`CI=true`) treat warnings as errors and fail on NuGet audit
+findings (NU1901 to NU1904). `Directory.Build.props` sets this for every project, and
+`BuildPolicyTests` checks each C# project of `nami.slnx`. Three codes stay warnings: IL2104 and
+IL3053, ILC's NativeAOT summaries of DuckDB.NET.Data's trim and AOT warnings, and NU1900,
+vulnerability data that could not be read. Local Debug builds keep warnings as warnings and still
+audit.
+
 The shared `Nami.Tests` project uses ingestion's upstream OTLP types but does not reference storage.
 Database seeding belongs to `Nami.IntegrationTests/StorageTestData.cs`. Generated BuildEvidence and
 Invocation probes reference the support project through ordinary `ProjectReference` items; they
