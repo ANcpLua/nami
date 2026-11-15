@@ -8,9 +8,10 @@ internal static class AttributeKeySets
     internal static string[] ProjectIdResourceKeyPrecedence => [CollectorSemanticAttributeCatalog.NamiProjectId];
     internal static bool ShouldCaptureSpanAttribute(string key) => IsPersistable(key);
 
-    internal static bool IsPersistable(string key) => !key.StartsWith("baggage.", StringComparison.OrdinalIgnoreCase) &&
+    internal static bool IsPersistable(string key) => key is "full_command" ||
+                                                      (!key.StartsWith("baggage.", StringComparison.OrdinalIgnoreCase) &&
                                                       AttributeStability.Of(key) != Stability.Deprecated &&
-                                                      RegistryPolicy.IsPersisted(key);
+                                                      RegistryPolicy.IsPersisted(key));
 }
 
 internal static class AttributeLookupExtensions
