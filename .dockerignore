@@ -42,14 +42,10 @@
 appsettings.*.json
 **/*.local
 *.local
-**/.nami
-.nami
 **/*.parquet
 *.parquet
 dist
 **/dist
-dist-extension
-**/dist-extension
 .vite
 **/.vite
 .npm
@@ -130,6 +126,4 @@ TestResults
 .nyc_output
 **/.nyc_output
 # Not Collector build inputs.
-services/nami.mcp
-plugins
 docs
