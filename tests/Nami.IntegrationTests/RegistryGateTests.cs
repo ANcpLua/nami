@@ -186,6 +186,14 @@ public sealed partial class RegistryGateTests(TestContext context)
             deprecatedSpans++;
         }
 
+        var deprecatedEvents = 0;
+        foreach (var definition in registry.GetProperty("events").EnumerateArray())
+        {
+            if (ObsoleteMessage(definition) is not { } message || !HasGeneratedConstants(definition)) continue;
+            expected.Add("event " + definition.GetProperty("name").GetString(), message);
+            deprecatedEvents++;
+        }
+
         // What the generated assembly says: every type and member that carries [Obsolete].
         const BindingFlags declared = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static |
                                       BindingFlags.Instance | BindingFlags.DeclaredOnly;
@@ -203,6 +211,7 @@ public sealed partial class RegistryGateTests(TestContext context)
         Assert.IsGreaterThan(100, deprecatedAttributes);
         Assert.IsGreaterThan(50, deprecatedMetrics);
         Assert.IsGreaterThan(0, deprecatedSpans);
+        Assert.IsGreaterThan(0, deprecatedEvents);
         var missing = expected.Keys.Except(actual.Keys, StringComparer.Ordinal).ToArray();
         var unexpected = actual.Keys.Except(expected.Keys, StringComparer.Ordinal).ToArray();
         Assert.IsEmpty(missing,
@@ -250,6 +259,8 @@ public sealed partial class RegistryGateTests(TestContext context)
                     return "metric " + (string)name.GetRawConstantValue()!;
                 case Type span when owner == typeof(Spans) && span.GetField("Id") is { IsLiteral: true } id:
                     return "span " + (string)id.GetRawConstantValue()!;
+                case Type signal when owner == typeof(Events) && signal.GetField("Name") is { IsLiteral: true } name:
+                    return "event " + (string)name.GetRawConstantValue()!;
                 default:
                     return "unexpected " + (owner is null ? "" : owner.FullName + ".") + member.Name;
             }

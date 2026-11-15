@@ -120,6 +120,13 @@
           }
         },
         {
+          "ref": "gen_ai.agent.name",
+          "annotations": {
+            "nami.persisted": true,
+            "nami.token_exempt": false
+          }
+        },
+        {
           "ref": "gen_ai.input.messages",
           "annotations": {
             "nami.persisted": false,
@@ -360,7 +367,7 @@
         {
           "ref": "session.id",
           "annotations": {
-            "nami.persisted": false,
+            "nami.persisted": true,
             "nami.token_exempt": false
           }
         },
@@ -387,6 +394,20 @@
         },
         {
           "ref": "url.query",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "user.email",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "user.id",
           "annotations": {
             "nami.persisted": false,
             "nami.token_exempt": false

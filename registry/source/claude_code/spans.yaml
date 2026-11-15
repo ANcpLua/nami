@@ -1,0 +1,250 @@
+file_format: definition/2
+# Claude Code's spans (scope `com.anthropic.claude_code.tracing`, with
+# `CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1`), all of kind internal. Each also carries `span.type`,
+# its name without the prefix. A subagent's llm_request and tool spans hang under the parent's
+# Agent `claude_code.tool` span. The `claude_code.hook` span exists only under detailed beta
+# tracing and is not defined here.
+spans:
+  - type: claude_code.interaction
+    kind: internal
+    name:
+      templates: ["claude_code.interaction"]
+    brief: One user prompt and everything it triggered; the root of a turn's trace.
+    stability: development
+    requirement_level: recommended
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.tracing
+    attributes:
+      - ref_group: claude_code.common
+      - ref: span.type
+        requirement_level: required
+      - ref: gen_ai.conversation.id
+        requirement_level: required
+      - ref: gen_ai.operation.name
+        requirement_level: required
+      - ref: gen_ai.provider.name
+        requirement_level: required
+      - ref: interaction.sequence
+        requirement_level: required
+      - ref: interaction.duration_ms
+        requirement_level: required
+      - ref: parent.source
+        requirement_level: required
+      - ref: queued_sends
+        requirement_level: recommended
+      - ref: user_prompt_length
+        requirement_level: required
+      - ref: user_prompt
+        requirement_level: required
+      - ref: new_context
+        requirement_level: opt_in
+  - type: claude_code.llm_request
+    kind: internal
+    name:
+      templates: ["claude_code.llm_request"]
+    brief: One model request with its retries.
+    note: >
+      Each retry is a `gen_ai.request.attempt` span event with `attempt` and
+      `client_request_id`. The span links to the API's server span (link attribute
+      `link.type`, not defined). Claude Code also sends `gen_ai.system`, which the GenAI
+      registry excludes; `gen_ai.provider.name` carries the same value.
+    stability: development
+    requirement_level: recommended
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.tracing
+    attributes:
+      - ref_group: claude_code.common
+      - ref: span.type
+        requirement_level: required
+      - ref: gen_ai.conversation.id
+        requirement_level: required
+      - ref: gen_ai.provider.name
+        requirement_level: required
+      - ref: gen_ai.request.model
+        requirement_level: required
+      - ref: gen_ai.response.id
+        requirement_level:
+          conditionally_required: When the request succeeded.
+      - ref: gen_ai.response.finish_reasons
+        requirement_level:
+          conditionally_required: When the request succeeded.
+      - ref: model
+        requirement_level: required
+      - ref: query_source_safe
+        requirement_level: required
+      - ref: agent_id
+        requirement_level:
+          conditionally_required: On a subagent's requests.
+      - ref: speed
+        requirement_level: required
+      - ref: effort
+        requirement_level:
+          conditionally_required: When Claude Code sends an effort level.
+      - ref: llm_request.context
+        requirement_level: required
+      - ref: duration_ms
+        requirement_level: required
+      - ref: ttft_ms
+        requirement_level:
+          conditionally_required: When the request succeeded.
+      - ref: first_content_ms
+        requirement_level:
+          conditionally_required: When the request succeeded on the streaming path.
+      - ref: input_tokens
+        requirement_level:
+          conditionally_required: When the request succeeded.
+      - ref: output_tokens
+        requirement_level:
+          conditionally_required: When the request succeeded.
+      - ref: cache_read_tokens
+        requirement_level:
+          conditionally_required: When the request succeeded.
+      - ref: cache_creation_tokens
+        requirement_level:
+          conditionally_required: When the request succeeded.
+      - ref: request_id
+        requirement_level:
+          conditionally_required: When the request succeeded.
+      - ref: client_request_id
+        requirement_level: recommended
+      - ref: attempt
+        requirement_level: required
+      - ref: success
+        requirement_level: required
+      - ref: stop_reason
+        requirement_level:
+          conditionally_required: When the request succeeded.
+      - ref: error
+        requirement_level:
+          conditionally_required: When the request failed.
+      - ref: error_class
+        requirement_level:
+          conditionally_required: When the request failed.
+      - ref: new_context
+        requirement_level: opt_in
+      - ref: system_reminders
+        requirement_level: opt_in
+      - ref: system_prompt_preview
+        requirement_level: opt_in
+      - ref: user_system_prompt
+        requirement_level: opt_in
+      - ref: response.model_output
+        requirement_level: opt_in
+  - type: claude_code.tool
+    kind: internal
+    name:
+      templates: ["claude_code.tool"]
+    brief: One tool call, from the permission check to the result.
+    note: >
+      With `OTEL_LOG_TOOL_CONTENT=1`, Read, Bash and other calls record a `tool.output` span
+      event whose `content`, `output` and `diff` are never persisted; its `file_path` and
+      `bash_command` are.
+    stability: development
+    requirement_level: recommended
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.tracing
+    attributes:
+      - ref_group: claude_code.common
+      - ref: span.type
+        requirement_level: required
+      - ref: gen_ai.conversation.id
+        requirement_level: required
+      - ref: gen_ai.operation.name
+        requirement_level: required
+      - ref: gen_ai.provider.name
+        requirement_level: required
+      - ref: gen_ai.tool.call.id
+        requirement_level: required
+      - ref: gen_ai.tool.name
+        requirement_level: required
+      - ref: tool_name
+        requirement_level: required
+      - ref: tool_name_safe
+        requirement_level: required
+      - ref: tool_use_id
+        requirement_level: required
+      - ref: agent_id
+        requirement_level:
+          conditionally_required: On a subagent's tool calls.
+      - ref: duration_ms
+        requirement_level: required
+      - ref: bash_argv0
+        requirement_level:
+          conditionally_required: For the Bash tool.
+      - ref: bash_command_class
+        requirement_level:
+          conditionally_required: For the Bash tool.
+      - ref: full_command
+        requirement_level: opt_in
+      - ref: file_path
+        requirement_level: opt_in
+      - ref: subagent_type
+        requirement_level: opt_in
+      - ref: new_context
+        requirement_level: opt_in
+      - ref: tool_input
+        requirement_level: opt_in
+  - type: claude_code.tool.blocked_on_user
+    kind: internal
+    name:
+      templates: ["claude_code.tool.blocked_on_user"]
+    brief: The wait for a tool call's permission decision.
+    stability: development
+    requirement_level: recommended
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.tracing
+    attributes:
+      - ref_group: claude_code.common
+      - ref: span.type
+        requirement_level: required
+      - ref: gen_ai.conversation.id
+        requirement_level: required
+      - ref: gen_ai.provider.name
+        requirement_level: required
+      - ref: duration_ms
+        requirement_level: required
+      - ref: decision
+        requirement_level: required
+      - ref: source
+        requirement_level: required
+  - type: claude_code.tool.execution
+    kind: internal
+    name:
+      templates: ["claude_code.tool.execution"]
+    brief: The execution of a tool call's body.
+    note: >
+      Status ERROR when the call failed; `error.type` is then `tool_error`.
+    stability: development
+    requirement_level: recommended
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.tracing
+    attributes:
+      - ref_group: claude_code.common
+      - ref: span.type
+        requirement_level: required
+      - ref: gen_ai.conversation.id
+        requirement_level: required
+      - ref: gen_ai.provider.name
+        requirement_level: required
+      - ref: gen_ai.tool.call.id
+        requirement_level: required
+      - ref: tool_use_id
+        requirement_level: required
+      - ref: duration_ms
+        requirement_level: required
+      - ref: success
+        requirement_level: required
+      - ref: error
+        requirement_level:
+          conditionally_required: When the call failed.
+      - ref: error_class
+        requirement_level:
+          conditionally_required: When the call failed.
+      - ref: error.type
+        requirement_level:
+          conditionally_required: When the call failed.

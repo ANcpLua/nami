@@ -52,3 +52,9 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Name | Instrument | Unit | Stability | Deprecated | Brief |
 | --- | --- | --- | --- | --- | --- |
+
+## Events
+
+| Name | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+| `feature_flag.evaluation` | release_candidate |  | Defines feature flag evaluation as an event. |

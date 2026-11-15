@@ -70,3 +70,9 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Name | Instrument | Unit | Stability | Deprecated | Brief |
 | --- | --- | --- | --- | --- | --- |
+
+## Spans
+
+| Type | Kind | Stability | Deprecated | Brief |
+| --- | --- | --- | --- | --- |
+| `aws.client` | client | development |  | This span describes an AWS SDK client call. |

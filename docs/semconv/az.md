@@ -13,3 +13,9 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Name | Instrument | Unit | Stability | Deprecated | Brief |
 | --- | --- | --- | --- | --- | --- |
+
+## Events
+
+| Name | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+| `az.resource.log` | development | Replaced by `azure.resource.log`. | Deprecated. Use `azure.resource.log` instead. |

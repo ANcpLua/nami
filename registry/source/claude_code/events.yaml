@@ -1,0 +1,419 @@
+file_format: definition/2
+# Claude Code's events (scope `com.anthropic.claude_code.events`). Each arrives as an OTLP log
+# record whose body is the string `claude_code.<name>` and whose deprecated attribute
+# `event.name` holds `<name>`; the record's own EventName field is empty and its severity
+# unset. Ingest sets EventName to the definition name below, as the deprecation of
+# `event.name` asks, and keeps a body only when it equals that name.
+# On a reference, `nami.wire_type` names the type Claude Code sends when it differs from the
+# stored type, and `nami.wire_container` names the JSON string attribute a key arrives in.
+# Documented events that are not defined here (api_refusal, api_retries_exhausted, auth,
+# at_mention, compaction, feedback_survey, hook_*, internal_error, mcp_server_connection,
+# permission_mode_changed, plugin_installed, retention_sweep, safety_event, skill_activated)
+# keep their names; their attributes are unknown keys until a capture shows them.
+events:
+  - name: claude_code.user_prompt
+    brief: A user submitted a prompt.
+    stability: development
+    requirement_level: recommended
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.events
+    attributes:
+      - ref_group: claude_code.common
+      - ref: event.sequence
+        requirement_level: required
+      - ref: prompt.id
+        requirement_level: required
+      - ref: message.uuid
+        requirement_level:
+          conditionally_required: Unless the prompt dispatches a command.
+      - ref: prompt_length
+        requirement_level: required
+        annotations:
+          nami.wire_type: string
+      - ref: prompt
+        requirement_level: required
+      - ref: prompt_text
+        requirement_level: required
+  - name: claude_code.assistant_response
+    brief: The model answered with text.
+    stability: development
+    requirement_level: recommended
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.events
+    attributes:
+      - ref_group: claude_code.common
+      - ref: event.sequence
+        requirement_level: required
+      - ref: prompt.id
+        requirement_level: required
+      - ref: message.uuid
+        requirement_level: required
+      - ref: model
+        requirement_level: required
+      - ref: request_id
+        requirement_level: required
+      - ref: query_source
+        requirement_level: required
+      - ref: agent_id
+        requirement_level:
+          conditionally_required: On a subagent's records.
+      - ref: response_length
+        requirement_level: required
+      - ref: response
+        requirement_level: required
+  - name: claude_code.api_request
+    brief: An API request to the model completed.
+    note: >
+      The source of a session's cost (`cost_usd_micros`) and tokens; a subagent's requests are
+      included in its parent's session.
+    stability: development
+    requirement_level: recommended
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.events
+    attributes:
+      - ref_group: claude_code.common
+      - ref: event.sequence
+        requirement_level: required
+      - ref: prompt.id
+        requirement_level: required
+      - ref: model
+        requirement_level: required
+      - ref: cost_usd
+        requirement_level: required
+      - ref: cost_usd_micros
+        requirement_level: required
+      - ref: duration_ms
+        requirement_level: required
+      - ref: input_tokens
+        requirement_level: required
+      - ref: output_tokens
+        requirement_level: required
+      - ref: cache_read_tokens
+        requirement_level: required
+      - ref: cache_creation_tokens
+        requirement_level: required
+      - ref: cache_creation_5m_tokens
+        requirement_level: recommended
+      - ref: cache_creation_1h_tokens
+        requirement_level: recommended
+      - ref: ttft_ms
+        requirement_level: recommended
+      - ref: request_id
+        requirement_level: required
+      - ref: client_request_id
+        requirement_level:
+          conditionally_required: On first-party API connections.
+      - ref: speed
+        requirement_level: required
+      - ref: effort
+        requirement_level:
+          conditionally_required: When Claude Code sends an effort level.
+      - ref: query_source
+        requirement_level: required
+      - ref: agent.name
+        requirement_level:
+          conditionally_required: On a subagent's requests.
+      - ref: agent_id
+        requirement_level:
+          conditionally_required: On a subagent's requests.
+  - name: claude_code.api_error
+    brief: An API request to the model failed.
+    stability: development
+    requirement_level: recommended
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.events
+    attributes:
+      - ref_group: claude_code.common
+      - ref: event.sequence
+        requirement_level: required
+      - ref: prompt.id
+        requirement_level: required
+      - ref: model
+        requirement_level: required
+      - ref: error
+        requirement_level: required
+      - ref: duration_ms
+        requirement_level: required
+      - ref: attempt
+        requirement_level: required
+      - ref: client_request_id
+        requirement_level: recommended
+      - ref: speed
+        requirement_level: required
+      - ref: effort
+        requirement_level:
+          conditionally_required: When Claude Code sends an effort level.
+      - ref: query_source
+        requirement_level: required
+  - name: claude_code.tool_decision
+    brief: A permission decision for a tool call.
+    stability: development
+    requirement_level: recommended
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.events
+    attributes:
+      - ref_group: claude_code.common
+      - ref: event.sequence
+        requirement_level: required
+      - ref: prompt.id
+        requirement_level: required
+      - ref: tool_name
+        requirement_level: required
+      - ref: tool_use_id
+        requirement_level: required
+      - ref: request_id
+        requirement_level: recommended
+      - ref: decision
+        requirement_level: required
+      - ref: source
+        requirement_level: required
+      - ref: tool_source
+        requirement_level: required
+      - ref: permission_mode
+        requirement_level: recommended
+      - ref: agent_id
+        requirement_level:
+          conditionally_required: On a subagent's records.
+      - ref: tool_parameters
+        requirement_level: opt_in
+      - ref: bash_command
+        requirement_level: opt_in
+        annotations:
+          nami.wire_container: tool_parameters
+      - ref: subagent_type
+        requirement_level: opt_in
+        annotations:
+          nami.wire_container: tool_parameters
+  - name: claude_code.tool_result
+    brief: A tool call finished.
+    note: >
+      Not sent for rejected calls. `success` is the status of the whole command line of a
+      Bash call; there is no exit code. After a successful `git commit` the commit is in
+      `vcs.ref.head.revision`.
+    stability: development
+    requirement_level: recommended
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.events
+    attributes:
+      - ref_group: claude_code.common
+      - ref: event.sequence
+        requirement_level: required
+      - ref: prompt.id
+        requirement_level: required
+      - ref: tool_name
+        requirement_level: required
+      - ref: tool_use_id
+        requirement_level: required
+      - ref: request_id
+        requirement_level: recommended
+      - ref: agent_id
+        requirement_level:
+          conditionally_required: On a subagent's records.
+      - ref: success
+        requirement_level: required
+        annotations:
+          nami.wire_type: string
+      - ref: duration_ms
+        requirement_level: required
+        annotations:
+          nami.wire_type: string
+      - ref: error_type
+        requirement_level:
+          conditionally_required: When the call failed.
+      - ref: error
+        requirement_level: opt_in
+      - ref: tool_input_size_bytes
+        requirement_level: required
+        annotations:
+          nami.wire_type: string
+      - ref: tool_result_size_bytes
+        requirement_level: recommended
+        annotations:
+          nami.wire_type: string
+      - ref: tool_parameters
+        requirement_level: opt_in
+      - ref: tool_input
+        requirement_level: opt_in
+      - ref: bash_command
+        requirement_level: opt_in
+        annotations:
+          nami.wire_container: tool_parameters
+      - ref: subagent_type
+        requirement_level: opt_in
+        annotations:
+          nami.wire_container: tool_parameters
+      - ref: vcs.ref.head.revision
+        requirement_level: opt_in
+      - ref: vcs.ref.head.name
+        requirement_level: opt_in
+      - ref: vcs.ref.head.type
+        requirement_level: opt_in
+  - name: claude_code.subagent_completed
+    brief: A subagent finished and returned its result.
+    stability: development
+    requirement_level: recommended
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.events
+    attributes:
+      - ref_group: claude_code.common
+      - ref: event.sequence
+        requirement_level: required
+      - ref: prompt.id
+        requirement_level: required
+      - ref: agent_id
+        requirement_level: required
+      - ref: agent_type
+        requirement_level: required
+      - ref: agent.source
+        requirement_level: required
+      - ref: is_built_in
+        requirement_level: required
+      - ref: is_async
+        requirement_level: required
+      - ref: total_tokens
+        requirement_level: required
+      - ref: total_tool_uses
+        requirement_level: required
+      - ref: duration_ms
+        requirement_level: required
+      - ref: model
+        requirement_level: required
+      - ref: final_model
+        requirement_level: required
+      - ref: model_swapped
+        requirement_level: required
+  - name: claude_code.plugin_loaded
+    brief: A plugin was enabled at session start.
+    stability: development
+    requirement_level: recommended
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.events
+    attributes:
+      - ref_group: claude_code.common
+      - ref: event.sequence
+        requirement_level: required
+      - ref: plugin.name
+        requirement_level: required
+      - ref: marketplace.name
+        requirement_level: required
+      - ref: plugin.version
+        requirement_level:
+          conditionally_required: When the name is not redacted and the manifest declares a version.
+      - ref: plugin.scope
+        requirement_level: required
+      - ref: enabled_via
+        requirement_level: required
+      - ref: plugin_id_hash
+        requirement_level: required
+      - ref: has_hooks
+        requirement_level: required
+      - ref: has_mcp
+        requirement_level: required
+      - ref: host_owned_mcp
+        requirement_level: required
+      - ref: skill_path_count
+        requirement_level: required
+      - ref: command_path_count
+        requirement_level: required
+      - ref: agent_path_count
+        requirement_level: required
+      - ref: safe_mode
+        requirement_level: required
+        annotations:
+          nami.wire_type: string
+  - name: claude_code.managed_settings_resolved
+    brief: The managed settings a session resolved.
+    stability: development
+    requirement_level: recommended
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.events
+    attributes:
+      - ref_group: claude_code.common
+      - ref: event.sequence
+        requirement_level: required
+      - ref: managed_settings.trigger
+        requirement_level: required
+      - ref: managed_settings.sources
+        requirement_level: required
+      - ref: managed_settings.source_behavior
+        requirement_level: required
+      - ref: managed_settings.helper.state
+        requirement_level: required
+      - ref: managed_settings.helper.applied
+        requirement_level: required
+  - name: claude_code.api_request_body
+    brief: The raw body of an API request.
+    note: >
+      Documented, not in the capture of 15 Nov 2026; emitted only with
+      `OTEL_LOG_RAW_API_BODIES`. Nothing of it is persisted but its name and correlation.
+    stability: development
+    requirement_level: opt_in
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.events
+    attributes:
+      - ref_group: claude_code.common
+      - ref: event.sequence
+        requirement_level: required
+      - ref: model
+        requirement_level: required
+      - ref: query_source
+        requirement_level: required
+      - ref: body
+        requirement_level:
+          conditionally_required: With `OTEL_LOG_RAW_API_BODIES=1`.
+      - ref: body_ref
+        requirement_level:
+          conditionally_required: With `OTEL_LOG_RAW_API_BODIES=file:<dir>`.
+  - name: claude_code.api_response_body
+    brief: The raw body of a successful API response.
+    note: >
+      Documented, not in the capture of 15 Nov 2026; emitted only with
+      `OTEL_LOG_RAW_API_BODIES`.
+    stability: development
+    requirement_level: opt_in
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.events
+    attributes:
+      - ref_group: claude_code.common
+      - ref: event.sequence
+        requirement_level: required
+      - ref: model
+        requirement_level: required
+      - ref: query_source
+        requirement_level: required
+      - ref: request_id
+        requirement_level: required
+      - ref: message.uuid
+        requirement_level: recommended
+      - ref: body
+        requirement_level:
+          conditionally_required: With `OTEL_LOG_RAW_API_BODIES=1`.
+      - ref: body_ref
+        requirement_level:
+          conditionally_required: With `OTEL_LOG_RAW_API_BODIES=file:<dir>`.
+  - name: claude_code.system_prompt
+    brief: The complete system prompt a session sent.
+    note: >
+      Documented, not in the capture of 15 Nov 2026; emitted only under detailed beta tracing
+      with `OTEL_LOG_USER_PROMPTS=1`. The documentation does not name the attribute that holds
+      the prompt, so no key of it is defined and ingest keeps nothing but the event's name.
+    stability: development
+    requirement_level: opt_in
+    annotations:
+      nami.producer: claude_code
+      nami.instrumentation_scope: com.anthropic.claude_code.events
+    attributes:
+      - ref_group: claude_code.common
+      - ref: event.sequence
+        requirement_level: required

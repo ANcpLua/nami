@@ -8,7 +8,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | --- | --- | --- | --- | --- | --- | --- |
 | `gen_ai.agent.description` | `string` | development |  | Free-form description of the GenAI agent provided by the application. | `"Helps with math problems"`, `"Generates fiction stories"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.agent.id` | `string` | development |  | The unique and stable identifier of the GenAI hosted agent resource. | `"asst_5j66UpCpwteGg4YSxUnt7lPY"`, `"arn:aws:bedrock:us-east-1:123:agent/42"`, `"urn:agent:projects-123:projects:123:locations:us-east1:aiplatform:reasoningEngines:456"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
-| `gen_ai.agent.name` | `string` | development |  | Human-readable name of the GenAI agent or workflow provided by the application. | `"Math Tutor"`, `"Fiction Writer"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
+| `gen_ai.agent.name` | `string` | development |  | Human-readable name of the GenAI agent or workflow provided by the application. | `"Math Tutor"`, `"Fiction Writer"` | `nami.persisted`: `true`, `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"`, `nami.token_exempt`: `false` |
 | `gen_ai.agent.version` | `string` | development |  | The version of the GenAI agent. | `"1.0.0"`, `"2025-05-01"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.conversation.compacted` | `boolean` | development |  | Indicates whether the effective conversation context used for this operation is a compacted view of a prior conversation. | `true` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
 | `gen_ai.conversation.id` | `string` | development |  | The unique identifier for a conversation (session, thread), used to store and correlate messages within this conversation. | `"conv_5j66UpCpwteGg4YSxUnt7lPY"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev"` |
@@ -202,3 +202,37 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `gen_ai.server.request.duration` | histogram | `s` | development |  | Generative AI server request duration such as time-to-last byte or last output token. |
 | `gen_ai.server.time_per_output_token` | histogram | `s` | development |  | Time per output token generated after the first token for successful responses. |
 | `gen_ai.server.time_to_first_token` | histogram | `s` | development |  | Time to generate first token for successful responses. |
+
+## Events
+
+| Name | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+| `gen_ai.client.embeddings.exception` | development |  | This event represents an exception that caused a Generative AI client embeddings operation to fail. |
+| `gen_ai.client.fetch_response.exception` | development |  | This event represents an exception that caused a Generative AI client fetch response operation to fail. |
+| `gen_ai.client.inference.exception` | development |  | This event represents an exception that caused a Generative AI client inference operation to fail, including `chat`, `generate_content`, and `text_completion`. |
+| `gen_ai.client.inference.operation.details` | development |  | Describes the details of a GenAI completion request including chat history and parameters. |
+| `gen_ai.client.invoke_agent.exception` | development |  | This event represents an exception that caused a Generative AI client agent invocation operation to fail. |
+| `gen_ai.client.operation.exception` | development |  | This event represents an exception that occurred during a Generative AI client operation other than inference, embeddings, agent invocation, or response fetching, such as API errors, rate limiting, model errors, timeouts, or other errors that prevent the operation from completing successfully. |
+| `gen_ai.client.realtime_session.ended` | development |  | Recorded when a realtime, bidirectional streaming session is closed. |
+| `gen_ai.client.realtime_session.started` | development |  | Recorded when a realtime, bidirectional streaming session (such as OpenAI Realtime or Gemini Live) is established. |
+| `gen_ai.evaluation.result` | development |  | This event captures the result of evaluating GenAI output for quality, accuracy, or other characteristics. This event SHOULD be parented to GenAI operation span being evaluated when possible or set `gen_ai.response.id` when span id is not available. |
+| `gen_ai.execute_tool.exception` | development |  | This event represents an exception that caused a Generative AI tool execution operation to fail. |
+| `gen_ai.invoke_agent.exception` | development |  | This event represents an exception that caused a Generative AI internal agent invocation operation to fail. |
+
+## Spans
+
+| Type | Kind | Stability | Deprecated | Brief |
+| --- | --- | --- | --- | --- |
+| `gen_ai.client.embeddings` | client | development |  | Describes a GenAI embeddings operation - a client call to a model or service that returns embeddings for one or more inputs. |
+| `gen_ai.client.inference` | client | development |  | This span represents a logical client call to Generative AI model or service that generates a response or requests a tool call based on the input prompt. |
+| `gen_ai.client.invoke_agent` | client | development |  | Describes GenAI agent invocation over a remote service. |
+| `gen_ai.create_agent.client` | client | development |  | Describes GenAI agent creation and is usually applicable when working with remote agent services. |
+| `gen_ai.execute_tool` | internal | development |  | Describes tool execution span. |
+| `gen_ai.fetch_response.client` | client | development |  | Describes a request to a Generative AI provider that fetches a previously generated model response by its identifier. |
+| `gen_ai.invoke_agent.internal` | internal | development |  | Describes an in-process GenAI agent, workflow, or framework entrypoint invocation. |
+| `gen_ai.memory.client` | client | development |  | Describes a memory operation, including memory store lifecycle operations and memory record operations. |
+| `gen_ai.plan.internal` | internal | development |  | Represents an agent planning or task decomposition phase. |
+| `gen_ai.realtime_inference.client` | client | development |  | This span represents one server-side model generation within a realtime, bidirectional streaming session (such as OpenAI Realtime or Gemini Live). |
+| `gen_ai.retrieval` | internal | development |  | Describes a retrieval operation - an execution of a framework retrieval pipeline that returns documents relevant to a query. |
+| `gen_ai.retrieval.client` | client | development | Calls to retrieval or search services SHOULD be instrumented following database or other applicable client semantic conventions. Retrieval performed by GenAI frameworks and applications SHOULD be reported with the `gen_ai.retrieval` span. | Describes GenAI retrieval span - a request to a Generative AI service or framework that retrieves relevant information or context from a vector database or search system. |
+| `gen_ai.user_speech.internal` | internal | development |  | This span represents the capture of a user speech utterance. |

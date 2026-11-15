@@ -83,3 +83,17 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `http.server.request.body.size` | histogram | `By` | development |  | Size of HTTP server request bodies. |
 | `http.server.request.duration` | histogram | `s` | stable |  | Duration of HTTP server requests. |
 | `http.server.response.body.size` | histogram | `By` | development |  | Size of HTTP server response bodies. |
+
+## Events
+
+| Name | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+| `http.client.request.exception` | development |  | This event represents an exception that occurred during an HTTP client request, such as network failures, timeouts, or other errors that prevent the request from completing successfully. |
+| `http.server.request.exception` | development |  | This event represents an exception that occurred during HTTP server request processing, such as application errors, internal failures, or other exceptions that prevent the server from successfully handling the request. |
+
+## Spans
+
+| Type | Kind | Stability | Deprecated | Brief |
+| --- | --- | --- | --- | --- |
+| `http.client` | client | stable |  | This span represents an outbound HTTP request. |
+| `http.server` | server | stable |  | This span represents an inbound HTTP request. |

@@ -141,3 +141,26 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `messaging.publish.messages` | counter | `{message}` | development | Replaced by `messaging.client.sent.messages`. | Deprecated. Use `messaging.client.sent.messages` instead. |
 | `messaging.receive.duration` | histogram | `s` | development | Replaced by `messaging.client.operation.duration`. | Deprecated. Use `messaging.client.operation.duration` instead. |
 | `messaging.receive.messages` | counter | `{message}` | development | Replaced by `messaging.client.consumed.messages`. | Deprecated. Use `messaging.client.consumed.messages` instead. |
+
+## Events
+
+| Name | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+| `messaging.create.exception` | development |  | This event represents an exception that occurred during a messaging create operation. |
+| `messaging.process.exception` | development |  | This event represents an exception that occurred during messaging process operations. |
+| `messaging.receive.exception` | development |  | This event represents an exception that occurred during a messaging receive operation. |
+| `messaging.send.exception` | development |  | This event represents an exception that occurred during a messaging send operation. |
+| `messaging.settle.exception` | development |  | This event represents an exception that occurred during a messaging settle operation. |
+
+## Spans
+
+| Type | Kind | Stability | Deprecated | Brief |
+| --- | --- | --- | --- | --- |
+| `messaging.create.producer` | producer | development |  | Describes a message being created or passed to a client library for sending. |
+| `messaging.eventhubs.generic.client` | client | development |  | Describes an Azure Event Hubs client operation that is not covered by a more specific (create, send, receive, process, or settle) span. |
+| `messaging.process.consumer` | consumer | development |  | Describes one or more messages being processed by a consumer (push-based). |
+| `messaging.receive.client` | client | development |  | Describes one or more messages being requested by a consumer (pull-based). |
+| `messaging.send.client` | client | development |  | Describes one or more messages being sent to an intermediary when a separate message creation context ("Create" span or custom context) already exists. |
+| `messaging.send.producer` | producer | development |  | Describes one or more messages being sent to an intermediary, where the "Send" span's context is used as the message creation context. |
+| `messaging.servicebus.generic.client` | client | development |  | Describes an Azure Service Bus client operation that is not covered by a more specific (create, send, receive, process, or settle) span. |
+| `messaging.settle.client` | client | development |  | Describes one or more messages being settled. |

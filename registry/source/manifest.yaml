@@ -1,6 +1,6 @@
 file_format: definition_manifest/2.0
 name: nami
-description: nami conventions for agent-facing observability; every key is prefixed nami.
+description: nami conventions for agent-facing observability; nami's own keys are prefixed nami., and the telemetry nami ingests from Claude Code is described under its producer, claude_code.
 schema_url: https://ancplua.github.io/nami/schemas/0.4.0
 stability: development
 dependencies:
