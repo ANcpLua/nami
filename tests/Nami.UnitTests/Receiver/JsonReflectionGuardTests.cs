@@ -5,7 +5,7 @@ namespace Nami.UnitTests.Receiver;
 
 [TestClass]
 [TestCategory("Fast")]
-public class JsonReflectionGuardTests
+public sealed class JsonReflectionGuardTests
 {
     [TestMethod]
     public void Should_DisableDefaultJsonReflection_When_TheTestExecutableRuns()

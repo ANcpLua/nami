@@ -3,7 +3,7 @@ namespace Nami.UnitTests.Receiver;
 /// <summary>Checks trace relationships against canonical records without changing captured evidence.</summary>
 [TestClass]
 [TestCategory("Fast")]
-public class TraceEvidenceTests
+public sealed class TraceEvidenceTests
 {
     [TestMethod]
     public void Should_KeepTheOriginalCaptureInstance_When_TraceEvidence_SelectedTrace()

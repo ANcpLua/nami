@@ -2,7 +2,7 @@ namespace Nami.UnitTests.Receiver;
 
 [TestClass]
 [TestCategory("Fast")]
-public class SpanAssertionTests
+public sealed class SpanAssertionTests
 {
     private const string Parent = "0011223344556677";
     private const string Child = "8899aabbccddeeff";

@@ -5,7 +5,7 @@ namespace Nami.UnitTests.Receiver;
 
 [TestClass]
 [TestCategory("Fast")]
-public class CapturedAttributeAssertionTests
+public sealed class CapturedAttributeAssertionTests
 {
     public enum InvalidCapturedArray
     {
