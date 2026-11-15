@@ -205,12 +205,12 @@ public sealed class McpSupervisorTests(TestContext context)
         string[] accepted = ["service", "since", "fields", "max_bytes", "snapshot_id", "cursor"];
         (string Case, string Field, string Message, string Hint, bool Allowed)[] expected =
         [
-            ("unknownNestedDeep", "nested", "is not accepted here; accepted: " + string.Join(", ", accepted),
+            ("unknownNestedDeep", "nested", "nested is not accepted here; accepted: " + string.Join(", ", accepted),
                 "Replace the argument with one of the accepted arguments or drop it.", true),
-            ("belowMinimum", "max_bytes", "must be >= 1024", "Constraint: minimum.", false),
-            ("wrongItemType", "fields[1]", "must be string", "Constraint: type.", false),
-            ("tooLong", "service", "must NOT have more than 256 characters", "Constraint: maxLength.", false),
-            ("nameWithSurrogate", "\uFFFD", "is not accepted here; accepted: " + string.Join(", ", accepted),
+            ("belowMinimum", "max_bytes", "max_bytes must be >= 1024", "Constraint: minimum.", false),
+            ("wrongItemType", "fields[1]", "fields[1] must be string", "Constraint: type.", false),
+            ("tooLong", "service", "service must NOT have more than 256 characters", "Constraint: maxLength.", false),
+            ("nameWithSurrogate", "\uFFFD", "\uFFFD is not accepted here; accepted: " + string.Join(", ", accepted),
                 "Replace the argument with one of the accepted arguments or drop it.", true)
         ];
         foreach (var (name, field, message, hint, allowed) in expected)

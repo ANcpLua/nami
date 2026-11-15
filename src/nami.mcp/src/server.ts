@@ -27,7 +27,7 @@ function inputSchema<T>(name: ToolName, document: JsonSchemaType): StandardSchem
       const errors: unknown = check.errors;
       const refusal = refusalOf(document, Array.isArray(errors) ? errors[0] as Issue : undefined);
       if (typeof value === "object" && value !== null) { refused.set(value, refusal); accepted.delete(value); }
-      return { issues: [{ message: `${refusal.field} ${refusal.message}`.trim() }] };
+      return { issues: [{ message: refusal.message }] };
     }
     if (typeof value === "object" && value !== null) {
       refused.delete(value);
@@ -49,14 +49,16 @@ function refusalOf(document: JsonSchemaType, issue: Issue | undefined): Refusal 
   }
   if (keyword === "additionalProperties" && typeof params.additionalProperty === "string") {
     const names = Object.keys(propertiesAt(document, issue?.schemaPath));
-    field = child(field, params.additionalProperty);
-    return { field: bounded(field, 128), message: bounded("is not accepted here; accepted: " + names.join(", "), 320),
+    field = bounded(child(field, params.additionalProperty), 128);
+    return { field, message: bounded(`${field} is not accepted here; accepted: ${names.join(", ")}`, 320),
       allowed: names, hint: "Replace the argument with one of the accepted arguments or drop it." };
   }
   if (keyword === "required" && typeof params.missingProperty === "string") field = child(field, params.missingProperty);
+  field = bounded(field || "arguments", 128);
   const allowed = Array.isArray(params.allowedValues) ? params.allowedValues.filter((value) => typeof value === "string") : [];
-  return { field: bounded(field || "arguments", 128), hint: `Constraint: ${keyword}.`,
-    message: bounded(typeof issue?.message === "string" ? issue.message : "does not match the tool's input schema", 320),
+  // The message names the argument, because it is also the headline an agent reads first.
+  return { field, hint: `Constraint: ${keyword}.`,
+    message: bounded(`${field} ${typeof issue?.message === "string" ? issue.message : "does not match the tool's input schema"}`, 320),
     ...(allowed.length > 0 ? { allowed } : {}) };
 }
 function child(path: string, name: string): string { return path ? `${path}.${name}` : name; }
