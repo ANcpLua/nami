@@ -3,6 +3,7 @@ using System.Xml;
 using Nami.Api.Contracts;
 using Nami.Api.Contracts.OTel.Enums;
 using Nami.Api.Contracts.OTel.Traces;
+using Nami.Api.Contracts.Common;
 using Nami.Api.Contracts.Tools;
 using Nami.Collector.Storage;
 using Attribute = Nami.Api.Contracts.Common.Attribute;
@@ -194,9 +195,11 @@ internal static class ChangesRecentTool
                          .ThenBy(static r => r.SequenceNumber))
             {
                 if (resource.ObservedUnixNano >= NamiTimeConversions.ToUnixNanoUnsigned(window.End)) continue;
-                foreach (var (key, kind) in Keys(resource.AttributesJson))
+                var attributes = StoredAttributeJson.Attributes(resource.AttributesJson)
+                    .ToDictionary(static a => a.Key, static a => a.Value, StringComparer.Ordinal);
+                foreach (var (key, kind) in Keys(attributes.Keys))
                 {
-                    var value = ToolValues.Attribute(resource.AttributesJson, key);
+                    var value = ToolValues.Text(attributes.GetValueOrDefault(key));
                     if (value is null) continue;
                     prior.TryGetValue(key, out var previous);
                     if (value != previous && window.Contains(resource.ObservedUnixNano))
@@ -224,15 +227,12 @@ internal static class ChangesRecentTool
             ContractFields.For<ProjectedChange>());
     }
 
-    private static IEnumerable<(string Key, string Kind)> Keys(string json)
+    private static IEnumerable<(string Key, string Kind)> Keys(IEnumerable<string> keys)
     {
         yield return ("vcs.ref.head.revision", "revision");
         yield return ("service.version", "version");
         yield return ("deployment.environment.name", "environment");
-        if (JsonNode.Parse(json) is not JsonObject obj)
-            yield break;
-        foreach (var key in obj.Select(static p => p.Key)
-                     .Where(static k => k.StartsWith("cicd.", StringComparison.Ordinal))
+        foreach (var key in keys.Where(static k => k.StartsWith("cicd.", StringComparison.Ordinal))
                      .Order(StringComparer.Ordinal))
             yield return (key, "pipeline");
     }
@@ -277,18 +277,40 @@ internal static class ToolValues
 
     internal static string? Attribute(string? json, string key)
     {
-        return json is not null && JsonNode.Parse(json) is JsonObject obj && obj[key] is { } value
-            ? Body(value.ToJsonString())
-            : null;
+        return Text(StoredAttributeJson.Attribute(json, key));
     }
 
     internal static string Body(string? json)
     {
-        if (json is null) return "";
-        var node = JsonNode.Parse(json);
-        return node is JsonValue scalar && scalar.TryGetValue<string>(out var text)
-            ? text
-            : node?.ToJsonString() ?? "";
+        return Text(StoredAttributeJson.Value(json)) ?? "";
+    }
+
+    /// <summary>
+    ///     A value in a string field of an answer: a string, boolean or number as its plain text (a double as the
+    ///     contract's canonical number), bytes, arrays and maps as the contract's canonical JSON.
+    /// </summary>
+    internal static string? Text(AttributeValue? value)
+    {
+        return value switch
+        {
+            null => null,
+            AttributeValue.StringValue text => text.Value,
+            AttributeValue.BoolValue flag => flag.Value ? "true" : "false",
+            AttributeValue.ObjectValue structured => structured.Value switch
+            {
+                AttributeIntValue number => number.Value.ToString(CultureInfo.InvariantCulture),
+                AttributeDoubleValue => CanonicalNumber(structured),
+                _ => structured.ToStableString()
+            },
+            _ => value.ToStableString()
+        };
+    }
+
+    private static string CanonicalNumber(AttributeValue value)
+    {
+        using var document = JsonDocument.Parse(value.ToStableString());
+        var number = document.RootElement.GetProperty("value");
+        return number.ValueKind == JsonValueKind.String ? number.GetString()! : number.GetRawText();
     }
 
     internal static string Severity(byte severity)
@@ -307,16 +329,12 @@ internal static class ToolValues
 
     private static IReadOnlyList<Attribute> AttributeModels(string? json)
     {
-        using var document = JsonDocument.Parse(json ?? "{}");
-        if (document.RootElement.ValueKind != JsonValueKind.Object) return [];
-        return [.. document.RootElement.EnumerateObject().OrderBy(static property => property.Name, StringComparer.Ordinal)
-            .Select(static property => new Attribute
-            {
-                Key = property.Name,
-                Value = StoredAttributeProjection.ToContract(
-                    property.Value.Deserialize(StorageJsonSerializerContext.Default.StoredAttributeValue)),
-                Stability = AttributeStabilityWire.Name(property.Name)
-            })];
+        return [.. StoredAttributeJson.Attributes(json).Select(static attribute => new Attribute
+        {
+            Key = attribute.Key,
+            Value = attribute.Value,
+            Stability = AttributeStabilityWire.Name(attribute.Key)
+        })];
     }
 
     internal static Span SpanModel(SpanStorageRow span)
