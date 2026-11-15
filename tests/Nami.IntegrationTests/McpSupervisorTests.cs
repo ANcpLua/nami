@@ -74,6 +74,71 @@ public sealed class McpSupervisorTests(TestContext context)
         Assert.IsFalse(observed.GetProperty("childRunningAfterExit").GetBoolean(), "End of input must also end the engine.");
     }
 
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public async Task Health_EngineGone_Returns503()
+    {
+        // P04 "engine gone": the engine has failed and the host has not exited yet. The fixture
+        // engine writes one line that is not JSON and ignores SIGTERM, so the host waits for it.
+        using var result = await RunAsync("gone");
+        var observed = result.RootElement;
+        Assert.AreEqual(200, observed.GetProperty("healthBefore").GetInt32());
+        Assert.IsTrue(observed.GetProperty("engineFailed").GetBoolean(), "The host must stop the failed engine.");
+        Assert.AreEqual(503, observed.GetProperty("healthStatus").GetInt32(),
+            "GET /health between the engine's failure and the host's exit must answer 503.");
+        Assert.AreEqual("unhealthy", observed.GetProperty("healthReportStatus").GetString());
+        var exit = observed.GetProperty("hostExit");
+        Assert.AreEqual(JsonValueKind.Number, exit.ValueKind, "The host must exit after its engine failed; it was still " + exit);
+        Assert.AreNotEqual(0, exit.GetInt32(), "The host must exit non-zero when its engine failed.");
+        Assert.IsTrue(observed.GetProperty("childGone").GetBoolean(), "No engine process may be left behind.");
+    }
+
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    public async Task Health_EngineReportsError_Returns503()
+    {
+        using var result = await RunAsync("unhealthy");
+        var observed = result.RootElement;
+        Assert.AreEqual(503, observed.GetProperty("healthStatus").GetInt32());
+        Assert.AreEqual("unhealthy", observed.GetProperty("healthReportStatus").GetString());
+        Assert.AreEqual(0, observed.GetProperty("exitCodeAfterSignal").GetInt32());
+    }
+
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    public async Task Health_FullEngineQueue_AnswersWithAHealthReport()
+    {
+        // 32 tool calls wait in a healthy engine (ENGINE_LIMITS.max_pending). /health must still answer
+        // with a health report, not with the host's own queue limit as an unhandled error.
+        using var result = await RunAsync("busy");
+        var observed = result.RootElement;
+        Assert.IsTrue(observed.GetProperty("allWaiting").GetBoolean(), "The fixture must hold 32 calls.");
+        var status = observed.GetProperty("healthStatus").GetInt32();
+        Assert.IsTrue(status is 200 or 503, $"GET /health answered {status} while 32 calls were waiting.");
+        Assert.IsTrue(observed.GetProperty("healthReportStatus").GetString() is "healthy" or "degraded" or "unhealthy",
+            "The answer must be a health report.");
+        Assert.AreEqual(32, observed.GetProperty("callsSucceeded").GetInt32());
+        Assert.AreEqual(0, observed.GetProperty("exitCodeAfterSignal").GetInt32(), "A clean shutdown must exit 0.");
+    }
+
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    public async Task Host_CancelMidCall_CompletesTheWaitingCall()
+    {
+        // 32 calls wait; the caller of one goes away. The host must end that waiting call: forward a
+        // cancel and free its slot, so a 33rd call reaches the engine instead of the host's limit.
+        using var result = await RunAsync("cancel");
+        var observed = result.RootElement;
+        Assert.IsTrue(observed.GetProperty("allWaiting").GetBoolean(), "The fixture must hold 32 calls.");
+        Assert.AreEqual("AbortError", observed.GetProperty("abortedCaller").GetString());
+        Assert.IsTrue(observed.GetProperty("cancelForwarded").GetBoolean(), "The engine must receive the cancel.");
+        Assert.IsTrue(observed.GetProperty("nextForwarded").GetBoolean(),
+            "The cancelled call's slot must be free for the next call.");
+        Assert.IsFalse(observed.GetProperty("nextIsError").GetBoolean());
+        Assert.AreEqual(31, observed.GetProperty("othersSucceeded").GetInt32());
+        Assert.AreEqual(0, observed.GetProperty("exitCodeAfterSignal").GetInt32());
+    }
+
     private async Task<JsonDocument> RunAsync(string scenario)
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory.");

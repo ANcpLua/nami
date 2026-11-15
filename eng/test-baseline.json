@@ -16,8 +16,8 @@
   },
   "suites": {
     "Unit": 241,
-    "Integration": 502,
-    "EndToEnd": 45
+    "Integration": 506,
+    "EndToEnd": 51
   },
   "nodeTests": {
     "contracts/scripts/lib/canonical-schema.test.mjs": 2,

@@ -165,6 +165,9 @@ structure St where
   serving : Bool := false
   /-- `closeTransport()` resolved (main.ts:75). -/
   transportDone : Bool := false
+  /-- A `fetch` handler threw (main.ts:60), so Bun answered 500; Bun then ends the process
+  with code 1 even after a clean shutdown (checked on Bun 1.4.4). -/
+  threw : Bool := false
   exit : Option Exit := none
   deriving DecidableEq, Repr
 
@@ -202,7 +205,8 @@ inductive Ev where
   | hostSignal
   /-- `closeTransport()` resolves (main.ts:39, 69, 75). -/
   | transportStopped
-  /-- Nothing keeps Bun's event loop alive: the process ends with code 0. -/
+  /-- Nothing keeps Bun's event loop alive: the process ends, with code 1 if a `fetch`
+  handler ever threw, else 0. -/
   | loopEmpty
   /-- SIGKILL from outside. -/
   | externalKill
@@ -218,7 +222,8 @@ def Ev.internal : Ev → Bool
 def rejectPending (s : St) (e : Err) : St :=
   { s with
     done := s.done ++ s.pending.map (fun p => ⟨p.ticket, p.via, outcomeOf p.via e⟩)
-    pending := [] }
+    pending := []
+    threw := s.threw || s.pending.any (·.via == .health) }
 
 /-- The synchronous part of engine.ts:109-114. -/
 def stopChild (s : St) : St :=
@@ -251,12 +256,13 @@ def removePending (s : St) (id : Nat) : List Pending := s.pending.filter (·.id 
 def request (s : St) (v : Via) (fits : Bool) : St :=
   let t := s.nextTicket
   let s := { s with nextTicket := t + 1 }
-  if s.stopped then { s with done := s.done ++ [⟨t, v, outcomeOf v .unavailable⟩] }         -- 68
+  let threw := s.threw || v == .health
+  if s.stopped then { s with done := s.done ++ [⟨t, v, outcomeOf v .unavailable⟩], threw }   -- 68
   else if s.pending.length ≥ maxPending then
-    { s with done := s.done ++ [⟨t, v, outcomeOf v .plain⟩] }                                -- 69
+    { s with done := s.done ++ [⟨t, v, outcomeOf v .plain⟩], threw }                          -- 69
   else
     let id := s.seq + 1                                                                     -- 71
-    if !fits then { s with seq := id, done := s.done ++ [⟨t, v, outcomeOf v .invalidArgument⟩] }  -- 74
+    if !fits then { s with seq := id, done := s.done ++ [⟨t, v, outcomeOf v .invalidArgument⟩], threw }  -- 74
     else { s with seq := id, pending := s.pending ++ [⟨id, t, v⟩], sent := s.sent ++ [frameOf v id] }  -- 75-86
 
 def step (s : St) : Ev → Option St
@@ -318,7 +324,8 @@ def step (s : St) : Ev → Option St
     if s.exit.isNone && s.closing && !s.transportDone then some (close { s with transportDone := true })
     else none
   | .loopEmpty =>
-    if s.exit.isNone && !s.serving && s.transportDone && s.hasExited then some (exitWith s 0)
+    if s.exit.isNone && !s.serving && s.transportDone && s.hasExited then
+      some (exitWith s (if s.threw then 1 else 0))
     else none
   | .externalKill =>
     if s.exit.isNone then some { s with exit := some .killed } else none

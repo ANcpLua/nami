@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join } from "node:path";
@@ -42,6 +42,50 @@ async function request(handler: ReturnType<typeof createMcpHandler>, input: unkn
   const data = body.split("\n").find(line => line.startsWith("data: "));
   return JSON.parse(data ? data.slice(6) : body).result;
 }
+
+const lines = async (name: string) => existsSync(join(state, name))
+  ? (await readFile(join(state, name), "utf8")).split("\n").filter(Boolean) : [];
+const toolCall = (url: string, signal?: AbortSignal) => fetch(url + "/mcp", {
+  method: "POST", signal, headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream", "MCP-Protocol-Version": "2025-11-25" },
+  body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "sources_status", arguments: {} } })
+});
+async function toolResult(response: Response) {
+  const body = await response.text();
+  const data = body.split("\n").find(line => line.startsWith("data: "));
+  return JSON.parse(data ? data.slice(6) : body).result as { isError?: boolean; structuredContent?: { code?: string } };
+}
+async function healthOf(url: string) {
+  const response = await fetch(url + "/health");
+  const text = await response.text();
+  let report: { status?: unknown } | null = null;
+  try { report = JSON.parse(text); } catch { report = null; }
+  return { status: response.status, reportStatus: typeof report?.status === "string" ? report.status : null };
+}
+// Starts main.ts over HTTP with the fixture engine in the given mode; resolves once the engine is up.
+async function startHost(mode: string) {
+  const reservation = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response() });
+  const port = reservation.port;
+  await reservation.stop(true);
+  const args = [process.execPath, fileURLToPath(new URL("../../../src/nami.mcp/src/main.ts", import.meta.url)), "--engine", await launcher(mode)];
+  processUnderTest = Bun.spawn(args, { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: {
+    ...process.env, DOTNET_ENVIRONMENT: "Development", NAMI_OTLP_AUTH_MODE: "Unsecured", NAMI_OTLP_PROJECT_KEYS: "{}",
+    NAMI_BIND_ADDRESS: "127.0.0.1", NAMI_PORT: String(port), NAMI_PUBLIC_URL: "", RAILWAY_PUBLIC_DOMAIN: ""
+  } });
+  const url = `http://127.0.0.1:${port}`;
+  await until(() => existsSync(join(state, "engine.json")));
+  await until(async () => {
+    try { await fetch(url + "/health", { signal: AbortSignal.timeout(200) }); return true; }
+    catch { return false; }
+  });
+  return { url, exited: processUnderTest.exited, child: await pid() };
+}
+// The exit code once the host ends within the deadline, otherwise "alive".
+const exitWithin = (exited: Promise<number>, ms: number) =>
+  Promise.race([exited, sleep(ms).then(() => "alive" as const)]);
+const gone = (child: number) => {
+  try { return readFileSync(`/proc/${child}/stat`, "utf8").split(") ")[1]?.startsWith("Z") ?? true; }
+  catch { return true; }
+};
 
 let engine: Engine | undefined;
 let processUnderTest: ReturnType<typeof Bun.spawn> | undefined;
@@ -104,6 +148,59 @@ try {
     console.log(JSON.stringify({
       termReceived: existsSync(join(state, "term")), childRunningAfterClose: running(child), sameShutdown: first === second
     }));
+  } else if (scenario === "gone") {
+    // P04: the engine fails (one line that is not JSON) and ignores SIGTERM, so the host waits up
+    // to 8 seconds for it (engine.ts:112-113). In that window /health must answer 503.
+    const host = await startHost("gone");
+    const before = await healthOf(host.url);
+    await writeFile(join(state, "break"), "break");
+    const failed = await observed(() => existsSync(join(state, "term")));
+    const during = await healthOf(host.url);
+    const exit = await exitWithin(host.exited, 15_000);
+    console.log(JSON.stringify({
+      healthBefore: before.status, engineFailed: failed, healthStatus: during.status, healthReportStatus: during.reportStatus,
+      hostExit: exit, childGone: gone(host.child)
+    }));
+  } else if (scenario === "unhealthy") {
+    const host = await startHost("unhealthy");
+    const health = await healthOf(host.url);
+    processUnderTest!.kill("SIGTERM");
+    console.log(JSON.stringify({ healthStatus: health.status, healthReportStatus: health.reportStatus, exitCodeAfterSignal: await host.exited }));
+  } else if (scenario === "busy" || scenario === "cancel") {
+    // 32 tool calls wait in the engine: the host's own limit (ENGINE_LIMITS.max_pending).
+    const host = await startHost("holding");
+    const aborts = Array.from({ length: 32 }, () => new AbortController());
+    const calls = aborts.map(controller => toolCall(host.url, controller.signal).then(toolResult, (error: Error) => error.name));
+    const allWaiting = await observed(async () => (await lines("calls")).length === 32);
+    if (scenario === "busy") {
+      const health = await healthOf(host.url);
+      await writeFile(join(state, "release"), "release");
+      const outcomes = await Promise.all(calls);
+      processUnderTest!.kill("SIGTERM");
+      console.log(JSON.stringify({
+        allWaiting, healthStatus: health.status, healthReportStatus: health.reportStatus,
+        callsSucceeded: outcomes.filter(outcome => typeof outcome === "object" && outcome.isError === false).length,
+        exitCodeAfterSignal: await host.exited
+      }));
+    } else {
+      // P14: the caller of the last call goes away. The host must end that waiting call: free its
+      // slot and forward a cancel, so the next call reaches the engine instead of the host's limit.
+      aborts[31]!.abort();
+      const cancelForwarded = await observed(async () => (await lines("cancels")).length === 1);
+      const next = toolCall(host.url).then(toolResult);
+      const nextForwarded = await observed(async () => (await lines("calls")).length === 33);
+      await writeFile(join(state, "release"), "release");
+      const outcomes = await Promise.all(calls);
+      const nextOutcome = await next;
+      processUnderTest!.kill("SIGTERM");
+      console.log(JSON.stringify({
+        allWaiting, abortedCaller: outcomes[31], cancelForwarded,
+        cancelledId: (await lines("cancels"))[0] ?? null, nextForwarded,
+        nextIsError: nextOutcome.isError ?? null, nextCode: nextOutcome.structuredContent?.code ?? null,
+        othersSucceeded: outcomes.slice(0, 31).filter(outcome => typeof outcome === "object" && outcome.isError === false).length,
+        exitCodeAfterSignal: await host.exited
+      }));
+    }
   } else if (scenario === "http" || scenario === "stdio") {
     const args = [process.execPath, fileURLToPath(new URL("../../../src/nami.mcp/src/main.ts", import.meta.url)), "--engine", await launcher("normal")];
     let port: number | undefined;

@@ -29,6 +29,30 @@ internal sealed class McpHarness : IAsyncDisposable
     internal McpClient Client => _client ?? throw new InvalidOperationException("MCP startup has not completed.");
     internal HttpClient Http { get; } = new();
     internal int HttpPort { get; }
+
+    /// <summary>The Bun host's process id; only the HTTP harness owns the host process.</summary>
+    internal int HostProcessId =>
+        _process?.Id ?? throw new InvalidOperationException("The stdio harness does not own the host process.");
+
+    internal int HostExitCode =>
+        _process?.ExitCode ?? throw new InvalidOperationException("The stdio harness does not own the host process.");
+
+    /// <summary>Waits for the host process to end by itself; false when it still runs at the deadline.</summary>
+    internal async Task<bool> WaitForHostExitAsync(TimeSpan deadline, CancellationToken cancellationToken)
+    {
+        var process = _process ?? throw new InvalidOperationException("The stdio harness does not own the host process.");
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(deadline);
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
+            return true;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
+    }
     internal int OtlpPort { get; }
     internal int GrpcPort { get; }
 
