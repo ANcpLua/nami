@@ -6,7 +6,6 @@ import "../common/types.tsp";
 // https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/metrics/data-model.md
 
 using Nami.Api.Contracts.Common;
-using TypeSpec.OpenAPI;
 
 namespace Nami.Api.Contracts.OTel.Metrics;
 

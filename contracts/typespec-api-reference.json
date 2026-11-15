@@ -1,0 +1,255 @@
+{
+  "generatedBy": "eng/typespec.sh --apply",
+  "scope": "Installed public entry points; not a complete API or behavior inventory.",
+  "packages": [
+    {
+      "package": "@typespec/compiler",
+      "version": "1.18.0",
+      "role": "compiler",
+      "tag": "latest",
+      "integrity": "sha512-1KdfK2rVLtBKB+VaoDPUDFr9k/tNH7HqytJHJIMT8GouoDCCCA6Una8M4wBbc2T/J9/79EM+tqVHIXrO/c8V8Q==",
+      "peerDependencies": {},
+      "entrypoints": {
+        "./experimental/typekit:types": {
+          "path": "contracts/node_modules/@typespec/compiler/dist/src/experimental/typekit/index.d.ts",
+          "exists": true,
+          "sha256": "ee6fa1f066d643d7e9351afc9e5ed02830e74e28d48f2eb740c177c41e774dfd"
+        },
+        "./experimental:types": {
+          "path": "contracts/node_modules/@typespec/compiler/dist/src/experimental/index.d.ts",
+          "exists": true,
+          "sha256": "c0c4b520c18b420ae861c0167cf31098cf6af11b6c67f7476e259fac4223805f"
+        },
+        "./internals:types": {
+          "path": "contracts/node_modules/@typespec/compiler/dist/src/internals/index.d.ts",
+          "exists": true,
+          "sha256": "ae0cb0e67da7c4a12adf4ae4e450f2c90c90f6ed91e452c346ee7af82d61e705"
+        },
+        "./module-resolver:types": {
+          "path": "contracts/node_modules/@typespec/compiler/dist/module-resolver/index.d.ts",
+          "exists": false,
+          "sha256": null
+        },
+        "./testing:types": {
+          "path": "contracts/node_modules/@typespec/compiler/dist/src/testing/index.d.ts",
+          "exists": true,
+          "sha256": "b4e6033eff4d2d1215c0f5d219fd013de24b0485ca916387e0321010801fb81e"
+        },
+        "./typekit:types": {
+          "path": "contracts/node_modules/@typespec/compiler/dist/src/typekit/index.d.ts",
+          "exists": true,
+          "sha256": "b65fd873321b9bc6c90cc98c55c90714f0d381829ab03c6f86e7a88334c29891"
+        },
+        "./utils:types": {
+          "path": "contracts/node_modules/@typespec/compiler/dist/src/utils/index.d.ts",
+          "exists": true,
+          "sha256": "9253eb7ac4296cc534ee07fe2288078709204d0bfafadc2523b67820a8d7584d"
+        },
+        ".:types": {
+          "path": "contracts/node_modules/@typespec/compiler/dist/src/index.d.ts",
+          "exists": true,
+          "sha256": "559a77541473022540425500e62cf06c3a10c5a5488e99a2ed725e58225ddaa8"
+        },
+        ".:typespec": {
+          "path": "contracts/node_modules/@typespec/compiler/lib/std/main.tsp",
+          "exists": true,
+          "sha256": "ea5e2df86d283423d09ec3e63b1c6fcf5813a793ff151855716d2e9c19cd8456"
+        },
+        "tspMain": {
+          "path": "contracts/node_modules/@typespec/compiler/lib/std/main.tsp",
+          "exists": true,
+          "sha256": "ea5e2df86d283423d09ec3e63b1c6fcf5813a793ff151855716d2e9c19cd8456"
+        }
+      }
+    },
+    {
+      "package": "@typespec/http",
+      "version": "1.18.0",
+      "role": "core library",
+      "tag": "latest",
+      "integrity": "sha512-5RmsHcfJYIEKanRQDNYs4kRQQBtVDW46sCNdpbG1fgORzqjEP/Nkx+jFRHW99RlLwcAzX5VbrzM2TgzNCmcPfg==",
+      "peerDependencies": {
+        "@typespec/streams": "^0.88.0",
+        "@typespec/compiler": "^1.18.0"
+      },
+      "entrypoints": {
+        "./experimental/typekit:types": {
+          "path": "contracts/node_modules/@typespec/http/dist/src/experimental/typekit/index.d.ts",
+          "exists": true,
+          "sha256": "d08344c6e44b08d10cc4de6f4b6dfb1e12ab099c0aa1ab0fbaad22e73bdc89a1"
+        },
+        "./experimental:types": {
+          "path": "contracts/node_modules/@typespec/http/dist/src/experimental/index.d.ts",
+          "exists": true,
+          "sha256": "5603b2694c6ebab411be05486615368b7eee456a3bdcfcc395212cd3c54bdb57"
+        },
+        "./streams:types": {
+          "path": "contracts/node_modules/@typespec/http/dist/src/streams/index.d.ts",
+          "exists": true,
+          "sha256": "f667f6b1d66ba55f0dcd27f5ff050063fecfe289bad00e8c5d48344a775c1439"
+        },
+        "./streams:typespec": {
+          "path": "contracts/node_modules/@typespec/http/lib/streams/main.tsp",
+          "exists": true,
+          "sha256": "d1abb3b3990153fe2300fb8619e6dfdc59b7b9a509c82c409c23dd0db38eea06"
+        },
+        "./testing:types": {
+          "path": "contracts/node_modules/@typespec/http/dist/src/testing/index.d.ts",
+          "exists": true,
+          "sha256": "d239077bbedf79acfdacdc49570d8e6d1b64ea3b577344eb84e0bb611730e87f"
+        },
+        ".:types": {
+          "path": "contracts/node_modules/@typespec/http/dist/src/index.d.ts",
+          "exists": true,
+          "sha256": "e7b31cc56cf81007059b6f94d27acaba1cfa2942864bd4db8f1b4bd3678d8d61"
+        },
+        ".:typespec": {
+          "path": "contracts/node_modules/@typespec/http/lib/main.tsp",
+          "exists": true,
+          "sha256": "4ef52ee1b90249654a08ec7d6a5da61ce1f5ffc9226caaaa8c3bd05f1b8637f7"
+        },
+        "tspMain": {
+          "path": "contracts/node_modules/@typespec/http/lib/main.tsp",
+          "exists": true,
+          "sha256": "4ef52ee1b90249654a08ec7d6a5da61ce1f5ffc9226caaaa8c3bd05f1b8637f7"
+        }
+      }
+    },
+    {
+      "package": "@typespec/json-schema",
+      "version": "1.18.0",
+      "role": "schema emitter",
+      "tag": "latest",
+      "integrity": "sha512-prY6RniKylTQfdxkF5cv+iQ2rB3Q6regX0QTQjdS/4sfVrJiCpnFEqQFFVLsOQmqwhRBkHTEnbkZ+kL9tU7K4g==",
+      "peerDependencies": {
+        "@typespec/compiler": "^1.18.0"
+      },
+      "entrypoints": {
+        "./testing:types": {
+          "path": "contracts/node_modules/@typespec/json-schema/dist/src/testing/index.d.ts",
+          "exists": true,
+          "sha256": "5d2575dd8a77861fb87943c3c148d25c8d290ae9d3dab488cf535799ce29c4cd"
+        },
+        ".:types": {
+          "path": "contracts/node_modules/@typespec/json-schema/dist/src/index.d.ts",
+          "exists": true,
+          "sha256": "f4b0106f7a563f0641047ce76525de2583b8384de8512405a3fbab6b3c7f318b"
+        },
+        ".:typespec": {
+          "path": "contracts/node_modules/@typespec/json-schema/lib/main.tsp",
+          "exists": true,
+          "sha256": "3ed660602da2c49c68af272357044572b3c8f04d154cd71329369c644e152c35"
+        },
+        "tspMain": {
+          "path": "contracts/node_modules/@typespec/json-schema/lib/main.tsp",
+          "exists": true,
+          "sha256": "3ed660602da2c49c68af272357044572b3c8f04d154cd71329369c644e152c35"
+        }
+      }
+    },
+    {
+      "package": "@typespec/openapi",
+      "version": "1.18.0",
+      "role": "core library",
+      "tag": "latest",
+      "integrity": "sha512-b8zEqdZLqM2G6J0J0iACRfibVgVavBYib9qEqXkcJQSxT4QRKELMoa0LYia+qzmVwETq3is6xc6CcEU7RD/1JQ==",
+      "peerDependencies": {
+        "@typespec/http": "^1.18.0",
+        "@typespec/compiler": "^1.18.0"
+      },
+      "entrypoints": {
+        "./testing:types": {
+          "path": "contracts/node_modules/@typespec/openapi/dist/src/testing/index.d.ts",
+          "exists": true,
+          "sha256": "284277476df61d271afe0d43edc86d3bcecedfbab8b4b2ac525ba46d36428f42"
+        },
+        ".:types": {
+          "path": "contracts/node_modules/@typespec/openapi/dist/src/index.d.ts",
+          "exists": true,
+          "sha256": "758a0de99a4bfd192e3cfe6bd46c470a196d4002bc0ad72b5c4af1b94d8ca6b7"
+        },
+        ".:typespec": {
+          "path": "contracts/node_modules/@typespec/openapi/lib/main.tsp",
+          "exists": true,
+          "sha256": "779b65e3029a19d7b69a7d2c2a463d05521ab3f7ad9837f57576ab2c3456d1ee"
+        },
+        "tspMain": {
+          "path": "contracts/node_modules/@typespec/openapi/lib/main.tsp",
+          "exists": true,
+          "sha256": "779b65e3029a19d7b69a7d2c2a463d05521ab3f7ad9837f57576ab2c3456d1ee"
+        }
+      }
+    },
+    {
+      "package": "@typespec/openapi3",
+      "version": "1.18.0",
+      "role": "schema emitter",
+      "tag": "latest",
+      "integrity": "sha512-eUgFB9bViCYu/NVW+m0JPUssWC0EloA+JEELyvbegNfIBmpH16oe+jYw0H6/UFy/KvaxAfAdmY3IrZMv0EujQA==",
+      "peerDependencies": {
+        "@typespec/sse": "^0.88.0",
+        "@typespec/http": "^1.18.0",
+        "@typespec/events": "^0.88.0",
+        "@typespec/openapi": "^1.18.0",
+        "@typespec/streams": "^0.88.0",
+        "@typespec/compiler": "^1.18.0",
+        "@typespec/versioning": "^0.88.0",
+        "@typespec/json-schema": "^1.18.0"
+      },
+      "entrypoints": {
+        "./testing:types": {
+          "path": "contracts/node_modules/@typespec/openapi3/dist/src/testing/index.d.ts",
+          "exists": true,
+          "sha256": "2e4e04801b1d71f043427045a65213481bded16ce6cb8197bb0e14a7e96e38e6"
+        },
+        ".:types": {
+          "path": "contracts/node_modules/@typespec/openapi3/dist/src/index.d.ts",
+          "exists": true,
+          "sha256": "e56a5f5241b28af9a224d1d5fa21d71937d455110fe68082fe85f8473b95bf54"
+        },
+        ".:typespec": {
+          "path": "contracts/node_modules/@typespec/openapi3/lib/main.tsp",
+          "exists": true,
+          "sha256": "adf2f31312ac6de6fbee975f92257d945863ac0e829031a64315ebccc22dd2ee"
+        },
+        "tspMain": {
+          "path": "contracts/node_modules/@typespec/openapi3/lib/main.tsp",
+          "exists": true,
+          "sha256": "adf2f31312ac6de6fbee975f92257d945863ac0e829031a64315ebccc22dd2ee"
+        }
+      }
+    },
+    {
+      "package": "@typespec/versioning",
+      "version": "0.88.0",
+      "role": "preview library",
+      "tag": "latest",
+      "integrity": "sha512-XhPJ4ItiqPwmpgo3esDKEbRU5UA5YRrNpWpyCdhFC/XYCJLUxXYHak392Yb1LzNjvseqjGNf/FXM2W03FhghKA==",
+      "peerDependencies": {
+        "@typespec/compiler": "^1.18.0"
+      },
+      "entrypoints": {
+        "./testing:types": {
+          "path": "contracts/node_modules/@typespec/versioning/dist/src/testing/index.d.ts",
+          "exists": true,
+          "sha256": "7ba914069250a8651688b98a64fa7596902b7937872c4dcd7e4568cbcd1a6fc2"
+        },
+        ".:types": {
+          "path": "contracts/node_modules/@typespec/versioning/dist/src/index.d.ts",
+          "exists": true,
+          "sha256": "48ca54211e003d6575ea113591be6f7e09fa5073fb34667bfecf19f6e7288da1"
+        },
+        ".:typespec": {
+          "path": "contracts/node_modules/@typespec/versioning/lib/main.tsp",
+          "exists": true,
+          "sha256": "9ab577a373f5c38d08c9c2bb8bb1df238f8e833f3df7e52db7fce3b42d04825a"
+        },
+        "tspMain": {
+          "path": "contracts/node_modules/@typespec/versioning/lib/main.tsp",
+          "exists": true,
+          "sha256": "9ab577a373f5c38d08c9c2bb8bb1df238f8e833f3df7e52db7fce3b42d04825a"
+        }
+      }
+    }
+  ]
+}

@@ -3,17 +3,20 @@
 ## Package maintenance
 
 `../eng/typespec.sh --check` checks the npm tag configured in `typespec-packages.json`
-(currently `next`; there is no fallback to `latest`). `../eng/typespec.sh --apply` installs exact versions and refreshes
-the package entry-point reference in
-`../.agents/skills/nami-contract-models/references/typespec-packages.json`.
+(currently `latest`, the stable channel; pass `--tag next` to look at dev builds). `../eng/typespec.sh --apply` installs exact versions and refreshes
+the package entry-point reference in `typespec-api-reference.json`. The two files differ:
+`typespec-packages.json` is the policy you edit, `typespec-api-reference.json` is written
+by the updater from the installed packages.
 The equivalent repository tasks are `mise run typespec:check` and `mise run typespec:update`.
 
-The maintained set includes the compiler/core emitters and the optional Protobuf,
-GraphQL, Streams, SSE, Events, REST and Versioning packages. Required TypeSpec peers
-are resolved with them, and their version constraints must agree before installation.
-Installing a package does not activate its emitter or change Nami's transport.
-Preview package status is separate from the npm tag: `latest` can point to a `0.x`
-preview package. Pass `--tag <name>` to check another channel for one run.
+The maintained set is what the contract build uses: the compiler, the HTTP and OpenAPI
+libraries and the OpenAPI 3 and JSON Schema emitters, plus Versioning for the versioned
+views described under "Contract generation". Required TypeSpec peers are resolved with
+them, and their version constraints must agree before installation. A package joins the
+set when a `.tsp` file, `tspconfig.yaml` or an in-repo emitter starts to use it, in both
+`typespec-packages.json` and `package.json`; installing it does not activate its emitter or
+change Nami's transport. Preview package status is separate from the npm tag: `latest` can
+point to a `0.x` preview package. Pass `--tag <name>` to check another channel for one run.
 
 The updater fetches one small version document per package, with at most six concurrent
 requests, conditional ETag/Last-Modified requests when supported, and one cache entry per
@@ -29,6 +32,62 @@ the updater does not silently accept changed product contracts. Run the normal r
 build/test gate after an accepted update. The generated reference lists entry points and
 their hashes, not a claim that every API is implemented or exercised. Missing secondary
 export declarations are recorded explicitly; missing primary entry points fail validation.
+
+## Contract lint
+
+`bun run lint` (`mise run lint:tsp`) is the gate. It builds the emitters and the linter, compiles
+`main.tsp` without emitting and with warnings as errors, then checks the suppressions:
+
+```sh
+tsp compile main.tsp --no-emit --warn-as-error && node scripts/check-suppressions.mjs
+```
+
+The ruleset is in `tspconfig.yaml`: `@typespec/http/all`, the compiler's `unused-using` and
+`unused-template-parameter`, and `@ancplua/typespec-nami-lint/all` from `emitters/nami-lint`.
+That library's rules, each with the reason it exists at the top of its file in `src/rules/`:
+
+| Rule | Reports |
+|---|---|
+| `wire-name-snake-case`, `http-param-snake-case` | a JSON key or a query/path parameter that is not snake_case |
+| `identity-binding`, `identity-edge-typed`, `confusable-identity-documented` | an identity under a second name, type or key |
+| `unreachable-declaration` | a declaration that nothing in the contract uses and from which no emitter generates a type; in practice an unbranded scalar |
+| `duplicate-model-shape` | two independent models with the same properties |
+| `duplicate-member-value` | an enum value or a union variant listed twice |
+| `duplicate-wire-name` | a property that takes the JSON key of an inherited property |
+| `wire-root-twin` | a flat model and the discriminated union of the same message, both wire roots |
+| `storage-column-order` | column orders of a table that are not 0 to n-1 (code fix: renumber) |
+| `storage-index-redundant` | an index declared twice, or one that is a leading prefix of another or of the primary key |
+| `storage-index-composite` | a non-unique multi-column index, which DuckDB documents as not eligible for index scans |
+| `storage-index-budget` | more secondary indexes on a table than `STORAGE_INDEX_BUDGET` in `src/policy.ts` |
+| `suppression-reason` | a `#suppress` without a reason |
+
+Policy (namespaces, root decorators, the index budget) is in `emitters/nami-lint/src/policy.ts`.
+The rules read the emitter decorators from the type graph by name and import no emitter code.
+Every rule reports the same diagnostics in the same order for the same sources.
+
+A finding is fixed or carried. To carry one, put `#suppress "<rule>" "<cleanup-ledger id or reason>"`
+on the declaration. `scripts/check-suppressions.mjs` then fails the gate as soon as the directive
+no longer hides anything, so a suppression cannot outlive its cause. It compiles with the
+configured ruleset and with the emitters running against a host that discards their writes,
+because a suppression also reads as unused when its rule is off or its emitter is skipped.
+`bun run lint:suppressions` lists every suppression with its rule and reason;
+`node scripts/check-suppressions.mjs --fix` deletes the unused ones.
+
+For a focused run, TypeSpec 1.18.0 can override the ruleset for one compilation. The gate itself
+never does:
+
+```sh
+tsp compile main.tsp --no-emit --linter-ruleset @ancplua/typespec-nami-lint/storage
+tsp compile main.tsp --no-emit --linter-rule '@ancplua/typespec-nami-lint/storage-index-budget={"maxIndexes":12}'
+tsp compile main.tsp --no-emit --linter-rule '@ancplua/typespec-nami-lint/unreachable-declaration={"generatedTypes":"report"}'
+```
+
+The last one is an audit. A model, enum or union of a namespace mapped with `@csharpNamespace` gets a
+generated C# and TypeScript type that hand-written code may use, which the TypeSpec program cannot see,
+so the gate counts it as reached. The audit lists the ones no tool, wire root, route, storage row or
+projection reaches; look for a hand-written use of each before removing it.
+
+`bun run test:lint` runs the rule tests in `emitters/nami-lint/test` (also part of `bun run build`).
 
 ## Contract generation
 

@@ -15,7 +15,7 @@
   "devDependencies": {
     "@types/bun": "1.4.4",
     "@types/node": "26.6.6",
-    "typescript": "7.1.0-dev.20261029.1"
+    "typescript": "7.1.0-beta"
   },
   "engines": {
     "bun": ">=1.4"

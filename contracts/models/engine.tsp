@@ -2,6 +2,7 @@ import "../common/types.tsp";
 
 namespace Nami.Api.Contracts.Engine;
 
+#suppress "@ancplua/typespec-nami-lint/wire-root-twin" "C05: one message, two wire roots; engine.ts writes EngineCommand and EngineProtocol.cs reads EngineRequest, so move one side to the other shape before removing either root"
 @doc("One private engine request. Credentials select the project; client tool arguments never do.")
 model EngineRequest {
   id: string;

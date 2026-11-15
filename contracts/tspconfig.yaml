@@ -24,3 +24,8 @@ linter:
   extends:
     - "@typespec/http/all"
     - "@ancplua/typespec-nami-lint/all"
+  enable:
+    # Built into the compiler, off unless enabled: a `using` nothing in its file needs,
+    # and a template parameter its declaration never uses.
+    "@typespec/compiler/unused-using": true
+    "@typespec/compiler/unused-template-parameter": true
