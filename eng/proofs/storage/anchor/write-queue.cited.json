@@ -1,0 +1,27 @@
+[
+  {
+    "id": "M:Nami.Collector.Storage.DuckDbStore.DisposeAsync|Nami.Collector.Storage.DuckDbStore._disposed|ref-arg:Volatile.Write|1",
+    "memberHash": "a5d97d28993212e5",
+    "transition": "Event.dispose: disposed := true; begin is refused afterwards (ThrowIfDisposed)"
+  },
+  {
+    "id": "M:Nami.Collector.Storage.DuckDbStore.DisposeAsync|Nami.Collector.Storage.DuckDbStore._shutdownTask|coalesce-assign|1",
+    "memberHash": "a5d97d28993212e5",
+    "transition": "Event.dispose starts ShutdownAsync once; its TryComplete and CancelAsync are Event.complete and Event.shutdownCancel"
+  },
+  {
+    "id": "M:Nami.Collector.Storage.DuckDbStore.WriteJob`1.ArmCancellation|Nami.Collector.Storage.DuckDbStore.WriteJob<TResult>._cancellationRegistration|assign|1",
+    "memberHash": "6991d4ee94391ca6",
+    "transition": "Event.arm: armed := true; cancelBeforeClaim runs at once when the caller's token is already cancelled"
+  },
+  {
+    "id": "M:Nami.Collector.Storage.DuckDbStore.WriteJob`1.TryClaim|Nami.Collector.Storage.DuckDbStore.WriteJob<TResult>._state|ref-arg:Interlocked.CompareExchange|1",
+    "memberHash": "90c1715890b5e7af",
+    "transition": "Event.dequeue: claim unclaimed -> claimed and the writer runs the job; any other claim -> skip"
+  },
+  {
+    "id": "M:Nami.Collector.Storage.DuckDbStore.WriteJob`1.CancelBeforeClaim|Nami.Collector.Storage.DuckDbStore.WriteJob<TResult>._state|ref-arg:Interlocked.CompareExchange|1",
+    "memberHash": "53cb2f99ade79e1a",
+    "transition": "cancelBeforeClaim (Event.arm, Event.cancel): claim unclaimed -> cancelledBeforeClaim, outcome pending -> canceled"
+  }
+]
