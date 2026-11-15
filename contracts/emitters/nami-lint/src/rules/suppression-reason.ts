@@ -10,7 +10,9 @@
 // (new in 1.18.0), which lists the `#suppress` directives of a parsed file
 // without resolving their codes. Whether a suppression is still needed is a
 // different question, answered after the whole compilation by
-// `scripts/check-suppressions.mjs`.
+// `scripts/check-suppressions.mjs`. That script also refuses a suppression of
+// this rule and any directive without a reason, because a second directive
+// stacked above a reasonless one would otherwise silence this rule.
 
 import { createRule, paramMessage } from "@typespec/compiler";
 import { collectSuppressions } from "@typespec/compiler/ast";

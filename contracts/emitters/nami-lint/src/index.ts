@@ -29,12 +29,14 @@
 //
 // Health
 //   suppression-reason            every #suppress says why
-//   (scripts/check-suppressions.mjs fails on a #suppress that is no longer used)
+//   (scripts/check-suppressions.mjs fails on a #suppress that is no longer used,
+//    gives no reason, or suppresses suppression-reason)
 //
 // Every rule is deterministic: same sources, same diagnostics, same order.
 // =============================================================================
 
 import { createTypeSpecLibrary, defineLinter } from "@typespec/compiler";
+import { LIBRARY_NAME } from "./library.js";
 import { confusableIdentityDocumentedRule } from "./rules/confusable-identity-documented.js";
 import { duplicateMemberValueRule } from "./rules/duplicate-member-value.js";
 import { duplicateModelShapeRule } from "./rules/duplicate-model-shape.js";
@@ -51,7 +53,7 @@ import { unreachableDeclarationRule } from "./rules/unreachable-declaration.js";
 import { wireNameSnakeCaseRule } from "./rules/wire-name-snake-case.js";
 import { wireRootTwinRule } from "./rules/wire-root-twin.js";
 
-export const LIBRARY_NAME = "@ancplua/typespec-nami-lint";
+export { LIBRARY_NAME };
 
 export const $lib = createTypeSpecLibrary({
   name: LIBRARY_NAME,
@@ -99,4 +101,11 @@ export * from "./policy.js";
 export { wireNameFixId } from "./rules/wire-name-snake-case.js";
 export { renumberColumnOrdersFixId } from "./rules/storage-column-order.js";
 export { auditSuppressions, formatSuppressionAudit, unusedSuppressionEdits } from "./suppressions.js";
-export type { SuppressionAudit, SuppressionAuditOptions, SuppressionRecord, SuppressionReportOptions, SuppressionState } from "./suppressions.js";
+export type {
+  SuppressionAudit,
+  SuppressionAuditOptions,
+  SuppressionDefect,
+  SuppressionRecord,
+  SuppressionReportOptions,
+  SuppressionState,
+} from "./suppressions.js";

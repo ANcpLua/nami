@@ -74,6 +74,9 @@ on the declaration. `scripts/check-suppressions.mjs` then fails the gate as soon
 no longer hides anything, so a suppression cannot outlive its cause. It compiles with the
 configured ruleset and with the emitters running against a host that discards their writes,
 because a suppression also reads as unused when its rule is off or its emitter is skipped.
+It also fails on a directive without a reason and on any suppression of `suppression-reason`,
+used or not: stacked above a directive without a reason, such a suppression would silence the
+rule that asks for one.
 `bun run lint:suppressions` lists every suppression with its rule and reason;
 `node scripts/check-suppressions.mjs --fix` deletes the unused ones.
 

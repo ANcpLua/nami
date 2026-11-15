@@ -9,6 +9,7 @@ import { auditSuppressions, formatSuppressionAudit, unusedSuppressionEdits } fro
 import { GateTester, LIBRARY } from "./harness.mjs";
 
 const unreachable = `${LIBRARY}/unreachable-declaration`;
+const reasonRule = `${LIBRARY}/suppression-reason`;
 const gate = { extends: [`${LIBRARY}/all`] };
 
 const source = `
@@ -38,7 +39,7 @@ test("suppression audit: once the cause is fixed the suppression is unused and t
   const audit = auditSuppressions(result.program);
   assert.equal(audit.clean, false);
   assert.equal(audit.unused, 1);
-  assert.match(formatSuppressionAudit(audit), /^main\.tsp:\d+:1 - unused suppression of '@ancplua\/typespec-nami-lint\/unreachable-declaration': nothing matched it in a full compilation\. Remove the directive\.\nSuppressions: 1 total, 0 used, 1 unused, 0 undecidable\.$/);
+  assert.match(formatSuppressionAudit(audit), /^main\.tsp:\d+:1 - error: unused suppression of '@ancplua\/typespec-nami-lint\/unreachable-declaration': nothing matched it in a full compilation\. Remove the directive\.\nSuppressions: 1 total, 0 used, 1 unused, 0 undecidable\.$/);
 });
 
 test("suppression audit: with its rule disabled a needed suppression reads as unused, so the audit refuses to judge it", async () => {
@@ -97,4 +98,39 @@ test("suppression audit: the fix deletes an unused directive with its line and l
     `model C {  x: string; }`,
     ``,
   ].join("\n"));
+});
+
+test("suppression audit: a directive without a reason, or one that suppresses suppression-reason, fails although it is used", async () => {
+  // Stacked under a suppression of `suppression-reason`, a directive without a reason silences the
+  // rule that asks for one, and the compiler, every rule and every `used` flag are satisfied.
+  // The audit refuses both directives by what they say, whatever their state.
+  const stacked = `
+namespace Nami.Api.Contracts.Tools;
+#suppress "${reasonRule}" "hides the missing reason below"
+#suppress "${unreachable}"
+scalar First extends string;
+#suppress "${reasonRule}"
+#suppress "${unreachable}" "   "
+scalar Second extends string;
+`;
+  const [result, diagnostics] = await GateTester.compileAndDiagnose(stacked);
+  assert.deepEqual(diagnostics.map((d) => d.code), []);
+  const audit = auditSuppressions(result.program);
+  assert.deepEqual(audit.records.map((r) => [r.code, r.state, r.defect]), [
+    [reasonRule, "used", "suppresses-reason-rule"],
+    [unreachable, "used", "no-reason"],
+    [reasonRule, "used", "suppresses-reason-rule"],
+    [unreachable, "used", "no-reason"],
+  ]);
+  assert.equal(audit.refused, 4);
+  assert.equal(audit.clean, false);
+  const report = formatSuppressionAudit(audit).split("\n");
+  assert.equal(report.length, 5);
+  for (const index of [0, 2]) {
+    assert.match(report[index], /^main\.tsp:\d+:1 - error: suppression of '@ancplua\/typespec-nami-lint\/suppression-reason' is not allowed: /);
+  }
+  for (const index of [1, 3]) {
+    assert.match(report[index], /^main\.tsp:\d+:1 - error: suppression of '@ancplua\/typespec-nami-lint\/unreachable-declaration' gives no reason\. /);
+  }
+  assert.equal(report[4], "Suppressions: 4 total, 4 used, 0 unused, 0 undecidable, 4 refused.");
 });
