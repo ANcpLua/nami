@@ -36,11 +36,16 @@ public sealed class ClaudeCodeConverterTests
     // A key the registry persists for every sender, next to each producer key: it shows the record was converted.
     private const string Ordinary = "gen_ai.agent.name";
 
+    private static readonly string[] s_scopes = [MeterScope, EventsScope, TracingScope];
+    private static readonly string[] s_ordinaryOnly = [Ordinary];
+    private static readonly string[] s_toolNameOnly = ["tool_name"];
+    private static readonly string[] s_members = ["bash_command", "full_command", "subagent_type"];
+    private static readonly string[] s_membersAndToolName = ["bash_command", "full_command", "subagent_type", "tool_name"];
+
     [TestMethod]
     public void Scopes_AreTheThreeTheRegistryNamesForClaudeCode()
     {
-        Assert.AreSequenceEqual(new[] { MeterScope, EventsScope, TracingScope },
-            Producers.Scopes[Producer].Order(StringComparer.Ordinal).ToArray());
+        Assert.AreSequenceEqual(s_scopes, Producers.Scopes[Producer].Order(StringComparer.Ordinal).ToArray());
     }
 
     /// <summary>The evaluator's nit on step 2: the record's own EventName field wins over the deprecated attribute.</summary>
@@ -116,7 +121,7 @@ public sealed class ClaudeCodeConverterTests
         Assert.IsNull(RegistryPolicy.ProducerOf(Ordinary));
         KeyValue[] sent = [Text("model", "claude-haiku-5-5"), Text("source", "config"), Text(Ordinary, "builder")];
         string[] both = [Ordinary, "model", "source"];
-        string[] ordinaryOnly = [Ordinary];
+        var ordinaryOnly = s_ordinaryOnly;
 
         Assert.AreSequenceEqual(both, Keys(ConvertLog(EventsScope, new LogRecord { Attributes = { sent } }).Attributes));
         Assert.AreSequenceEqual(ordinaryOnly, Keys(ConvertLog(ForeignScope, new LogRecord { Attributes = { sent } }).Attributes));
@@ -240,7 +245,7 @@ public sealed class ClaudeCodeConverterTests
              "subagent_type":"general-purpose","git_commit_id":"c0ffee0000000000000000000000000000000001",
              "timeout":120000,"dangerouslyDisableSandbox":false}
             """;
-        string[] lifted = ["bash_command", "full_command", "subagent_type"];
+        var lifted = s_members;
         Assert.AreSequenceEqual(lifted, WireContainers.Members["tool_parameters"]);
 
         var log = ConvertLog(EventsScope, new LogRecord
@@ -253,12 +258,12 @@ public sealed class ClaudeCodeConverterTests
             Attributes = { Text("tool_parameters", parameters), Text(Ordinary, "builder") }
         });
 
-        Assert.AreSequenceEqual(new[] { "bash_command", "full_command", "subagent_type", "tool_name" }, Keys(log.Attributes));
+        Assert.AreSequenceEqual(s_membersAndToolName, Keys(log.Attributes));
         Assert.AreEqual("python3", log.Attributes["bash_command"].AsString());
         Assert.AreEqual("python3 -m unittest -q", log.Attributes["full_command"].AsString());
         Assert.AreEqual("general-purpose", log.Attributes["subagent_type"].AsString());
         Assert.AreSequenceEqual(lifted, Keys(span.Attributes).Where(static key => key != "service.name"));
-        Assert.AreSequenceEqual(new[] { Ordinary }, Keys(foreign.Attributes),
+        Assert.AreSequenceEqual(s_ordinaryOnly, Keys(foreign.Attributes),
             "under another scope tool_parameters is an unknown key and nothing is read out of it");
     }
 
@@ -295,7 +300,7 @@ public sealed class ClaudeCodeConverterTests
         var batch = OtlpConverter.ConvertLogs(request, TimeProvider.System);
 
         Assert.AreEqual(0L, batch.RejectedLogRecords, batch.RejectionMessage);
-        Assert.AreSequenceEqual(new[] { "tool_name" }, Keys(Assert.ContainsSingle(batch.Logs).Attributes));
+        Assert.AreSequenceEqual(s_toolNameOnly, Keys(Assert.ContainsSingle(batch.Logs).Attributes));
     }
 
     /// <summary>
@@ -342,7 +347,7 @@ public sealed class ClaudeCodeConverterTests
 
         var span = ConvertSpan(TracingScope, NewSpan([new KeyValue { Key = "full_command", Value = list }, Text("tool_name", "Bash")]));
 
-        Assert.AreSequenceEqual(new[] { "tool_name" }, Keys(span.Attributes).Where(static key => key != "service.name"));
+        Assert.AreSequenceEqual(s_toolNameOnly, Keys(span.Attributes).Where(static key => key != "service.name"));
     }
 
     /// <summary>
@@ -370,7 +375,7 @@ public sealed class ClaudeCodeConverterTests
         }
     }
 
-    private static string[] Keys(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
+    private static string[] Keys(NormalizedAttributes attributes) =>
         attributes.Keys.Order(StringComparer.Ordinal).ToArray();
 
     private static KeyValue Text(string key, string value) =>
