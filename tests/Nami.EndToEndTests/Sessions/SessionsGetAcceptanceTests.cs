@@ -35,7 +35,7 @@ public sealed partial class SessionsGetAcceptanceTests(TestContext context)
         await SessionTools.RequireSessionToolsAsync(host, context.CancellationToken);
         var result = await SessionTools.CallAsync(host, GetTool, SessionTools.Get(expected.Id), context.CancellationToken);
         var where = $"{GetTool} {label} ({expected.Id})";
-        var session = SessionTools.Member(result, Session, where);
+        var session = SessionTools.Member(result, SessionMember, where);
         Assert.AreEqual(expected.Id, SessionTools.Text(session, SessionId), where);
         Assert.AreEqual(SignedInSessions.Agent, SessionTools.Text(session, AgentName), where);
         AssertCalls(expected.ToolCalls, SessionTools.Member(session, ToolCalls, where), ToolName, where + " tool calls");
@@ -73,7 +73,7 @@ public sealed partial class SessionsGetAcceptanceTests(TestContext context)
         var input = SessionTools.Get(SignedInSessions.S1.Id);
         input["fields"] = new JsonArray(SessionId, Commits);
         var session = SessionTools.Member(
-            await SessionTools.CallAsync(host, GetTool, input, context.CancellationToken), Session, GetTool);
+            await SessionTools.CallAsync(host, GetTool, input, context.CancellationToken), SessionMember, GetTool);
         Assert.AreSequenceEqual(s_projection.Order(StringComparer.Ordinal).ToArray(),
             session.EnumerateObject().Select(static p => p.Name).Order(StringComparer.Ordinal).ToArray());
         Assert.AreEqual(SignedInSessions.FirstCommit, SessionTools.Text(session.GetProperty(Commits)[0], Revision));
@@ -101,7 +101,7 @@ public sealed partial class SessionsGetAcceptanceTests(TestContext context)
             }
 
             Assert.IsLessThanOrEqualTo(1024, SessionTools.Bytes(content), $"Page {page} exceeds max_bytes.");
-            var session = SessionTools.Member(content, Session, GetTool);
+            var session = SessionTools.Member(content, SessionMember, GetTool);
             if (session.TryGetProperty(ToolCalls, out var pageCalls))
                 calls.AddRange(pageCalls.EnumerateArray().Select(static c => SessionTools.Text(c, ToolName) ?? "?"));
             var more = content.TryGetProperty("next_cursor", out var cursor);
@@ -148,7 +148,7 @@ public sealed partial class SessionsGetAcceptanceTests(TestContext context)
             var result = await SessionTools.CallAsync(host, GetTool, SessionTools.Get(expected.Id), context.CancellationToken);
             var where = $"{GetTool} {expected.Label}";
             Assert.DoesNotContain(ContentAtIngestTests.SentinelPrefix, result.GetRawText(), where);
-            AssertCalls(expected.Commands, SessionTools.Member(SessionTools.Member(result, Session, where), Commands, where),
+            AssertCalls(expected.Commands, SessionTools.Member(SessionTools.Member(result, SessionMember, where), Commands, where),
                 Command, where + " commands");
         }
     }

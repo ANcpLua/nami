@@ -47,7 +47,7 @@ public sealed class LiveNamiTests(TestContext context)
         for (var page = 1; ; page++)
         {
             var result = await CallAsync(client, SearchTool, input);
-            sessions.AddRange(result.GetProperty(Sessions).EnumerateArray().Select(static s => s.Clone()));
+            sessions.AddRange(result.GetProperty(SessionsMember).EnumerateArray().Select(static s => s.Clone()));
             if (!result.TryGetProperty("next_cursor", out var cursor)) break;
             Assert.IsLessThan(1000, page, "Paging the live sessions must end.");
             input["cursor"] = cursor.GetString();
@@ -68,7 +68,7 @@ public sealed class LiveNamiTests(TestContext context)
             Assert.IsGreaterThan(0d, session.GetProperty(DurationMs).GetDouble(), where);
 
             var detail = (await CallAsync(client, GetTool,
-                new JsonObject { [SessionId] = id, ["max_bytes"] = 262144 })).GetProperty(Session);
+                new JsonObject { [SessionId] = id, ["max_bytes"] = 262144 })).GetProperty(SessionMember);
             Assert.IsNotEmpty(detail.GetProperty(ToolCalls).EnumerateArray().ToArray(), where);
             foreach (var claim in detail.GetProperty(TestClaims).EnumerateArray())
                 Assert.Contains(SessionTools.Text(claim, ClaimStatus), s_statuses, where + ": " + claim.GetRawText());

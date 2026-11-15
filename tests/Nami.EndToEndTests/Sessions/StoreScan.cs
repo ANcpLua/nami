@@ -57,7 +57,7 @@ internal static class StoreScan
             {
                 command.CommandText =
                     $"SELECT count(*) FROM {source} WHERE strpos(CAST({Quote(column)} AS VARCHAR), $1) > 0";
-                command.Parameters.Add(new DuckDBParameter(needle));
+                command.Parameters.Add(new DuckDBParameter { Value = needle });
                 var count = Convert.ToInt64(await command.ExecuteScalarAsync(cancellationToken), CultureInfo.InvariantCulture);
                 if (count > 0) hits.Add($"{name} ({count} rows)");
             }

@@ -11,7 +11,7 @@ internal static class SessionsContract
     internal const string GetTool = "sessions_get";
 
     /// <summary>sessions_search: the result member, an array of sessions with records in the window.</summary>
-    internal const string Sessions = "sessions";
+    internal const string SessionsMember = "sessions";
 
     /// <summary>sessions_get: the input argument and every session's identity, Claude Code's <c>session.id</c>.</summary>
     internal const string SessionId = "session_id";
@@ -41,7 +41,7 @@ internal static class SessionsContract
     internal const string DurationMs = "duration_ms";
 
     /// <summary>sessions_get: the result member, one session.</summary>
-    internal const string Session = "session";
+    internal const string SessionMember = "session";
 
     /// <summary>The session's tool calls in order: <c>tool_name</c> and boolean <c>success</c> of each tool_result.</summary>
     internal const string ToolCalls = "tool_calls";

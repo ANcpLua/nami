@@ -8,6 +8,7 @@ using Nami.Tests.Wire.OpenTelemetry.Proto.Collector.Logs.V1;
 using Nami.Tests.Wire.OpenTelemetry.Proto.Collector.Trace.V1;
 using Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1;
 using Nami.Tests.Wire.OpenTelemetry.Proto.Logs.V1;
+using WireLogRecord = Nami.Tests.Wire.OpenTelemetry.Proto.Logs.V1.LogRecord;
 using Nami.Tests.Wire.OpenTelemetry.Proto.Trace.V1;
 
 namespace Nami.Tests.Infrastructure;
@@ -49,7 +50,7 @@ internal static class ClaudeCodeCapture
     /// <summary>The 53 bodies of sessions s1, s2 and s3 in the order Claude Code sent them.</summary>
     internal static IReadOnlyList<OtlpBody> SignedIn() => s_signedIn.Value;
 
-    private static IReadOnlyList<OtlpBody> Load()
+    private static List<OtlpBody> Load()
     {
         using var manifest = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(SignedInDirectory, "manifest.json")));
         var bodies = new List<OtlpBody>();
@@ -100,7 +101,7 @@ internal static class ClaudeCodeCapture
     }
 
     /// <summary>The log records of every logs body, with the body each came from.</summary>
-    internal static IEnumerable<(OtlpBody Body, ResourceLogs Resource, ScopeLogs Scope, LogRecord Record)> LogRecords(
+    internal static IEnumerable<(OtlpBody Body, ResourceLogs Resource, ScopeLogs Scope, WireLogRecord Record)> LogRecords(
         IReadOnlyList<OtlpBody> bodies)
     {
         foreach (var body in bodies.Where(static b => b.Signal == "logs"))
@@ -171,7 +172,7 @@ internal static class ClaudeCodeCapture
         return new OtlpBody("logs", result.Body.Session, "planted " + run.ToolUseId + ": " + run.Command,
             request.ToByteArray());
 
-        static void Stamp(LogRecord record, ulong time, long sequence, string toolUseId)
+        static void Stamp(WireLogRecord record, ulong time, long sequence, string toolUseId)
         {
             record.TimeUnixNano = time;
             record.ObservedTimeUnixNano = time;
@@ -235,7 +236,7 @@ internal static class ClaudeCodeCapture
             {
                 foreach (var scope in request.ResourceLogs.SelectMany(static r => r.ScopeLogs))
                 {
-                    var planted = new List<LogRecord>();
+                    var planted = new List<WireLogRecord>();
                     foreach (var record in scope.LogRecords)
                     {
                         switch (Text(record.Attributes, "event.name"))
@@ -290,7 +291,7 @@ internal static class ClaudeCodeCapture
                 }
             });
 
-        LogRecord Event(LogRecord neighbour, string name, params (string Key, string Value)[] content)
+        WireLogRecord Event(WireLogRecord neighbour, string name, params (string Key, string Value)[] content)
         {
             var record = neighbour.Clone();
             record.Body = Text("claude_code." + name);

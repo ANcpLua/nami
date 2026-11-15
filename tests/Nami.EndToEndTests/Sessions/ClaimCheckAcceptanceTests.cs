@@ -90,7 +90,7 @@ public sealed class ClaimCheckAcceptanceTests(TestContext context)
         var result = await SessionTools.CallAsync(host, GetTool, SessionTools.Get(SignedInSessions.S1.Id),
             context.CancellationToken);
         var where = $"{GetTool} s1";
-        var session = SessionTools.Member(result, Session, where);
+        var session = SessionTools.Member(result, SessionMember, where);
         // The planted runs reached nami as commands of s1, so the claim below is judged on them.
         SessionsGetAcceptanceTests.AssertCalls(commands, SessionTools.Member(session, Commands, where), Command,
             where + " commands");

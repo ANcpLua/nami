@@ -28,7 +28,7 @@ public sealed class SessionsSearchAcceptanceTests(TestContext context)
         await SessionTools.RequireSessionToolsAsync(host, context.CancellationToken);
         var result = await SessionTools.CallAsync(host, SearchTool, SessionTools.Search(SignedInSessions.WindowStart),
             context.CancellationToken);
-        Assert.HasCount(3, SessionTools.Member(result, Sessions, SearchTool).EnumerateArray().ToArray(),
+        Assert.HasCount(3, SessionTools.Member(result, SessionsMember, SearchTool).EnumerateArray().ToArray(),
             "The capture holds exactly three sessions: " + SessionTools.Shorten(result.GetRawText()));
         foreach (var expected in SignedInSessions.All)
         {
@@ -68,7 +68,7 @@ public sealed class SessionsSearchAcceptanceTests(TestContext context)
         var result = await SessionTools.CallAsync(host, SearchTool, SessionTools.Search(since), context.CancellationToken);
         var expected = labels.Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(static label => SignedInSessions.ByLabel(label).Id).Order(StringComparer.Ordinal).ToArray();
-        var actual = Member(result, Sessions, SearchTool).EnumerateArray()
+        var actual = Member(result, SessionsMember, SearchTool).EnumerateArray()
             .Select(static s => SessionTools.Text(s, SessionId) ?? "(no session_id)").Order(StringComparer.Ordinal).ToArray();
         Assert.AreSequenceEqual(expected, actual, $"Sessions in the window from {since}.");
     }
@@ -137,7 +137,7 @@ public sealed class SessionsSearchAcceptanceTests(TestContext context)
             var page = await SessionTools.CallAsync(host, SearchTool, input, context.CancellationToken);
             pages++;
             Assert.IsLessThanOrEqualTo(1024, SessionTools.Bytes(page), $"Page {pages} exceeds max_bytes.");
-            seen.AddRange(Member(page, Sessions, SearchTool).EnumerateArray()
+            seen.AddRange(Member(page, SessionsMember, SearchTool).EnumerateArray()
                 .Select(static s => SessionTools.Text(s, SessionId) ?? "(no session_id)"));
             var more = page.TryGetProperty("next_cursor", out var cursor);
             Assert.AreEqual(more, page.GetProperty("freshness").GetProperty("truncated").GetBoolean(),
@@ -240,8 +240,8 @@ public sealed class SessionsSearchAcceptanceTests(TestContext context)
         Assert.Contains(SessionId, get.InputSchema.GetProperty("required").EnumerateArray()
             .Select(static r => r.GetString()).ToArray(), "sessions_get reads one session by its id.");
         Assert.AreEqual("array", tools.Single(static t => t.Name == SearchTool).OutputSchema!.Value
-            .GetProperty("properties").GetProperty(Sessions).GetProperty("type").GetString());
-        Assert.AreEqual("object", get.OutputSchema!.Value.GetProperty("properties").GetProperty(Session)
+            .GetProperty("properties").GetProperty(SessionsMember).GetProperty("type").GetString());
+        Assert.AreEqual("object", get.OutputSchema!.Value.GetProperty("properties").GetProperty(SessionMember)
             .GetProperty("type").GetString());
     }
 

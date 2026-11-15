@@ -101,7 +101,7 @@ internal static class SessionTools
     /// <summary>The one session of a sessions_search result with this id, failing with the ids it did return.</summary>
     internal static JsonElement SessionById(JsonElement result, string id)
     {
-        var sessions = result.GetProperty(SessionsContract.Sessions).EnumerateArray().ToArray();
+        var sessions = result.GetProperty(SessionsContract.SessionsMember).EnumerateArray().ToArray();
         var matches = sessions.Where(s => Text(s, SessionsContract.SessionId) == id).ToArray();
         if (matches.Length != 1)
             Assert.Fail($"Expected one session {id}; sessions_search returned {matches.Length} of " +
