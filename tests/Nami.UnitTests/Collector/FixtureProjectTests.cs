@@ -2,7 +2,7 @@ namespace Nami.UnitTests.Collector;
 
 [TestClass]
 [TestCategory("Fast")]
-public class FixtureProjectTests
+public sealed class FixtureProjectTests
 {
     [TestMethod]
     public void Should_KeepFrameworkModesExclusive_When_SwitchingBackToOneFramework()

@@ -2,7 +2,7 @@ namespace Nami.UnitTests.Collector;
 
 [TestClass]
 [TestCategory("Fast")]
-public class ChildProcessTests
+public sealed class ChildProcessTests
 {
     [TestMethod]
     public async Task Should_ObserveCancellationBeforeStarting_When_TheTokenIsAlreadyCancelled()

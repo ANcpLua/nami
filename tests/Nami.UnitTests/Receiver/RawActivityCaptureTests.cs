@@ -6,7 +6,7 @@ namespace Nami.UnitTests.Receiver;
 
 [TestClass]
 [TestCategory("Fast")]
-public class RawActivityCaptureTests
+public sealed class RawActivityCaptureTests
 {
     public enum RawViolation
     {

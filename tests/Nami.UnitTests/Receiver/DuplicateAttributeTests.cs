@@ -7,7 +7,7 @@ namespace Nami.UnitTests.Receiver;
 
 [TestClass]
 [TestCategory("Fast")]
-public class DuplicateAttributeTests
+public sealed class DuplicateAttributeTests
 {
     public enum AttributeShape
     {

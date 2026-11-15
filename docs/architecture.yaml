@@ -14,7 +14,6 @@ runtime:
   current_implementation: TypeScript MCP and native engine implemented; auto-instrumentation is not wired in; hosted delivery remains tracked
 surfaces:
   claude_ai: remote MCP connector
-  openai: plugin bundle with MCP integration
   local_mcp: stdio
   remote_mcp: Streamable HTTP
   private_engine: framed UTF-8 JSON over private streams or pipes
@@ -76,7 +75,7 @@ deployment:
   release: MCP plus native engine plus declared runtime and native-library dependencies
   internal_http_required: false
   single_binary_required: false
-  remote_packaging: host-specific connector or plugin bundle
+  remote_packaging: one container with one volume, served over HTTPS with built-in sign-in (decisions 0001 and 0002); a skills-only Claude plugin bundle follows with the directory listing (decision 0003)
   current_railway_service: nami
   source: ANcpLua/nami
   current_dockerfile: src/nami/Dockerfile

@@ -11,7 +11,6 @@ artifacts/
 # tracked files from ignore rules, but `railway up` walks the filesystem with
 # these patterns and would omit them from the build context.
 !**/Protos/**
-!services/nami.mcp/testdata/**
 *.dll
 *.exe
 *.pdb
@@ -63,10 +62,6 @@ yarn-error.log*
 *.tsbuildinfo
 
 dist/
-dist-test/
-
-# Hosted MCP evaluation evidence.
-services/nami.mcp/eval/out/
 
 .DS_Store
 .DS_Store?
@@ -84,8 +79,6 @@ Thumbs.db
 *.duckdb.wal
 *.parquet
 nami.duckdb/
-.nami/binlogs/
-.nami/build-failures-spool.jsonl
 
 .env
 .env.*
@@ -120,7 +113,6 @@ __pycache__/
 **/CLAUDE.md
 !CLAUDE.md
 .mcp.json
-!plugins/nami/.mcp.json
 tmp/
 .tmp/
 
@@ -128,11 +120,5 @@ QA*.md
 
 images/
 *.png
-!plugins/nami/assets/*.png
-/eng/Benchmark.Large/Benchmark.cs
-/eng/Benchmark.Large/Benchmark.Large.csproj
-/eng/Benchmark.Large/Program.cs
-/eng/Benchmark.Large/Types.cs
-/docs/api-docs/
 
 .blackboard/

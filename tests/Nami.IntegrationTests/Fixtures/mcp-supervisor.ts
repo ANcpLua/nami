@@ -23,6 +23,9 @@ async function until(check: () => boolean | Promise<boolean>) {
   }
   throw new Error("Fixture condition did not complete within five seconds.");
 }
+// Every field a scenario prints is an observation. The MSTest method judges it; assertions here
+// only guard steps that a later observation depends on.
+const observed = (check: () => boolean | Promise<boolean>) => until(check).then(() => true, () => false);
 async function launcher(mode: string) {
   const path = join(state, "engine");
   const fixture = fileURLToPath(new URL("./mcp-engine.ts", import.meta.url));
@@ -53,18 +56,18 @@ try {
     try {
       const refusal = await request(handler, { service: "x".repeat(1_048_576) });
       assert.equal(refusal.isError, true);
-      assert.equal(refusal.structuredContent.code, "invalid_argument");
       assert.equal(refusal.structuredContent.retryable, false);
       assert.equal(refusal.content.length, 2);
       assert.deepEqual(JSON.parse(refusal.content[1].text), refusal.structuredContent);
       await engine.request("call", "release", {});
-      assert.equal((await held).isError, false);
+      const pending = await held;
       const later = await request(handler, {});
-      assert.equal(later.isError, false);
-      assert.equal(later.structuredContent.snapshot_id, "fixture-snapshot");
       const health = await engine.request("health", null, null);
-      assert.equal((health.result as { pid: number }).pid, before);
-      console.log(JSON.stringify({ refusalCode: refusal.structuredContent.code, pendingSucceeded: true, subsequentSucceeded: true, sameChild: true }));
+      console.log(JSON.stringify({
+        refusalCode: refusal.structuredContent.code, pendingIsError: pending.isError, subsequentIsError: later.isError,
+        subsequentSnapshot: later.structuredContent?.snapshot_id ?? null,
+        childBefore: before, childAfter: (health.result as { pid?: number } | null)?.pid ?? null
+      }));
     } finally { await handler.close(); }
   } else if (scenario === "backpressure") {
     engine = new Engine(await launcher("paused"));
@@ -79,15 +82,16 @@ try {
       await sleep(100);
       cancellation.abort();
       const settled = await Promise.race([completed, sleep(500).then(() => "still-pending")]);
-      // Release the blocked pipe even when the assertion fails, so cleanup cannot mask it.
+      // Release the blocked pipe whatever was observed, so cleanup cannot mask it.
       await writeFile(join(state, "resume"), "resume");
-      assert.equal(settled, "rejected", "Cancellation must settle without waiting for pipe drain.");
-      await until(() => existsSync(join(state, "cancel")));
+      const cancelForwarded = await observed(() => existsSync(join(state, "cancel")));
       const health = await engine.request("health", null, null);
-      assert.equal((health.result as { pid: number }).pid, await pid());
+      const child = await pid();
       await sleep(25);
-      assert.deepEqual(unhandled, []);
-      console.log(JSON.stringify({ settled, unhandledRejections: unhandled.length, cancelForwarded: true, subsequentSucceeded: true }));
+      console.log(JSON.stringify({
+        settled, unhandledRejections: unhandled.length, cancelForwarded, subsequentIsError: health.isError,
+        child, subsequentChild: (health.result as { pid?: number } | null)?.pid ?? null
+      }));
     } finally { process.removeListener("unhandledRejection", record); }
   } else if (scenario === "failure") {
     engine = new Engine(await launcher("stubborn"));
@@ -96,11 +100,10 @@ try {
     await assert.rejects(engine.request("call", "malformed", {}));
     const first = engine.close();
     const second = engine.close();
-    assert.equal(first, second, "Concurrent shutdown calls must share completion.");
     await Promise.race([first, sleep(10_000).then(() => { throw new Error("Forced shutdown timed out."); })]);
-    assert.equal(existsSync(join(state, "term")), true);
-    assert.equal(running(child), false, "Shutdown must await termination of a SIGTERM-resistant child.");
-    console.log(JSON.stringify({ termReceived: true, childExited: true, sameShutdown: true }));
+    console.log(JSON.stringify({
+      termReceived: existsSync(join(state, "term")), childRunningAfterClose: running(child), sameShutdown: first === second
+    }));
   } else if (scenario === "http" || scenario === "stdio") {
     const args = [process.execPath, fileURLToPath(new URL("../../../src/nami.mcp/src/main.ts", import.meta.url)), "--engine", await launcher("normal")];
     let port: number | undefined;
@@ -123,25 +126,23 @@ try {
         catch { return false; }
       });
       processUnderTest.stdin.end();
-      assert.equal(await Promise.race([processExit.then(() => "exited"), sleep(150).then(() => "alive")]), "alive");
+      const afterEof = await Promise.race([processExit.then(() => "exited"), sleep(150).then(() => "alive")]);
       const health = await fetch(url + "/health");
-      assert.equal(health.status, 200);
       const call = await fetch(url + "/mcp", {
         method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream", "MCP-Protocol-Version": "2025-11-25" },
         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "sources_status", arguments: {} } })
       });
-      assert.equal(call.status, 200);
       const body = await call.text();
-      assert.match(body, /fixture-snapshot/);
       processUnderTest.kill("SIGTERM");
-      assert.equal(await processExit, 0);
-      assert.equal(running(child), false);
-      console.log(JSON.stringify({ healthStatus: health.status, toolStatus: call.status, aliveAfterEof: true, childExitedAfterSignal: true }));
+      const exitCode = await processExit;
+      console.log(JSON.stringify({
+        afterEof, healthStatus: health.status, toolStatus: call.status, toolReturnedSnapshot: body.includes("fixture-snapshot"),
+        exitCodeAfterSignal: exitCode, childRunningAfterSignal: running(child)
+      }));
     } else {
       processUnderTest.stdin.end();
-      assert.equal(await processExit, 0);
-      assert.equal(running(child), false);
-      console.log(JSON.stringify({ exitedOnEof: true, childExited: true }));
+      const exitCode = await processExit;
+      console.log(JSON.stringify({ exitCodeOnEof: exitCode, childRunningAfterExit: running(child) }));
     }
   } else throw new Error("Unknown supervisor scenario: " + scenario);
 } finally {

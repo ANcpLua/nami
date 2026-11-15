@@ -4,7 +4,7 @@ namespace Nami.UnitTests;
 
 [TestClass]
 [TestCategory("Fast")]
-public class RunnerExecutionTests
+public sealed class RunnerExecutionTests
 {
 #if NAMI_NATIVE_TEST_RUNNER
     private const bool DynamicCodeExpected = false;

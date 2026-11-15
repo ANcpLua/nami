@@ -115,13 +115,6 @@ generated_code = true
 dotnet_analyzer_diagnostic.severity = none
 generated_code = true
 
-# Non-C# generated outputs — skip Rider/ReSharper cleanup & reformat.
-[*.g.{sql,tsp,ts}]
-generated_code = true
-
-[**/openapi/openapi.yaml]
-generated_code = true
-
 [eng/build/**/*.cs]
 # Fallout injects fields and uses a top-level build type, so its generated conventions require these suppressions.
 dotnet_diagnostic.CA1822.severity = none

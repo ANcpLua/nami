@@ -12,10 +12,14 @@ public sealed class McpSupervisorTests(TestContext context)
     public async Task OversizedMcpInput_RefusesOnlyThatRequest()
     {
         using var result = await RunAsync("oversize");
-        Assert.AreEqual("invalid_argument", result.RootElement.GetProperty("refusalCode").GetString());
-        Assert.IsTrue(result.RootElement.GetProperty("pendingSucceeded").GetBoolean());
-        Assert.IsTrue(result.RootElement.GetProperty("subsequentSucceeded").GetBoolean());
-        Assert.IsTrue(result.RootElement.GetProperty("sameChild").GetBoolean());
+        var observed = result.RootElement;
+        Assert.AreEqual("invalid_argument", observed.GetProperty("refusalCode").GetString());
+        Assert.IsFalse(observed.GetProperty("pendingIsError").GetBoolean(), "The call held during the refusal must still succeed.");
+        Assert.IsFalse(observed.GetProperty("subsequentIsError").GetBoolean(), "A call after the refusal must succeed.");
+        Assert.AreEqual("fixture-snapshot", observed.GetProperty("subsequentSnapshot").GetString());
+        Assert.IsGreaterThan(0, observed.GetProperty("childBefore").GetInt32());
+        Assert.AreEqual(observed.GetProperty("childBefore").GetInt32(), observed.GetProperty("childAfter").GetInt32(),
+            "The refusal must not restart the engine.");
     }
 
     [TestMethod]
@@ -23,10 +27,15 @@ public sealed class McpSupervisorTests(TestContext context)
     public async Task Backpressure_CancellationSettlesWithoutUnhandledRejection()
     {
         using var result = await RunAsync("backpressure");
-        Assert.AreEqual("rejected", result.RootElement.GetProperty("settled").GetString());
-        Assert.AreEqual(0, result.RootElement.GetProperty("unhandledRejections").GetInt32());
-        Assert.IsTrue(result.RootElement.GetProperty("cancelForwarded").GetBoolean());
-        Assert.IsTrue(result.RootElement.GetProperty("subsequentSucceeded").GetBoolean());
+        var observed = result.RootElement;
+        Assert.AreEqual("rejected", observed.GetProperty("settled").GetString(),
+            "Cancellation must settle without waiting for pipe drain.");
+        Assert.AreEqual(0, observed.GetProperty("unhandledRejections").GetInt32());
+        Assert.IsTrue(observed.GetProperty("cancelForwarded").GetBoolean(), "The engine must receive the cancel command.");
+        Assert.IsFalse(observed.GetProperty("subsequentIsError").GetBoolean(), "A call after the cancellation must succeed.");
+        Assert.IsGreaterThan(0, observed.GetProperty("child").GetInt32());
+        Assert.AreEqual(observed.GetProperty("child").GetInt32(), observed.GetProperty("subsequentChild").GetInt32(),
+            "The cancellation must not restart the engine.");
     }
 
     [TestMethod]
@@ -34,9 +43,11 @@ public sealed class McpSupervisorTests(TestContext context)
     public async Task FailedEngine_CloseReapsSigtermResistantChild()
     {
         using var result = await RunAsync("failure");
-        Assert.IsTrue(result.RootElement.GetProperty("termReceived").GetBoolean());
-        Assert.IsTrue(result.RootElement.GetProperty("childExited").GetBoolean());
-        Assert.IsTrue(result.RootElement.GetProperty("sameShutdown").GetBoolean());
+        var observed = result.RootElement;
+        Assert.IsTrue(observed.GetProperty("termReceived").GetBoolean(), "Shutdown must send SIGTERM first.");
+        Assert.IsFalse(observed.GetProperty("childRunningAfterClose").GetBoolean(),
+            "Shutdown must await termination of a SIGTERM-resistant child.");
+        Assert.IsTrue(observed.GetProperty("sameShutdown").GetBoolean(), "Concurrent shutdown calls must share completion.");
     }
 
     [TestMethod]
@@ -44,10 +55,13 @@ public sealed class McpSupervisorTests(TestContext context)
     public async Task Http_ClosedStdin_RemainsAvailableUntilSignal()
     {
         using var result = await RunAsync("http");
-        Assert.AreEqual(200, result.RootElement.GetProperty("healthStatus").GetInt32());
-        Assert.AreEqual(200, result.RootElement.GetProperty("toolStatus").GetInt32());
-        Assert.IsTrue(result.RootElement.GetProperty("aliveAfterEof").GetBoolean());
-        Assert.IsTrue(result.RootElement.GetProperty("childExitedAfterSignal").GetBoolean());
+        var observed = result.RootElement;
+        Assert.AreEqual("alive", observed.GetProperty("afterEof").GetString(), "Closed stdin must not stop the HTTP host.");
+        Assert.AreEqual(200, observed.GetProperty("healthStatus").GetInt32());
+        Assert.AreEqual(200, observed.GetProperty("toolStatus").GetInt32());
+        Assert.IsTrue(observed.GetProperty("toolReturnedSnapshot").GetBoolean(), "The tool call must return the engine's result.");
+        Assert.AreEqual(0, observed.GetProperty("exitCodeAfterSignal").GetInt32());
+        Assert.IsFalse(observed.GetProperty("childRunningAfterSignal").GetBoolean(), "SIGTERM must also end the engine.");
     }
 
     [TestMethod]
@@ -55,8 +69,9 @@ public sealed class McpSupervisorTests(TestContext context)
     public async Task Stdio_Eof_ShutsDownOwnedEngine()
     {
         using var result = await RunAsync("stdio");
-        Assert.IsTrue(result.RootElement.GetProperty("exitedOnEof").GetBoolean());
-        Assert.IsTrue(result.RootElement.GetProperty("childExited").GetBoolean());
+        var observed = result.RootElement;
+        Assert.AreEqual(0, observed.GetProperty("exitCodeOnEof").GetInt32());
+        Assert.IsFalse(observed.GetProperty("childRunningAfterExit").GetBoolean(), "End of input must also end the engine.");
     }
 
     private async Task<JsonDocument> RunAsync(string scenario)

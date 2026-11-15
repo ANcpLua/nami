@@ -7,7 +7,7 @@ namespace Nami.UnitTests.Receiver;
 
 [TestClass]
 [TestCategory("Fast")]
-public class ProtocolContractTests
+public sealed class ProtocolContractTests
 {
     private const string Trace = "trace";
     private const string Logs = "logs";

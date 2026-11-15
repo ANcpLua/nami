@@ -25,6 +25,7 @@ the implemented portions and the remaining proof for each I1–I18 and D1–D6
 requirement. Successful fixture, build or local transport checks do not complete
 those broader requirements.
 
-The retired Downloads and playground checkouts are not dependencies. Qyl remains
-a separate retained project; completed prototype integration is not a new import
-or deletion task.
+The retired Downloads and playground checkouts are not dependencies. qyl is nami's
+predecessor, which nami replaces ([decision 0001](../decisions/0001-remote-connector-and-who-pays.md));
+it is not a source, and nothing is taken from it. Completed prototype integration is
+not a new import or deletion task.

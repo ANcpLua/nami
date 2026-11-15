@@ -16,7 +16,7 @@ Eine vorhandene Datei beweist nicht, dass ihre komplette Implementierung optimal
 | --- | --- | --- |
 | `~/RiderProjects/nami` | Konsolidierung einschließlich MSBuild-Bereinigung bis `00523cc` auf `main` übernommen. `main` ist der einzige lokale und Remote-Branch. | Produktimplementierung, vier Testprojekte und gemeinsame Build-Dateien. |
 | Downloads-Prototyp und seine alte Sicherung | Laut ausdrücklicher Nutzerbestätigung gelöscht; dokumentiert in [skill-plugin-dedup.md](skill-plugin-dedup.md). | Keine aktive Abhängigkeit und kein neuer Importauftrag. |
-| `~/RiderProjects/qyl` | Separates Produkt mit eigenständigen verschachtelten Repositories. | **Bleibt erhalten.** Die lesende Instrumentierungsberatung ist kein Migrationsauftrag. |
+| `~/RiderProjects/qyl` | Vorgänger von nami, den nami ersetzt ([Entscheidung 0001](../decisions/0001-remote-connector-and-who-pays.md)); eigenständige verschachtelte Repositories. | **Keine Quelle für nami: Aus qyl wird nichts übernommen.** Das Verzeichnis wurde bei diesem Aufräumen nicht gelöscht. |
 | `~/RiderProjects/nami.playground` | Kandidaten geprüft; sinnvolle Fähigkeiten in vorhandene Nami-Eigentümer übernommen. | **Am 27. Oktober 2026 auf ausdrücklichen Nutzerauftrag gelöscht.** Temporäre Sicherungen wurden am 30. Oktober 2026 auf Nutzerauftrag entfernt; kein Produkt-, Build- oder Test-Verweis. |
 | `~/RiderProjects/nami-plugin` | Portable Skill-Distribution; Eigentum in [skill-plugin-dedup.md](skill-plugin-dedup.md). | Separate Plugin-Arbeit; nicht zusammen mit Prototypen entfernen. |
 | `~/RiderProjects/nami-architecture-review` | Entscheidungsarbeit. | Keine Produktlaufzeit und keine zweite Implementierung. |
@@ -102,7 +102,7 @@ Die Testnamen bezeichnen die zuständigen Nachweise. Der endgültige Gesamtprüf
 Der Playground wurde nach der Konsolidierung am 27. Oktober 2026 auf ausdrücklichen Nutzerauftrag gelöscht.
 Die temporären Dateiarchive, Git-Bundles und alten Audit-Berichte wurden am 30. Oktober 2026 ebenfalls auf
 Nutzerauftrag entfernt. Sie sind keine aktuelle Abhängigkeit oder verfügbare Sicherung.
-**Qyl bleibt erhalten.** Die abgeschlossene Konsolidierung eröffnet keinen weiteren Migrationsauftrag.
+**qyl wurde dabei nicht gelöscht, ist aber keine Quelle für nami: Aus qyl wird nichts übernommen.** Die abgeschlossene Konsolidierung eröffnet keinen weiteren Migrationsauftrag.
 Die drei zusätzlichen Branches wurden bereits am 27. Oktober 2026 lokal und auf `origin` gelöscht.
 Für neue Änderungen gelten die aktuellen Quellen und die Prüfkommandos in [testing.md](../testing.md).
 
