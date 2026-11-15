@@ -8,6 +8,8 @@ public static class ContractFields
         var type when type == typeof(global::Nami.Api.Contracts.Common.Freshness) => ["watermark", "complete", "examined", "matched", "returned", "truncated"],
         var type when type == typeof(global::Nami.Api.Contracts.Tools.ProjectedErrorGroup) => ["error_type", "operation", "first_seen", "last_seen", "count", "example_trace_id", "source"],
         var type when type == typeof(global::Nami.Api.Contracts.Tools.ProjectedLogHit) => ["timestamp", "severity", "body", "trace_id", "span_id", "service"],
+        var type when type == typeof(global::Nami.Api.Contracts.Tools.ProjectedSessionDetail) => ["tool_calls", "commits", "test_claims", "session_id", "agent_name", "models", "efforts", "input_tokens", "output_tokens", "cache_read_tokens", "cache_creation_tokens", "cost_usd_micros", "tool_call_count", "failed_tool_call_count", "duration_ms", "first_seen", "last_seen"],
+        var type when type == typeof(global::Nami.Api.Contracts.Tools.ProjectedSessionSummary) => ["session_id", "agent_name", "models", "efforts", "input_tokens", "output_tokens", "cache_read_tokens", "cache_creation_tokens", "cost_usd_micros", "tool_call_count", "failed_tool_call_count", "duration_ms", "first_seen", "last_seen"],
         var type when type == typeof(global::Nami.Api.Contracts.Tools.ProjectedSourceStatus) => ["service", "signals"],
         var type when type == typeof(global::Nami.Api.Contracts.Tools.ProjectedTrace) => ["spans", "trace_id", "root_span", "span_count", "duration_ns", "start_time", "end_time", "services", "has_error"],
         var type when type == typeof(global::Nami.Api.Contracts.Tools.ProjectedSlowTrace) => ["trace_id", "operation", "duration_ms", "started_at", "status"],

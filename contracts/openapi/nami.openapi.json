@@ -1903,6 +1903,20 @@
         ],
         "description": "Observed revision, version, environment and pipeline changes."
       },
+      "Tools.CommitSha": {
+        "type": "string",
+        "minLength": 40,
+        "maxLength": 64,
+        "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})(?![\\s\\S])",
+        "description": "A full git commit id: 40 lowercase hex digits, or 64 in a SHA-256 repository."
+      },
+      "Tools.CostUsdMicros": {
+        "type": "integer",
+        "format": "int64",
+        "minimum": 0,
+        "maximum": 9007199254740991,
+        "description": "Cost in millionths of a US dollar as Claude Code reports it (cost_usd_micros). An integer, so a sum is exact."
+      },
       "Tools.ErrorGroup": {
         "type": "object",
         "required": [
@@ -1980,6 +1994,38 @@
           }
         ],
         "description": "Groups of errors from log events, span events and error-status spans."
+      },
+      "Tools.GateRun": {
+        "type": "object",
+        "required": [
+          "session_id",
+          "tool_use_id",
+          "command",
+          "success",
+          "finished_at"
+        ],
+        "properties": {
+          "session_id": {
+            "$ref": "#/components/schemas/Common.SessionId",
+            "description": "The session that ran it, which for a contradicting run can be another one."
+          },
+          "tool_use_id": {
+            "$ref": "#/components/schemas/Tools.ToolUseId"
+          },
+          "command": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "finished_at": {
+            "$ref": "#/components/schemas/Common.Timestamp"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A gate run: a foreground shell call whose whole command line is ./eng/build.sh Check or ./eng/test.sh, with arguments but without a pipe, &&, ; or ||, so its success stands for exit code 0."
       },
       "Tools.LogHit": {
         "type": "object",
@@ -2154,6 +2200,154 @@
         },
         "description": "A field projection of LogHit; omitted members were not requested."
       },
+      "Tools.ProjectedSessionDetail": {
+        "type": "object",
+        "properties": {
+          "tool_calls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tools.SessionToolCall"
+            },
+            "description": "Tool calls in the order they finished."
+          },
+          "commits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tools.SessionCommit"
+            },
+            "description": "Commits the session made, oldest first."
+          },
+          "test_claims": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tools.TestClaim"
+            }
+          },
+          "session_id": {
+            "$ref": "#/components/schemas/Common.SessionId"
+          },
+          "agent_name": {
+            "type": "string",
+            "description": "The gen_ai.agent.name resource attribute, when the session sets one."
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Models of the session's api_request events, sorted."
+          },
+          "efforts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Effort levels of the session's api_request events, sorted."
+          },
+          "input_tokens": {
+            "$ref": "#/components/schemas/Common.TokenCount"
+          },
+          "output_tokens": {
+            "$ref": "#/components/schemas/Common.TokenCount"
+          },
+          "cache_read_tokens": {
+            "$ref": "#/components/schemas/Common.TokenCount"
+          },
+          "cache_creation_tokens": {
+            "$ref": "#/components/schemas/Common.TokenCount"
+          },
+          "cost_usd_micros": {
+            "$ref": "#/components/schemas/Tools.CostUsdMicros",
+            "description": "Sum of cost_usd_micros over the session's api_request events."
+          },
+          "tool_call_count": {
+            "$ref": "#/components/schemas/Common.Count",
+            "description": "tool_result events."
+          },
+          "failed_tool_call_count": {
+            "$ref": "#/components/schemas/Common.Count",
+            "description": "tool_result events whose success is false."
+          },
+          "duration_ms": {
+            "$ref": "#/components/schemas/Common.DurationMs",
+            "description": "From first_seen to last_seen."
+          },
+          "first_seen": {
+            "$ref": "#/components/schemas/Common.Timestamp"
+          },
+          "last_seen": {
+            "$ref": "#/components/schemas/Common.Timestamp"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A field projection of SessionDetail; omitted members were not requested."
+      },
+      "Tools.ProjectedSessionSummary": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "$ref": "#/components/schemas/Common.SessionId"
+          },
+          "agent_name": {
+            "type": "string",
+            "description": "The gen_ai.agent.name resource attribute, when the session sets one."
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Models of the session's api_request events, sorted."
+          },
+          "efforts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Effort levels of the session's api_request events, sorted."
+          },
+          "input_tokens": {
+            "$ref": "#/components/schemas/Common.TokenCount"
+          },
+          "output_tokens": {
+            "$ref": "#/components/schemas/Common.TokenCount"
+          },
+          "cache_read_tokens": {
+            "$ref": "#/components/schemas/Common.TokenCount"
+          },
+          "cache_creation_tokens": {
+            "$ref": "#/components/schemas/Common.TokenCount"
+          },
+          "cost_usd_micros": {
+            "$ref": "#/components/schemas/Tools.CostUsdMicros",
+            "description": "Sum of cost_usd_micros over the session's api_request events."
+          },
+          "tool_call_count": {
+            "$ref": "#/components/schemas/Common.Count",
+            "description": "tool_result events."
+          },
+          "failed_tool_call_count": {
+            "$ref": "#/components/schemas/Common.Count",
+            "description": "tool_result events whose success is false."
+          },
+          "duration_ms": {
+            "$ref": "#/components/schemas/Common.DurationMs",
+            "description": "From first_seen to last_seen."
+          },
+          "first_seen": {
+            "$ref": "#/components/schemas/Common.Timestamp"
+          },
+          "last_seen": {
+            "$ref": "#/components/schemas/Common.Timestamp"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A field projection of SessionSummary; omitted members were not requested."
+      },
       "Tools.ProjectedSlowTrace": {
         "type": "object",
         "properties": {
@@ -2252,6 +2446,278 @@
           "not": {}
         },
         "description": "A projected trace. An omitted field was not requested; it is not a fabricated value."
+      },
+      "Tools.SessionCommit": {
+        "type": "object",
+        "required": [
+          "commit_sha",
+          "tool_use_id",
+          "committed_at"
+        ],
+        "properties": {
+          "commit_sha": {
+            "$ref": "#/components/schemas/Tools.CommitSha"
+          },
+          "branch": {
+            "type": "string",
+            "description": "vcs.ref.head.name when HEAD was a branch; absent on a detached HEAD."
+          },
+          "tool_use_id": {
+            "$ref": "#/components/schemas/Tools.ToolUseId"
+          },
+          "committed_at": {
+            "$ref": "#/components/schemas/Common.Timestamp",
+            "description": "When the git commit call finished; git's own commit time is not sent."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A commit the session made, from the tool_result of its git commit call."
+      },
+      "Tools.SessionDetail": {
+        "type": "object",
+        "required": [
+          "tool_calls",
+          "commits",
+          "test_claims"
+        ],
+        "properties": {
+          "tool_calls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tools.SessionToolCall"
+            },
+            "description": "Tool calls in the order they finished."
+          },
+          "commits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tools.SessionCommit"
+            },
+            "description": "Commits the session made, oldest first."
+          },
+          "test_claims": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tools.TestClaim"
+            }
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Tools.SessionSummary"
+          }
+        ],
+        "description": "A session with its tool calls, commits and test claims."
+      },
+      "Tools.SessionSummary": {
+        "type": "object",
+        "required": [
+          "session_id",
+          "models",
+          "efforts",
+          "input_tokens",
+          "output_tokens",
+          "cache_read_tokens",
+          "cache_creation_tokens",
+          "cost_usd_micros",
+          "tool_call_count",
+          "failed_tool_call_count",
+          "duration_ms",
+          "first_seen",
+          "last_seen"
+        ],
+        "properties": {
+          "session_id": {
+            "$ref": "#/components/schemas/Common.SessionId"
+          },
+          "agent_name": {
+            "type": "string",
+            "description": "The gen_ai.agent.name resource attribute, when the session sets one."
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Models of the session's api_request events, sorted."
+          },
+          "efforts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Effort levels of the session's api_request events, sorted."
+          },
+          "input_tokens": {
+            "$ref": "#/components/schemas/Common.TokenCount"
+          },
+          "output_tokens": {
+            "$ref": "#/components/schemas/Common.TokenCount"
+          },
+          "cache_read_tokens": {
+            "$ref": "#/components/schemas/Common.TokenCount"
+          },
+          "cache_creation_tokens": {
+            "$ref": "#/components/schemas/Common.TokenCount"
+          },
+          "cost_usd_micros": {
+            "$ref": "#/components/schemas/Tools.CostUsdMicros",
+            "description": "Sum of cost_usd_micros over the session's api_request events."
+          },
+          "tool_call_count": {
+            "$ref": "#/components/schemas/Common.Count",
+            "description": "tool_result events."
+          },
+          "failed_tool_call_count": {
+            "$ref": "#/components/schemas/Common.Count",
+            "description": "tool_result events whose success is false."
+          },
+          "duration_ms": {
+            "$ref": "#/components/schemas/Common.DurationMs",
+            "description": "From first_seen to last_seen."
+          },
+          "first_seen": {
+            "$ref": "#/components/schemas/Common.Timestamp"
+          },
+          "last_seen": {
+            "$ref": "#/components/schemas/Common.Timestamp"
+          }
+        },
+        "description": "One Claude Code session (session.id), subagents included. Totals count its events inside the window."
+      },
+      "Tools.SessionToolCall": {
+        "type": "object",
+        "required": [
+          "tool_use_id",
+          "tool_name",
+          "success",
+          "duration_ms",
+          "finished_at"
+        ],
+        "properties": {
+          "tool_use_id": {
+            "$ref": "#/components/schemas/Tools.ToolUseId"
+          },
+          "tool_name": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string",
+            "description": "tool_parameters.full_command of a shell call; absent for other tools."
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "error_type": {
+            "type": "string",
+            "description": "error_type of a failed call, such as ShellError."
+          },
+          "duration_ms": {
+            "$ref": "#/components/schemas/Common.DurationMs"
+          },
+          "finished_at": {
+            "$ref": "#/components/schemas/Common.Timestamp"
+          },
+          "subagent_id": {
+            "type": "string",
+            "description": "The subagent that made the call (agent_id); absent for the session's own agent."
+          },
+          "trace_id": {
+            "$ref": "#/components/schemas/Common.TraceId"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "One tool call, from its tool_result event. Claude Code sends no exit code: success covers the whole command line."
+      },
+      "Tools.SessionsGetInput": {
+        "type": "object",
+        "required": [
+          "session_id"
+        ],
+        "properties": {
+          "session_id": {
+            "$ref": "#/components/schemas/Common.SessionId"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Common.ToolReadInput"
+          }
+        ],
+        "description": "Read one Claude Code session: its tool calls and commands, its commits, and its test claims with the gate runs that decide them."
+      },
+      "Tools.SessionsGetResult": {
+        "type": "object",
+        "required": [
+          "session"
+        ],
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/Tools.ProjectedSessionDetail"
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Common.ToolResult"
+          }
+        ],
+        "description": "The requested session and evidence completeness."
+      },
+      "Tools.SessionsSearchInput": {
+        "type": "object",
+        "properties": {
+          "agent_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Only sessions whose gen_ai.agent.name resource attribute is this value."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Common.ToolReadInput"
+          }
+        ],
+        "description": "Claude Code sessions in the window: agent, models, effort, tokens by type, cost in micro-USD as Claude Code reports it, tool calls and failures, duration."
+      },
+      "Tools.SessionsSearchResult": {
+        "type": "object",
+        "required": [
+          "sessions"
+        ],
+        "properties": {
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tools.ProjectedSessionSummary"
+            }
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Common.ToolResult"
+          }
+        ],
+        "description": "Sessions with an event in the window, most recent last_seen first."
       },
       "Tools.SignalStatus": {
         "type": "object",
@@ -2417,6 +2883,44 @@
           }
         ],
         "description": "Recorded service and signal activity."
+      },
+      "Tools.TestClaim": {
+        "type": "object",
+        "required": [
+          "commit_sha",
+          "verdict",
+          "evidence"
+        ],
+        "properties": {
+          "commit_sha": {
+            "$ref": "#/components/schemas/Tools.CommitSha"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "contradicted",
+              "unverified"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tools.GateRun"
+            },
+            "description": "The gate runs at this commit that decide the verdict, oldest first; empty when none does."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A claim that the gate passes at one commit, for each commit the session made or ran the gate at. verified: this session ran the gate at the commit and it succeeded; contradicted: a later gate run at the commit failed; unverified: otherwise."
+      },
+      "Tools.ToolUseId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256,
+        "description": "Claude Code's id of one tool call, tool_use_id on its events."
       },
       "Tools.TracesGetInput": {
         "type": "object",

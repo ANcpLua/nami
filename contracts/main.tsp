@@ -12,11 +12,13 @@ import "./otel/logs.tsp";
 import "./models/metric-points.tsp";
 import "./models/health.tsp";
 import "./models/tools.tsp";
+import "./models/sessions.tsp";
 import "./models/engine.tsp";
 import "./api/routes.tsp";
 import "./emit-config.tsp";
 
 import "./models/storage-rows.tsp";
+import "./models/storage-claude-code.tsp";
 
 import "./models/storage-json.tsp";
 

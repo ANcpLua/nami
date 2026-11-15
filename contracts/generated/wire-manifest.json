@@ -42,6 +42,10 @@
     "Tools.ErrorsRecentResult",
     "Tools.LogsSearchInput",
     "Tools.LogsSearchResult",
+    "Tools.SessionsGetInput",
+    "Tools.SessionsGetResult",
+    "Tools.SessionsSearchInput",
+    "Tools.SessionsSearchResult",
     "Tools.SourcesStatusInput",
     "Tools.SourcesStatusResult",
     "Tools.TracesGetInput",
@@ -66,6 +70,18 @@
       "name": "logs_search",
       "input": "Tools.LogsSearchInput",
       "output": "Tools.LogsSearchResult",
+      "error": "Common.ToolError"
+    },
+    {
+      "name": "sessions_get",
+      "input": "Tools.SessionsGetInput",
+      "output": "Tools.SessionsGetResult",
+      "error": "Common.ToolError"
+    },
+    {
+      "name": "sessions_search",
+      "input": "Tools.SessionsSearchInput",
+      "output": "Tools.SessionsSearchResult",
       "error": "Common.ToolError"
     },
     {

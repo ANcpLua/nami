@@ -452,6 +452,115 @@ export interface Change {
   "sourceKey": string;
 }
 
+export interface SessionsSearchInput extends ToolReadInput {
+  "agentName"?: string;
+}
+
+export interface SessionsSearchResult extends ToolResult {
+  "sessions": ProjectedSessionSummary[];
+}
+
+export interface ProjectedSessionSummary {
+  "sessionId"?: string;
+  "agentName"?: string;
+  "models"?: string[];
+  "efforts"?: string[];
+  "inputTokens"?: number;
+  "outputTokens"?: number;
+  "cacheReadTokens"?: number;
+  "cacheCreationTokens"?: number;
+  "costUsdMicros"?: number;
+  "toolCallCount"?: number;
+  "failedToolCallCount"?: number;
+  "durationMs"?: number;
+  "firstSeen"?: string;
+  "lastSeen"?: string;
+}
+
+export interface SessionSummary {
+  "sessionId": string;
+  "agentName"?: string;
+  "models": string[];
+  "efforts": string[];
+  "inputTokens": number;
+  "outputTokens": number;
+  "cacheReadTokens": number;
+  "cacheCreationTokens": number;
+  "costUsdMicros": number;
+  "toolCallCount": number;
+  "failedToolCallCount": number;
+  "durationMs": number;
+  "firstSeen": string;
+  "lastSeen": string;
+}
+
+export interface SessionsGetInput extends ToolReadInput {
+  "sessionId": string;
+}
+
+export interface SessionsGetResult extends ToolResult {
+  "session": ProjectedSessionDetail;
+}
+
+export interface ProjectedSessionDetail {
+  "toolCalls"?: SessionToolCall[];
+  "commits"?: SessionCommit[];
+  "testClaims"?: TestClaim[];
+  "sessionId"?: string;
+  "agentName"?: string;
+  "models"?: string[];
+  "efforts"?: string[];
+  "inputTokens"?: number;
+  "outputTokens"?: number;
+  "cacheReadTokens"?: number;
+  "cacheCreationTokens"?: number;
+  "costUsdMicros"?: number;
+  "toolCallCount"?: number;
+  "failedToolCallCount"?: number;
+  "durationMs"?: number;
+  "firstSeen"?: string;
+  "lastSeen"?: string;
+}
+
+export interface SessionToolCall {
+  "toolUseId": string;
+  "toolName": string;
+  "command"?: string;
+  "success": boolean;
+  "errorType"?: string;
+  "durationMs": number;
+  "finishedAt": string;
+  "subagentId"?: string;
+  "traceId"?: string;
+}
+
+export interface SessionCommit {
+  "commitSha": string;
+  "branch"?: string;
+  "toolUseId": string;
+  "committedAt": string;
+}
+
+export interface TestClaim {
+  "commitSha": string;
+  "verdict": "verified" | "contradicted" | "unverified";
+  "evidence": GateRun[];
+}
+
+export interface GateRun {
+  "sessionId": string;
+  "toolUseId": string;
+  "command": string;
+  "success": boolean;
+  "finishedAt": string;
+}
+
+export interface SessionDetail extends SessionSummary {
+  "toolCalls": SessionToolCall[];
+  "commits": SessionCommit[];
+  "testClaims": TestClaim[];
+}
+
 export interface EngineRequest {
   "id": string;
   "revision": string;

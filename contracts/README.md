@@ -98,7 +98,7 @@ projection reaches; look for a hand-written use of each before removing it.
 
 ## Contract generation
 
-The TypeSpec sources define Nami's six read-only tool inputs and results, the health report, the private engine
+The TypeSpec sources define Nami's eight read-only tool inputs and results, the health report, the private engine
 protocol,
 and the OpenTelemetry projections used by ingestion and storage. No REST analysis route or
 write-tool contract is emitted. The only HTTP route described here is `/health`.
@@ -118,14 +118,14 @@ compiles TypeSpec with warnings as errors, and emits these committed artifacts:
 - `../src/nami.mcp/src/contracts/generated/`: TypeScript model types (`api.ts`), JSON types (`json.ts`) and generated
   naming conversions (`serialization.ts`), the normalized schemas consumed
   by MCP, tool catalog, shared protocol limits, configuration names and contract revision.
-- `json-schema/<tool>.input.json` and `<tool>.result.json`: the twelve self-contained wire schemas
+- `json-schema/<tool>.input.json` and `<tool>.result.json`: the sixteen self-contained wire schemas
   consumed by the MCP host and by downstream type generators.
 - `json-schema/raw/nami-tools`: the official `@typespec/json-schema` declaration bundle.
 - `openapi/nami.openapi.json`: the common TypeSpec program's wire projection and `/health` contract.
 
 The official JSON Schema emitter currently uses source member names and does not apply
 `@encodedName("application/json", ...)` or wire integer encodings. `emit-schemas.mjs` checks that
-all twelve tool declarations are present in that bundle, then produces the runtime schemas from
+all sixteen tool declarations are present in that bundle, then produces the runtime schemas from
 the OpenAPI emitter's wire representation. The normalizer preserves recursive `$defs`, flattens
 inheritance, seals objects, and retains integer precision and every supported validation bound.
 The C# validator and MCP host consume those same normalized schemas.

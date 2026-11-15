@@ -4,6 +4,8 @@ export interface ToolContracts {
   "changes_recent": { input: Json.ChangesRecentInput; result: Json.ChangesRecentResult; error: Json.ToolError };
   "errors_recent": { input: Json.ErrorsRecentInput; result: Json.ErrorsRecentResult; error: Json.ToolError };
   "logs_search": { input: Json.LogsSearchInput; result: Json.LogsSearchResult; error: Json.ToolError };
+  "sessions_get": { input: Json.SessionsGetInput; result: Json.SessionsGetResult; error: Json.ToolError };
+  "sessions_search": { input: Json.SessionsSearchInput; result: Json.SessionsSearchResult; error: Json.ToolError };
   "sources_status": { input: Json.SourcesStatusInput; result: Json.SourcesStatusResult; error: Json.ToolError };
   "traces_get": { input: Json.TracesGetInput; result: Json.TracesGetResult; error: Json.ToolError };
   "traces_slowest": { input: Json.TracesSlowestInput; result: Json.TracesSlowestResult; error: Json.ToolError };
@@ -15,6 +17,8 @@ export function validateToolCall(name: string, input: unknown, valid: (name: Too
   if (name === "changes_recent" && valid(name, input)) return {name, input: input as ToolContracts["changes_recent"]["input"]};
   if (name === "errors_recent" && valid(name, input)) return {name, input: input as ToolContracts["errors_recent"]["input"]};
   if (name === "logs_search" && valid(name, input)) return {name, input: input as ToolContracts["logs_search"]["input"]};
+  if (name === "sessions_get" && valid(name, input)) return {name, input: input as ToolContracts["sessions_get"]["input"]};
+  if (name === "sessions_search" && valid(name, input)) return {name, input: input as ToolContracts["sessions_search"]["input"]};
   if (name === "sources_status" && valid(name, input)) return {name, input: input as ToolContracts["sources_status"]["input"]};
   if (name === "traces_get" && valid(name, input)) return {name, input: input as ToolContracts["traces_get"]["input"]};
   if (name === "traces_slowest" && valid(name, input)) return {name, input: input as ToolContracts["traces_slowest"]["input"]};

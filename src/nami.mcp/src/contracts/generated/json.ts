@@ -452,6 +452,115 @@ export interface Change {
   "source_key": string;
 }
 
+export interface SessionsSearchInput extends ToolReadInput {
+  "agent_name"?: string;
+}
+
+export interface SessionsSearchResult extends ToolResult {
+  "sessions": ProjectedSessionSummary[];
+}
+
+export interface ProjectedSessionSummary {
+  "session_id"?: string;
+  "agent_name"?: string;
+  "models"?: string[];
+  "efforts"?: string[];
+  "input_tokens"?: number;
+  "output_tokens"?: number;
+  "cache_read_tokens"?: number;
+  "cache_creation_tokens"?: number;
+  "cost_usd_micros"?: number;
+  "tool_call_count"?: number;
+  "failed_tool_call_count"?: number;
+  "duration_ms"?: number;
+  "first_seen"?: string;
+  "last_seen"?: string;
+}
+
+export interface SessionSummary {
+  "session_id": string;
+  "agent_name"?: string;
+  "models": string[];
+  "efforts": string[];
+  "input_tokens": number;
+  "output_tokens": number;
+  "cache_read_tokens": number;
+  "cache_creation_tokens": number;
+  "cost_usd_micros": number;
+  "tool_call_count": number;
+  "failed_tool_call_count": number;
+  "duration_ms": number;
+  "first_seen": string;
+  "last_seen": string;
+}
+
+export interface SessionsGetInput extends ToolReadInput {
+  "session_id": string;
+}
+
+export interface SessionsGetResult extends ToolResult {
+  "session": ProjectedSessionDetail;
+}
+
+export interface ProjectedSessionDetail {
+  "tool_calls"?: SessionToolCall[];
+  "commits"?: SessionCommit[];
+  "test_claims"?: TestClaim[];
+  "session_id"?: string;
+  "agent_name"?: string;
+  "models"?: string[];
+  "efforts"?: string[];
+  "input_tokens"?: number;
+  "output_tokens"?: number;
+  "cache_read_tokens"?: number;
+  "cache_creation_tokens"?: number;
+  "cost_usd_micros"?: number;
+  "tool_call_count"?: number;
+  "failed_tool_call_count"?: number;
+  "duration_ms"?: number;
+  "first_seen"?: string;
+  "last_seen"?: string;
+}
+
+export interface SessionToolCall {
+  "tool_use_id": string;
+  "tool_name": string;
+  "command"?: string;
+  "success": boolean;
+  "error_type"?: string;
+  "duration_ms": number;
+  "finished_at": string;
+  "subagent_id"?: string;
+  "trace_id"?: string;
+}
+
+export interface SessionCommit {
+  "commit_sha": string;
+  "branch"?: string;
+  "tool_use_id": string;
+  "committed_at": string;
+}
+
+export interface TestClaim {
+  "commit_sha": string;
+  "verdict": "verified" | "contradicted" | "unverified";
+  "evidence": GateRun[];
+}
+
+export interface GateRun {
+  "session_id": string;
+  "tool_use_id": string;
+  "command": string;
+  "success": boolean;
+  "finished_at": string;
+}
+
+export interface SessionDetail extends SessionSummary {
+  "tool_calls": SessionToolCall[];
+  "commits": SessionCommit[];
+  "test_claims": TestClaim[];
+}
+
 export interface EngineRequest {
   "id": string;
   "revision": string;

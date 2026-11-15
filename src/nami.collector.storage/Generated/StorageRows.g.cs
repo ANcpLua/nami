@@ -274,3 +274,46 @@ internal sealed partial record MetricExemplarRow
     [DuckDbColumn(PrimaryKeyOrdinal = 3)]
     public required string TraceId { get; init; }
 }
+
+[DuckDbTable("claude_code_api_requests", Derived = true, OnConflict = "ON CONFLICT DO NOTHING")]
+internal sealed partial record ClaudeCodeApiRequestRow
+{
+    [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
+    public required string ProjectId { get; init; }
+    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
+    public required string LogId { get; init; }
+    public required string SessionId { get; init; }
+    public required ulong TimeUnixNano { get; init; }
+    public string? ServiceName { get; init; }
+    public string? AgentName { get; init; }
+    public required string Model { get; init; }
+    public string? Effort { get; init; }
+    public required long InputTokens { get; init; }
+    public required long OutputTokens { get; init; }
+    public required long CacheReadTokens { get; init; }
+    public required long CacheCreationTokens { get; init; }
+    public required long CostUsdMicros { get; init; }
+}
+
+[DuckDbTable("claude_code_tool_results", Derived = true, OnConflict = "ON CONFLICT DO NOTHING")]
+internal sealed partial record ClaudeCodeToolResultRow
+{
+    [DuckDbColumn(PrimaryKeyOrdinal = 0, SqlType = "VARCHAR(128)")]
+    public required string ProjectId { get; init; }
+    [DuckDbColumn(PrimaryKeyOrdinal = 1)]
+    public required string LogId { get; init; }
+    public required string SessionId { get; init; }
+    public required ulong TimeUnixNano { get; init; }
+    public string? ServiceName { get; init; }
+    public string? TraceId { get; init; }
+    public required string ToolUseId { get; init; }
+    public required string ToolName { get; init; }
+    public required byte Success { get; init; }
+    public required long DurationMs { get; init; }
+    public string? ErrorType { get; init; }
+    public string? Command { get; init; }
+    public string? SubagentId { get; init; }
+    public string? CommitSha { get; init; }
+    public string? Branch { get; init; }
+    public byte? RunInBackground { get; init; }
+}

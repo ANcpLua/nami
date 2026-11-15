@@ -357,6 +357,66 @@ export const ChangeJson = {
   toJson: (value: Model.Change): Json.Change => convert(value, ChangeShape, true) as Json.Change,
   fromJson: (value: Json.Change): Model.Change => convert(value, ChangeShape, false) as Model.Change,
 };
+const SessionsSearchInputShape: Shape = { fields: [["agentName", "agent_name", "string"], ["service", "service", "string"], ["since", "since", "string"], ["fields", "fields", { array: "string" }], ["maxBytes", "max_bytes", "number"], ["snapshotId", "snapshot_id", "string"], ["cursor", "cursor", "string"]] };
+export const SessionsSearchInputJson = {
+  toJson: (value: Model.SessionsSearchInput): Json.SessionsSearchInput => convert(value, SessionsSearchInputShape, true) as Json.SessionsSearchInput,
+  fromJson: (value: Json.SessionsSearchInput): Model.SessionsSearchInput => convert(value, SessionsSearchInputShape, false) as Model.SessionsSearchInput,
+};
+const SessionsSearchResultShape: Shape = { fields: [["sessions", "sessions", { array: () => ProjectedSessionSummaryShape }], ["freshness", "freshness", () => FreshnessShape], ["snapshotId", "snapshot_id", "string"], ["nextCursor", "next_cursor", "string"]] };
+export const SessionsSearchResultJson = {
+  toJson: (value: Model.SessionsSearchResult): Json.SessionsSearchResult => convert(value, SessionsSearchResultShape, true) as Json.SessionsSearchResult,
+  fromJson: (value: Json.SessionsSearchResult): Model.SessionsSearchResult => convert(value, SessionsSearchResultShape, false) as Model.SessionsSearchResult,
+};
+const ProjectedSessionSummaryShape: Shape = { fields: [["sessionId", "session_id", "string"], ["agentName", "agent_name", "string"], ["models", "models", { array: "string" }], ["efforts", "efforts", { array: "string" }], ["inputTokens", "input_tokens", "number"], ["outputTokens", "output_tokens", "number"], ["cacheReadTokens", "cache_read_tokens", "number"], ["cacheCreationTokens", "cache_creation_tokens", "number"], ["costUsdMicros", "cost_usd_micros", "number"], ["toolCallCount", "tool_call_count", "number"], ["failedToolCallCount", "failed_tool_call_count", "number"], ["durationMs", "duration_ms", "number"], ["firstSeen", "first_seen", "string"], ["lastSeen", "last_seen", "string"]] };
+export const ProjectedSessionSummaryJson = {
+  toJson: (value: Model.ProjectedSessionSummary): Json.ProjectedSessionSummary => convert(value, ProjectedSessionSummaryShape, true) as Json.ProjectedSessionSummary,
+  fromJson: (value: Json.ProjectedSessionSummary): Model.ProjectedSessionSummary => convert(value, ProjectedSessionSummaryShape, false) as Model.ProjectedSessionSummary,
+};
+const SessionSummaryShape: Shape = { fields: [["sessionId", "session_id", "string"], ["agentName", "agent_name", "string"], ["models", "models", { array: "string" }], ["efforts", "efforts", { array: "string" }], ["inputTokens", "input_tokens", "number"], ["outputTokens", "output_tokens", "number"], ["cacheReadTokens", "cache_read_tokens", "number"], ["cacheCreationTokens", "cache_creation_tokens", "number"], ["costUsdMicros", "cost_usd_micros", "number"], ["toolCallCount", "tool_call_count", "number"], ["failedToolCallCount", "failed_tool_call_count", "number"], ["durationMs", "duration_ms", "number"], ["firstSeen", "first_seen", "string"], ["lastSeen", "last_seen", "string"]] };
+export const SessionSummaryJson = {
+  toJson: (value: Model.SessionSummary): Json.SessionSummary => convert(value, SessionSummaryShape, true) as Json.SessionSummary,
+  fromJson: (value: Json.SessionSummary): Model.SessionSummary => convert(value, SessionSummaryShape, false) as Model.SessionSummary,
+};
+const SessionsGetInputShape: Shape = { fields: [["sessionId", "session_id", "string"], ["service", "service", "string"], ["since", "since", "string"], ["fields", "fields", { array: "string" }], ["maxBytes", "max_bytes", "number"], ["snapshotId", "snapshot_id", "string"], ["cursor", "cursor", "string"]] };
+export const SessionsGetInputJson = {
+  toJson: (value: Model.SessionsGetInput): Json.SessionsGetInput => convert(value, SessionsGetInputShape, true) as Json.SessionsGetInput,
+  fromJson: (value: Json.SessionsGetInput): Model.SessionsGetInput => convert(value, SessionsGetInputShape, false) as Model.SessionsGetInput,
+};
+const SessionsGetResultShape: Shape = { fields: [["session", "session", () => ProjectedSessionDetailShape], ["freshness", "freshness", () => FreshnessShape], ["snapshotId", "snapshot_id", "string"], ["nextCursor", "next_cursor", "string"]] };
+export const SessionsGetResultJson = {
+  toJson: (value: Model.SessionsGetResult): Json.SessionsGetResult => convert(value, SessionsGetResultShape, true) as Json.SessionsGetResult,
+  fromJson: (value: Json.SessionsGetResult): Model.SessionsGetResult => convert(value, SessionsGetResultShape, false) as Model.SessionsGetResult,
+};
+const ProjectedSessionDetailShape: Shape = { fields: [["toolCalls", "tool_calls", { array: () => SessionToolCallShape }], ["commits", "commits", { array: () => SessionCommitShape }], ["testClaims", "test_claims", { array: () => TestClaimShape }], ["sessionId", "session_id", "string"], ["agentName", "agent_name", "string"], ["models", "models", { array: "string" }], ["efforts", "efforts", { array: "string" }], ["inputTokens", "input_tokens", "number"], ["outputTokens", "output_tokens", "number"], ["cacheReadTokens", "cache_read_tokens", "number"], ["cacheCreationTokens", "cache_creation_tokens", "number"], ["costUsdMicros", "cost_usd_micros", "number"], ["toolCallCount", "tool_call_count", "number"], ["failedToolCallCount", "failed_tool_call_count", "number"], ["durationMs", "duration_ms", "number"], ["firstSeen", "first_seen", "string"], ["lastSeen", "last_seen", "string"]] };
+export const ProjectedSessionDetailJson = {
+  toJson: (value: Model.ProjectedSessionDetail): Json.ProjectedSessionDetail => convert(value, ProjectedSessionDetailShape, true) as Json.ProjectedSessionDetail,
+  fromJson: (value: Json.ProjectedSessionDetail): Model.ProjectedSessionDetail => convert(value, ProjectedSessionDetailShape, false) as Model.ProjectedSessionDetail,
+};
+const SessionToolCallShape: Shape = { fields: [["toolUseId", "tool_use_id", "string"], ["toolName", "tool_name", "string"], ["command", "command", "string"], ["success", "success", "boolean"], ["errorType", "error_type", "string"], ["durationMs", "duration_ms", "number"], ["finishedAt", "finished_at", "string"], ["subagentId", "subagent_id", "string"], ["traceId", "trace_id", "string"]] };
+export const SessionToolCallJson = {
+  toJson: (value: Model.SessionToolCall): Json.SessionToolCall => convert(value, SessionToolCallShape, true) as Json.SessionToolCall,
+  fromJson: (value: Json.SessionToolCall): Model.SessionToolCall => convert(value, SessionToolCallShape, false) as Model.SessionToolCall,
+};
+const SessionCommitShape: Shape = { fields: [["commitSha", "commit_sha", "string"], ["branch", "branch", "string"], ["toolUseId", "tool_use_id", "string"], ["committedAt", "committed_at", "string"]] };
+export const SessionCommitJson = {
+  toJson: (value: Model.SessionCommit): Json.SessionCommit => convert(value, SessionCommitShape, true) as Json.SessionCommit,
+  fromJson: (value: Json.SessionCommit): Model.SessionCommit => convert(value, SessionCommitShape, false) as Model.SessionCommit,
+};
+const TestClaimShape: Shape = { fields: [["commitSha", "commit_sha", "string"], ["verdict", "verdict", { union: [{ literal: "verified" }, { literal: "contradicted" }, { literal: "unverified" }] }], ["evidence", "evidence", { array: () => GateRunShape }]] };
+export const TestClaimJson = {
+  toJson: (value: Model.TestClaim): Json.TestClaim => convert(value, TestClaimShape, true) as Json.TestClaim,
+  fromJson: (value: Json.TestClaim): Model.TestClaim => convert(value, TestClaimShape, false) as Model.TestClaim,
+};
+const GateRunShape: Shape = { fields: [["sessionId", "session_id", "string"], ["toolUseId", "tool_use_id", "string"], ["command", "command", "string"], ["success", "success", "boolean"], ["finishedAt", "finished_at", "string"]] };
+export const GateRunJson = {
+  toJson: (value: Model.GateRun): Json.GateRun => convert(value, GateRunShape, true) as Json.GateRun,
+  fromJson: (value: Json.GateRun): Model.GateRun => convert(value, GateRunShape, false) as Model.GateRun,
+};
+const SessionDetailShape: Shape = { fields: [["toolCalls", "tool_calls", { array: () => SessionToolCallShape }], ["commits", "commits", { array: () => SessionCommitShape }], ["testClaims", "test_claims", { array: () => TestClaimShape }], ["sessionId", "session_id", "string"], ["agentName", "agent_name", "string"], ["models", "models", { array: "string" }], ["efforts", "efforts", { array: "string" }], ["inputTokens", "input_tokens", "number"], ["outputTokens", "output_tokens", "number"], ["cacheReadTokens", "cache_read_tokens", "number"], ["cacheCreationTokens", "cache_creation_tokens", "number"], ["costUsdMicros", "cost_usd_micros", "number"], ["toolCallCount", "tool_call_count", "number"], ["failedToolCallCount", "failed_tool_call_count", "number"], ["durationMs", "duration_ms", "number"], ["firstSeen", "first_seen", "string"], ["lastSeen", "last_seen", "string"]] };
+export const SessionDetailJson = {
+  toJson: (value: Model.SessionDetail): Json.SessionDetail => convert(value, SessionDetailShape, true) as Json.SessionDetail,
+  fromJson: (value: Json.SessionDetail): Model.SessionDetail => convert(value, SessionDetailShape, false) as Model.SessionDetail,
+};
 const EngineRequestShape: Shape = { fields: [["id", "id", "string"], ["revision", "revision", "string"], ["method", "method", { union: [{ literal: "call" }, { literal: "health" }, { literal: "cancel" }] }], ["name", "name", { union: ["string", { literal: null }] }], ["input", "input", "unknown"], ["credential", "credential", { union: ["string", { literal: null }] }], ["traceparent", "traceparent", { union: ["string", { literal: null }] }], ["tracestate", "tracestate", { union: ["string", { literal: null }] }]] };
 export const EngineRequestJson = {
   toJson: (value: Model.EngineRequest): Json.EngineRequest => convert(value, EngineRequestShape, true) as Json.EngineRequest,

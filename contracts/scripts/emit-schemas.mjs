@@ -313,4 +313,4 @@ for (const operation of operations) {
     await writeFile(`${jsonSchemaDirectory}/${snake(operation)}.${kind}.json`, `${JSON.stringify(schema, null, 2)}\n`);
   }
 }
-console.log(`emit-schemas: ${Object.keys(allDocuments).length} validated contract types, 12 tool schemas`);
+console.log(`emit-schemas: ${Object.keys(allDocuments).length} validated contract types, ${operations.length * 2} tool schemas`);

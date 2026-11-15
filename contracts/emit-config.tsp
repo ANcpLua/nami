@@ -49,6 +49,8 @@ using Nami.Api.Schema.Emit.CSharp;
 @@tool(Nami.Api.Contracts.Tools.TracesGetInput, "traces_get", Nami.Api.Contracts.Tools.TracesGetResult, Nami.Api.Contracts.Common.ToolError);
 @@tool(Nami.Api.Contracts.Tools.TracesSlowestInput, "traces_slowest", Nami.Api.Contracts.Tools.TracesSlowestResult, Nami.Api.Contracts.Common.ToolError);
 @@tool(Nami.Api.Contracts.Tools.LogsSearchInput, "logs_search", Nami.Api.Contracts.Tools.LogsSearchResult, Nami.Api.Contracts.Common.ToolError);
+@@tool(Nami.Api.Contracts.Tools.SessionsSearchInput, "sessions_search", Nami.Api.Contracts.Tools.SessionsSearchResult, Nami.Api.Contracts.Common.ToolError);
+@@tool(Nami.Api.Contracts.Tools.SessionsGetInput, "sessions_get", Nami.Api.Contracts.Tools.SessionsGetResult, Nami.Api.Contracts.Common.ToolError);
 @@tool(Nami.Api.Contracts.Tools.ChangesRecentInput, "changes_recent", Nami.Api.Contracts.Tools.ChangesRecentResult, Nami.Api.Contracts.Common.ToolError);
 @@wireRoot(Nami.Api.Contracts.Engine.EngineRequest);
 @@wireRoot(Nami.Api.Contracts.Engine.EngineResponse);

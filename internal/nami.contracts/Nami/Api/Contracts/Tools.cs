@@ -535,3 +535,413 @@ public sealed class Change
     [JsonPropertyName("source_key")]
     public required string SourceKey { get; init; }
 }
+
+public sealed class SessionsSearchInput
+{
+    public const string SinceDefault = "-60m";
+    public const int MaxBytesDefault = 32768;
+    public const int MaxBytesMinimum = 1024;
+    public const int MaxBytesMaximum = 262144;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("service")]
+    public string? Service { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("since")]
+    public string? Since { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("fields")]
+    public IReadOnlyList<string>? Fields { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<int>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("max_bytes")]
+    public int? MaxBytes { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("snapshot_id")]
+    public string? SnapshotId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("cursor")]
+    public string? Cursor { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("agent_name")]
+    public string? AgentName { get; init; }
+}
+
+public sealed class SessionsSearchResult
+{
+    [JsonPropertyName("freshness")]
+    public required Nami.Api.Contracts.Common.Freshness Freshness { get; init; }
+    [JsonPropertyName("snapshot_id")]
+    public required string SnapshotId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("next_cursor")]
+    public string? NextCursor { get; init; }
+    [JsonPropertyName("sessions")]
+    public required IReadOnlyList<Nami.Api.Contracts.Tools.ProjectedSessionSummary> Sessions { get; init; }
+}
+
+public sealed class ProjectedSessionSummary
+{
+    public const long InputTokensMinimum = 0;
+    public const long InputTokensMaximum = 9007199254740991;
+    public const long OutputTokensMinimum = 0;
+    public const long OutputTokensMaximum = 9007199254740991;
+    public const long CacheReadTokensMinimum = 0;
+    public const long CacheReadTokensMaximum = 9007199254740991;
+    public const long CacheCreationTokensMinimum = 0;
+    public const long CacheCreationTokensMaximum = 9007199254740991;
+    public const long CostUsdMicrosMinimum = 0;
+    public const long CostUsdMicrosMaximum = 9007199254740991;
+    public const long ToolCallCountMinimum = 0;
+    public const long ToolCallCountMaximum = 9007199254740991;
+    public const long FailedToolCallCountMinimum = 0;
+    public const long FailedToolCallCountMaximum = 9007199254740991;
+    public const double DurationMsMinimum = 0;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("session_id")]
+    public string? SessionId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("agent_name")]
+    public string? AgentName { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("models")]
+    public IReadOnlyList<string>? Models { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("efforts")]
+    public IReadOnlyList<string>? Efforts { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("input_tokens")]
+    public long? InputTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("output_tokens")]
+    public long? OutputTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("cache_read_tokens")]
+    public long? CacheReadTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("cache_creation_tokens")]
+    public long? CacheCreationTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("cost_usd_micros")]
+    public long? CostUsdMicros { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("tool_call_count")]
+    public long? ToolCallCount { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("failed_tool_call_count")]
+    public long? FailedToolCallCount { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("duration_ms")]
+    public double? DurationMs { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("first_seen")]
+    public string? FirstSeen { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("last_seen")]
+    public string? LastSeen { get; init; }
+}
+
+public sealed class SessionSummary
+{
+    public const long InputTokensMinimum = 0;
+    public const long InputTokensMaximum = 9007199254740991;
+    public const long OutputTokensMinimum = 0;
+    public const long OutputTokensMaximum = 9007199254740991;
+    public const long CacheReadTokensMinimum = 0;
+    public const long CacheReadTokensMaximum = 9007199254740991;
+    public const long CacheCreationTokensMinimum = 0;
+    public const long CacheCreationTokensMaximum = 9007199254740991;
+    public const long CostUsdMicrosMinimum = 0;
+    public const long CostUsdMicrosMaximum = 9007199254740991;
+    public const long ToolCallCountMinimum = 0;
+    public const long ToolCallCountMaximum = 9007199254740991;
+    public const long FailedToolCallCountMinimum = 0;
+    public const long FailedToolCallCountMaximum = 9007199254740991;
+    public const double DurationMsMinimum = 0;
+    [JsonPropertyName("session_id")]
+    public required string SessionId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("agent_name")]
+    public string? AgentName { get; init; }
+    [JsonPropertyName("models")]
+    public required IReadOnlyList<string> Models { get; init; }
+    [JsonPropertyName("efforts")]
+    public required IReadOnlyList<string> Efforts { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonPropertyName("input_tokens")]
+    public required long InputTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonPropertyName("output_tokens")]
+    public required long OutputTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonPropertyName("cache_read_tokens")]
+    public required long CacheReadTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonPropertyName("cache_creation_tokens")]
+    public required long CacheCreationTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonPropertyName("cost_usd_micros")]
+    public required long CostUsdMicros { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonPropertyName("tool_call_count")]
+    public required long ToolCallCount { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonPropertyName("failed_tool_call_count")]
+    public required long FailedToolCallCount { get; init; }
+    [JsonPropertyName("duration_ms")]
+    public required double DurationMs { get; init; }
+    [JsonPropertyName("first_seen")]
+    public required string FirstSeen { get; init; }
+    [JsonPropertyName("last_seen")]
+    public required string LastSeen { get; init; }
+}
+
+public sealed class SessionsGetInput
+{
+    public const string SinceDefault = "-60m";
+    public const int MaxBytesDefault = 32768;
+    public const int MaxBytesMinimum = 1024;
+    public const int MaxBytesMaximum = 262144;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("service")]
+    public string? Service { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("since")]
+    public string? Since { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("fields")]
+    public IReadOnlyList<string>? Fields { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<int>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("max_bytes")]
+    public int? MaxBytes { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("snapshot_id")]
+    public string? SnapshotId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("cursor")]
+    public string? Cursor { get; init; }
+    [JsonPropertyName("session_id")]
+    public required string SessionId { get; init; }
+}
+
+public sealed class SessionsGetResult
+{
+    [JsonPropertyName("freshness")]
+    public required Nami.Api.Contracts.Common.Freshness Freshness { get; init; }
+    [JsonPropertyName("snapshot_id")]
+    public required string SnapshotId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("next_cursor")]
+    public string? NextCursor { get; init; }
+    [JsonPropertyName("session")]
+    public required Nami.Api.Contracts.Tools.ProjectedSessionDetail Session { get; init; }
+}
+
+public sealed class ProjectedSessionDetail
+{
+    public const long InputTokensMinimum = 0;
+    public const long InputTokensMaximum = 9007199254740991;
+    public const long OutputTokensMinimum = 0;
+    public const long OutputTokensMaximum = 9007199254740991;
+    public const long CacheReadTokensMinimum = 0;
+    public const long CacheReadTokensMaximum = 9007199254740991;
+    public const long CacheCreationTokensMinimum = 0;
+    public const long CacheCreationTokensMaximum = 9007199254740991;
+    public const long CostUsdMicrosMinimum = 0;
+    public const long CostUsdMicrosMaximum = 9007199254740991;
+    public const long ToolCallCountMinimum = 0;
+    public const long ToolCallCountMaximum = 9007199254740991;
+    public const long FailedToolCallCountMinimum = 0;
+    public const long FailedToolCallCountMaximum = 9007199254740991;
+    public const double DurationMsMinimum = 0;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("tool_calls")]
+    public IReadOnlyList<Nami.Api.Contracts.Tools.SessionToolCall>? ToolCalls { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("commits")]
+    public IReadOnlyList<Nami.Api.Contracts.Tools.SessionCommit>? Commits { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("test_claims")]
+    public IReadOnlyList<Nami.Api.Contracts.Tools.TestClaim>? TestClaims { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("session_id")]
+    public string? SessionId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("agent_name")]
+    public string? AgentName { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("models")]
+    public IReadOnlyList<string>? Models { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("efforts")]
+    public IReadOnlyList<string>? Efforts { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("input_tokens")]
+    public long? InputTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("output_tokens")]
+    public long? OutputTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("cache_read_tokens")]
+    public long? CacheReadTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("cache_creation_tokens")]
+    public long? CacheCreationTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("cost_usd_micros")]
+    public long? CostUsdMicros { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("tool_call_count")]
+    public long? ToolCallCount { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("failed_tool_call_count")]
+    public long? FailedToolCallCount { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("duration_ms")]
+    public double? DurationMs { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("first_seen")]
+    public string? FirstSeen { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("last_seen")]
+    public string? LastSeen { get; init; }
+}
+
+public sealed class SessionToolCall
+{
+    public const double DurationMsMinimum = 0;
+    [JsonPropertyName("tool_use_id")]
+    public required string ToolUseId { get; init; }
+    [JsonPropertyName("tool_name")]
+    public required string ToolName { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("command")]
+    public string? Command { get; init; }
+    [JsonPropertyName("success")]
+    public required bool Success { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("error_type")]
+    public string? ErrorType { get; init; }
+    [JsonPropertyName("duration_ms")]
+    public required double DurationMs { get; init; }
+    [JsonPropertyName("finished_at")]
+    public required string FinishedAt { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("subagent_id")]
+    public string? SubagentId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("trace_id")]
+    public string? TraceId { get; init; }
+}
+
+public sealed class SessionCommit
+{
+    [JsonPropertyName("commit_sha")]
+    public required string CommitSha { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("branch")]
+    public string? Branch { get; init; }
+    [JsonPropertyName("tool_use_id")]
+    public required string ToolUseId { get; init; }
+    [JsonPropertyName("committed_at")]
+    public required string CommittedAt { get; init; }
+}
+
+public sealed class TestClaim
+{
+    [JsonPropertyName("commit_sha")]
+    public required string CommitSha { get; init; }
+    [JsonPropertyName("verdict")]
+    public required string Verdict { get; init; }
+    [JsonPropertyName("evidence")]
+    public required IReadOnlyList<Nami.Api.Contracts.Tools.GateRun> Evidence { get; init; }
+}
+
+public sealed class GateRun
+{
+    [JsonPropertyName("session_id")]
+    public required string SessionId { get; init; }
+    [JsonPropertyName("tool_use_id")]
+    public required string ToolUseId { get; init; }
+    [JsonPropertyName("command")]
+    public required string Command { get; init; }
+    [JsonPropertyName("success")]
+    public required bool Success { get; init; }
+    [JsonPropertyName("finished_at")]
+    public required string FinishedAt { get; init; }
+}
+
+public sealed class SessionDetail
+{
+    public const long InputTokensMinimum = 0;
+    public const long InputTokensMaximum = 9007199254740991;
+    public const long OutputTokensMinimum = 0;
+    public const long OutputTokensMaximum = 9007199254740991;
+    public const long CacheReadTokensMinimum = 0;
+    public const long CacheReadTokensMaximum = 9007199254740991;
+    public const long CacheCreationTokensMinimum = 0;
+    public const long CacheCreationTokensMaximum = 9007199254740991;
+    public const long CostUsdMicrosMinimum = 0;
+    public const long CostUsdMicrosMaximum = 9007199254740991;
+    public const long ToolCallCountMinimum = 0;
+    public const long ToolCallCountMaximum = 9007199254740991;
+    public const long FailedToolCallCountMinimum = 0;
+    public const long FailedToolCallCountMaximum = 9007199254740991;
+    public const double DurationMsMinimum = 0;
+    [JsonPropertyName("session_id")]
+    public required string SessionId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("agent_name")]
+    public string? AgentName { get; init; }
+    [JsonPropertyName("models")]
+    public required IReadOnlyList<string> Models { get; init; }
+    [JsonPropertyName("efforts")]
+    public required IReadOnlyList<string> Efforts { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonPropertyName("input_tokens")]
+    public required long InputTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonPropertyName("output_tokens")]
+    public required long OutputTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonPropertyName("cache_read_tokens")]
+    public required long CacheReadTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonPropertyName("cache_creation_tokens")]
+    public required long CacheCreationTokens { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonPropertyName("cost_usd_micros")]
+    public required long CostUsdMicros { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonPropertyName("tool_call_count")]
+    public required long ToolCallCount { get; init; }
+    [JsonConverter(typeof(global::Nami.Api.Contracts.ExactIntegerConverter<long>))]
+    [JsonPropertyName("failed_tool_call_count")]
+    public required long FailedToolCallCount { get; init; }
+    [JsonPropertyName("duration_ms")]
+    public required double DurationMs { get; init; }
+    [JsonPropertyName("first_seen")]
+    public required string FirstSeen { get; init; }
+    [JsonPropertyName("last_seen")]
+    public required string LastSeen { get; init; }
+    [JsonPropertyName("tool_calls")]
+    public required IReadOnlyList<Nami.Api.Contracts.Tools.SessionToolCall> ToolCalls { get; init; }
+    [JsonPropertyName("commits")]
+    public required IReadOnlyList<Nami.Api.Contracts.Tools.SessionCommit> Commits { get; init; }
+    [JsonPropertyName("test_claims")]
+    public required IReadOnlyList<Nami.Api.Contracts.Tools.TestClaim> TestClaims { get; init; }
+}

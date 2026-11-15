@@ -1616,6 +1616,293 @@
     ]
   },
   {
+    "type": "Nami.Models.Storage.Rows.ClaudeCodeApiRequestRow",
+    "project": "src/nami.collector.storage/Generated",
+    "file": "StorageRows.g.cs",
+    "namespace": "Nami.Collector.Storage",
+    "form": "internal sealed partial record",
+    "json": false,
+    "properties": [
+      {
+        "code": "projectId",
+        "json": "projectId",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 0,
+          "primaryKeyOrdinal": 0,
+          "sqlType": "VARCHAR(128)"
+        }
+      },
+      {
+        "code": "logId",
+        "json": "logId",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 1,
+          "primaryKeyOrdinal": 1
+        }
+      },
+      {
+        "code": "sessionId",
+        "json": "sessionId",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 2
+        }
+      },
+      {
+        "code": "timeUnixNano",
+        "json": "timeUnixNano",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 3
+        }
+      },
+      {
+        "code": "serviceName",
+        "json": "serviceName",
+        "optional": true,
+        "nullable": true,
+        "column": {
+          "order": 4
+        }
+      },
+      {
+        "code": "agentName",
+        "json": "agentName",
+        "optional": true,
+        "nullable": true,
+        "column": {
+          "order": 5
+        }
+      },
+      {
+        "code": "model",
+        "json": "model",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 6
+        }
+      },
+      {
+        "code": "effort",
+        "json": "effort",
+        "optional": true,
+        "nullable": true,
+        "column": {
+          "order": 7
+        }
+      },
+      {
+        "code": "inputTokens",
+        "json": "inputTokens",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 8
+        }
+      },
+      {
+        "code": "outputTokens",
+        "json": "outputTokens",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 9
+        }
+      },
+      {
+        "code": "cacheReadTokens",
+        "json": "cacheReadTokens",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 10
+        }
+      },
+      {
+        "code": "cacheCreationTokens",
+        "json": "cacheCreationTokens",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 11
+        }
+      },
+      {
+        "code": "costUsdMicros",
+        "json": "costUsdMicros",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 12
+        }
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Storage.Rows.ClaudeCodeToolResultRow",
+    "project": "src/nami.collector.storage/Generated",
+    "file": "StorageRows.g.cs",
+    "namespace": "Nami.Collector.Storage",
+    "form": "internal sealed partial record",
+    "json": false,
+    "properties": [
+      {
+        "code": "projectId",
+        "json": "projectId",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 0,
+          "primaryKeyOrdinal": 0,
+          "sqlType": "VARCHAR(128)"
+        }
+      },
+      {
+        "code": "logId",
+        "json": "logId",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 1,
+          "primaryKeyOrdinal": 1
+        }
+      },
+      {
+        "code": "sessionId",
+        "json": "sessionId",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 2
+        }
+      },
+      {
+        "code": "timeUnixNano",
+        "json": "timeUnixNano",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 3
+        }
+      },
+      {
+        "code": "serviceName",
+        "json": "serviceName",
+        "optional": true,
+        "nullable": true,
+        "column": {
+          "order": 4
+        }
+      },
+      {
+        "code": "traceId",
+        "json": "traceId",
+        "optional": true,
+        "nullable": true,
+        "column": {
+          "order": 5
+        }
+      },
+      {
+        "code": "toolUseId",
+        "json": "toolUseId",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 6
+        }
+      },
+      {
+        "code": "toolName",
+        "json": "toolName",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 7
+        }
+      },
+      {
+        "code": "success",
+        "json": "success",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 8
+        }
+      },
+      {
+        "code": "durationMs",
+        "json": "durationMs",
+        "optional": false,
+        "nullable": false,
+        "column": {
+          "order": 9
+        }
+      },
+      {
+        "code": "errorType",
+        "json": "errorType",
+        "optional": true,
+        "nullable": true,
+        "column": {
+          "order": 10
+        }
+      },
+      {
+        "code": "command",
+        "json": "command",
+        "optional": true,
+        "nullable": true,
+        "column": {
+          "order": 11
+        }
+      },
+      {
+        "code": "subagentId",
+        "json": "subagentId",
+        "optional": true,
+        "nullable": true,
+        "column": {
+          "order": 12
+        }
+      },
+      {
+        "code": "commitSha",
+        "json": "commitSha",
+        "optional": true,
+        "nullable": true,
+        "column": {
+          "order": 13
+        }
+      },
+      {
+        "code": "branch",
+        "json": "branch",
+        "optional": true,
+        "nullable": true,
+        "column": {
+          "order": 14
+        }
+      },
+      {
+        "code": "runInBackground",
+        "json": "runInBackground",
+        "optional": true,
+        "nullable": true,
+        "column": {
+          "order": 15
+        }
+      }
+    ]
+  },
+  {
     "type": "Nami.Models.Ingestion.AttributeRename",
     "project": "src/nami.collector.ingestion/Generated",
     "file": "IngestionModels.g.cs",

@@ -130,7 +130,6 @@ scalar MacAddress extends string;
 @minValue(0)
 scalar ByteSize extends JsonInteger;
 
-#suppress "@ancplua/typespec-nami-lint/unreachable-declaration" "unused at 48bdb08: nothing in the contract references it, no type is generated from it and no hand-written C# or TypeScript names its schema; removing it changes three generated schema files and no generated type"
 @doc("Token count (for LLM operations)")
 @minValue(0)
 scalar TokenCount extends JsonInteger;
