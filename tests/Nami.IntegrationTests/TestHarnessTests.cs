@@ -15,6 +15,6 @@ public sealed class TestHarnessTests(TestContext context)
         Assert.AreEqual(0, result.ExitCode, result.Output + result.Error);
         Assert.Contains("test_finder_file_recorded_by_restore_is_not_a_missing_package_file", result.Error);
         Assert.Contains("test_missing_package_file_is_still_reported", result.Error);
-        Assert.MatchesRegex(@"Ran [1-9][0-9]* tests", result.Error);
+        Assert.MatchesRegex(@"Ran [1-9][0-9]* tests? in ", result.Error);
     }
 }

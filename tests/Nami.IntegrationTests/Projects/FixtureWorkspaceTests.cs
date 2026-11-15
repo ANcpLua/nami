@@ -14,7 +14,7 @@ public sealed class FixtureWorkspaceTests(TestContext context)
         Assert.AreEqual(0, result.ExitCode, result.Output + result.Error);
         Assert.Contains("test_active_lease_cannot_override_hard_deadline", result.Error);
         Assert.Contains("test_old_implicit_retention_is_removed", result.Error);
-        Assert.MatchesRegex(@"Ran [1-9][0-9]* tests", result.Error);
+        Assert.MatchesRegex(@"Ran [1-9][0-9]* tests? in ", result.Error);
     }
 
     [TestMethod]

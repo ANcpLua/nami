@@ -9,7 +9,6 @@ internal sealed class LogsServiceImpl(
     INamiStore store,
     TimeProvider timeProvider,
     IOptions<OtlpApiKeyOptions>? options = null)
-    : OtlpExportService
 {
     public Task<ExportLogsServiceResponse> Export(
         ExportLogsServiceRequest request,
