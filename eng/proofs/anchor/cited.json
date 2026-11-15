@@ -1,282 +1,322 @@
 {
  "src/nami.mcp/src/engine.ts|close|stopped|1": {
   "memberHash": "f4b9c60553de213e",
-  "line": 102,
+  "line": 105,
   "model": "Host.close"
  },
  "src/nami.mcp/src/engine.ts|fail|stopped|1": {
-  "memberHash": "d54723521af0631d",
-  "line": 124,
+  "memberHash": "ef31dfc5066dcc95",
+  "line": 127,
   "model": "Host.fail"
  },
  "src/nami.mcp/src/engine.ts|constructor|hasExited|1": {
   "memberHash": "e51f4aed25146364",
-  "line": 35,
+  "line": 38,
   "model": "Host.step .childClose"
  },
  "src/nami.mcp/src/engine.ts|close|shutdown|1": {
   "memberHash": "f4b9c60553de213e",
-  "line": 105,
+  "line": 108,
   "model": "Host.close (shutdown, stopChild)"
  },
  "src/nami.mcp/src/engine.ts|request|sequence|1": {
-  "memberHash": "3a499d9361aa3fa3",
-  "line": 71,
+  "memberHash": "68ad8d3165d99e81",
+  "line": 74,
   "model": "Host.request (seq := id)"
  },
  "src/nami.mcp/src/engine.ts|constructor|pending|1": {
   "memberHash": "e51f4aed25146364",
-  "line": 39,
+  "line": 42,
   "model": "Host.St.ready / readyFailed (the \"ready\" entry)"
  },
  "src/nami.mcp/src/engine.ts|constructor|pending|2": {
   "memberHash": "e51f4aed25146364",
-  "line": 55,
+  "line": 58,
   "model": "Host.step .reply and .readyFrame (entry removed on its reply)"
  },
  "src/nami.mcp/src/engine.ts|abort|pending|1": {
   "memberHash": "faebeb64a6f0f1a0",
-  "line": 77,
+  "line": 80,
   "model": "Host.step .abort"
  },
  "src/nami.mcp/src/engine.ts|request|pending|1": {
-  "memberHash": "3a499d9361aa3fa3",
-  "line": 82,
+  "memberHash": "68ad8d3165d99e81",
+  "line": 85,
   "model": "Host.request (pending ++ [entry])"
  },
  "src/nami.mcp/src/engine.ts|rejectPending|pending|1": {
   "memberHash": "90f8bb6d557e2d24",
-  "line": 133,
+  "line": 136,
   "model": "Host.rejectPending"
  },
  "src/nami.mcp/src/engine.ts|constructor|settle|1": {
   "memberHash": "e51f4aed25146364",
-  "line": 37,
+  "line": 40,
   "model": "Host.step .childClose (exited resolves)"
  },
  "src/nami.mcp/src/engine.ts|constructor|settle|2": {
   "memberHash": "e51f4aed25146364",
-  "line": 55,
+  "line": 58,
   "model": "Host.step .reply (replyOutcome)"
  },
  "src/nami.mcp/src/engine.ts|abort|settle|1": {
   "memberHash": "faebeb64a6f0f1a0",
-  "line": 79,
+  "line": 82,
   "model": "Host.step .abort (Outcome.cancelled)"
  },
  "src/nami.mcp/src/engine.ts|rejectPending|settle|1": {
   "memberHash": "90f8bb6d557e2d24",
-  "line": 132,
+  "line": 135,
   "model": "Host.rejectPending (outcomeOf)"
  },
  "src/nami.mcp/src/engine.ts|close|writesClosed|1": {
   "memberHash": "f4b9c60553de213e",
-  "line": 103,
+  "line": 106,
   "model": "Host.close (writesClosed)"
  },
  "src/nami.mcp/src/engine.ts|fail|writesClosed|1": {
-  "memberHash": "d54723521af0631d",
-  "line": 125,
+  "memberHash": "ef31dfc5066dcc95",
+  "line": 128,
   "model": "Host.fail (writesClosed)"
  },
  "src/nami.mcp/src/engine.ts|constructor|signal|1": {
   "memberHash": "e51f4aed25146364",
-  "line": 32,
+  "line": 35,
   "model": "Host.exitWith (exit listener sends SIGKILL)"
  },
  "src/nami.mcp/src/engine.ts|stopChild|signal|1": {
   "memberHash": "c951f0abf2f87bb9",
-  "line": 112,
+  "line": 115,
   "model": "Host.step .gracefulFires"
  },
  "src/nami.mcp/src/engine.ts|stopChild|signal|2": {
   "memberHash": "c951f0abf2f87bb9",
-  "line": 113,
+  "line": 116,
   "model": "Host.step .forcedFires"
  },
  "src/nami.mcp/src/engine.ts|fail|signal|1": {
-  "memberHash": "d54723521af0631d",
-  "line": 127,
+  "memberHash": "ef31dfc5066dcc95",
+  "line": 130,
   "model": "Host.fail (sigterm)"
  },
  "src/nami.mcp/src/engine.ts|stopChild|stdinEnd|1": {
   "memberHash": "c951f0abf2f87bb9",
-  "line": 111,
+  "line": 114,
   "model": "Host.stopChild (stdinEnded)"
  },
  "src/nami.mcp/src/engine.ts|constructor|timer|1": {
   "memberHash": "e51f4aed25146364",
-  "line": 40,
+  "line": 43,
   "model": "Host.step .startupTimeout"
  },
  "src/nami.mcp/src/engine.ts|stopChild|timer|1": {
   "memberHash": "c951f0abf2f87bb9",
-  "line": 112,
+  "line": 115,
   "model": "Host.stopChild (graceful armed)"
  },
  "src/nami.mcp/src/engine.ts|stopChild|timer|2": {
   "memberHash": "c951f0abf2f87bb9",
-  "line": 113,
+  "line": 116,
   "model": "Host.stopChild (forced armed)"
  },
  "src/nami.mcp/src/engine.ts|constructor|exitHook|1": {
   "memberHash": "e51f4aed25146364",
-  "line": 33,
+  "line": 36,
   "model": "Host.St.hookArmed (registered at construction) and Host.exitWith"
  },
  "src/nami.mcp/src/engine.ts|constructor|exitHook|2": {
   "memberHash": "e51f4aed25146364",
-  "line": 36,
+  "line": 39,
   "model": "Host.step .childClose (hookArmed := false)"
  },
  "src/nami.mcp/src/engine.ts|constructor|fail|1": {
   "memberHash": "e51f4aed25146364",
-  "line": 40,
+  "line": 43,
   "model": "Host.step .startupTimeout"
  },
  "src/nami.mcp/src/engine.ts|constructor|fail|2": {
   "memberHash": "e51f4aed25146364",
-  "line": 43,
+  "line": 46,
   "model": "Host.step .stdinError"
  },
  "src/nami.mcp/src/engine.ts|constructor|fail|3": {
   "memberHash": "e51f4aed25146364",
-  "line": 58,
+  "line": 61,
   "model": "Host.step .badFrame"
  },
  "src/nami.mcp/src/engine.ts|constructor|fail|4": {
   "memberHash": "e51f4aed25146364",
-  "line": 60,
+  "line": 63,
   "model": "Host.step .stdinError (the child's error event, abstracted as a stream error)"
  },
  "src/nami.mcp/src/engine.ts|constructor|fail|5": {
   "memberHash": "e51f4aed25146364",
-  "line": 61,
+  "line": 64,
   "model": "Host.step .childExit"
  },
  "src/nami.mcp/src/engine.ts|abort|fail|1": {
   "memberHash": "faebeb64a6f0f1a0",
-  "line": 80,
+  "line": 83,
   "model": "Host.step .stdinError (the cancel frame's write fails)"
  },
  "src/nami.mcp/src/engine.ts|request|fail|1": {
-  "memberHash": "3a499d9361aa3fa3",
-  "line": 86,
+  "memberHash": "68ad8d3165d99e81",
+  "line": 89,
   "model": "Host.step .stdinError (the request frame's write fails)"
  },
  "src/nami.mcp/src/engine.ts|fail|close|1": {
-  "memberHash": "d54723521af0631d",
-  "line": 128,
+  "memberHash": "ef31dfc5066dcc95",
+  "line": 131,
   "model": "Host.fail (close)"
  },
  "src/nami.mcp/src/engine.ts|constructor|frameBuffer|1": {
   "memberHash": "e51f4aed25146364",
-  "line": 44,
+  "line": 47,
   "model": "Framing.Reader.empty (host reader)"
  },
  "src/nami.mcp/src/engine.ts|constructor|frameBuffer|2": {
   "memberHash": "e51f4aed25146364",
-  "line": 47,
+  "line": 50,
   "model": "Framing.onChunk (buffer ++ data)"
  },
  "src/nami.mcp/src/engine.ts|constructor|frameBuffer|3": {
   "memberHash": "e51f4aed25146364",
-  "line": 52,
+  "line": 55,
   "model": "Framing.drain (rest after a frame)"
  },
  "src/nami.mcp/src/engine.ts|constructor|throw|1": {
   "memberHash": "e51f4aed25146364",
-  "line": 50,
+  "line": 53,
   "model": "Framing.drain (frame over the limit) and Host.step .badFrame false"
  },
  "src/nami.mcp/src/engine.ts|constructor|throw|2": {
   "memberHash": "e51f4aed25146364",
-  "line": 53,
+  "line": 56,
   "model": "Host.step .badFrame true"
  },
  "src/nami.mcp/src/engine.ts|constructor|throw|3": {
   "memberHash": "e51f4aed25146364",
-  "line": 57,
+  "line": 60,
   "model": "Framing.drain (rest over the limit) and Host.step .badFrame false"
  },
  "src/nami.mcp/src/engine.ts|request|throw|1": {
-  "memberHash": "3a499d9361aa3fa3",
-  "line": 68,
+  "memberHash": "68ad8d3165d99e81",
+  "line": 71,
   "model": "Host.request (stopped: Err.unavailable)"
  },
  "src/nami.mcp/src/engine.ts|request|throw|2": {
-  "memberHash": "3a499d9361aa3fa3",
-  "line": 69,
+  "memberHash": "68ad8d3165d99e81",
+  "line": 72,
   "model": "Host.request (full: Err.unavailable)"
  },
  "src/nami.mcp/src/engine.ts|<top level>|throw|1": {
   "memberHash": "3bd930833d52453d",
-  "line": 96,
+  "line": 99,
   "model": "abstraction: replies satisfy the tool schema (Host.lean, Abstractions)"
  },
  "src/nami.mcp/src/engine.ts|encode|throw|1": {
   "memberHash": "a593ad2c3c674748",
-  "line": 140,
+  "line": 143,
   "model": "Host.request (fits = false: Err.invalidArgument)"
+ },
+ "src/nami.mcp/src/engine.ts|fail|failed|1": {
+  "memberHash": "ef31dfc5066dcc95",
+  "line": 131,
+  "model": "Host.fail (failed := true); the promise resolves at Host.step .childClose and enables .failureExit"
  },
  "src/nami.mcp/src/main.ts|<top level>|closing|1": {
   "memberHash": "07c0948b035a2bc5",
-  "line": 76,
+  "line": 94,
   "model": "Host.St.closing (initially false)"
  },
  "src/nami.mcp/src/main.ts|close|closing|1": {
   "memberHash": "302c1707a06174ba",
-  "line": 79,
+  "line": 97,
   "model": "Host.step .hostSignal"
  },
- "src/nami.mcp/src/main.ts|fetch|engineCall|1": {
-  "memberHash": "ce26cd7191cfc0ab",
-  "line": 65,
+ "src/nami.mcp/src/main.ts|<top level>|closing|2": {
+  "memberHash": "4bab0f50c3a9ebe8",
+  "line": 115,
+  "model": "Host.step .failureExit (closing := true)"
+ },
+ "src/nami.mcp/src/main.ts|health|engineCall|1": {
+  "memberHash": "c9337d607443f47b",
+  "line": 52,
   "model": "Host.step .requestHealth"
  },
  "src/nami.mcp/src/main.ts|close|engineCall|1": {
   "memberHash": "302c1707a06174ba",
-  "line": 81,
+  "line": 99,
   "model": "Host.step .transportStopped (engine.close)"
  },
- "src/nami.mcp/src/main.ts|fetch|healthAnswer|1": {
-  "memberHash": "ce26cd7191cfc0ab",
-  "line": 66,
-  "model": "Host.replyOutcome .health, Host.outcomeOf .health (a throw is Bun's 500)"
+ "src/nami.mcp/src/main.ts|unhealthy|healthAnswer|1": {
+  "memberHash": "572f428388c18d07",
+  "line": 47,
+  "model": "Host.outcomeOf .health (every rejection: 503 with the host's own report)"
+ },
+ "src/nami.mcp/src/main.ts|health|healthAnswer|1": {
+  "memberHash": "c9337d607443f47b",
+  "line": 53,
+  "model": "Host.replyOutcome .health false (200)"
+ },
+ "src/nami.mcp/src/main.ts|health|healthAnswer|2": {
+  "memberHash": "c9337d607443f47b",
+  "line": 56,
+  "model": "Host.replyOutcome .health true (503); a refusal that is no report is answered by unhealthy: abstraction, the same 503"
  },
  "src/nami.mcp/src/main.ts|<top level>|signalHandler|1": {
-  "memberHash": "38ac5d25f68ffdef",
-  "line": 83,
+  "memberHash": "c9fe1e3bc34148e4",
+  "line": 107,
   "model": "Host.step .hostSignal (the handler stays registered)"
  },
  "src/nami.mcp/src/main.ts|<top level>|signalHandler|2": {
-  "memberHash": "8d6e7c26ccb03b2e",
-  "line": 84,
+  "memberHash": "79395713503c1c10",
+  "line": 108,
   "model": "Host.step .hostSignal (the handler stays registered)"
  },
  "src/nami.mcp/src/main.ts|<top level>|signalHandler|3": {
   "memberHash": "a2b94f7da6533cd1",
-  "line": 86,
+  "line": 121,
   "model": "Host.step .hostSignal (stdio end of input)"
+ },
+ "src/nami.mcp/src/main.ts|stop|exit|1": {
+  "memberHash": "3022c402bf95bf64",
+  "line": 104,
+  "model": "Host.step .hostSignal while closing (exitWith 1)"
+ },
+ "src/nami.mcp/src/main.ts|<top level>|exit|1": {
+  "memberHash": "110941b932196864",
+  "line": 112,
+  "model": "Host.step .loopEmpty (code 1 once failed)"
+ },
+ "src/nami.mcp/src/main.ts|<top level>|exit|2": {
+  "memberHash": "0335548aa49004cd",
+  "line": 118,
+  "model": "Host.step .failureExit (exitWith 1)"
+ },
+ "src/nami.mcp/src/main.ts|<top level>|failed|1": {
+  "memberHash": "5471aeade42b4684",
+  "line": 111,
+  "model": "Host.step .failureExit"
  },
  "src/nami.mcp/src/main.ts|<top level>|transport|1": {
   "memberHash": "38e7d44466e769ee",
-  "line": 44,
+  "line": 65,
   "model": "Host.step .transportStopped"
  },
  "src/nami.mcp/src/main.ts|<top level>|transport|2": {
   "memberHash": "c6536ee10583bc1a",
-  "line": 74,
+  "line": 92,
   "model": "Host.step .transportStopped"
  },
  "src/nami.mcp/src/main.ts|<top level>|serve|1": {
   "memberHash": "cea586cc72a009b5",
-  "line": 43,
+  "line": 64,
   "model": "Host.step .readyFrame (serving)"
  },
  "src/nami.mcp/src/main.ts|<top level>|serve|2": {
   "memberHash": "ed412e3b5b567f7b",
-  "line": 60,
+  "line": 81,
   "model": "Host.step .readyFrame (serving)"
  },
  "src/nami.mcp/src/main.ts|<top level>|ready|1": {

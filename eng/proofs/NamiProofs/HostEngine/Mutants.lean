@@ -1,5 +1,5 @@
 import NamiProofs.HostEngine.Spec
-import NamiProofs.HostEngine.Proofs.HostRefute
+import NamiProofs.HostEngine.Proofs.Host
 import NamiProofs.HostEngine.Proofs.Engine
 import NamiProofs.HostEngine.Proofs.System
 import NamiProofs.HostEngine.Proofs.Framing
@@ -27,6 +27,15 @@ theorem witness_nothingWaits : ∃ s, Host.Reachable s ∧ s.child = .exited ∧
 theorem witness_deadEngineFails : ∃ s s', Host.Reachable s ∧ s.exit = none ∧ s.child = .running ∧
     (∃ p ∈ s.pending, p.via = .tool) ∧ Host.step s .childExit = some s' :=
   ⟨toolWaiting, _, ⟨[.readyFrame, .requestTool true], rfl⟩, rfl, rfl, ⟨⟨1, 0, .tool⟩, by decide, rfl⟩, rfl⟩
+
+/-- The engine has died, the host runs, and nobody asked it to stop; `/health` is asked. -/
+theorem witness_engineGone : ∃ s s', Host.Reachable s ∧ s.ready = true ∧ s.child = .exited ∧
+    s.stopped = true ∧ s.exit = none ∧ s.closing = false ∧ Host.step s .requestHealth = some s' :=
+  ⟨Host.engineDied, _, Host.engineDied_reachable, rfl, rfl, rfl, rfl, rfl, rfl⟩
+
+theorem witness_healthAnswered : ∃ s, Host.Reachable s ∧ ∃ d ∈ s.done, d.via = .health :=
+  ⟨(Host.run Host.init [.readyFrame, .childExit, .requestHealth]).get!,
+    ⟨[.readyFrame, .childExit, .requestHealth], rfl⟩, ⟨0, .health, .http 503⟩, by decide, rfl⟩
 
 theorem witness_noOrphan_crash : ∃ s, Host.Reachable s ∧ s.exit = some (.code 1) :=
   ⟨(Host.run Host.init [.badFrame false]).get!, ⟨[.badFrame false], rfl⟩, rfl⟩
@@ -115,6 +124,109 @@ theorem mutant_noOrphan : ¬ Claim.NoOrphanWhenHostExits hostNoExitHook := by
   intro hc
   have := hc (Host.runBy hostNoExitHook Host.init [.badFrame false]).get! ⟨[.badFrame false], rfl⟩ 1 rfl
   revert this; decide
+
+/-- The host before P04 (commit 843383e): nothing acts on `engine.failed`, and a `/health`
+request that the engine cannot take leaves the `fetch` handler as an unhandled rejection,
+which Bun answers with 500. -/
+def hostBefore (s : Host.St) : Host.Ev → Option Host.St
+  | .failureExit => none
+  | .requestHealth =>
+    if s.exit.isNone && s.serving then
+      if s.stopped || s.pending.length ≥ Host.maxPending then
+        some { s with nextTicket := s.nextTicket + 1, done := s.done ++ [⟨s.nextTicket, .health, .http 500⟩] }
+      else Host.step s .requestHealth
+    else none
+  | e => Host.step s e
+
+def engineDiedBefore : Host.St := (Host.runBy hostBefore Host.init [.readyFrame, .childExit]).get!
+
+theorem engineDiedBefore_reachable : Host.ReachableBy hostBefore engineDiedBefore :=
+  ⟨[.readyFrame, .childExit], rfl⟩
+
+theorem mutant_health503WhileEngineGone : ¬ Claim.Health503WhileEngineGone hostBefore := by
+  intro hc
+  have := hc engineDiedBefore engineDiedBefore_reachable rfl rfl rfl rfl
+    (hostBefore engineDiedBefore .requestHealth).get! rfl
+  revert this; decide
+
+theorem mutant_healthAnswersAreReports : ¬ Claim.HealthAnswersAreReports hostBefore := by
+  intro hc
+  have := hc (Host.runBy hostBefore Host.init [.readyFrame, .childExit, .requestHealth]).get!
+    ⟨[.readyFrame, .childExit, .requestHealth], rfl⟩ ⟨0, .health, .http 500⟩ (by decide) rfl
+  revert this; decide
+
+/-- A healthy engine with 32 waiting calls: `/health` met the host's own queue limit. -/
+theorem mutant_healthAtFullQueue :
+    ((Host.runBy hostBefore Host.init
+        (.readyFrame :: List.replicate 32 (.requestTool true) ++ [.requestHealth])).map
+      (fun s => (s.stopped, s.pending.length, s.done))) =
+      some (false, 32, [⟨32, .health, .http 500⟩]) := by decide
+
+/-- In the host before P04, while the transport serves and nobody asked the host to stop, no
+event that needs no client, operator or platform ends the host. -/
+theorem before_keeps_serving {s s' : Host.St} {e : Host.Ev} (hsv : s.serving = true)
+    (hrd : s.ready = true) (hx : s.exit = none) (hcl : s.closing = false) (hi : e.internal = true)
+    (hs : hostBefore s e = some s') :
+    s'.serving = true ∧ s'.ready = true ∧ s'.exit = none ∧ s'.closing = false := by
+  cases e <;> simp [Host.Ev.internal] at hi <;> simp only [hostBefore, Host.step] at hs
+  case readyFrame => simp [hrd] at hs
+  case reply id isError =>
+    split at hs
+    · split at hs <;> simp at hs <;> subst hs <;> simp [hsv, hrd, hx, hcl]
+    · simp at hs
+  case badFrame typed =>
+    split at hs <;> simp at hs; subst hs
+    obtain ⟨k1, k2, k3, k4⟩ := Host.fail_keep s (if typed then .mismatch else .plain)
+    exact ⟨k1 ▸ hsv, k2 ▸ hrd, (k4 hrd).trans hx, k3 ▸ hcl⟩
+  case stdinError =>
+    split at hs <;> simp at hs; subst hs
+    obtain ⟨k1, k2, k3, k4⟩ := Host.fail_keep s .plain
+    exact ⟨k1 ▸ hsv, k2 ▸ hrd, (k4 hrd).trans hx, k3 ▸ hcl⟩
+  case startupTimeout => simp [hrd] at hs
+  case childExit =>
+    split at hs
+    · simp only [Option.some.injEq] at hs
+      subst hs
+      have hxe : ({ s with child := .exited } : Host.St).exit.isNone = true := by simp [hx]
+      simp only [hxe, ite_true]
+      obtain ⟨k1, k2, k3, k4⟩ := Host.fail_keep { s with child := .exited } .plain
+      refine ⟨?_, ?_, ?_, ?_⟩
+      · rw [k1]; exact hsv
+      · rw [k2]; exact hrd
+      · rw [k4 hrd]; exact hx
+      · rw [k3]; exact hcl
+    · simp at hs
+  case childClose =>
+    split at hs <;> simp at hs; subst hs; simp [hsv, hrd, hx, hcl]
+  case gracefulFires =>
+    split at hs <;> simp at hs; subst hs; simp [hsv, hrd, hx, hcl]
+  case forcedFires =>
+    split at hs <;> simp at hs; subst hs; simp [hsv, hrd, hx, hcl]
+  case transportStopped => simp [hcl] at hs
+  case loopEmpty => simp [hsv] at hs
+  case failureExit => simp at hs
+
+theorem before_never_exits : ∀ (es : List Host.Ev) {s s' : Host.St}, s.serving = true →
+    s.ready = true → s.exit = none → s.closing = false → es.all Host.Ev.internal = true →
+    Host.runBy hostBefore s es = some s' → s'.exit = none
+  | [], s, s', _, _, hx, _, _, hr => by simp [Host.runBy] at hr; subst hr; exact hx
+  | e :: es, s, s', hsv, hrd, hx, hcl, hi, hr => by
+    simp only [List.all_cons, Bool.and_eq_true] at hi
+    simp only [Host.runBy] at hr
+    cases hs : hostBefore s e with
+    | none => simp [hs] at hr
+    | some s1 =>
+      simp only [hs, Option.bind_some] at hr
+      obtain ⟨h2, h3, h4, h5⟩ := before_keeps_serving hsv hrd hx hcl hi.1 hs
+      exact before_never_exits es h2 h3 h4 h5 hi.2 hr
+
+/-- The host before P04 served on with a dead engine: after `[readyFrame, childExit]` nothing
+it does by itself ends it. -/
+theorem mutant_hostExitsNonZero : ¬ Claim.HostExitsNonZeroWhenEngineDies hostBefore := by
+  intro hc
+  obtain ⟨es, hi, s', n, hr, hx, _⟩ := hc engineDiedBefore engineDiedBefore_reachable rfl rfl rfl rfl
+  have := before_never_exits es (s := engineDiedBefore) rfl rfl rfl rfl hi hr
+  rw [this] at hx; simp at hx
 
 /-- `/health` ignores `is_error` (main.ts:61 always 200). -/
 def hostHealthIgnoresError (s : Host.St) : Host.Ev → Option Host.St

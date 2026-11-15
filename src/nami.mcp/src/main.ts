@@ -3,9 +3,9 @@ import { timingSafeEqual } from "node:crypto";
 import { resolve } from "node:path";
 import { createMcpHandler } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
-import { CONFIG, CONFIG_DEFAULTS } from "./contracts/generated/manifest.js";
-import type { ProjectKeyDocument } from "./contracts/generated/json.js";
-import { Engine } from "./engine.js";
+import { CONFIG, CONFIG_DEFAULTS, CONTRACT_REVISION } from "./contracts/generated/manifest.js";
+import type { HealthReport, ProjectKeyDocument } from "./contracts/generated/json.js";
+import { Engine, EngineError } from "./engine.js";
 import { dnsRebindingResponse, isLoopbackBindHost } from "./http-security.js";
 import { createServer } from "./server.js";
 
@@ -38,6 +38,27 @@ function credential(request: Request): string | null | Response {
     headers: { "WWW-Authenticate": 'x-otlp-api-key realm="nami"' } }) : supplied;
 }
 
+// GET /health always answers with a health report: the engine's own, or this one with 503 when the engine cannot
+// give one because it has stopped, is closing, or already holds its limit of waiting requests.
+function unhealthy(description: string, started: number): Response {
+  const elapsed = performance.now() - started;
+  const report: HealthReport = { status: "unhealthy", total_duration_ms: elapsed, contract_revision: CONTRACT_REVISION,
+    entries: { engine: { status: "unhealthy", description, duration_ms: elapsed } } };
+  return Response.json(report, { status: 503 });
+}
+async function health(signal: AbortSignal): Promise<Response> {
+  const started = performance.now();
+  try {
+    const reply = await engine.request("health", null, null, null, signal);
+    if (!reply.isError) return Response.json(reply.result);
+    const result: unknown = reply.result;
+    return typeof result === "object" && result !== null && "status" in result && "entries" in result
+      ? Response.json(result, { status: 503 }) : unhealthy("The engine refused the health request.", started);
+  } catch (error) {
+    return unhealthy(error instanceof EngineError ? error.message : "The engine is unavailable.", started);
+  }
+}
+
 let closeTransport: () => Promise<void>;
 if (stdio) {
   const handle = serveStdio(() => createServer(engine), { onerror: report });
@@ -61,10 +82,7 @@ if (stdio) {
     const url = new URL(request.url);
     const refused = dnsRebindingResponse(request, [...allowedHosts], [...allowedHosts]);
     if (refused) return refused;
-    if (url.pathname === "/health") {
-      const reply = await engine.request("health", null, null, null, request.signal);
-      return Response.json(reply.result, { status: reply.isError ? 503 : 200 });
-    }
+    if (url.pathname === "/health") return health(request.signal);
     if (url.pathname !== "/mcp") return new Response(null, { status: 404 });
     const access = credential(request);
     if (access instanceof Response) return access;
@@ -80,8 +98,25 @@ async function close() {
   await closeTransport();
   await engine.close();
 }
-process.once("SIGINT", () => { void close().catch(report); });
-process.once("SIGTERM", () => { void close().catch(report); });
+// The first signal closes; a second one while that is under way ends the host at once. The handlers stay
+// registered, so the second signal still exits through the "exit" listener that takes the engine with it.
+function stop() {
+  if (closing) process.exit(1);
+  void close().catch(report);
+}
+process.on("SIGINT", stop);
+process.on("SIGTERM", stop);
+// The engine failed by itself. Until its process is gone the host keeps answering: /health with 503, tool calls
+// with collector_unavailable. Then it ends non-zero, so that whatever started it starts both again.
+void engine.failed.then(async (error) => {
+  process.exitCode = 1;
+  console.error("The native engine failed: " + error.message);
+  if (!closing) {
+    closing = true;
+    await closeTransport().catch(report);
+  }
+  process.exit(1);
+});
 if (stdio) {
   process.stdin.once("end", () => { void close().catch(report); });
   process.stdin.resume();

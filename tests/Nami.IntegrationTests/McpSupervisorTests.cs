@@ -95,6 +95,23 @@ public sealed class McpSupervisorTests(TestContext context)
 
     [TestMethod]
     [Timeout(30000, CooperativeCancellation = true)]
+    public async Task Host_SecondSigtermWhileClosing_EndsByItselfAndTakesTheEngineWithIt()
+    {
+        // The engine ignores SIGTERM and the end of its input, so the first SIGTERM leaves the host waiting
+        // for it. A second one used to find no handler: the host died of the signal and its engine lived on.
+        using var result = await RunAsync("twice");
+        var observed = result.RootElement;
+        Assert.IsTrue(observed.GetProperty("closingBegan").GetBoolean(), "The first SIGTERM must stop the listener.");
+        Assert.AreEqual(JsonValueKind.Null, observed.GetProperty("hostSignal").ValueKind,
+            "The host must end by itself, so that its exit listener runs; it died of " + observed.GetProperty("hostSignal"));
+        Assert.AreEqual(JsonValueKind.Number, observed.GetProperty("hostExit").ValueKind,
+            "The second SIGTERM must end the host at once; it was still " + observed.GetProperty("hostExit"));
+        Assert.AreNotEqual(0, observed.GetProperty("hostExit").GetInt32(), "A forced end is not a clean exit.");
+        Assert.IsTrue(observed.GetProperty("childGone").GetBoolean(), "No engine process may be left behind.");
+    }
+
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
     public async Task Health_EngineReportsError_Returns503()
     {
         using var result = await RunAsync("unhealthy");

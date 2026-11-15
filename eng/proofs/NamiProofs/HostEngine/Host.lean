@@ -3,14 +3,16 @@
 
 One machine: `src/nami.mcp/src/engine.ts` (class `Engine`) together with the parts of
 `src/nami.mcp/src/main.ts` and `src/nami.mcp/src/server.ts` that decide how a waiting
-caller ends and when the host process ends. Line numbers refer to commit 843383e.
+caller ends and when the host process ends. Line numbers in the comments refer to commit
+843383e; `eng/proofs/anchor/cited.json` holds the current line of every write site.
 
 ## What one step is
 Each event is one JavaScript task: a stdout `data` chunk's frame, a child-process event, a
 timer, a signal handler, or one caller entering `Engine.request`. Bun runs one task at a
 time, so a step runs without interleaving up to its first `await`; the model ends each step
 there. The asynchronous tails are separate events: `childClose` resolves `exited`
-(engine.ts:34-38, 115) and `transportStopped` resolves `closeTransport` (main.ts:75).
+(engine.ts, constructor and `stopChild`), `transportStopped` resolves `closeTransport`
+(main.ts, `close`), and `failureExit` is the continuation of `engine.failed` (main.ts).
 
 ## Abstractions
 * Frame content is abstract: a reply frame is either valid for its id (`reply`) or one of
@@ -23,9 +25,11 @@ there. The asynchronous tails are separate events: `childClose` resolves `exited
   caller's `AbortSignal` (MCP cancel, HTTP disconnect). Host-name allowlists, credentials
   and the MCP SDK's own validation are not modelled.
 * Bun runtime facts the model relies on, each checked on Bun 1.4.4 in this container:
-  a throwing `fetch` handler is answered with status 500 and the server keeps serving;
   an uncaught error at top level ends the process with code 1 and runs `exit` listeners;
-  a child process with open pipes keeps the event loop alive until it closes.
+  `process.exit` runs them too; a child process with open pipes keeps the event loop alive
+  until it closes; a signal with a registered handler does not end the process.
+* `GET /health` no longer throws: `health` in main.ts catches every rejection and answers
+  503 with a report of its own, so no `fetch` handler of the model throws.
 
 ## Not modelled
 Time (the 5 s and 8 s timers are events without durations), the MCP SDK's own request
@@ -42,7 +46,7 @@ def maxPending : Nat := 32
 inductive Via where
   /-- An MCP `tools/call`; server.ts:39-58 maps every failure to a typed tool error. -/
   | tool
-  /-- `GET /health`; main.ts:59-62 awaits the engine without a catch. -/
+  /-- `GET /health`; `health` in main.ts awaits the engine and catches every rejection. -/
   | health
   deriving DecidableEq, Repr
 
@@ -54,8 +58,8 @@ inductive Err where
   | mismatch
   /-- `EngineError("invalid_argument")` (engine.ts:139-140). -/
   | invalidArgument
-  /-- Any other `Error`: engine.ts:50, 51 (JSON.parse), 57, 61 ("Engine exited"),
-  69 ("queue is full"), 40 (startup timeout), 43 and 80/86 (stream errors). -/
+  /-- Any other `Error`: an oversized or unparsable reply line, "Engine exited", the startup
+  timeout and stream errors. -/
   | plain
   deriving DecidableEq, Repr
 
@@ -75,14 +79,14 @@ inductive Outcome where
   | http (status : Nat)
   deriving DecidableEq, Repr
 
-/-- server.ts:51-57 for tools; for `/health` the rejection escapes the `fetch` handler
-(main.ts:60) and Bun answers 500 (checked on Bun 1.4.4). -/
+/-- server.ts (`execute`, catch) for tools; for `/health` the catch in `health` (main.ts)
+answers 503 with a report of the host's own. -/
 def outcomeOf : Via → Err → Outcome
   | .tool, .unavailable => .unavailable
   | .tool, .mismatch => .mismatch
   | .tool, .invalidArgument => .invalidArgument
   | .tool, .plain => .unavailable
-  | .health, _ => .http 500
+  | .health, _ => .http 503
 
 /-- engine.ts:55 resolves; server.ts:50 for tools, main.ts:61 for `/health`. -/
 def replyOutcome : Via → Bool → Outcome
@@ -165,9 +169,9 @@ structure St where
   serving : Bool := false
   /-- `closeTransport()` resolved (main.ts:75). -/
   transportDone : Bool := false
-  /-- A `fetch` handler threw (main.ts:60), so Bun answered 500; Bun then ends the process
-  with code 1 even after a clean shutdown (checked on Bun 1.4.4). -/
-  threw : Bool := false
+  /-- The engine failed by itself (`fail` ran before any `close`): `engine.failed` resolves
+  once the child has closed (engine.ts, `fail`). -/
+  failed : Bool := false
   exit : Option Exit := none
   deriving DecidableEq, Repr
 
@@ -200,14 +204,17 @@ inductive Ev where
   | gracefulFires
   /-- engine.ts:113. -/
   | forcedFires
-  /-- SIGTERM or SIGINT (main.ts:78-79), or end of stdin in stdio mode (main.ts:81).
-  Delivered again while closing, the signal has no handler left and kills the process. -/
+  /-- SIGTERM or SIGINT (main.ts, `stop`), or end of stdin in stdio mode. Delivered again
+  while closing, the handler ends the process with `process.exit(1)`. -/
   | hostSignal
   /-- `closeTransport()` resolves (main.ts:39, 69, 75). -/
   | transportStopped
-  /-- Nothing keeps Bun's event loop alive: the process ends, with code 1 if a `fetch`
-  handler ever threw, else 0. -/
+  /-- Nothing keeps Bun's event loop alive: the process ends with `process.exitCode`, which
+  is 1 once the engine failed, else 0. -/
   | loopEmpty
+  /-- The continuation of `engine.failed` (main.ts): the engine failed by itself and its
+  process has closed; the host stops its transport and calls `process.exit(1)`. -/
+  | failureExit
   /-- SIGKILL from outside. -/
   | externalKill
   deriving DecidableEq, Repr
@@ -218,12 +225,11 @@ def Ev.internal : Ev → Bool
   | .requestTool _ | .requestHealth | .abort _ | .hostSignal | .externalKill => false
   | _ => true
 
-/-- engine.ts:131-134. -/
+/-- engine.ts, `rejectPending`. -/
 def rejectPending (s : St) (e : Err) : St :=
   { s with
     done := s.done ++ s.pending.map (fun p => ⟨p.ticket, p.via, outcomeOf p.via e⟩)
-    pending := []
-    threw := s.threw || s.pending.any (·.via == .health) }
+    pending := [] }
 
 /-- The synchronous part of engine.ts:109-114. -/
 def stopChild (s : St) : St :=
@@ -239,12 +245,12 @@ def close (s : St) : St :=
 def exitWith (s : St) (n : Nat) : St :=
   { s with exit := some (.code n), sigkill := s.sigkill || (s.hookArmed && s.child == .running) }
 
-/-- engine.ts:122-129. Before readiness the rejected `ready` promise ends the host with an
-uncaught error at main.ts:17 (exit code 1). -/
+/-- engine.ts, `fail`. Before readiness the rejected `ready` promise ends the host with an
+uncaught error at `await engine.ready` in main.ts (exit code 1). -/
 def fail (s : St) (e : Err) : St :=
   if s.stopped then s
   else
-    let s1 := rejectPending { s with stopped := true, writesClosed := true } e
+    let s1 := rejectPending { s with stopped := true, writesClosed := true, failed := true } e
     let s2 := close { s1 with sigterm := s1.sigterm || s1.child == .running }
     if s.ready then s2 else exitWith { s2 with readyFailed := true } 1
 
@@ -256,14 +262,13 @@ def removePending (s : St) (id : Nat) : List Pending := s.pending.filter (·.id 
 def request (s : St) (v : Via) (fits : Bool) : St :=
   let t := s.nextTicket
   let s := { s with nextTicket := t + 1 }
-  let threw := s.threw || v == .health
-  if s.stopped then { s with done := s.done ++ [⟨t, v, outcomeOf v .unavailable⟩], threw }   -- 68
+  if s.stopped then { s with done := s.done ++ [⟨t, v, outcomeOf v .unavailable⟩] }   -- "Engine has stopped."
   else if s.pending.length ≥ maxPending then
-    { s with done := s.done ++ [⟨t, v, outcomeOf v .plain⟩], threw }                          -- 69
+    { s with done := s.done ++ [⟨t, v, outcomeOf v .unavailable⟩] }                   -- "queue is full."
   else
-    let id := s.seq + 1                                                                     -- 71
-    if !fits then { s with seq := id, done := s.done ++ [⟨t, v, outcomeOf v .invalidArgument⟩], threw }  -- 74
-    else { s with seq := id, pending := s.pending ++ [⟨id, t, v⟩], sent := s.sent ++ [frameOf v id] }  -- 75-86
+    let id := s.seq + 1
+    if !fits then { s with seq := id, done := s.done ++ [⟨t, v, outcomeOf v .invalidArgument⟩] }  -- `encode`
+    else { s with seq := id, pending := s.pending ++ [⟨id, t, v⟩], sent := s.sent ++ [frameOf v id] }
 
 def step (s : St) : Ev → Option St
   | .readyFrame =>
@@ -315,9 +320,9 @@ def step (s : St) : Ev → Option St
     else none
   | .hostSignal =>
     if s.exit.isNone && s.ready then
-      -- main.ts:78-79 register `once`: a repeated signal finds no handler and its default
-      -- action ends the process without `exit` listeners (checked on Bun 1.4.4).
-      if s.closing then some { s with exit := some .killed }
+      -- main.ts, `stop`: the handlers stay registered (`process.on`), so a repeated signal
+      -- runs `process.exit(1)` and with it the `exit` listener of engine.ts.
+      if s.closing then some (exitWith s 1)
       else some { s with closing := true, serving := false }
     else none
   | .transportStopped =>
@@ -325,7 +330,11 @@ def step (s : St) : Ev → Option St
     else none
   | .loopEmpty =>
     if s.exit.isNone && !s.serving && s.transportDone && s.hasExited then
-      some (exitWith s (if s.threw then 1 else 0))
+      some (exitWith s (if s.failed then 1 else 0))
+    else none
+  | .failureExit =>
+    if s.exit.isNone && s.ready && s.failed && s.hasExited then
+      some (exitWith { s with closing := true, serving := false, transportDone := true } 1)
     else none
   | .externalKill =>
     if s.exit.isNone then some { s with exit := some .killed } else none

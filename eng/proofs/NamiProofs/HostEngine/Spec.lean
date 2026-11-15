@@ -15,7 +15,9 @@ implementations").
 
 `Claim.*` states each claim for any step function; `Spec.*` instantiates it for the model of
 the code as it is (closed propositions). `Verdict.*` records the result for the code:
-the claim itself where it holds, its negation where a counterexample refutes it. Every
+the claim itself where it holds, its negation where a counterexample refutes it. Every claim
+about the code holds now; the three refuted verdicts that remain are about the slot
+accounting of `Design.lean` before the fix and with half of it. Every
 `Verdict` is the exact type of a theorem in `Proofs.lean`, which `lean_audit.sh --spec`
 checks. Editing this file reopens review.
 -/
@@ -196,10 +198,10 @@ def WrongRevisionRefusedBeforeDispatch : Prop := Spec.WrongRevisionRefusedBefore
 def DuplicateOrFullRefusedForThatId : Prop := Spec.DuplicateOrFullRefusedForThatId
 def OnlyEndOfInputEndsTheLoop : Prop := Spec.OnlyEndOfInputEndsTheLoop
 def CorrectHostNeverEndsTheEngine : Prop := Spec.CorrectHostNeverEndsTheEngine
--- Refuted on the code as it is.
-def HostExitsNonZeroWhenEngineDies : Prop := ¬ Spec.HostExitsNonZeroWhenEngineDies
-def Health503WhileEngineGone : Prop := ¬ Spec.Health503WhileEngineGone
-def HealthAnswersAreReports : Prop := ¬ Spec.HealthAnswersAreReports
+-- Held since the host ends when its engine has failed and `/health` catches (P04).
+def HostExitsNonZeroWhenEngineDies : Prop := Spec.HostExitsNonZeroWhenEngineDies
+def Health503WhileEngineGone : Prop := Spec.Health503WhileEngineGone
+def HealthAnswersAreReports : Prop := Spec.HealthAnswersAreReports
 -- The slot accounting (design model): the code before the fix, each change alone, and the fix.
 def SlotsAgreeToday : Prop := ¬ Spec.SlotsAgreeToday
 def SlotsAgreeWithRemoveOnCancelOnly : Prop := ¬ Spec.SlotsAgreeWithRemoveOnCancelOnly

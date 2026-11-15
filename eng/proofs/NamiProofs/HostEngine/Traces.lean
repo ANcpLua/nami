@@ -11,7 +11,7 @@ in turn (`step` returns `some`) and the model's final state shows the same obser
 
 * Host runs: `bun tests/Nami.IntegrationTests/Fixtures/mcp-supervisor.ts <scenario> <dir>`,
   the scripts `McpSupervisorTests` runs, over the fixture engine `mcp-engine.ts`; made on
-  15 Nov 2026 against the host at 843383e, which this model still describes.
+  15 Nov 2026 in this container against the host with P04 in it.
 * Engine runs: the tests of `tests/Nami.IntegrationTests/EngineProtocolTests.cs`, which serve
   the real `EngineProtocol` over in-memory pipes and write the frames `engine.ts` writes. Its
   `Slots_*`, `Refusal_*` and `BadFrames_*` tests hold every tool call at the store until the
@@ -26,13 +26,14 @@ renumbered from 1 in the order the engine received them; `mcp-engine.ts` ends on
 unless its mode ignores it. Where a run does not fix the order of two replies, the trace
 picks one.
 
-Transitions the accepted traces exercise: host 13 of 16 events (not `stdinError`,
+Transitions the accepted traces exercise: host 14 of 17 events (not `stdinError`,
 `startupTimeout`, `externalKill`); engine 8 of 10 (not `eofPartial`, `stop`; `unwindEnter`
 and `drop` only where noted); system all 5. Line coverage of the runs was not measured.
 
-One host trace was first rejected: `busy` ended with exit code 1 after SIGTERM where the
-model predicted 0. Bun ends a process with code 1 once a `fetch` handler has thrown, even
-after a clean shutdown; `St.threw` models that now, and the trace is accepted.
+The runs of the host at 843383e (`gone` answering 500 and never exiting, `busy` answering
+500 and exiting 1 after a clean shutdown, because Bun ends a process with code 1 once a
+`fetch` handler has thrown) are in this file's history (commit 333fad0) and are what
+`Mutants.hostBefore` still does.
 -/
 
 namespace NamiProofs.HostEngine.Traces
@@ -45,16 +46,26 @@ open NamiProofs.HostEngine
 def hostObs (s : Host.St) : List Host.Outcome × Option Host.Exit × Host.Child × Bool × Bool :=
   (s.done.map (·.outcome), s.exit, s.child, s.sigterm, s.sigkill)
 
-/-- `gone` (P04): healthBefore 200, engineFailed true, healthStatus 500, hostExit "alive",
-childGone true. The engine fails with a line that is not JSON and ignores SIGTERM; the host
-SIGKILLs it at 8 s and keeps serving. -/
+/-- `gone` (P04): healthBefore 200, engineFailed true, healthStatus 503 with report status
+`unhealthy`, hostExit 1, childGone true. The engine fails with a line that is not JSON and
+ignores SIGTERM; the host SIGKILLs it at 8 s and then ends itself. -/
 def gone : List Host.Ev :=
   [.readyFrame, .requestHealth, .reply 1 false, .requestHealth, .reply 2 false, .badFrame false,
-   .requestHealth, .gracefulFires, .forcedFires, .childExit, .childClose]
+   .requestHealth, .gracefulFires, .forcedFires, .childExit, .childClose, .failureExit]
 
 theorem gone_accepted :
     (Host.run Host.init gone).map hostObs =
-      some ([.http 200, .http 200, .http 500], none, .exited, true, true) := by decide
+      some ([.http 200, .http 200, .http 503], some (.code 1), .exited, true, true) := by decide
+
+/-- `twice`: closingBegan true, hostExit 1, hostSignal null, childGone true. The engine
+ignores SIGTERM and the end of its input; the second SIGTERM ends the host through
+`process.exit`, whose `exit` listener SIGKILLs the engine. -/
+def twice : List Host.Ev :=
+  [.readyFrame, .requestHealth, .reply 1 false, .hostSignal, .transportStopped, .hostSignal]
+
+theorem twice_accepted :
+    (Host.run Host.init twice).map hostObs = some ([.http 200], some (.code 1), .running, false, true) := by
+  decide
 
 /-- `unhealthy`: healthStatus 503, exitCodeAfterSignal 0. -/
 def unhealthy : List Host.Ev :=
@@ -65,7 +76,8 @@ theorem unhealthy_accepted :
     (Host.run Host.init unhealthy).map hostObs =
       some ([.http 503, .http 503], some (.code 0), .exited, false, false) := by decide
 
-/-- `busy`: allWaiting true, healthStatus 500, callsSucceeded 32, exitCodeAfterSignal 1. -/
+/-- `busy`: allWaiting true, healthStatus 503 with report status `unhealthy`,
+callsSucceeded 32, exitCodeAfterSignal 0. -/
 def busy : List Host.Ev :=
   [.readyFrame, .requestHealth, .reply 1 false] ++ List.replicate 32 (.requestTool true) ++
   [.requestHealth] ++ (List.range 32).map (fun i => .reply (i + 2) false) ++
@@ -75,7 +87,7 @@ theorem busy_accepted :
     (Host.run Host.init busy).map (fun s =>
       ((s.done.filter (·.via == .health)).map (·.outcome),
        (s.done.filter (fun d => d.via == .tool && d.outcome == .result false)).length, s.exit)) =
-      some ([.http 200, .http 500], 32, some (.code 1)) := by decide
+      some ([.http 200, .http 503], 32, some (.code 0)) := by decide
 
 /-- `cancel` (P14): allWaiting true, abortedCaller AbortError, cancelForwarded true with
 cancelledId 33, nextForwarded true, nextIsError false, othersSucceeded 31,

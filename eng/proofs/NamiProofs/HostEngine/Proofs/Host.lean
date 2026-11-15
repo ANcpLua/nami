@@ -1,4 +1,4 @@
-import NamiProofs.HostEngine.Host
+import NamiProofs.HostEngine.Spec
 
 /-! Invariants of the host model and the claims they carry. -/
 
@@ -43,6 +43,7 @@ variable (s : St)
 @[simp] theorem stopChild_nextTicket : (stopChild s).nextTicket = s.nextTicket := by unfold stopChild; split <;> rfl
 @[simp] theorem stopChild_transportDone : (stopChild s).transportDone = s.transportDone := by unfold stopChild; split <;> rfl
 @[simp] theorem stopChild_readyFailed : (stopChild s).readyFailed = s.readyFailed := by unfold stopChild; split <;> rfl
+@[simp] theorem stopChild_failed : (stopChild s).failed = s.failed := by unfold stopChild; split <;> rfl
 end stopChild
 
 theorem close_of_shutdown {s : St} (h : s.shutdown = true) : close s = s := by simp [close, h]
@@ -252,8 +253,7 @@ theorem inv_step {s s' : St} {e : Ev} (h : Inv s) (hs : step s e = some s') : In
   case hostSignal =>
     split at hs
     · split at hs <;> simp at hs <;> subst hs
-      · obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := h
-        constructor <;> simp_all
+      · exact inv_exitWith _ h
       · exact inv_congr h rfl rfl rfl rfl rfl rfl rfl rfl rfl
     · simp at hs
   case transportStopped =>
@@ -261,6 +261,9 @@ theorem inv_step {s s' : St} {e : Ev} (h : Inv s) (hs : step s e = some s') : In
     exact inv_close (inv_congr h rfl rfl rfl rfl rfl rfl rfl rfl rfl)
   case loopEmpty =>
     split at hs <;> simp at hs; subst hs; exact inv_exitWith _ h
+  case failureExit =>
+    split at hs <;> simp at hs; subst hs
+    exact inv_exitWith _ (inv_congr h rfl rfl rfl rfl rfl rfl rfl rfl rfl)
   case externalKill =>
     split at hs <;> simp at hs; subst hs
     obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := h
@@ -288,6 +291,7 @@ variable (s : St) (e : Err) (n : Nat)
 @[simp] theorem close_ready : (close s).ready = s.ready := by unfold close; split <;> simp [rejectPending]
 @[simp] theorem close_closing : (close s).closing = s.closing := by unfold close; split <;> simp [rejectPending]
 @[simp] theorem close_exit : (close s).exit = s.exit := by unfold close; split <;> simp [rejectPending]
+@[simp] theorem close_failed : (close s).failed = s.failed := by unfold close; split <;> simp [rejectPending]
 @[simp] theorem exitWith_serving : (exitWith s n).serving = s.serving := rfl
 @[simp] theorem exitWith_ready : (exitWith s n).ready = s.ready := rfl
 @[simp] theorem exitWith_closing : (exitWith s n).closing = s.closing := rfl
@@ -381,5 +385,206 @@ theorem cancelCompletesWaitingCall (s : St) (hr : Reachable s) (hx : s.exit = no
     simp only [s', removePending, List.mem_filter, bne_iff_ne, ne_eq] at hq
     exact hq.2
   · rfl
+
+/-! ## What the host does once its engine has failed (P04) -/
+
+/-- An answer to `GET /health` that is a health report, or none because the client left. -/
+def HealthOk (o : Outcome) : Prop := o = .http 200 ∨ o = .http 503 ∨ o = .cancelled
+
+theorem outcomeOf_health (e : Err) : HealthOk (outcomeOf .health e) := by
+  cases e <;> exact Or.inr (Or.inl rfl)
+
+theorem replyOutcome_health (isError : Bool) : HealthOk (replyOutcome .health isError) := by
+  cases isError
+  · exact Or.inl rfl
+  · exact Or.inr (Or.inl rfl)
+
+/-- Two more facts of every reachable state: every answer to `/health` is a report, and an
+engine that is stopped while nobody asked the host to close has failed by itself. -/
+structure Inv2 (s : St) : Prop where
+  health_done : ∀ d ∈ s.done, d.via = .health → HealthOk d.outcome
+  stopped_failed : s.stopped = true → s.closing = false → s.failed = true
+
+theorem inv2_init : Inv2 init := by constructor <;> simp [init]
+
+theorem health_rejected {s : St} (e : Err) (h : ∀ d ∈ s.done, d.via = .health → HealthOk d.outcome) :
+    ∀ d ∈ s.done ++ s.pending.map (fun p => (⟨p.ticket, p.via, outcomeOf p.via e⟩ : Done)),
+      d.via = .health → HealthOk d.outcome := by
+  intro d hd hv
+  simp only [List.mem_append, List.mem_map] at hd
+  rcases hd with hd | ⟨p, _, rfl⟩
+  · exact h d hd hv
+  · simp only at hv
+    simp only [hv]
+    exact outcomeOf_health e
+
+theorem health_done_close {s : St} (h : ∀ d ∈ s.done, d.via = .health → HealthOk d.outcome) :
+    ∀ d ∈ (close s).done, d.via = .health → HealthOk d.outcome := by
+  unfold close
+  split
+  · exact h
+  · simp only [stopChild_done, rejectPending]
+    exact health_rejected .unavailable h
+
+theorem fail_failed {s : St} {e : Err} (hst : s.stopped = false) : (fail s e).failed = true := by
+  unfold fail
+  simp only [hst, Bool.false_eq_true, ite_false]
+  split <;> simp [rejectPending, exitWith]
+
+theorem inv2_fail {s : St} (e : Err) (hss : s.shutdown = true → s.stopped = true) (h : Inv2 s) :
+    Inv2 (fail s e) := by
+  by_cases hst : s.stopped = true
+  · rw [fail_of_stopped hst]; exact h
+  · have hst' : s.stopped = false := by simpa using hst
+    have hsd : s.shutdown = false := by
+      cases hq : s.shutdown
+      · rfl
+      · exact absurd (hss hq) hst
+    obtain ⟨_, _, _, _, _, _, _, hd, _, _⟩ := fail_fields (e := e) hst' hsd
+    constructor
+    · rw [hd]; exact health_rejected e h.health_done
+    · intro _ _; exact fail_failed hst'
+
+theorem inv2_request {s : St} (v : Via) (fits : Bool) (h : Inv2 s) : Inv2 (request s v fits) := by
+  have one : ∀ (e : Err), ∀ d ∈ s.done ++ [(⟨s.nextTicket, v, outcomeOf v e⟩ : Done)],
+      d.via = .health → HealthOk d.outcome := by
+    intro e d hd hv
+    simp only [List.mem_append, List.mem_singleton] at hd
+    rcases hd with hd | rfl
+    · exact h.health_done d hd hv
+    · simp only at hv
+      simp only [hv]
+      exact outcomeOf_health e
+  unfold request
+  simp only
+  split
+  · exact ⟨one _, h.stopped_failed⟩
+  · split
+    · exact ⟨one _, h.stopped_failed⟩
+    · split
+      · exact ⟨one _, h.stopped_failed⟩
+      · exact ⟨h.health_done, h.stopped_failed⟩
+
+theorem inv2_step {s s' : St} {e : Ev} (hi : Inv s) (h : Inv2 s) (hs : step s e = some s') : Inv2 s' := by
+  cases e <;> simp only [step] at hs
+  case readyFrame =>
+    split at hs <;> simp at hs; subst hs; exact ⟨h.health_done, h.stopped_failed⟩
+  case requestTool fits =>
+    split at hs <;> simp at hs; subst hs; exact inv2_request _ _ h
+  case requestHealth =>
+    split at hs <;> simp at hs; subst hs; exact inv2_request _ _ h
+  case reply id isError =>
+    split at hs
+    · split at hs <;> simp at hs <;> subst hs
+      · refine ⟨?_, h.stopped_failed⟩
+        intro d hd hv
+        simp only [List.mem_append, List.mem_singleton] at hd
+        rcases hd with hd | rfl
+        · exact h.health_done d hd hv
+        · simp only at hv
+          simp only [hv]
+          exact replyOutcome_health isError
+      · exact h
+    · simp at hs
+  case badFrame typed =>
+    split at hs <;> simp at hs; subst hs; exact inv2_fail _ hi.shutdown_stopped h
+  case abort id =>
+    split at hs
+    · split at hs <;> simp at hs; subst hs
+      refine ⟨?_, h.stopped_failed⟩
+      intro d hd hv
+      simp only [List.mem_append, List.mem_singleton] at hd
+      rcases hd with hd | rfl
+      · exact h.health_done d hd hv
+      · exact Or.inr (Or.inr rfl)
+    · simp at hs
+  case stdinError =>
+    split at hs <;> simp at hs; subst hs; exact inv2_fail _ hi.shutdown_stopped h
+  case startupTimeout =>
+    split at hs <;> simp at hs; subst hs; exact inv2_fail _ hi.shutdown_stopped h
+  case childExit =>
+    split at hs
+    · simp at hs; subst hs
+      split
+      · exact inv2_fail (s := { s with child := .exited }) _ hi.shutdown_stopped
+          ⟨h.health_done, h.stopped_failed⟩
+      · exact ⟨h.health_done, h.stopped_failed⟩
+    · simp at hs
+  case childClose =>
+    split at hs <;> simp at hs; subst hs; exact ⟨h.health_done, h.stopped_failed⟩
+  case gracefulFires =>
+    split at hs <;> simp at hs; subst hs; exact ⟨h.health_done, h.stopped_failed⟩
+  case forcedFires =>
+    split at hs <;> simp at hs; subst hs; exact ⟨h.health_done, h.stopped_failed⟩
+  case hostSignal =>
+    split at hs
+    · split at hs <;> simp at hs <;> subst hs
+      · exact ⟨h.health_done, h.stopped_failed⟩
+      · exact ⟨h.health_done, fun _ hc => by simp at hc⟩
+    · simp at hs
+  case transportStopped =>
+    split at hs <;> simp at hs; subst hs
+    rename_i hc
+    refine ⟨health_done_close (s := { s with transportDone := true }) h.health_done, ?_⟩
+    intro _ hcl
+    simp only [close_closing] at hcl
+    simp [hcl] at hc
+  case loopEmpty =>
+    split at hs <;> simp at hs; subst hs; exact ⟨h.health_done, h.stopped_failed⟩
+  case externalKill =>
+    split at hs <;> simp at hs; subst hs; exact ⟨h.health_done, h.stopped_failed⟩
+  case failureExit =>
+    split at hs <;> simp at hs; subst hs
+    exact ⟨h.health_done, fun _ hc => by simp [exitWith] at hc⟩
+
+theorem inv2_runBy {s s' : St} : ∀ {es : List Ev}, Inv s → Inv2 s → runBy step s es = some s' → Inv2 s'
+  | [], _, h, hr => by simp [runBy] at hr; subst hr; exact h
+  | e :: es, hi, h, hr => by
+    simp only [runBy] at hr
+    cases hs : step s e with
+    | none => simp [hs] at hr
+    | some s1 =>
+      simp only [hs, Option.bind_some] at hr
+      exact inv2_runBy (inv_step hi hs) (inv2_step hi h hs) hr
+
+theorem inv2_reachable {s : St} (h : Reachable s) : Inv2 s := by
+  obtain ⟨es, hes⟩ := h
+  exact inv2_runBy inv_init inv2_init hes
+
+/-- P04: every answer to `GET /health` is a health report with 200 or 503. -/
+theorem healthAnswersAreReports : Claim.HealthAnswersAreReports step :=
+  fun _ hr d hd hv => (inv2_reachable hr).health_done d hd hv
+
+/-- P04: between the engine's failure and the host's exit `/health` answers 503. -/
+theorem health503WhileEngineGone : Claim.Health503WhileEngineGone step := by
+  intro s _ _ hst _ _ s' hs
+  simp only [step] at hs
+  split at hs <;> simp at hs
+  subst hs
+  simp [request, hst, outcomeOf]
+
+/-- P04: once the engine has died and nobody asked the host to stop, the child's `close`
+and the continuation of `engine.failed` end the host with code 1. -/
+theorem hostExitsNonZeroWhenEngineDies : Claim.HostExitsNonZeroWhenEngineDies step := by
+  intro s hr hrd hc hx hcl
+  have hf : s.failed = true :=
+    (inv2_reachable hr).stopped_failed ((inv_reachable hr).exited_stopped hc hx) hcl
+  cases hh : s.hasExited
+  · let s1 : St := { s with hasExited := true, graceful := false, forced := false, hookArmed := false }
+    refine ⟨[.childClose, .failureExit], by decide,
+      exitWith { s1 with closing := true, serving := false, transportDone := true } 1, 1, ?_, rfl, by decide⟩
+    simp [runBy, step, hx, hc, hh, hrd, hf, s1]
+  · refine ⟨[.failureExit], by decide,
+      exitWith { s with closing := true, serving := false, transportDone := true } 1, 1, ?_, rfl, by decide⟩
+    simp [runBy, step, hx, hh, hrd, hf]
+
+/-! ## States used as witnesses -/
+
+instance : Inhabited St := ⟨{}⟩
+
+/-- The engine dies right after readiness: `[readyFrame, childExit]`. -/
+def engineDied : St := (run init [.readyFrame, .childExit]).get!
+
+theorem engineDied_reachable : Reachable engineDied := ⟨[.readyFrame, .childExit], rfl⟩
 
 end NamiProofs.HostEngine.Host

@@ -161,6 +161,19 @@ try {
       healthBefore: before.status, engineFailed: failed, healthStatus: during.status, healthReportStatus: during.reportStatus,
       hostExit: exit, childGone: gone(host.child)
     }));
+  } else if (scenario === "twice") {
+    // The engine ignores SIGTERM and the end of its input, so the host's close waits for it. A second
+    // SIGTERM during that wait must still end the host by itself, which takes the engine with it.
+    const host = await startHost("stubborn");
+    processUnderTest!.kill("SIGTERM");
+    const closingBegan = await observed(async () => {
+      try { await fetch(host.url + "/health", { signal: AbortSignal.timeout(200) }); return false; }
+      catch { return true; }
+    });
+    processUnderTest!.kill("SIGTERM");
+    const exit = await exitWithin(host.exited, 3_000);
+    const childGone = await observed(() => gone(host.child));
+    console.log(JSON.stringify({ closingBegan, hostExit: exit, hostSignal: processUnderTest!.signalCode ?? null, childGone }));
   } else if (scenario === "unhealthy") {
     const host = await startHost("unhealthy");
     const health = await healthOf(host.url);
