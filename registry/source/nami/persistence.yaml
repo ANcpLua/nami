@@ -120,10 +120,87 @@
           }
         },
         {
+          "ref": "gen_ai.input.messages",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "gen_ai.memory.query.text",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "gen_ai.memory.records",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "gen_ai.output.messages",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "gen_ai.prompt.variable",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "gen_ai.retrieval.documents",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "gen_ai.retrieval.query.text",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "gen_ai.system_instructions",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
           "ref": "gen_ai.token.modality",
           "annotations": {
             "nami.persisted": true,
             "nami.token_exempt": true
+          }
+        },
+        {
+          "ref": "gen_ai.tool.call.arguments",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "gen_ai.tool.call.result",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "gen_ai.tool.definitions",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
           }
         },
         {
@@ -219,6 +296,20 @@
         },
         {
           "ref": "host.name",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "http.request.body.content",
+          "annotations": {
+            "nami.persisted": false,
+            "nami.token_exempt": false
+          }
+        },
+        {
+          "ref": "http.response.body.content",
           "annotations": {
             "nami.persisted": false,
             "nami.token_exempt": false

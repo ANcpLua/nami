@@ -1,5 +1,23 @@
 # Registry changes
 
+## 0.4.0 — 2026-11-15
+
+- Core: `open-telemetry/semantic-conventions` tag `v1.45.0`, commit
+  `fb30ca17193b551473b1f43c315482918ab6987c` (unchanged, imported through GenAI).
+- GenAI: `open-telemetry/semantic-conventions-genai` commit
+  `e6658f14c9d9ea0760825f029cb82e7673f48fab` (unchanged).
+- Weaver: `0.28.0` (unchanged).
+- Content is no longer persisted (finish-line item 5, engine audit A2). Without an annotation
+  a key is persisted, so these were stored and returned verbatim: the prompt, response and
+  system prompt (`gen_ai.input.messages`, `gen_ai.output.messages`,
+  `gen_ai.system_instructions`), tool calls and definitions (`gen_ai.tool.call.arguments`,
+  `gen_ai.tool.call.result`, `gen_ai.tool.definitions`), retrieval and memory content
+  (`gen_ai.retrieval.documents`, `gen_ai.retrieval.query.text`, `gen_ai.memory.query.text`,
+  `gen_ai.memory.records`), prompt template variables (`gen_ai.prompt.variable.<key>`), and
+  HTTP bodies (`http.request.body.content`, `http.response.body.content`). Each now carries
+  `nami.persisted: false`, so ingest drops it.
+- Advanced the Nami registry schema to 0.4.0. This does not change the product version.
+
 ## 0.3.0 — 2026-11-14
 
 - Core: `open-telemetry/semantic-conventions` tag `v1.45.0`, commit

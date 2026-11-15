@@ -1,6 +1,6 @@
 # Nami semantic conventions
 
-Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schemas/0.3.0`).
+Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schemas/0.4.0`).
 
 | Namespace | Attributes | Stable attributes | Metrics | Stable metrics |
 | --- | --- | --- | --- | --- |

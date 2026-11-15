@@ -4744,25 +4744,25 @@
     {
       "deprecated": null,
       "key": "nami.attribute.key",
-      "source_schema": "https://ancplua.github.io/nami/schemas/0.3.0",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
       "deprecated": null,
       "key": "nami.attribute.namespace",
-      "source_schema": "https://ancplua.github.io/nami/schemas/0.3.0",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
       "deprecated": null,
       "key": "nami.gen_ai.tool.call.arguments_hash",
-      "source_schema": "https://ancplua.github.io/nami/schemas/0.3.0",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
       "deprecated": null,
       "key": "nami.project.id",
-      "source_schema": "https://ancplua.github.io/nami/schemas/0.3.0",
+      "source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
       "stability": "development"
     },
     {
@@ -6884,6 +6884,6 @@
     }
   },
   "genai_commit": "e6658f14c9d9ea0760825f029cb82e7673f48fab",
-  "schema_url": "https://ancplua.github.io/nami/schemas/0.3.0",
+  "schema_url": "https://ancplua.github.io/nami/schemas/0.4.0",
   "weaver": "0.28.0"
 }
