@@ -73,6 +73,85 @@ public sealed partial class RegistryGateTests(TestContext context)
 
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
     [TestMethod]
+    public void Catalog_EachDefinition_CarriesResolvedStabilityAndSuccessor()
+    {
+        using var source = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "registry/resolved.json")));
+        var registry = source.RootElement.GetProperty("registry");
+        var catalog = source.RootElement.GetProperty("attribute_catalog");
+        var differences = new List<string>();
+
+        // Attributes: ingest marks stored keys with this stability and rewrites deprecated keys to this successor.
+        var attributes = 0;
+        var successors = 0;
+        foreach (var index in registry.GetProperty("attributes").EnumerateArray())
+        {
+            var resolved = catalog[index.GetInt32()];
+            var key = resolved.GetProperty("key").GetString()!;
+            var successor = resolved.TryGetProperty("deprecated", out var deprecated) &&
+                            deprecated.ValueKind == JsonValueKind.Object &&
+                            deprecated.TryGetProperty("renamed_to", out var renamed)
+                ? renamed.GetString()
+                : null;
+            attributes++;
+            if (successor is not null) successors++;
+            var generated = AttributeCatalog.Find(key);
+            if (generated?.Stability != ResolvedStability(resolved) || AttributeStability.Of(key) != generated.Stability)
+                differences.Add($"attribute {key}: stability {generated?.Stability}, resolved {ResolvedStability(resolved)}");
+            if (generated?.Successor != successor || DeprecatedAttributes.SuccessorOf(key) != successor)
+                differences.Add($"attribute {key}: successor {generated?.Successor ?? "none"}, resolved {successor ?? "none"}");
+        }
+
+        Assert.HasCount(attributes, AttributeCatalog.All);
+        Assert.IsGreaterThan(100, successors);
+
+        var metrics = Metrics.All.ToDictionary(static metric => metric.Name, StringComparer.Ordinal);
+        var resolvedMetrics = registry.GetProperty("metrics").EnumerateArray().Where(HasGeneratedConstants).ToArray();
+        Assert.HasCount(resolvedMetrics.Length, metrics);
+        foreach (var resolved in resolvedMetrics)
+        {
+            var name = resolved.GetProperty("name").GetString()!;
+            var generated = metrics.GetValueOrDefault(name);
+            if (generated?.Stability != ResolvedStability(resolved))
+                differences.Add($"metric {name}: stability {generated?.Stability}, resolved {ResolvedStability(resolved)}");
+        }
+
+        // A span shape is a refinement (by id) or, when no refinement has that id, a base span (by type).
+        var shapes = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (var span in source.RootElement.GetProperty("refinements").GetProperty("spans").EnumerateArray())
+            shapes.TryAdd(span.GetProperty("id").GetString()!, span);
+        foreach (var span in registry.GetProperty("spans").EnumerateArray())
+            shapes.TryAdd(span.GetProperty("type").GetString()!, span);
+        var spans = Spans.All.ToDictionary(static span => span.Id, StringComparer.Ordinal);
+        Assert.HasCount(shapes.Count(static shape => HasGeneratedConstants(shape.Value)), spans);
+        foreach (var (id, resolved) in shapes.Where(static shape => HasGeneratedConstants(shape.Value)))
+        {
+            var generated = spans.GetValueOrDefault(id);
+            if (generated?.Stability != ResolvedStability(resolved))
+                differences.Add($"span {id}: stability {generated?.Stability}, resolved {ResolvedStability(resolved)}");
+        }
+
+        Assert.IsEmpty(differences, string.Join(Environment.NewLine, differences));
+    }
+
+    /// <summary>A deprecated definition is Deprecated whatever its level; any other carries its own level.</summary>
+    private static Stability ResolvedStability(JsonElement definition)
+    {
+        return definition.TryGetProperty("deprecated", out var deprecated) && deprecated.ValueKind != JsonValueKind.Null
+            ? Stability.Deprecated
+            : Enum.Parse<Stability>(
+                definition.GetProperty("stability").GetString()!.Replace("_", "", StringComparison.Ordinal), true);
+    }
+
+    private static bool HasGeneratedConstants(JsonElement definition)
+    {
+        return !(definition.TryGetProperty("annotations", out var annotations) &&
+                 annotations.TryGetProperty("code_generation", out var generation) &&
+                 generation.TryGetProperty("exclude", out var exclude) &&
+                 exclude.ValueKind == JsonValueKind.True);
+    }
+
+    [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
+    [TestMethod]
     public void SchemaUrls_NameTheSourcesOfTheCatalog()
     {
         // Each attribute records the schema it came from. The three schema constants must be
@@ -235,14 +314,6 @@ public sealed partial class RegistryGateTests(TestContext context)
                 ? Whitespace().Replace(text.GetString()!, " ").Trim()
                 : "";
             return note.Length > 0 ? note : "Deprecated.";
-        }
-
-        static bool HasGeneratedConstants(JsonElement definition)
-        {
-            return !(definition.TryGetProperty("annotations", out var annotations) &&
-                     annotations.TryGetProperty("code_generation", out var generation) &&
-                     generation.TryGetProperty("exclude", out var exclude) &&
-                     exclude.ValueKind == JsonValueKind.True);
         }
 
         static string Describe(MemberInfo member)
@@ -468,6 +539,43 @@ public sealed partial class RegistryGateTests(TestContext context)
         Assert.DoesNotContain("Unexpected upstream", result.Error);
     }
 
+    /// <summary>
+    ///     registry/generate.py accepts the pins only when the first CHANGELOG section names both commits, so that
+    ///     section is the entry of the pinned registry. When a pin differs from the release before, the same section
+    ///     must carry the summary of <c>weaver registry diff</c> against that release.
+    /// </summary>
+    [TestMethod]
+    public void CurrentPins_ChangedSincePreviousRelease_RecordTheRegistryDiff()
+    {
+        var sections = File.ReadAllText(Path.Combine(Root, "registry/CHANGELOG.md")).Split("\n## ");
+        Assert.IsGreaterThan(2, sections.Length, "Expected the current and a previous release in the CHANGELOG.");
+        var current = sections[1];
+        var previous = sections[2];
+        Assert.Contains(RegistryInfo.CoreCommit, current);
+        Assert.Contains(RegistryInfo.GenAiCommit, current);
+        var version = ReleaseVersion().Match(current).Groups["version"].Value;
+        var baseline = ReleaseVersion().Match(previous).Groups["version"].Value;
+        Assert.AreNotEqual("", version);
+        Assert.AreNotEqual("", baseline);
+        var changed = new[] { ("core", RegistryInfo.CoreCommit), ("genai", RegistryInfo.GenAiCommit) }
+            .Where(pin => !previous.Contains(pin.Item2, StringComparison.Ordinal))
+            .Select(static pin => pin.Item1 + " " + pin.Item2).ToArray();
+        if (changed.Length == 0)
+        {
+            context.WriteLine($"Registry {version} keeps the pins of {baseline}; no registry diff is due.");
+            return;
+        }
+
+        var pins = string.Join(", ", changed);
+        var entries = RegistryDiffEntry().Matches(current);
+        Assert.HasCount(1, entries,
+            $"Registry {version} moved {pins} since {baseline}; its CHANGELOG entry needs one `weaver registry diff` summary.");
+        Assert.AreEqual(baseline, entries[0].Groups["baseline"].Value,
+            $"Registry {version} moved {pins}; the `weaver registry diff` summary must compare against {baseline}.");
+        Assert.MatchesRegex(@"\d", entries[0].Groups["summary"].Value,
+            $"The `weaver registry diff` summary of registry {version} ({pins}) names no counts.");
+    }
+
     [TestMethod]
     [Timeout(60000, CooperativeCancellation = true)]
     public async Task A2aMigrationExceptions_RequireExactPinnedSource()
@@ -579,4 +687,12 @@ public sealed partial class RegistryGateTests(TestContext context)
 
     [GeneratedRegex(@"\berror ([A-Z]+\d+)\b", RegexOptions.CultureInvariant)]
     private static partial Regex CompilerError();
+
+    [GeneratedRegex(@"\A(?<version>\d+\.\d+\.\d+)\b", RegexOptions.CultureInvariant)]
+    private static partial Regex ReleaseVersion();
+
+    // One bullet of a release: from its marker to the next bullet or the end of the section.
+    [GeneratedRegex(@"^- `weaver registry diff` against (?<baseline>\d+\.\d+\.\d+):(?<summary>(?:(?!^- ).)*)",
+        RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Singleline)]
+    private static partial Regex RegistryDiffEntry();
 }
