@@ -6,10 +6,10 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `go.cpu.detailed_state` | `string` | development |  | The detailed state of the CPU. | `"gc/pause"`, `"gc/mark/assist"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `go.cpu.state` | `enum` | development |  | The state of the CPU. | `"user"`, `"gc"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `go.memory.detailed_type` | `string` | development |  | The detailed type of memory. | `"heap/objects"`, `"heap/free"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `go.memory.type` | `enum` | development |  | The type of memory. | `"other"`, `"stack"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `go.cpu.detailed_state` | `string` | development |  | The detailed state of the CPU. | `"gc/pause"`, `"gc/mark/assist"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `go.cpu.state` | `enum` | development |  | The state of the CPU. | `"user"`, `"gc"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `go.memory.detailed_type` | `string` | development |  | The detailed type of memory. | `"heap/objects"`, `"heap/free"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `go.memory.type` | `enum` | development |  | The type of memory. | `"other"`, `"stack"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `go.cpu.state` values
 

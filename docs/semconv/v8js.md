@@ -6,9 +6,9 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `v8js.gc.type` | `enum` | development |  | The type of garbage collection. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `v8js.heap.space.name` | `enum` | development |  | The name of the space type of heap memory. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `v8js.resource.type` | `enum` | development |  | The type of resource keeping the event loop active. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `v8js.gc.type` | `enum` | development |  | The type of garbage collection. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `v8js.heap.space.name` | `enum` | development |  | The name of the space type of heap memory. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `v8js.resource.type` | `enum` | development |  | The type of resource keeping the event loop active. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `v8js.gc.type` values
 
@@ -23,11 +23,20 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Value | Stability | Deprecated | Brief |
 | --- | --- | --- | --- |
+| `code_large_object_space` | development |  | Large object space for code objects. |
 | `code_space` | development |  | Code memory space. |
 | `large_object_space` | development |  | Large object memory space. |
 | `map_space` | development |  | Map memory space. |
+| `new_large_object_space` | development |  | Large object space for young-generation objects. |
 | `new_space` | development |  | New memory space. |
 | `old_space` | development |  | Old memory space. |
+| `read_only_space` | development |  | Read-only memory space, holding immutable objects created at startup. |
+| `shared_large_object_space` | development |  | Large object space for shared objects. |
+| `shared_space` | development |  | Memory space for objects shared across isolates (e.g. shared strings and structs). |
+| `shared_trusted_large_object_space` | development |  | Large object space for shared trusted objects. |
+| `shared_trusted_space` | development |  | Shared variant of the trusted memory space. |
+| `trusted_large_object_space` | development |  | Large object space for trusted objects. |
+| `trusted_space` | development |  | Memory space for trusted objects kept outside the V8 sandbox (e.g. bytecode). |
 
 ### `v8js.resource.type` values
 

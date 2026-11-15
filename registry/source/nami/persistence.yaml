@@ -225,14 +225,7 @@
           }
         },
         {
-          "ref": "message.type",
-          "annotations": {
-            "nami.persisted": true,
-            "nami.token_exempt": true
-          }
-        },
-        {
-          "ref": "messaging.kafka.message.offset",
+          "ref": "kafka.offset",
           "annotations": {
             "nami.persisted": true,
             "nami.token_exempt": true
@@ -253,13 +246,6 @@
           }
         },
         {
-          "ref": "messaging.rocketmq.message.type",
-          "annotations": {
-            "nami.persisted": true,
-            "nami.token_exempt": true
-          }
-        },
-        {
           "ref": "otel.span.sampling_result",
           "annotations": {
             "nami.persisted": true,
@@ -267,7 +253,7 @@
           }
         },
         {
-          "ref": "rpc.message.type",
+          "ref": "rocketmq.message.type",
           "annotations": {
             "nami.persisted": true,
             "nami.token_exempt": true

@@ -6,18 +6,18 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `otel.component.name` | `string` | development |  | A name uniquely identifying the instance of the OpenTelemetry component within its containing SDK instance. | `"otlp_grpc_span_exporter/0"`, `"custom-name"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `otel.component.type` | `enum` | development |  | A name identifying the type of the OpenTelemetry component. | `"batching_span_processor"`, `"com.example.MySpanExporter"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `otel.event.name` | `string` | stable |  | Identifies the class / type of event. | `"browser.mouse.click"`, `"device.app.lifecycle"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `otel.library.name` | `string` | development | Replaced by `otel.scope.name`. | Deprecated. Use the `otel.scope.name` attribute | `"io.opentelemetry.contrib.mongodb"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `otel.library.version` | `string` | development | Replaced by `otel.scope.version`. | Deprecated. Use the `otel.scope.version` attribute. | `"1.0.0"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `otel.scope.name` | `string` | stable |  | The name of the instrumentation scope - (`InstrumentationScope.Name` in OTLP). | `"io.opentelemetry.contrib.mongodb"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `otel.scope.schema_url` | `string` | development |  | The schema URL of the instrumentation scope. | `"https://opentelemetry.io/schemas/1.31.0"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `otel.scope.version` | `string` | stable |  | The version of the instrumentation scope - (`InstrumentationScope.Version` in OTLP). | `"1.0.0"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `otel.span.parent.origin` | `enum` | development |  | Determines whether the span has a parent span, and if so, [whether it is a remote parent](https://opentelemetry.io/docs/specs/otel/trace/api/#isremote) |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `otel.span.sampling_result` | `enum` | development |  | The result value of the sampler for this span |  | `nami.persisted`: `true`, `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"`, `nami.token_exempt`: `true` |
-| `otel.status_code` | `enum` | stable |  | Name of the code, either "OK" or "ERROR". MUST NOT be set if the status code is UNSET. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `otel.status_description` | `string` | stable |  | Description of the Status if it has a value, otherwise not set. | `"resource not found"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `otel.component.name` | `string` | development |  | A name uniquely identifying the instance of the OpenTelemetry component within its containing SDK instance. | `"otlp_grpc_span_exporter/0"`, `"custom-name"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `otel.component.type` | `enum` | development |  | A name identifying the type of the OpenTelemetry component. | `"batching_span_processor"`, `"com.example.MySpanExporter"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `otel.event.name` | `string` | stable |  | Identifies the class / type of event. | `"browser.mouse.click"`, `"device.app.lifecycle"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `otel.library.name` | `string` | development | Replaced by `otel.scope.name`. | Deprecated. Use the `otel.scope.name` attribute | `"io.opentelemetry.contrib.mongodb"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `otel.library.version` | `string` | development | Replaced by `otel.scope.version`. | Deprecated. Use the `otel.scope.version` attribute. | `"1.0.0"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `otel.scope.name` | `string` | stable |  | The name of the instrumentation scope - (`InstrumentationScope.Name` in OTLP). | `"io.opentelemetry.contrib.mongodb"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `otel.scope.schema_url` | `string` | development |  | The schema URL of the instrumentation scope. | `"https://opentelemetry.io/schemas/1.31.0"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `otel.scope.version` | `string` | stable |  | The version of the instrumentation scope - (`InstrumentationScope.Version` in OTLP). | `"1.0.0"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `otel.span.parent.origin` | `enum` | development |  | Determines whether the span has a parent span, and if so, [whether it is a remote parent](https://opentelemetry.io/docs/specs/otel/trace/api/#isremote) |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `otel.span.sampling_result` | `enum` | development |  | The result value of the sampler for this span |  | `nami.persisted`: `true`, `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"`, `nami.token_exempt`: `true` |
+| `otel.status_code` | `enum` | stable |  | Name of the code, either "OK" or "ERROR". MUST NOT be set if the status code is UNSET. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `otel.status_description` | `string` | stable |  | Description of the Status if it has a value, otherwise not set. | `"resource not found"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `otel.component.type` values
 
@@ -76,7 +76,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `otel.sdk.exporter.span.exported.count` | updowncounter | `{span}` | development | Replaced by `otel.sdk.exporter.span.exported`. | Deprecated, use `otel.sdk.exporter.span.exported` instead. |
 | `otel.sdk.exporter.span.inflight` | updowncounter | `{span}` | development |  | The number of spans which were passed to the exporter, but that have not been exported yet (neither successful, nor failed). |
 | `otel.sdk.exporter.span.inflight.count` | updowncounter | `{span}` | development | Replaced by `otel.sdk.exporter.span.inflight`. | Deprecated, use `otel.sdk.exporter.span.inflight` instead. |
-| `otel.sdk.log.created` | counter | `{log_record}` | development |  | The number of logs submitted to enabled SDK Loggers. |
+| `otel.sdk.log.created` | counter | `{log_record}` | development |  | The number of log records submitted to an enabled `Logger`. |
 | `otel.sdk.metric_reader.collection.duration` | histogram | `s` | development |  | The duration of the collect operation of the metric reader. |
 | `otel.sdk.processor.log.processed` | counter | `{log_record}` | development |  | The number of log records for which the processing has finished, either successful or failed. |
 | `otel.sdk.processor.log.queue.capacity` | updowncounter | `{log_record}` | development |  | The maximum number of log records the queue of a given instance of an SDK Log Record processor can hold. |

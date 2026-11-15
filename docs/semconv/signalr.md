@@ -6,8 +6,8 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `signalr.connection.status` | `enum` | stable |  | SignalR HTTP connection closure status. | `"app_shutdown"`, `"timeout"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `signalr.transport` | `enum` | stable |  | [SignalR transport type](https://github.com/dotnet/aspnetcore/blob/main/src/SignalR/docs/specs/TransportProtocols.md) | `"web_sockets"`, `"long_polling"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `signalr.connection.status` | `enum` | stable |  | SignalR HTTP connection closure status. | `"app_shutdown"`, `"timeout"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `signalr.transport` | `enum` | stable |  | [SignalR transport type](https://github.com/dotnet/aspnetcore/blob/main/src/SignalR/docs/specs/TransportProtocols.md) | `"web_sockets"`, `"long_polling"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `signalr.connection.status` values
 

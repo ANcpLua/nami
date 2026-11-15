@@ -50,9 +50,9 @@ public sealed partial class RegistryGateTests(TestContext context)
         Assert.IsNotNull(stream);
         using var data = await JsonDocument.ParseAsync(stream, cancellationToken: context.CancellationToken);
         var counts = data.RootElement.GetProperty("counts");
-        Assert.AreEqual(121, counts.GetProperty("attributes").GetProperty("stable").GetInt32());
-        Assert.AreEqual(51, counts.GetProperty("metrics").GetProperty("stable").GetInt32());
-        Assert.AreEqual(8, counts.GetProperty("spans").GetProperty("stable_refinements").GetInt32());
+        Assert.AreEqual(125, counts.GetProperty("attributes").GetProperty("stable").GetInt32());
+        Assert.AreEqual(53, counts.GetProperty("metrics").GetProperty("stable").GetInt32());
+        Assert.AreEqual(14, counts.GetProperty("spans").GetProperty("stable_refinements").GetInt32());
         Assert.AreEqual(1, counts.GetProperty("events").GetProperty("stable").GetInt32());
         Assert.AreEqual(5, counts.GetProperty("entities").GetProperty("stable").GetInt32());
         using var resolved =
@@ -302,6 +302,36 @@ public sealed partial class RegistryGateTests(TestContext context)
                 assert not gate.migration_diagnostic('MissingRequirementLevelWarning', other_group, workspace), group
             gate.GENAI_COMMIT = '0' * 40
             assert not gate.migration_diagnostic('MissingRequirementLevelWarning', exact, workspace), 'Other pins must fail'
+            """;
+        var result = await ProcessRunner.RunAsync("python3", ["-c", script, Root], Root,
+            context.CancellationToken);
+        Assert.AreEqual(0, result.ExitCode, result.Output + result.Error);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public async Task CoreMigrationExceptions_RequireExactPinnedSource()
+    {
+        const string script = """
+            import sys
+            from pathlib import Path
+            sys.dont_write_bytecode = True
+            sys.path.insert(0, str(Path(sys.argv[1]) / 'registry'))
+            import generate as gate
+            workspace = Path(sys.argv[1]) / 'artifacts/core-warning-probe'
+            assert len(gate.CORE_GROUPS_WITHOUT_REQUIREMENT_LEVEL) == 16
+            for group, relative in gate.CORE_GROUPS_WITHOUT_REQUIREMENT_LEVEL.items():
+                exact = {'group_id': group, 'path_or_url': str(workspace / 'core/model' / relative)}
+                assert gate.migration_diagnostic('MissingRequirementLevelWarning', exact, workspace), group
+                other_file = {**exact, 'path_or_url': str(workspace / 'nami' / relative)}
+                assert not gate.migration_diagnostic('MissingRequirementLevelWarning', other_file, workspace), group
+            stability = {'attribute_id': 'faas.time', 'group_id': 'registry.faas.deprecated', 'error': 'Missing stability field.',
+                         'path_or_url': str(workspace / 'core/model/faas/deprecated/registry-deprecated.yaml')}
+            assert gate.migration_diagnostic('InvalidAttributeWarning', stability, workspace)
+            assert not gate.migration_diagnostic('InvalidAttributeWarning', {**stability, 'attribute_id': 'faas.trigger'}, workspace)
+            gate.CORE_COMMIT = '0' * 40
+            assert not gate.migration_diagnostic('MissingRequirementLevelWarning', exact, workspace), 'Other pins must fail'
+            assert not gate.migration_diagnostic('InvalidAttributeWarning', stability, workspace), 'Other pins must fail'
             """;
         var result = await ProcessRunner.RunAsync("python3", ["-c", script, Root], Root,
             context.CancellationToken);

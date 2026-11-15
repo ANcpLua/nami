@@ -6,9 +6,9 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `android.app.state` | `enum` | development |  | This attribute represents the state of the application. | `"created"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `android.os.api_level` | `string` | development |  | Uniquely identifies the framework API revision offered by a version (`os.version`) of the Android operating system. More information can be found in the [Android API levels documentation](https://developer.android.com/guide/topics/manifest/uses-sdk-element#ApiLevels). | `"33"`, `"32"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `android.state` | `enum` | development | Replaced by `android.app.state`. | Deprecated. Use `android.app.state` attribute instead. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `android.app.state` | `enum` | development |  | This attribute represents the state of the application. | `"created"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `android.os.api_level` | `string` | development |  | Uniquely identifies the framework API revision offered by a version (`os.version`) of the Android operating system. More information can be found in the [Android API levels documentation](https://developer.android.com/guide/topics/manifest/uses-sdk-element#ApiLevels). | `"33"`, `"32"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `android.state` | `enum` | development | Replaced by `android.app.state`. | Deprecated. Use `android.app.state` attribute instead. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `android.app.state` values
 

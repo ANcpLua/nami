@@ -17,10 +17,10 @@ public static class RegistryInfo
 {
     public const string CoreSchemaUrl = "https://opentelemetry.io/schemas/1.44.0";
     public const string GenAiSchemaUrl = "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev";
-    public const string NamiSchemaUrl = "https://ancplua.github.io/nami/schemas/0.2.0";
+    public const string NamiSchemaUrl = "https://ancplua.github.io/nami/schemas/0.3.0";
     public const string WeaverVersion = "0.28.0";
-    public const string CoreCommit = "e10a930844c6951757a43b849d364f7d056ac32b";
-    public const string GenAiCommit = "3fe84604a581b3d50dd5b4bd29383b462d2a5018";
+    public const string CoreCommit = "fb30ca17193b551473b1f43c315482918ab6987c";
+    public const string GenAiCommit = "e6658f14c9d9ea0760825f029cb82e7673f48fab";
 }
 
 public static class AttributeCatalog
@@ -34,355 +34,373 @@ public static class AttributeCatalog
         new("a2a.task.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("a2a.task.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("a2a.tenant", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
-        new("android.app.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("android.os.api_level", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("android.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "android.app.state"),
-        new("app.build_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("app.crash.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("app.installation.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("app.jank.frame_count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("app.jank.period", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("app.jank.threshold", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("app.screen.coordinate.x", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("app.screen.coordinate.y", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("app.screen.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("app.screen.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("app.widget.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("app.widget.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("artifact.attestation.filename", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("artifact.attestation.hash", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("artifact.attestation.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("artifact.filename", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("artifact.hash", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("artifact.purl", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("artifact.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.authentication.result", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.authentication.scheme", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.authorization.policy", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.authorization.result", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.diagnostics.exception.result", "enum", Stability.Stable, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.diagnostics.handler.type", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.identity.error_code", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.identity.password_check_result", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.identity.result", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.identity.sign_in.result", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.identity.sign_in.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.identity.token_purpose", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.identity.token_verified", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.identity.user.update_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.identity.user_type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.memory_pool.owner", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.rate_limiting.policy", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.rate_limiting.result", "enum", Stability.Stable, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.request.is_unhandled", "boolean", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.routing.is_fallback", "boolean", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.routing.match_status", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.sign_in.is_persistent", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aspnetcore.user.is_authenticated", "boolean", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.bedrock.guardrail.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.bedrock.knowledge_base.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.attribute_definitions", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.attributes_to_get", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.consistent_read", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.consumed_capacity", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.exclusive_start_table", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.global_secondary_index_updates", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.global_secondary_indexes", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.index_name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.item_collection_metrics", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.limit", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.local_secondary_indexes", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.projection", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.provisioned_read_capacity", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.provisioned_write_capacity", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.scan_forward", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.scanned_count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.segment", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.select", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.table_count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.table_names", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.dynamodb.total_segments", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.ecs.cluster.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.ecs.container.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.ecs.launchtype", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.ecs.task.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.ecs.task.family", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.ecs.task.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.ecs.task.revision", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.eks.cluster.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.extended_request_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.kinesis.stream_name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.lambda.invoked_arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.lambda.resource_mapping.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.log.group.arns", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.log.group.names", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.log.stream.arns", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.log.stream.names", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.request_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.s3.bucket", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.s3.copy_source", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.s3.delete", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.s3.key", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.s3.part_number", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.s3.upload_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.secretsmanager.secret.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.sns.topic.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.sqs.queue.url", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.step_functions.activity.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("aws.step_functions.state_machine.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("az.namespace", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "azure.resource_provider.namespace"),
-        new("az.service_request_id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "azure.service.request.id"),
-        new("azure.client.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("azure.cosmosdb.connection.mode", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("azure.cosmosdb.consistency.level", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("azure.cosmosdb.operation.contacted_regions", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("azure.cosmosdb.operation.request_charge", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("azure.cosmosdb.request.body.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("azure.cosmosdb.response.sub_status_code", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("azure.resource_group.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("azure.resource_provider.namespace", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("azure.service.request.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("browser.brands", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("browser.document.url.full", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("browser.language", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("browser.mobile", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("browser.platform", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("browser.web_vital.delta", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("browser.web_vital.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("browser.web_vital.name", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("browser.web_vital.navigation_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("browser.web_vital.rating", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("browser.web_vital.value", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cassandra.consistency.level", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cassandra.coordinator.dc", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cassandra.coordinator.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cassandra.page.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cassandra.query.idempotent", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cassandra.speculative_execution.count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.pipeline.action.name", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.pipeline.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.pipeline.result", "enum", Stability.ReleaseCandidate, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.pipeline.run.id", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.pipeline.run.state", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.pipeline.run.url.full", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.pipeline.task.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.pipeline.task.run.id", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.pipeline.task.run.result", "enum", Stability.ReleaseCandidate, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.pipeline.task.run.url.full", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.pipeline.task.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.system.component", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.worker.id", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.worker.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.worker.state", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cicd.worker.url.full", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("client.address", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("client.port", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloud.account.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloud.availability_zone", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloud.platform", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloud.provider", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloud.region", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloud.resource_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudevents.event_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudevents.event_source", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudevents.event_spec_version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudevents.event_subject", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudevents.event_type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudfoundry.app.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudfoundry.app.instance.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudfoundry.app.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudfoundry.org.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudfoundry.org.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudfoundry.process.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudfoundry.process.type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudfoundry.space.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudfoundry.space.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudfoundry.system.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cloudfoundry.system.instance.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("code.column", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "code.column.number"),
-        new("code.column.number", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("code.file.path", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("code.filepath", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "code.file.path"),
-        new("code.function", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("code.function.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("code.line.number", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("code.lineno", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "code.line.number"),
-        new("code.namespace", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("code.stacktrace", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.command", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.command_args", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.command_line", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.cpu.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "cpu.mode"),
-        new("container.csi.plugin.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.csi.volume.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.id", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.image.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.image.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.image.repo_digests", "string[]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.image.tags", "string[]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.label", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.labels", "template[string]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "container.label"),
-        new("container.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.runtime", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "container.runtime.name"),
-        new("container.runtime.description", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.runtime.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("container.runtime.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cpu.logical_number", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cpu.mode", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("cpython.gc.generation", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.cassandra.consistency_level", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "cassandra.consistency.level"),
-        new("db.cassandra.coordinator.dc", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "cassandra.coordinator.dc"),
-        new("db.cassandra.coordinator.id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "cassandra.coordinator.id"),
-        new("db.cassandra.idempotence", "boolean", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "cassandra.query.idempotent"),
-        new("db.cassandra.page_size", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "cassandra.page.size"),
-        new("db.cassandra.speculative_execution_count", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "cassandra.speculative_execution.count"),
-        new("db.cassandra.table", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "db.collection.name"),
-        new("db.client.connection.pool.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.client.connection.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.client.connections.pool.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "db.client.connection.pool.name"),
-        new("db.client.connections.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "db.client.connection.state"),
-        new("db.collection.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.connection_string", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.cosmosdb.client_id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "azure.client.id"),
-        new("db.cosmosdb.connection_mode", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "azure.cosmosdb.connection.mode"),
-        new("db.cosmosdb.consistency_level", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "azure.cosmosdb.consistency.level"),
-        new("db.cosmosdb.container", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "db.collection.name"),
-        new("db.cosmosdb.operation_type", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.cosmosdb.regions_contacted", "string[]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "azure.cosmosdb.operation.contacted_regions"),
-        new("db.cosmosdb.request_charge", "double", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "azure.cosmosdb.operation.request_charge"),
-        new("db.cosmosdb.request_content_length", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "azure.cosmosdb.request.body.size"),
-        new("db.cosmosdb.status_code", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.cosmosdb.sub_status_code", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "azure.cosmosdb.response.sub_status_code"),
-        new("db.elasticsearch.cluster.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "db.namespace"),
-        new("db.elasticsearch.node.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "elasticsearch.node.name"),
-        new("db.elasticsearch.path_parts", "template[string]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "db.operation.parameter"),
-        new("db.instance.id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.jdbc.driver_classname", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.mongodb.collection", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "db.collection.name"),
-        new("db.mssql.instance_name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "db.namespace"),
-        new("db.namespace", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.operation", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "db.operation.name"),
-        new("db.operation.batch.size", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.operation.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.operation.parameter", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.query.parameter", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.query.summary", "string", Stability.Stable, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.query.text", "string", Stability.Stable, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.redis.database_index", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.response.returned_rows", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.response.status_code", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.sql.table", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.statement", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "db.query.text"),
-        new("db.stored_procedure.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.system", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "db.system.name"),
-        new("db.system.name", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("db.user", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("deployment.environment", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "deployment.environment.name"),
-        new("deployment.environment.name", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("deployment.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("deployment.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("deployment.status", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("destination.address", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("destination.port", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("device.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("device.manufacturer", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("device.model.identifier", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("device.model.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("disk.io.direction", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("dns.answers", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("dns.question.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("dotnet.gc.heap.generation", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("elasticsearch.node.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("enduser.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("enduser.pseudo.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("enduser.role", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("enduser.scope", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("error.message", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("error.type", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("event.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("exception.escaped", "boolean", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("exception.message", "string", Stability.Stable, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("exception.stacktrace", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("exception.type", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.coldstart", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.cron", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.document.collection", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.document.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.document.operation", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.document.time", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.instance", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.invocation_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.invoked_name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.invoked_provider", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.invoked_region", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.max_memory", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.time", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.trigger", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("faas.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("feature_flag.context.id", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("feature_flag.error.message", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("feature_flag.evaluation.error.message", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "feature_flag.error.message"),
-        new("feature_flag.evaluation.reason", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "feature_flag.result.reason"),
-        new("feature_flag.key", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("feature_flag.provider.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("feature_flag.provider_name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "feature_flag.provider.name"),
-        new("feature_flag.result.reason", "enum", Stability.ReleaseCandidate, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("feature_flag.result.value", "any", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("feature_flag.result.variant", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("feature_flag.set.id", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("feature_flag.variant", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "feature_flag.result.variant"),
-        new("feature_flag.version", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.accessed", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.attributes", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.changed", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.created", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.directory", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.extension", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.fork_name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.group.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.group.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.inode", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.lock.mechanism", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.lock.mode", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.lock.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.mode", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.modified", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.owner.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.owner.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.path", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("file.symbolic_link.target_path", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub.application.container", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub.application.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub.application.location", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub.service.criticality_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub.service.environment_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub.service.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub.workload.criticality_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub.workload.environment_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub.workload.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub_destination.application.container", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub_destination.application.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub_destination.application.location", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub_destination.service.criticality_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub_destination.service.environment_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub_destination.service.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub_destination.workload.criticality_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub_destination.workload.environment_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.apphub_destination.workload.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.client.service", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.cloud_run.job.execution", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.cloud_run.job.task_index", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.gce.instance.hostname", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.gce.instance.labels", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.gce.instance.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.gce.instance_group_manager.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.gce.instance_group_manager.region", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("gcp.gce.instance_group_manager.zone", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
+        new("android.app.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("android.os.api_level", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("android.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "android.app.state"),
+        new("app.build_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("app.crash.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("app.installation.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("app.jank.frame_count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("app.jank.period", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("app.jank.threshold", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("app.screen.coordinate.x", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("app.screen.coordinate.y", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("app.screen.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("app.screen.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("app.widget.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("app.widget.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("artifact.attestation.filename", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("artifact.attestation.hash", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("artifact.attestation.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("artifact.filename", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("artifact.hash", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("artifact.purl", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("artifact.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.authentication.result", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.authentication.scheme", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.authorization.policy", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.authorization.result", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.diagnostics.exception.result", "enum", Stability.Stable, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.diagnostics.handler.type", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.identity.error_code", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.identity.password_check_result", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.identity.result", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.identity.sign_in.result", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.identity.sign_in.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.identity.token_purpose", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.identity.token_verified", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.identity.user.update_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.identity.user_type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.memory_pool.owner", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.rate_limiting.policy", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.rate_limiting.result", "enum", Stability.Stable, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.request.is_unhandled", "boolean", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.routing.is_fallback", "boolean", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.routing.match_status", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.sign_in.is_persistent", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aspnetcore.user.is_authenticated", "boolean", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.bedrock.guardrail.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.bedrock.knowledge_base.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.attribute_definitions", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.attributes_to_get", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.consistent_read", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.consumed_capacity", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.exclusive_start_table", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.global_secondary_index_updates", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.global_secondary_indexes", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.index_name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.item_collection_metrics", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.limit", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.local_secondary_indexes", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.projection", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.provisioned_read_capacity", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.provisioned_write_capacity", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.scan_forward", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.scanned_count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.segment", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.select", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.table_count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.table_names", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.dynamodb.total_segments", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.ecs.cluster.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.ecs.container.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.ecs.launchtype", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.ecs.task.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.ecs.task.family", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.ecs.task.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.ecs.task.revision", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.eks.cluster.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.extended_request_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.kinesis.stream_name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.lambda.invoked_arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.lambda.resource_mapping.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.log.group.arns", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.log.group.names", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.log.stream.arns", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.log.stream.names", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.request_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.s3.bucket", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.s3.copy_source", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.s3.delete", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.s3.key", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.s3.part_number", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.s3.upload_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.secretsmanager.secret.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.sns.topic.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.sqs.queue.url", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.step_functions.activity.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("aws.step_functions.state_machine.arn", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("az.namespace", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "azure.resource_provider.namespace"),
+        new("az.service_request_id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "azure.service.request.id"),
+        new("azure.client.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("azure.cosmosdb.connection.mode", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("azure.cosmosdb.consistency.level", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("azure.cosmosdb.operation.contacted_regions", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("azure.cosmosdb.operation.request_charge", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("azure.cosmosdb.request.body.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("azure.cosmosdb.response.sub_status_code", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("azure.eventhubs.message.enqueued_time", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("azure.resource_group.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("azure.resource_provider.namespace", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("azure.service.request.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("azure.servicebus.disposition_status", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("azure.servicebus.message.delivery_count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("azure.servicebus.message.enqueued_time", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("browser.brands", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("browser.document.url.full", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("browser.language", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("browser.mobile", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("browser.platform", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("browser.web_vital.delta", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("browser.web_vital.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("browser.web_vital.name", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("browser.web_vital.navigation_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("browser.web_vital.rating", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("browser.web_vital.value", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cassandra.consistency.level", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cassandra.coordinator.dc", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cassandra.coordinator.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cassandra.page.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cassandra.query.idempotent", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cassandra.speculative_execution.count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.pipeline.action.name", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.pipeline.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.pipeline.result", "enum", Stability.ReleaseCandidate, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.pipeline.run.id", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.pipeline.run.state", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.pipeline.run.url.full", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.pipeline.task.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.pipeline.task.run.id", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.pipeline.task.run.result", "enum", Stability.ReleaseCandidate, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.pipeline.task.run.url.full", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.pipeline.task.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.system.component", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.worker.id", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.worker.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.worker.state", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cicd.worker.url.full", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("client.address", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("client.as.number", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("client.as.organization", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("client.mac.address", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("client.port", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("client.prefix", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("client.service.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("client.service.namespace", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloud.account.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloud.availability_zone", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloud.platform", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloud.provider", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloud.region", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloud.resource_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudevents.event_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudevents.event_source", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudevents.event_spec_version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudevents.event_subject", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudevents.event_type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudfoundry.app.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudfoundry.app.instance.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudfoundry.app.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudfoundry.org.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudfoundry.org.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudfoundry.process.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudfoundry.process.type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudfoundry.space.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudfoundry.space.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudfoundry.system.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cloudfoundry.system.instance.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("code.column", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "code.column.number"),
+        new("code.column.number", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("code.file.path", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("code.filepath", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "code.file.path"),
+        new("code.function", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("code.function.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("code.line.number", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("code.lineno", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "code.line.number"),
+        new("code.namespace", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("code.stacktrace", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.command", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.command_args", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.command_line", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.cpu.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "cpu.mode"),
+        new("container.csi.plugin.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.csi.volume.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.id", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.image.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.image.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.image.repo_digests", "string[]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.image.tags", "string[]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.label", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.labels", "template[string]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "container.label"),
+        new("container.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.runtime", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "container.runtime.name"),
+        new("container.runtime.description", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.runtime.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("container.runtime.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cpu.logical_number", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cpu.mode", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("cpython.gc.generation", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.cassandra.consistency_level", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "cassandra.consistency.level"),
+        new("db.cassandra.coordinator.dc", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "cassandra.coordinator.dc"),
+        new("db.cassandra.coordinator.id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "cassandra.coordinator.id"),
+        new("db.cassandra.idempotence", "boolean", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "cassandra.query.idempotent"),
+        new("db.cassandra.page_size", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "cassandra.page.size"),
+        new("db.cassandra.speculative_execution_count", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "cassandra.speculative_execution.count"),
+        new("db.cassandra.table", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "db.collection.name"),
+        new("db.client.connection.pool.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.client.connection.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.client.connections.pool.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "db.client.connection.pool.name"),
+        new("db.client.connections.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "db.client.connection.state"),
+        new("db.collection.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.connection_string", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.cosmosdb.client_id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "azure.client.id"),
+        new("db.cosmosdb.connection_mode", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "azure.cosmosdb.connection.mode"),
+        new("db.cosmosdb.consistency_level", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "azure.cosmosdb.consistency.level"),
+        new("db.cosmosdb.container", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "db.collection.name"),
+        new("db.cosmosdb.operation_type", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.cosmosdb.regions_contacted", "string[]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "azure.cosmosdb.operation.contacted_regions"),
+        new("db.cosmosdb.request_charge", "double", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "azure.cosmosdb.operation.request_charge"),
+        new("db.cosmosdb.request_content_length", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "azure.cosmosdb.request.body.size"),
+        new("db.cosmosdb.status_code", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.cosmosdb.sub_status_code", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "azure.cosmosdb.response.sub_status_code"),
+        new("db.elasticsearch.cluster.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "db.namespace"),
+        new("db.elasticsearch.node.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "elasticsearch.node.name"),
+        new("db.elasticsearch.path_parts", "template[string]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "db.operation.parameter"),
+        new("db.instance.id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.jdbc.driver_classname", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.mongodb.collection", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "db.collection.name"),
+        new("db.mssql.instance_name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "db.namespace"),
+        new("db.namespace", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.operation", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "db.operation.name"),
+        new("db.operation.batch.size", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.operation.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.operation.parameter", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.query.parameter", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.query.summary", "string", Stability.Stable, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.query.text", "string", Stability.Stable, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.redis.database_index", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.response.returned_rows", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.response.status_code", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.sql.table", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.statement", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "db.query.text"),
+        new("db.stored_procedure.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.system", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "db.system.name"),
+        new("db.system.name", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("db.user", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("deployment.environment", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "deployment.environment.name"),
+        new("deployment.environment.name", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("deployment.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("deployment.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("deployment.status", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("destination.address", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("destination.as.number", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("destination.as.organization", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("destination.mac.address", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("destination.port", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("destination.prefix", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("device.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("device.manufacturer", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("device.model.identifier", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("device.model.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("disk.io.direction", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("dns.answers", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("dns.question.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("dotnet.gc.heap.generation", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("elasticsearch.node.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("enduser.role", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("enduser.scope", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("error.message", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("error.type", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("event.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("exception.escaped", "boolean", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("exception.message", "string", Stability.Stable, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("exception.stacktrace", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("exception.type", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.coldstart", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.cron", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.document.collection", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.document.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.document.operation", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.document.time", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.instance", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.invocation.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.invocation.start_time", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.invocation_id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "faas.invocation.id"),
+        new("faas.invoked_name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.invoked_provider", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.invoked_region", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.max_memory", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.time", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "faas.invocation.start_time"),
+        new("faas.trigger", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("faas.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("feature_flag.context.id", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("feature_flag.error.message", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("feature_flag.evaluation.error.message", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "feature_flag.error.message"),
+        new("feature_flag.evaluation.reason", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "feature_flag.result.reason"),
+        new("feature_flag.key", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("feature_flag.provider.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("feature_flag.provider_name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "feature_flag.provider.name"),
+        new("feature_flag.result.reason", "enum", Stability.ReleaseCandidate, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("feature_flag.result.value", "any", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("feature_flag.result.variant", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("feature_flag.set.id", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("feature_flag.variant", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "feature_flag.result.variant"),
+        new("feature_flag.version", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.accessed", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.attributes", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.changed", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.created", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.directory", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.extension", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.fork_name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.group.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.group.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.inode", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.lock.mechanism", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.lock.mode", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.lock.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.mode", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.modified", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.owner.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.owner.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.path", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("file.symbolic_link.target_path", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub.application.container", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub.application.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub.application.location", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub.service.criticality_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub.service.environment_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub.service.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub.workload.criticality_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub.workload.environment_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub.workload.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub_destination.application.container", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub_destination.application.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub_destination.application.location", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub_destination.service.criticality_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub_destination.service.environment_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub_destination.service.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub_destination.workload.criticality_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub_destination.workload.environment_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.apphub_destination.workload.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.client.service", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.cloud_run.job.execution", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.cloud_run.job.task_index", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.gce.instance.hostname", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.gce.instance.labels", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.gce.instance.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.gce.instance_group_manager.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.gce.instance_group_manager.region", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.gce.instance_group_manager.zone", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.pubsub.message.ack_deadline", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.pubsub.message.ack_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.pubsub.message.delivery_attempt", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("gcp.pubsub.message.ordering_key", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
         new("gen_ai.agent.description", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.agent.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.agent.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
@@ -413,6 +431,7 @@ public static class AttributeCatalog
         new("gen_ai.prompt.variable", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.prompt.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.provider.name", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
+        new("gen_ai.realtime_session.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.request.choice.count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.request.encoding_formats", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.request.frequency_penalty", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
@@ -467,539 +486,584 @@ public static class AttributeCatalog
         new("gen_ai.usage.text.cache_read.input_tokens", "int", Stability.Development, true, true, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.usage.text.input_tokens", "int", Stability.Development, true, true, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("gen_ai.usage.text.output_tokens", "int", Stability.Development, true, true, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
-        new("gen_ai.workflow.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
-        new("geo.continent.code", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("geo.country.iso_code", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("geo.locality.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("geo.location.lat", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("geo.location.lon", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("geo.postal_code", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("geo.region.iso_code", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("go.cpu.detailed_state", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("go.cpu.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("go.memory.detailed_type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("go.memory.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("graphql.document", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("graphql.operation.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("graphql.operation.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("heroku.app.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("heroku.release.commit", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("heroku.release.creation_timestamp", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.arch", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.cpu.cache.l2.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.cpu.family", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.cpu.model.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.cpu.model.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.cpu.stepping", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.cpu.vendor.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.id", "string", Stability.Development, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.image.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.image.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.image.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.ip", "string[]", Stability.Development, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.mac", "string[]", Stability.Development, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.name", "string", Stability.Development, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("host.type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.client_ip", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "client.address"),
-        new("http.connection.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.flavor", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.host", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.method", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "http.request.method"),
-        new("http.request.body.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.request.header", "template[string[]]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.request.method", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.request.method_original", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.request.resend_count", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.request.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.request_content_length", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.request_content_length_uncompressed", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "http.request.body.size"),
-        new("http.response.body.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.response.header", "template[string[]]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.response.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.response.status_code", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.response_content_length", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.response_content_length_uncompressed", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "http.response.body.size"),
-        new("http.route", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.scheme", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "url.scheme"),
-        new("http.server_name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "server.address"),
-        new("http.status_code", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "http.response.status_code"),
-        new("http.target", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("http.url", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "url.full"),
-        new("http.user_agent", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "user_agent.original"),
-        new("hw.battery.capacity", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.battery.chemistry", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.battery.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.bios_version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.driver_version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.enclosure.type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.firmware_version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.gpu.task", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.limit_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.logical_disk.raid_level", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.logical_disk.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.memory.type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.model", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.network.logical_addresses", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.network.physical_address", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.parent", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.physical_disk.smart_attribute", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.physical_disk.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.physical_disk.type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.sensor_location", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.serial_number", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.tape_drive.operation_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("hw.vendor", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("ios.app.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("ios.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "ios.app.state"),
-        new("jsonrpc.protocol.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("jsonrpc.request.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("jvm.buffer.pool.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("jvm.gc.action", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("jvm.gc.cause", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("jvm.gc.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("jvm.memory.pool.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("jvm.memory.type", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("jvm.thread.daemon", "boolean", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("jvm.thread.state", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.cluster.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.cluster.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.container.ephemeral_storage.fs_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.container.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.container.restart_count", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.container.status.last_terminated_reason", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.container.status.reason", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.container.status.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.cronjob.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.cronjob.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.cronjob.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.cronjob.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.daemonset.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.daemonset.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.daemonset.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.daemonset.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.deployment.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.deployment.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.deployment.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.deployment.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.hpa.metric.type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.hpa.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.hpa.scaletargetref.api_version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.hpa.scaletargetref.kind", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.hpa.scaletargetref.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.hpa.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.hugepage.size", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.job.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.job.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.job.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.job.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.namespace.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.namespace.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.namespace.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.namespace.phase", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.node.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.node.condition.status", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.node.condition.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.node.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.node.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.node.system_container.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.node.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.persistentvolume.annotation", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.persistentvolume.label", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.persistentvolume.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.persistentvolume.reclaim_policy", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.persistentvolume.status.phase", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.persistentvolume.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.persistentvolumeclaim.annotation", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.persistentvolumeclaim.label", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.persistentvolumeclaim.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.persistentvolumeclaim.status.phase", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.persistentvolumeclaim.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.pod.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.pod.hostname", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.pod.ip", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.pod.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.pod.labels", "template[string]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "k8s.pod.label"),
-        new("k8s.pod.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.pod.start_time", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.pod.status.phase", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.pod.status.reason", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.pod.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.replicaset.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.replicaset.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.replicaset.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.replicaset.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.replicationcontroller.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.replicationcontroller.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.resourcequota.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.resourcequota.resource_name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.resourcequota.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.service.annotation", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.service.endpoint.address_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.service.endpoint.condition", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.service.endpoint.zone", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.service.label", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.service.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.service.publish_not_ready_addresses", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.service.selector", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.service.traffic_distribution", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.service.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.service.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.statefulset.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.statefulset.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.statefulset.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.statefulset.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.storageclass.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.volume.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("k8s.volume.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("linux.memory.slab.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "system.memory.linux.slab.state"),
-        new("log.file.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("log.file.name_resolved", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("log.file.path", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("log.file.path_resolved", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("log.iostream", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("log.record.original", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("log.record.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
+        new("geo.continent.code", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("geo.country.iso_code", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("geo.locality.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("geo.location.lat", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("geo.location.lon", "double", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("geo.postal_code", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("geo.region.iso_code", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("go.cpu.detailed_state", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("go.cpu.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("go.memory.detailed_type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("go.memory.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("graphql.document", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("graphql.operation.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("graphql.operation.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("heroku.app.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("heroku.release.commit", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("heroku.release.creation_timestamp", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.arch", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.cpu.cache.l2.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.cpu.family", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.cpu.model.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.cpu.model.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.cpu.stepping", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.cpu.vendor.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.id", "string", Stability.Development, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.image.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.image.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.image.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.ip", "string[]", Stability.Development, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.mac", "string[]", Stability.Development, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.name", "string", Stability.Development, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("host.type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.client_ip", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "client.address"),
+        new("http.connection.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.flavor", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.host", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.method", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "http.request.method"),
+        new("http.request.body.content", "any", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.request.body.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.request.header", "template[string[]]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.request.method", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.request.method_original", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.request.resend_count", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.request.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.request_content_length", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.request_content_length_uncompressed", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "http.request.body.size"),
+        new("http.response.body.content", "any", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.response.body.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.response.header", "template[string[]]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.response.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.response.status_code", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.response_content_length", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.response_content_length_uncompressed", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "http.response.body.size"),
+        new("http.route", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.scheme", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "url.scheme"),
+        new("http.server_name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "server.address"),
+        new("http.status_code", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "http.response.status_code"),
+        new("http.target", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("http.url", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "url.full"),
+        new("http.user_agent", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "user_agent.original"),
+        new("hw.battery.capacity", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.battery.chemistry", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.battery.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.bios_version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.driver_version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.enclosure.type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.firmware_version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.gpu.task", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.limit_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.logical_disk.raid_level", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.logical_disk.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.memory.type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.model", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.network.logical_addresses", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.network.physical_address", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.parent", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.physical_disk.smart_attribute", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.physical_disk.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.physical_disk.type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.sensor_location", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.serial_number", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.tape_drive.operation_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("hw.vendor", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("ios.app.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("ios.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "ios.app.state"),
+        new("jsonrpc.protocol.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("jsonrpc.request.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("jvm.buffer.pool.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("jvm.executor.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("jvm.executor.owner.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("jvm.executor.thread.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("jvm.executor.type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("jvm.gc.action", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("jvm.gc.cause", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("jvm.gc.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("jvm.memory.pool.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("jvm.memory.type", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("jvm.thread.daemon", "boolean", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("jvm.thread.state", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.cluster.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.cluster.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.container.ephemeral_storage.fs_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.container.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.container.restart_count", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.container.status.last_terminated_reason", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.container.status.reason", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.container.status.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.cronjob.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.cronjob.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.cronjob.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.cronjob.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.daemonset.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.daemonset.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.daemonset.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.daemonset.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.deployment.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.deployment.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.deployment.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.deployment.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.hpa.metric.type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.hpa.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.hpa.scaletargetref.api_version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.hpa.scaletargetref.kind", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.hpa.scaletargetref.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.hpa.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.hugepage.size", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.job.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.job.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.job.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.job.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.namespace.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.namespace.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.namespace.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.namespace.phase", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.node.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.node.condition.status", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.node.condition.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.node.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.node.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.node.system_container.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.node.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.persistentvolume.annotation", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.persistentvolume.label", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.persistentvolume.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.persistentvolume.reclaim_policy", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.persistentvolume.status.phase", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.persistentvolume.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.persistentvolumeclaim.annotation", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.persistentvolumeclaim.label", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.persistentvolumeclaim.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.persistentvolumeclaim.status.phase", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.persistentvolumeclaim.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.pod.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.pod.hostname", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.pod.ip", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.pod.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.pod.labels", "template[string]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "k8s.pod.label"),
+        new("k8s.pod.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.pod.start_time", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.pod.status.phase", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.pod.status.reason", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.pod.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.replicaset.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.replicaset.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.replicaset.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.replicaset.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.replicationcontroller.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.replicationcontroller.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.resourcequota.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.resourcequota.resource_name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.resourcequota.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.service.annotation", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.service.endpoint.address_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.service.endpoint.condition", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.service.endpoint.zone", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.service.label", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.service.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.service.publish_not_ready_addresses", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.service.selector", "template[string]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.service.traffic_distribution", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.service.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.service.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.statefulset.annotation", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.statefulset.label", "template[string]", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.statefulset.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.statefulset.uid", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.storageclass.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.volume.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("k8s.volume.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("kafka.cluster.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("kafka.message.key", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("kafka.message.tombstone", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("kafka.offset", "int", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("linux.memory.slab.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "system.memory.linux.slab.state"),
+        new("log.file.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("log.file.name_resolved", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("log.file.path", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("log.file.path_resolved", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("log.iostream", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("log.record.original", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("log.record.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
         new("mcp.method.name", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("mcp.protocol.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("mcp.resource.uri", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("mcp.session.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
-        new("message.compressed_size", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("message.id", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("message.type", "enum", Stability.Deprecated, false, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("message.uncompressed_size", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.batch.message_count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.client.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.client_id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "messaging.client.id"),
-        new("messaging.consumer.group.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.destination.anonymous", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.destination.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.destination.partition.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.destination.subscription.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.destination.template", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.destination.temporary", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.destination_publish.anonymous", "boolean", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.destination_publish.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.eventhubs.consumer.group", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "messaging.consumer.group.name"),
-        new("messaging.eventhubs.message.enqueued_time", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.gcp_pubsub.message.ack_deadline", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.gcp_pubsub.message.ack_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.gcp_pubsub.message.delivery_attempt", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.gcp_pubsub.message.ordering_key", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.kafka.cluster.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.kafka.consumer.group", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "messaging.consumer.group.name"),
-        new("messaging.kafka.destination.partition", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.kafka.message.key", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.kafka.message.offset", "int", Stability.Deprecated, false, true, "https://opentelemetry.io/schemas/1.44.0", "messaging.kafka.offset"),
-        new("messaging.kafka.message.tombstone", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.kafka.offset", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.message.body.size", "int", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.message.conversation_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.message.envelope.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.message.id", "string", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.operation", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "messaging.operation.type"),
-        new("messaging.operation.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.operation.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.rabbitmq.destination.routing_key", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.rabbitmq.message.delivery_tag", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.rocketmq.client_group", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.rocketmq.consumption_model", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.rocketmq.message.delay_time_level", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.rocketmq.message.delivery_timestamp", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.rocketmq.message.group", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.rocketmq.message.keys", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.rocketmq.message.tag", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.rocketmq.message.type", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.rocketmq.namespace", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.servicebus.destination.subscription_name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "messaging.destination.subscription.name"),
-        new("messaging.servicebus.disposition_status", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.servicebus.message.delivery_count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.servicebus.message.enqueued_time", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("messaging.system", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("nami.attribute.key", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.2.0", null),
-        new("nami.attribute.namespace", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.2.0", null),
-        new("nami.gen_ai.tool.call.arguments_hash", "string", Stability.Development, true, true, "https://ancplua.github.io/nami/schemas/0.2.0", null),
-        new("nami.project.id", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.2.0", null),
-        new("net.host.ip", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "network.local.address"),
-        new("net.host.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "server.address"),
-        new("net.host.port", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "server.port"),
-        new("net.peer.ip", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "network.peer.address"),
-        new("net.peer.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("net.peer.port", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("net.protocol.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "network.protocol.name"),
-        new("net.protocol.version", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "network.protocol.version"),
-        new("net.sock.family", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("net.sock.host.addr", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "network.local.address"),
-        new("net.sock.host.port", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "network.local.port"),
-        new("net.sock.peer.addr", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "network.peer.address"),
-        new("net.sock.peer.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("net.sock.peer.port", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "network.peer.port"),
-        new("net.transport", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "network.transport"),
-        new("network.carrier.icc", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.carrier.mcc", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.carrier.mnc", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.carrier.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.connection.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.connection.subtype", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.connection.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.interface.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.io.direction", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.local.address", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.local.port", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.peer.address", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.peer.port", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.protocol.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.protocol.version", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.transport", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("network.type", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("nfs.operation.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("nfs.server.repcache.status", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("nodejs.eventloop.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("oci.manifest.digest", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("onc_rpc.procedure.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("onc_rpc.procedure.number", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("onc_rpc.program.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("onc_rpc.version", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
+        new("message.compressed_size", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("message.id", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("message.type", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("message.uncompressed_size", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.batch.message_count", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.client.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.client_id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "messaging.client.id"),
+        new("messaging.consumer.group.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.destination.anonymous", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.destination.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.destination.partition.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.destination.subscription.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.destination.template", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.destination.temporary", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.destination_publish.anonymous", "boolean", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.destination_publish.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.eventhubs.consumer.group", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "messaging.consumer.group.name"),
+        new("messaging.eventhubs.message.enqueued_time", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "azure.eventhubs.message.enqueued_time"),
+        new("messaging.gcp_pubsub.message.ack_deadline", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "gcp.pubsub.message.ack_deadline"),
+        new("messaging.gcp_pubsub.message.ack_id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "gcp.pubsub.message.ack_id"),
+        new("messaging.gcp_pubsub.message.delivery_attempt", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "gcp.pubsub.message.delivery_attempt"),
+        new("messaging.gcp_pubsub.message.ordering_key", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "gcp.pubsub.message.ordering_key"),
+        new("messaging.kafka.cluster.id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "kafka.cluster.id"),
+        new("messaging.kafka.consumer.group", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "messaging.consumer.group.name"),
+        new("messaging.kafka.destination.partition", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.kafka.message.key", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "kafka.message.key"),
+        new("messaging.kafka.message.offset", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "kafka.offset"),
+        new("messaging.kafka.message.tombstone", "boolean", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "kafka.message.tombstone"),
+        new("messaging.kafka.offset", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "kafka.offset"),
+        new("messaging.message.body.size", "int", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.message.conversation_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.message.envelope.size", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.message.id", "string", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.operation", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "messaging.operation.type"),
+        new("messaging.operation.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.operation.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.rabbitmq.destination.routing_key", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rabbitmq.destination.routing_key"),
+        new("messaging.rabbitmq.message.delivery_tag", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rabbitmq.message.delivery_tag"),
+        new("messaging.rocketmq.client_group", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("messaging.rocketmq.consumption_model", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rocketmq.consumption_model"),
+        new("messaging.rocketmq.message.delay_time_level", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rocketmq.message.delay_time_level"),
+        new("messaging.rocketmq.message.delivery_timestamp", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rocketmq.message.delivery_timestamp"),
+        new("messaging.rocketmq.message.group", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rocketmq.message.group"),
+        new("messaging.rocketmq.message.keys", "string[]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rocketmq.message.keys"),
+        new("messaging.rocketmq.message.tag", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rocketmq.message.tag"),
+        new("messaging.rocketmq.message.type", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rocketmq.message.type"),
+        new("messaging.rocketmq.namespace", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rocketmq.namespace"),
+        new("messaging.servicebus.destination.subscription_name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "messaging.destination.subscription.name"),
+        new("messaging.servicebus.disposition_status", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "azure.servicebus.disposition_status"),
+        new("messaging.servicebus.message.delivery_count", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "azure.servicebus.message.delivery_count"),
+        new("messaging.servicebus.message.enqueued_time", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "azure.servicebus.message.enqueued_time"),
+        new("messaging.system", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "messaging.system.name"),
+        new("messaging.system.name", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("nami.attribute.key", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.3.0", null),
+        new("nami.attribute.namespace", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.3.0", null),
+        new("nami.gen_ai.tool.call.arguments_hash", "string", Stability.Development, true, true, "https://ancplua.github.io/nami/schemas/0.3.0", null),
+        new("nami.project.id", "string", Stability.Development, true, false, "https://ancplua.github.io/nami/schemas/0.3.0", null),
+        new("net.host.ip", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "network.local.address"),
+        new("net.host.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "server.address"),
+        new("net.host.port", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "server.port"),
+        new("net.peer.ip", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "network.peer.address"),
+        new("net.peer.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("net.peer.port", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("net.protocol.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "network.protocol.name"),
+        new("net.protocol.version", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "network.protocol.version"),
+        new("net.sock.family", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("net.sock.host.addr", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "network.local.address"),
+        new("net.sock.host.port", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "network.local.port"),
+        new("net.sock.peer.addr", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "network.peer.address"),
+        new("net.sock.peer.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("net.sock.peer.port", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "network.peer.port"),
+        new("net.transport", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "network.transport"),
+        new("network.carrier.icc", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.carrier.mcc", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.carrier.mnc", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.carrier.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.connection.state", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.connection.subtype", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.connection.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.interface.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.io.direction", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.local.address", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.local.as.number", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.local.as.organization", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.local.mac.address", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.local.port", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.local.prefix", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.peer.address", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.peer.as.number", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.peer.as.organization", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.peer.mac.address", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.peer.port", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.peer.prefix", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.protocol.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.protocol.version", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.transport", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("network.type", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("nfs.operation.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("nfs.server.repcache.status", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("nodejs.eventloop.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("oci.manifest.digest", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("onc_rpc.procedure.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("onc_rpc.procedure.number", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("onc_rpc.program.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("onc_rpc.version", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
         new("openai.api.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("openai.request.service_tier", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("openai.response.service_tier", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
         new("openai.response.system_fingerprint", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev", null),
-        new("openshift.clusterquota.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("openshift.clusterquota.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("opentracing.ref_type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("oracle.db.domain", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("oracle.db.instance.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("oracle.db.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("oracle.db.pdb", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("oracle.db.service", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("oracle_cloud.realm", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("os.build_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("os.description", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("os.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("os.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("os.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("otel.component.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("otel.component.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("otel.event.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("otel.library.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "otel.scope.name"),
-        new("otel.library.version", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "otel.scope.version"),
-        new("otel.scope.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("otel.scope.schema_url", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("otel.scope.version", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("otel.span.parent.origin", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("otel.span.sampling_result", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("otel.status_code", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("otel.status_description", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("peer.service", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "service.peer.name"),
-        new("pool.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "db.client.connection.pool.name"),
-        new("pprof.location.is_folded", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("pprof.mapping.has_filenames", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("pprof.mapping.has_functions", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("pprof.mapping.has_inline_frames", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("pprof.mapping.has_line_numbers", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("pprof.profile.comment", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("pprof.profile.doc_url", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("pprof.profile.drop_frames", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("pprof.profile.keep_frames", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("pprof.scope.default_sample_type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("pprof.scope.sample_type_order", "int[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.args_count", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.command", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.command_args", "string[]", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.command_line", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.context_switch.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.context_switch_type", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "process.context_switch.type"),
-        new("process.cpu.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "cpu.mode"),
-        new("process.creation.time", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.environment_variable", "template[string]", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.executable.build_id.gnu", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.executable.build_id.go", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.executable.build_id.htlhash", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.executable.build_id.profiling", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "process.executable.build_id.htlhash"),
-        new("process.executable.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.executable.path", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.exit.code", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.exit.time", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.group_leader.pid", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.interactive", "boolean", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.linux.cgroup", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.owner", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.paging.fault_type", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "system.paging.fault.type"),
-        new("process.parent_pid", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.pid", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.real_user.id", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.real_user.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.runtime.description", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.runtime.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.runtime.version", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.saved_user.id", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.saved_user.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.session_leader.pid", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.state", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.title", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.user.id", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.user.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.vpid", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("process.working_directory", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("profile.frame.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("rpc.connect_rpc.error_code", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "rpc.response.status_code"),
-        new("rpc.connect_rpc.request.metadata", "template[string[]]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "rpc.request.metadata"),
-        new("rpc.connect_rpc.response.metadata", "template[string[]]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "rpc.response.metadata"),
-        new("rpc.grpc.request.metadata", "template[string[]]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "rpc.request.metadata"),
-        new("rpc.grpc.response.metadata", "template[string[]]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "rpc.response.metadata"),
-        new("rpc.grpc.status_code", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("rpc.jsonrpc.error_code", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("rpc.jsonrpc.error_message", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("rpc.jsonrpc.request_id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "jsonrpc.request.id"),
-        new("rpc.jsonrpc.version", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "jsonrpc.protocol.version"),
-        new("rpc.message.compressed_size", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("rpc.message.id", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("rpc.message.type", "enum", Stability.Deprecated, false, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("rpc.message.uncompressed_size", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("rpc.method", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("rpc.method_original", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("rpc.request.metadata", "template[string[]]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("rpc.response.metadata", "template[string[]]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("rpc.response.status_code", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("rpc.service", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("rpc.system", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "rpc.system.name"),
-        new("rpc.system.name", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("security_rule.category", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("security_rule.description", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("security_rule.license", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("security_rule.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("security_rule.reference", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("security_rule.ruleset.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("security_rule.uuid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("security_rule.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("server.address", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("server.port", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("service.criticality", "enum", Stability.Alpha, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("service.instance.id", "string", Stability.Stable, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("service.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("service.namespace", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("service.peer.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("service.peer.namespace", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("service.version", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("session.id", "string", Stability.Development, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("session.previous_id", "string", Stability.Development, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("signalr.connection.status", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("signalr.transport", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("source.address", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("source.port", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "db.client.connection.state"),
-        new("system.cpu.logical_number", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "cpu.logical_number"),
-        new("system.cpu.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "cpu.mode"),
-        new("system.device", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("system.filesystem.mode", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("system.filesystem.mountpoint", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("system.filesystem.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("system.filesystem.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("system.memory.linux.hugepages.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("system.memory.linux.slab.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("system.memory.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("system.network.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "network.connection.state"),
-        new("system.paging.direction", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("system.paging.fault.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("system.paging.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("system.paging.type", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "system.paging.fault.type"),
-        new("system.process.status", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "process.state"),
-        new("system.processes.status", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "process.state"),
-        new("telemetry.distro.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("telemetry.distro.version", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("telemetry.sdk.language", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("telemetry.sdk.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("telemetry.sdk.version", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("test.case.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("test.case.result.status", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("test.suite.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("test.suite.run.status", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("thread.id", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("thread.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.cipher", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.client.certificate", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.client.certificate_chain", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.client.hash.md5", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.client.hash.sha1", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.client.hash.sha256", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.client.issuer", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.client.ja3", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.client.not_after", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.client.not_before", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.client.server_name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "server.address"),
-        new("tls.client.subject", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.client.supported_ciphers", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.curve", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.established", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.next_protocol", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.protocol.name", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.protocol.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.resumed", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.server.certificate", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.server.certificate_chain", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.server.hash.md5", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.server.hash.sha1", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.server.hash.sha256", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.server.issuer", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.server.ja3s", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.server.not_after", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.server.not_before", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("tls.server.subject", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("url.domain", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("url.extension", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("url.fragment", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("url.full", "string", Stability.Stable, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("url.original", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("url.path", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("url.port", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("url.query", "string", Stability.Stable, false, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("url.registered_domain", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("url.scheme", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("url.subdomain", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("url.template", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("url.top_level_domain", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("user.email", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("user.full_name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("user.hash", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("user.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("user.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("user.roles", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("user_agent.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("user_agent.original", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("user_agent.os.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("user_agent.os.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("user_agent.synthetic.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("user_agent.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("v8js.gc.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("v8js.heap.space.name", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("v8js.resource.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.change.id", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.change.state", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.change.title", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.line_change.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.owner.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.provider.name", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.ref.base.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.ref.base.revision", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.ref.base.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.ref.head.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.ref.head.revision", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.ref.head.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.ref.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.repository.change.id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "vcs.change.id"),
-        new("vcs.repository.change.title", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "vcs.change.title"),
-        new("vcs.repository.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.repository.ref.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "vcs.ref.head.name"),
-        new("vcs.repository.ref.revision", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "vcs.ref.head.revision"),
-        new("vcs.repository.ref.type", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.44.0", "vcs.ref.head.type"),
-        new("vcs.repository.url.full", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("vcs.revision_delta.direction", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("webengine.description", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("webengine.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
-        new("webengine.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.44.0", null),
+        new("openshift.clusterquota.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("openshift.clusterquota.uid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("opentracing.ref_type", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("oracle.db.domain", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("oracle.db.instance.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("oracle.db.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("oracle.db.pdb", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("oracle.db.service", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("oracle_cloud.realm", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("os.build_id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("os.description", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("os.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("os.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("os.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("otel.component.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("otel.component.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("otel.event.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("otel.library.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "otel.scope.name"),
+        new("otel.library.version", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "otel.scope.version"),
+        new("otel.scope.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("otel.scope.schema_url", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("otel.scope.version", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("otel.span.parent.origin", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("otel.span.sampling_result", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("otel.status_code", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("otel.status_description", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("peer.service", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("pool.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "db.client.connection.pool.name"),
+        new("pprof.location.is_folded", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("pprof.mapping.has_filenames", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("pprof.mapping.has_functions", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("pprof.mapping.has_inline_frames", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("pprof.mapping.has_line_numbers", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("pprof.profile.comment", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("pprof.profile.doc_url", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("pprof.profile.drop_frames", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("pprof.profile.keep_frames", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("pprof.scope.default_sample_type", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("pprof.scope.sample_type_order", "int[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.args_count", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.command", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.command_args", "string[]", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.command_line", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.context_switch.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.context_switch_type", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "process.context_switch.type"),
+        new("process.cpu.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "cpu.mode"),
+        new("process.creation.time", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.environment_variable", "template[string]", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.executable.build_id.gnu", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.executable.build_id.go", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.executable.build_id.htlhash", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.executable.build_id.profiling", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "process.executable.build_id.htlhash"),
+        new("process.executable.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.executable.path", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.exit.code", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.exit.time", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.group_leader.pid", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.interactive", "boolean", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.linux.cgroup", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.owner", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.paging.fault_type", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "system.paging.fault.type"),
+        new("process.parent_pid", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.pid", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.real_user.id", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.real_user.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.runtime.description", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.runtime.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.runtime.version", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.saved_user.id", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.saved_user.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.session_leader.pid", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.state", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.title", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.user.id", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.user.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.vpid", "int", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("process.working_directory", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("profile.frame.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rabbitmq.destination.routing_key", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rabbitmq.message.delivery_tag", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rocketmq.consumption_model", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rocketmq.message.delay_time_level", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rocketmq.message.delivery_timestamp", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rocketmq.message.group", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rocketmq.message.keys", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rocketmq.message.tag", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rocketmq.message.type", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rocketmq.namespace", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.connect_rpc.error_code", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rpc.status_code"),
+        new("rpc.connect_rpc.request.metadata", "template[string[]]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rpc.request.header"),
+        new("rpc.connect_rpc.response.metadata", "template[string[]]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.grpc.request.metadata", "template[string[]]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rpc.request.header"),
+        new("rpc.grpc.response.metadata", "template[string[]]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.grpc.status_code", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.jsonrpc.error_code", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.jsonrpc.error_message", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.jsonrpc.request_id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "jsonrpc.request.id"),
+        new("rpc.jsonrpc.version", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "jsonrpc.protocol.version"),
+        new("rpc.message.compressed_size", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.message.id", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.message.type", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.message.uncompressed_size", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.method", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.method_original", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.request.header", "template[string[]]", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.request.metadata", "template[string[]]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rpc.request.header"),
+        new("rpc.response.header", "template[string[]]", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.response.metadata", "template[string[]]", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.response.status_code", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rpc.status_code"),
+        new("rpc.response.trailer", "template[string[]]", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.service", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.status_code", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("rpc.system", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "rpc.system.name"),
+        new("rpc.system.name", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("security_rule.category", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("security_rule.description", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("security_rule.license", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("security_rule.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("security_rule.reference", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("security_rule.ruleset.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("security_rule.uuid", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("security_rule.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("server.address", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("server.as.number", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("server.as.organization", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("server.mac.address", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("server.port", "int", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("server.prefix", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("server.service.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("server.service.namespace", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("service.criticality", "enum", Stability.Alpha, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("service.instance.cost_center.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("service.instance.cost_center.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("service.instance.id", "string", Stability.Stable, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("service.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("service.namespace", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("service.peer.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("service.peer.namespace", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("service.version", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("session.id", "string", Stability.Development, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("session.previous_id", "string", Stability.Development, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("signalr.connection.status", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("signalr.transport", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("source.address", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("source.as.number", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("source.as.organization", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("source.mac.address", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("source.port", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("source.prefix", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "db.client.connection.state"),
+        new("system.cpu.logical_number", "int", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "cpu.logical_number"),
+        new("system.cpu.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "cpu.mode"),
+        new("system.device", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "system.device.name"),
+        new("system.device.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("system.filesystem.mode", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("system.filesystem.mountpoint", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("system.filesystem.state", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("system.filesystem.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("system.memory.linux.hugepages.state", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("system.memory.linux.slab.state", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("system.memory.state", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("system.network.state", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "network.connection.state"),
+        new("system.paging.direction", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("system.paging.fault.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("system.paging.state", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("system.paging.type", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "system.paging.fault.type"),
+        new("system.process.status", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "process.state"),
+        new("system.processes.status", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "process.state"),
+        new("telemetry.distro.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("telemetry.distro.version", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("telemetry.sdk.language", "enum", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("telemetry.sdk.name", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("telemetry.sdk.version", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("test.case.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("test.case.result.status", "enum", Stability.Development, true, true, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("test.suite.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("test.suite.run.status", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("thread.id", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("thread.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.cipher", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.client.certificate", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.client.certificate_chain", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.client.hash.md5", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.client.hash.sha1", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.client.hash.sha256", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.client.issuer", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.client.ja3", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.client.not_after", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.client.not_before", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.client.server_name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "server.address"),
+        new("tls.client.subject", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.client.supported_ciphers", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.curve", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.established", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.next_protocol", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.protocol.name", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.protocol.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.resumed", "boolean", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.server.certificate", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.server.certificate_chain", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.server.hash.md5", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.server.hash.sha1", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.server.hash.sha256", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.server.issuer", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.server.ja3s", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.server.not_after", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.server.not_before", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("tls.server.subject", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("url.domain", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("url.extension", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("url.fragment", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("url.full", "string", Stability.Stable, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("url.original", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("url.path", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("url.port", "int", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("url.query", "string", Stability.Stable, false, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("url.registered_domain", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("url.scheme", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("url.subdomain", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("url.template", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("url.top_level_domain", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("user.email", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("user.full_name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("user.hash", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("user.id", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("user.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("user.roles", "string[]", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("user_agent.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("user_agent.original", "string", Stability.Stable, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("user_agent.os.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("user_agent.os.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("user_agent.synthetic.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("user_agent.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("v8js.gc.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("v8js.heap.space.name", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("v8js.resource.type", "enum", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.change.id", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.change.state", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.change.title", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.line_change.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.owner.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.provider.name", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.ref.base.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.ref.base.revision", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.ref.base.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.ref.head.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.ref.head.revision", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.ref.head.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.ref.type", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.repository.change.id", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "vcs.change.id"),
+        new("vcs.repository.change.title", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "vcs.change.title"),
+        new("vcs.repository.name", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.repository.ref.name", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "vcs.ref.head.name"),
+        new("vcs.repository.ref.revision", "string", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "vcs.ref.head.revision"),
+        new("vcs.repository.ref.type", "enum", Stability.Deprecated, false, false, "https://opentelemetry.io/schemas/1.45.0", "vcs.ref.head.type"),
+        new("vcs.repository.url.full", "string", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("vcs.revision_delta.direction", "enum", Stability.ReleaseCandidate, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("webengine.description", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("webengine.name", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
+        new("webengine.version", "string", Stability.Development, true, false, "https://opentelemetry.io/schemas/1.45.0", null),
     ];
     private static readonly FrozenDictionary<string, AttributeDefinition> ByKey =
         Definitions.ToFrozenDictionary(static definition => definition.Key, StringComparer.Ordinal);
@@ -1208,6 +1272,14 @@ public static class AttributeStability
             "Session" => Stability.Development,
             "Eventual" => Stability.Development,
             "ConsistentPrefix" => Stability.Development,
+            _ => Stability.Unknown
+        },
+        "azure.servicebus.disposition_status" => value switch
+        {
+            "complete" => Stability.Development,
+            "abandon" => Stability.Development,
+            "dead_letter" => Stability.Development,
+            "defer" => Stability.Development,
             _ => Stability.Unknown
         },
         "browser.web_vital.name" => value switch
@@ -1711,6 +1783,8 @@ public static class AttributeStability
         {
             "chat" => Stability.Development,
             "generate_content" => Stability.Development,
+            "realtime_inference" => Stability.Development,
+            "user_speech" => Stability.Development,
             "text_completion" => Stability.Development,
             "embeddings" => Stability.Development,
             "retrieval" => Stability.Development,
@@ -1719,6 +1793,7 @@ public static class AttributeStability
             "invoke_agent" => Stability.Development,
             "execute_tool" => Stability.Development,
             "invoke_workflow" => Stability.Development,
+            "invoke_runner" => Stability.Development,
             "plan" => Stability.Development,
             "search_memory" => Stability.Development,
             "create_memory" => Stability.Development,
@@ -1755,6 +1830,7 @@ public static class AttributeStability
             "groq" => Stability.Development,
             "mistral" => Stability.Development,
             "moonshot_ai" => Stability.Development,
+            "ollama" => Stability.Development,
             _ => Stability.Unknown
         },
         "gen_ai.response.status" => value switch
@@ -1943,6 +2019,12 @@ public static class AttributeStability
             "background" => Stability.Deprecated,
             "foreground" => Stability.Deprecated,
             "terminate" => Stability.Deprecated,
+            _ => Stability.Unknown
+        },
+        "jvm.executor.thread.state" => value switch
+        {
+            "active" => Stability.Development,
+            "idle" => Stability.Development,
             _ => Stability.Unknown
         },
         "jvm.memory.type" => value switch
@@ -2142,35 +2224,51 @@ public static class AttributeStability
         },
         "messaging.rocketmq.consumption_model" => value switch
         {
-            "clustering" => Stability.Development,
-            "broadcasting" => Stability.Development,
+            "clustering" => Stability.Deprecated,
+            "broadcasting" => Stability.Deprecated,
             _ => Stability.Unknown
         },
         "messaging.rocketmq.message.type" => value switch
         {
-            "normal" => Stability.Development,
-            "fifo" => Stability.Development,
-            "delay" => Stability.Development,
-            "transaction" => Stability.Development,
+            "normal" => Stability.Deprecated,
+            "fifo" => Stability.Deprecated,
+            "delay" => Stability.Deprecated,
+            "transaction" => Stability.Deprecated,
             _ => Stability.Unknown
         },
         "messaging.servicebus.disposition_status" => value switch
         {
-            "complete" => Stability.Development,
-            "abandon" => Stability.Development,
-            "dead_letter" => Stability.Development,
-            "defer" => Stability.Development,
+            "complete" => Stability.Deprecated,
+            "abandon" => Stability.Deprecated,
+            "dead_letter" => Stability.Deprecated,
+            "defer" => Stability.Deprecated,
             _ => Stability.Unknown
         },
         "messaging.system" => value switch
         {
+            "activemq" => Stability.Deprecated,
+            "aws.sns" => Stability.Deprecated,
+            "aws_sqs" => Stability.Deprecated,
+            "eventgrid" => Stability.Deprecated,
+            "eventhubs" => Stability.Deprecated,
+            "servicebus" => Stability.Deprecated,
+            "gcp_pubsub" => Stability.Deprecated,
+            "jms" => Stability.Deprecated,
+            "kafka" => Stability.Deprecated,
+            "rabbitmq" => Stability.Deprecated,
+            "rocketmq" => Stability.Deprecated,
+            "pulsar" => Stability.Deprecated,
+            _ => Stability.Unknown
+        },
+        "messaging.system.name" => value switch
+        {
             "activemq" => Stability.Development,
             "aws.sns" => Stability.Development,
-            "aws_sqs" => Stability.Development,
-            "eventgrid" => Stability.Development,
-            "eventhubs" => Stability.Development,
-            "servicebus" => Stability.Development,
-            "gcp_pubsub" => Stability.Development,
+            "aws.sqs" => Stability.Development,
+            "azure.eventgrid" => Stability.Development,
+            "azure.eventhubs" => Stability.Development,
+            "azure.servicebus" => Stability.Development,
+            "gcp.pubsub" => Stability.Development,
             "jms" => Stability.Development,
             "kafka" => Stability.Development,
             "rabbitmq" => Stability.Development,
@@ -2196,17 +2294,17 @@ public static class AttributeStability
         },
         "network.connection.state" => value switch
         {
-            "closed" => Stability.Development,
-            "close_wait" => Stability.Development,
-            "closing" => Stability.Development,
-            "established" => Stability.Development,
-            "fin_wait_1" => Stability.Development,
-            "fin_wait_2" => Stability.Development,
-            "last_ack" => Stability.Development,
-            "listen" => Stability.Development,
-            "syn_received" => Stability.Development,
-            "syn_sent" => Stability.Development,
-            "time_wait" => Stability.Development,
+            "closed" => Stability.ReleaseCandidate,
+            "close_wait" => Stability.ReleaseCandidate,
+            "closing" => Stability.ReleaseCandidate,
+            "established" => Stability.ReleaseCandidate,
+            "fin_wait_1" => Stability.ReleaseCandidate,
+            "fin_wait_2" => Stability.ReleaseCandidate,
+            "last_ack" => Stability.ReleaseCandidate,
+            "listen" => Stability.ReleaseCandidate,
+            "syn_received" => Stability.ReleaseCandidate,
+            "syn_sent" => Stability.ReleaseCandidate,
+            "time_wait" => Stability.ReleaseCandidate,
             _ => Stability.Unknown
         },
         "network.connection.subtype" => value switch
@@ -2284,8 +2382,8 @@ public static class AttributeStability
         },
         "opentracing.ref_type" => value switch
         {
-            "child_of" => Stability.Development,
-            "follows_from" => Stability.Development,
+            "child_of" => Stability.Deprecated,
+            "follows_from" => Stability.Deprecated,
             _ => Stability.Unknown
         },
         "os.type" => value switch
@@ -2392,6 +2490,21 @@ public static class AttributeStability
             "go" => Stability.Development,
             "rust" => Stability.Development,
             "luajit" => Stability.Development,
+            "cuda" => Stability.Development,
+            _ => Stability.Unknown
+        },
+        "rocketmq.consumption_model" => value switch
+        {
+            "clustering" => Stability.Development,
+            "broadcasting" => Stability.Development,
+            _ => Stability.Unknown
+        },
+        "rocketmq.message.type" => value switch
+        {
+            "normal" => Stability.Development,
+            "fifo" => Stability.Development,
+            "delay" => Stability.Development,
+            "transaction" => Stability.Development,
             _ => Stability.Unknown
         },
         "rpc.connect_rpc.error_code" => value switch
@@ -2454,8 +2567,8 @@ public static class AttributeStability
         },
         "rpc.system.name" => value switch
         {
-            "grpc" => Stability.ReleaseCandidate,
-            "dubbo" => Stability.ReleaseCandidate,
+            "grpc" => Stability.Stable,
+            "dubbo" => Stability.Stable,
             "connectrpc" => Stability.Development,
             "jsonrpc" => Stability.Development,
             _ => Stability.Unknown
@@ -2501,40 +2614,41 @@ public static class AttributeStability
         },
         "system.filesystem.state" => value switch
         {
-            "used" => Stability.Development,
-            "free" => Stability.Development,
-            "reserved" => Stability.Development,
+            "used" => Stability.ReleaseCandidate,
+            "free" => Stability.ReleaseCandidate,
+            "reserved" => Stability.ReleaseCandidate,
             _ => Stability.Unknown
         },
         "system.filesystem.type" => value switch
         {
-            "fat32" => Stability.Development,
-            "exfat" => Stability.Development,
-            "ntfs" => Stability.Development,
-            "refs" => Stability.Development,
-            "hfsplus" => Stability.Development,
-            "ext4" => Stability.Development,
+            "fat32" => Stability.ReleaseCandidate,
+            "exfat" => Stability.ReleaseCandidate,
+            "ntfs" => Stability.ReleaseCandidate,
+            "refs" => Stability.ReleaseCandidate,
+            "hfsplus" => Stability.ReleaseCandidate,
+            "ext4" => Stability.ReleaseCandidate,
             _ => Stability.Unknown
         },
         "system.memory.linux.hugepages.state" => value switch
         {
-            "free" => Stability.Development,
-            "used" => Stability.Development,
+            "free" => Stability.ReleaseCandidate,
+            "used" => Stability.ReleaseCandidate,
             _ => Stability.Unknown
         },
         "system.memory.linux.slab.state" => value switch
         {
-            "reclaimable" => Stability.Development,
-            "unreclaimable" => Stability.Development,
+            "reclaimable" => Stability.ReleaseCandidate,
+            "unreclaimable" => Stability.ReleaseCandidate,
             _ => Stability.Unknown
         },
         "system.memory.state" => value switch
         {
-            "used" => Stability.Development,
-            "free" => Stability.Development,
+            "used" => Stability.ReleaseCandidate,
+            "available" => Stability.Development,
+            "free" => Stability.Deprecated,
             "shared" => Stability.Deprecated,
-            "buffers" => Stability.Development,
-            "cached" => Stability.Development,
+            "buffers" => Stability.Deprecated,
+            "cached" => Stability.Deprecated,
             _ => Stability.Unknown
         },
         "system.network.state" => value switch
@@ -2555,8 +2669,8 @@ public static class AttributeStability
         },
         "system.paging.direction" => value switch
         {
-            "in" => Stability.Development,
-            "out" => Stability.Development,
+            "in" => Stability.ReleaseCandidate,
+            "out" => Stability.ReleaseCandidate,
             _ => Stability.Unknown
         },
         "system.paging.fault.type" => value switch
@@ -2567,8 +2681,8 @@ public static class AttributeStability
         },
         "system.paging.state" => value switch
         {
-            "used" => Stability.Development,
-            "free" => Stability.Development,
+            "used" => Stability.ReleaseCandidate,
+            "free" => Stability.ReleaseCandidate,
             _ => Stability.Unknown
         },
         "system.paging.type" => value switch
@@ -2653,6 +2767,15 @@ public static class AttributeStability
             "code_space" => Stability.Development,
             "map_space" => Stability.Development,
             "large_object_space" => Stability.Development,
+            "read_only_space" => Stability.Development,
+            "shared_space" => Stability.Development,
+            "trusted_space" => Stability.Development,
+            "shared_trusted_space" => Stability.Development,
+            "new_large_object_space" => Stability.Development,
+            "code_large_object_space" => Stability.Development,
+            "shared_large_object_space" => Stability.Development,
+            "shared_trusted_large_object_space" => Stability.Development,
+            "trusted_large_object_space" => Stability.Development,
             _ => Stability.Unknown
         },
         "v8js.resource.type" => value switch
@@ -3034,9 +3157,20 @@ public static class AzureAttributes
     public const string CosmosdbOperationRequestCharge = "azure.cosmosdb.operation.request_charge";
     public const string CosmosdbRequestBodySize = "azure.cosmosdb.request.body.size";
     public const string CosmosdbResponseSubStatusCode = "azure.cosmosdb.response.sub_status_code";
+    public const string EventhubsMessageEnqueuedTime = "azure.eventhubs.message.enqueued_time";
     public const string ResourceGroupName = "azure.resource_group.name";
     public const string ResourceProviderNamespace = "azure.resource_provider.namespace";
     public const string ServiceRequestId = "azure.service.request.id";
+    public const string ServicebusDispositionStatus = "azure.servicebus.disposition_status";
+    public static class ServicebusDispositionStatusValues
+    {
+        public const string Complete = "complete";
+        public const string Abandon = "abandon";
+        public const string DeadLetter = "dead_letter";
+        public const string Defer = "defer";
+    }
+    public const string ServicebusMessageDeliveryCount = "azure.servicebus.message.delivery_count";
+    public const string ServicebusMessageEnqueuedTime = "azure.servicebus.message.enqueued_time";
 }
 
 public static class BrowserAttributes
@@ -3166,7 +3300,13 @@ public static class CicdAttributes
 public static class ClientAttributes
 {
     public const string Address = "client.address";
+    public const string AsNumber = "client.as.number";
+    public const string AsOrganization = "client.as.organization";
+    public const string MacAddress = "client.mac.address";
     public const string Port = "client.port";
+    public const string Prefix = "client.prefix";
+    public const string ServiceName = "client.service.name";
+    public const string ServiceNamespace = "client.service.namespace";
 }
 
 public static class CloudAttributes
@@ -3552,7 +3692,11 @@ public static class DeploymentAttributes
 public static class DestinationAttributes
 {
     public const string Address = "destination.address";
+    public const string AsNumber = "destination.as.number";
+    public const string AsOrganization = "destination.as.organization";
+    public const string MacAddress = "destination.mac.address";
     public const string Port = "destination.port";
+    public const string Prefix = "destination.prefix";
 }
 
 public static class DeviceAttributes
@@ -3599,8 +3743,6 @@ public static class ElasticsearchAttributes
 
 public static class EnduserAttributes
 {
-    public const string Id = "enduser.id";
-    public const string PseudoId = "enduser.pseudo.id";
     public const string Role = "enduser.role";
     public const string Scope = "enduser.scope";
 }
@@ -3643,7 +3785,8 @@ public static class FaasAttributes
     }
     public const string DocumentTime = "faas.document.time";
     public const string Instance = "faas.instance";
-    public const string InvocationId = "faas.invocation_id";
+    public const string InvocationId = "faas.invocation.id";
+    public const string InvocationStartTime = "faas.invocation.start_time";
     public const string InvokedName = "faas.invoked_name";
     public const string InvokedProvider = "faas.invoked_provider";
     public static class InvokedProviderValues
@@ -3825,6 +3968,10 @@ public static class GcpAttributes
     public const string GceInstanceGroupManagerName = "gcp.gce.instance_group_manager.name";
     public const string GceInstanceGroupManagerRegion = "gcp.gce.instance_group_manager.region";
     public const string GceInstanceGroupManagerZone = "gcp.gce.instance_group_manager.zone";
+    public const string PubsubMessageAckDeadline = "gcp.pubsub.message.ack_deadline";
+    public const string PubsubMessageAckId = "gcp.pubsub.message.ack_id";
+    public const string PubsubMessageDeliveryAttempt = "gcp.pubsub.message.delivery_attempt";
+    public const string PubsubMessageOrderingKey = "gcp.pubsub.message.ordering_key";
 }
 
 public static class GenAiAttributes
@@ -3856,6 +4003,8 @@ public static class GenAiAttributes
     {
         public const string Chat = "chat";
         public const string GenerateContent = "generate_content";
+        public const string RealtimeInference = "realtime_inference";
+        public const string UserSpeech = "user_speech";
         public const string TextCompletion = "text_completion";
         public const string Embeddings = "embeddings";
         public const string Retrieval = "retrieval";
@@ -3864,6 +4013,7 @@ public static class GenAiAttributes
         public const string InvokeAgent = "invoke_agent";
         public const string ExecuteTool = "execute_tool";
         public const string InvokeWorkflow = "invoke_workflow";
+        public const string InvokeRunner = "invoke_runner";
         public const string Plan = "plan";
         public const string SearchMemory = "search_memory";
         public const string CreateMemory = "create_memory";
@@ -3905,7 +4055,9 @@ public static class GenAiAttributes
         public const string Groq = "groq";
         public const string Mistral = "mistral";
         public const string MoonshotAi = "moonshot_ai";
+        public const string Ollama = "ollama";
     }
+    public const string RealtimeSessionId = "gen_ai.realtime_session.id";
     public const string RequestChoiceCount = "gen_ai.request.choice.count";
     public const string RequestEncodingFormats = "gen_ai.request.encoding_formats";
     public const string RequestFrequencyPenalty = "gen_ai.request.frequency_penalty";
@@ -3981,7 +4133,6 @@ public static class GenAiAttributes
     public const string UsageTextCacheReadInputTokens = "gen_ai.usage.text.cache_read.input_tokens";
     public const string UsageTextInputTokens = "gen_ai.usage.text.input_tokens";
     public const string UsageTextOutputTokens = "gen_ai.usage.text.output_tokens";
-    public const string WorkflowName = "gen_ai.workflow.name";
 }
 
 public static class GeoAttributes
@@ -4096,6 +4247,7 @@ public static class HttpAttributes
     }
     public const string Host = "http.host";
     public const string Method = "http.method";
+    public const string RequestBodyContent = "http.request.body.content";
     public const string RequestBodySize = "http.request.body.size";
     public const string RequestHeader = "http.request.header";
     public const string RequestMethod = "http.request.method";
@@ -4118,6 +4270,7 @@ public static class HttpAttributes
     public const string RequestSize = "http.request.size";
     public const string RequestContentLength = "http.request_content_length";
     public const string RequestContentLengthUncompressed = "http.request_content_length_uncompressed";
+    public const string ResponseBodyContent = "http.response.body.content";
     public const string ResponseBodySize = "http.response.body.size";
     public const string ResponseHeader = "http.response.header";
     public const string ResponseSize = "http.response.size";
@@ -4258,6 +4411,15 @@ public static class JsonrpcAttributes
 public static class JvmAttributes
 {
     public const string BufferPoolName = "jvm.buffer.pool.name";
+    public const string ExecutorName = "jvm.executor.name";
+    public const string ExecutorOwnerName = "jvm.executor.owner.name";
+    public const string ExecutorThreadState = "jvm.executor.thread.state";
+    public static class ExecutorThreadStateValues
+    {
+        public const string Active = "active";
+        public const string Idle = "idle";
+    }
+    public const string ExecutorType = "jvm.executor.type";
     public const string GcAction = "jvm.gc.action";
     public const string GcCause = "jvm.gc.cause";
     public const string GcName = "jvm.gc.name";
@@ -4481,6 +4643,14 @@ public static class K8sAttributes
     }
 }
 
+public static class KafkaAttributes
+{
+    public const string ClusterId = "kafka.cluster.id";
+    public const string MessageKey = "kafka.message.key";
+    public const string MessageTombstone = "kafka.message.tombstone";
+    public const string Offset = "kafka.offset";
+}
+
 public static class LinuxAttributes
 {
     public const string MemorySlabState = "linux.memory.slab.state";
@@ -4647,6 +4817,22 @@ public static class MessagingAttributes
         public const string Rocketmq = "rocketmq";
         public const string Pulsar = "pulsar";
     }
+    public const string SystemName = "messaging.system.name";
+    public static class SystemNameValues
+    {
+        public const string Activemq = "activemq";
+        public const string AwsSns = "aws.sns";
+        public const string AwsSqs = "aws.sqs";
+        public const string AzureEventgrid = "azure.eventgrid";
+        public const string AzureEventhubs = "azure.eventhubs";
+        public const string AzureServicebus = "azure.servicebus";
+        public const string GcpPubsub = "gcp.pubsub";
+        public const string Jms = "jms";
+        public const string Kafka = "kafka";
+        public const string Rabbitmq = "rabbitmq";
+        public const string Rocketmq = "rocketmq";
+        public const string Pulsar = "pulsar";
+    }
 }
 
 public static class NamiAttributes
@@ -4753,9 +4939,17 @@ public static class NetworkAttributes
         public const string Receive = "receive";
     }
     public const string LocalAddress = "network.local.address";
+    public const string LocalAsNumber = "network.local.as.number";
+    public const string LocalAsOrganization = "network.local.as.organization";
+    public const string LocalMacAddress = "network.local.mac.address";
     public const string LocalPort = "network.local.port";
+    public const string LocalPrefix = "network.local.prefix";
     public const string PeerAddress = "network.peer.address";
+    public const string PeerAsNumber = "network.peer.as.number";
+    public const string PeerAsOrganization = "network.peer.as.organization";
+    public const string PeerMacAddress = "network.peer.mac.address";
     public const string PeerPort = "network.peer.port";
+    public const string PeerPrefix = "network.peer.prefix";
     public const string ProtocolName = "network.protocol.name";
     public const string ProtocolVersion = "network.protocol.version";
     public const string Transport = "network.transport";
@@ -5034,7 +5228,38 @@ public static class ProfileAttributes
         public const string Go = "go";
         public const string Rust = "rust";
         public const string Luajit = "luajit";
+        public const string Cuda = "cuda";
     }
+}
+
+public static class RabbitmqAttributes
+{
+    public const string DestinationRoutingKey = "rabbitmq.destination.routing_key";
+    public const string MessageDeliveryTag = "rabbitmq.message.delivery_tag";
+}
+
+public static class RocketmqAttributes
+{
+    public const string ConsumptionModel = "rocketmq.consumption_model";
+    public static class ConsumptionModelValues
+    {
+        public const string Clustering = "clustering";
+        public const string Broadcasting = "broadcasting";
+    }
+    public const string MessageDelayTimeLevel = "rocketmq.message.delay_time_level";
+    public const string MessageDeliveryTimestamp = "rocketmq.message.delivery_timestamp";
+    public const string MessageGroup = "rocketmq.message.group";
+    public const string MessageKeys = "rocketmq.message.keys";
+    public const string MessageTag = "rocketmq.message.tag";
+    public const string MessageType = "rocketmq.message.type";
+    public static class MessageTypeValues
+    {
+        public const string Normal = "normal";
+        public const string Fifo = "fifo";
+        public const string Delay = "delay";
+        public const string Transaction = "transaction";
+    }
+    public const string Namespace = "rocketmq.namespace";
 }
 
 public static class RpcAttributes
@@ -5099,10 +5324,14 @@ public static class RpcAttributes
     public const string MessageUncompressedSize = "rpc.message.uncompressed_size";
     public const string Method = "rpc.method";
     public const string MethodOriginal = "rpc.method_original";
+    public const string RequestHeader = "rpc.request.header";
     public const string RequestMetadata = "rpc.request.metadata";
+    public const string ResponseHeader = "rpc.response.header";
     public const string ResponseMetadata = "rpc.response.metadata";
     public const string ResponseStatusCode = "rpc.response.status_code";
+    public const string ResponseTrailer = "rpc.response.trailer";
     public const string Service = "rpc.service";
+    public const string StatusCode = "rpc.status_code";
     public const string System = "rpc.system";
     public static class SystemValues
     {
@@ -5139,7 +5368,13 @@ public static class SecurityRuleAttributes
 public static class ServerAttributes
 {
     public const string Address = "server.address";
+    public const string AsNumber = "server.as.number";
+    public const string AsOrganization = "server.as.organization";
+    public const string MacAddress = "server.mac.address";
     public const string Port = "server.port";
+    public const string Prefix = "server.prefix";
+    public const string ServiceName = "server.service.name";
+    public const string ServiceNamespace = "server.service.namespace";
 }
 
 public static class ServiceAttributes
@@ -5152,6 +5387,8 @@ public static class ServiceAttributes
         public const string Medium = "medium";
         public const string Low = "low";
     }
+    public const string InstanceCostCenterId = "service.instance.cost_center.id";
+    public const string InstanceCostCenterName = "service.instance.cost_center.name";
     public const string InstanceId = "service.instance.id";
     public const string Name = "service.name";
     public const string Namespace = "service.namespace";
@@ -5187,7 +5424,11 @@ public static class SignalrAttributes
 public static class SourceAttributes
 {
     public const string Address = "source.address";
+    public const string AsNumber = "source.as.number";
+    public const string AsOrganization = "source.as.organization";
+    public const string MacAddress = "source.mac.address";
     public const string Port = "source.port";
+    public const string Prefix = "source.prefix";
 }
 
 public static class StateAttributes
@@ -5215,6 +5456,7 @@ public static class SystemAttributes
         public const string Steal = "steal";
     }
     public const string Device = "system.device";
+    public const string DeviceName = "system.device.name";
     public const string FilesystemMode = "system.filesystem.mode";
     public const string FilesystemMountpoint = "system.filesystem.mountpoint";
     public const string FilesystemState = "system.filesystem.state";
@@ -5250,9 +5492,7 @@ public static class SystemAttributes
     public static class MemoryStateValues
     {
         public const string Used = "used";
-        public const string Free = "free";
-        public const string Buffers = "buffers";
-        public const string Cached = "cached";
+        public const string Available = "available";
     }
     public const string NetworkState = "system.network.state";
     public static class NetworkStateValues
@@ -5463,6 +5703,15 @@ public static class V8jsAttributes
         public const string CodeSpace = "code_space";
         public const string MapSpace = "map_space";
         public const string LargeObjectSpace = "large_object_space";
+        public const string ReadOnlySpace = "read_only_space";
+        public const string SharedSpace = "shared_space";
+        public const string TrustedSpace = "trusted_space";
+        public const string SharedTrustedSpace = "shared_trusted_space";
+        public const string NewLargeObjectSpace = "new_large_object_space";
+        public const string CodeLargeObjectSpace = "code_large_object_space";
+        public const string SharedLargeObjectSpace = "shared_large_object_space";
+        public const string SharedTrustedLargeObjectSpace = "shared_trusted_large_object_space";
+        public const string TrustedLargeObjectSpace = "trusted_large_object_space";
     }
     public const string ResourceType = "v8js.resource.type";
     public static class ResourceTypeValues
@@ -5592,19 +5841,19 @@ public static class Metrics
         new("cicd.system.errors", "{error}", Instrument.Counter, Stability.ReleaseCandidate),
         new("cicd.worker.count", "{worker}", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("container.cpu.time", "s", Instrument.Counter, Stability.ReleaseCandidate),
-        new("container.cpu.usage", "{cpu}", Instrument.Gauge, Stability.Development),
+        new("container.cpu.usage", "{cpu}", Instrument.Gauge, Stability.ReleaseCandidate),
         new("container.disk.io", "By", Instrument.Counter, Stability.Development),
-        new("container.filesystem.available", "By", Instrument.UpDownCounter, Stability.Development),
-        new("container.filesystem.capacity", "By", Instrument.UpDownCounter, Stability.Development),
-        new("container.filesystem.usage", "By", Instrument.UpDownCounter, Stability.Development),
+        new("container.filesystem.available", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
+        new("container.filesystem.capacity", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
+        new("container.filesystem.usage", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("container.memory.available", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("container.memory.paging.faults", "{fault}", Instrument.Counter, Stability.Deprecated),
         new("container.memory.rss", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("container.memory.usage", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("container.memory.working_set", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("container.network.io", "By", Instrument.Counter, Stability.Development),
-        new("container.paging.faults", "{fault}", Instrument.Counter, Stability.Development),
-        new("container.uptime", "s", Instrument.Gauge, Stability.Development),
+        new("container.paging.faults", "{fault}", Instrument.Counter, Stability.ReleaseCandidate),
+        new("container.uptime", "s", Instrument.Gauge, Stability.ReleaseCandidate),
         new("cpu.frequency", "{Hz}", Instrument.Gauge, Stability.Deprecated),
         new("cpu.time", "s", Instrument.Counter, Stability.Deprecated),
         new("cpu.utilization", "1", Instrument.Gauge, Stability.Deprecated),
@@ -5615,7 +5864,8 @@ public static class Metrics
         new("db.client.connection.create_time", "s", Instrument.Histogram, Stability.Development),
         new("db.client.connection.idle.max", "{connection}", Instrument.UpDownCounter, Stability.Development),
         new("db.client.connection.idle.min", "{connection}", Instrument.UpDownCounter, Stability.Development),
-        new("db.client.connection.max", "{connection}", Instrument.UpDownCounter, Stability.Development),
+        new("db.client.connection.limit", "{connection}", Instrument.UpDownCounter, Stability.Development),
+        new("db.client.connection.max", "{connection}", Instrument.UpDownCounter, Stability.Deprecated),
         new("db.client.connection.pending_requests", "{request}", Instrument.UpDownCounter, Stability.Development),
         new("db.client.connection.timeouts", "{timeout}", Instrument.Counter, Stability.Development),
         new("db.client.connection.use_time", "s", Instrument.Histogram, Stability.Development),
@@ -5674,12 +5924,13 @@ public static class Metrics
         new("gen_ai.client.inference.usage.input_tokens", "{token}", Instrument.Counter, Stability.Development),
         new("gen_ai.client.inference.usage.output_tokens", "{token}", Instrument.Counter, Stability.Development),
         new("gen_ai.client.inference.usage.reasoning.output_tokens", "{token}", Instrument.Counter, Stability.Development),
+        new("gen_ai.client.invoke_agent.duration", "s", Instrument.Histogram, Stability.Development),
         new("gen_ai.client.operation.duration", "s", Instrument.Histogram, Stability.Development),
         new("gen_ai.execute_tool.duration", "s", Instrument.Histogram, Stability.Development),
         new("gen_ai.invoke_agent.duration", "s", Instrument.Histogram, Stability.Development),
         new("gen_ai.invoke_agent.inference_calls", "{inference_call}", Instrument.Histogram, Stability.Development),
         new("gen_ai.invoke_agent.tool_calls", "{tool_call}", Instrument.Histogram, Stability.Development),
-        new("gen_ai.invoke_workflow.duration", "s", Instrument.Histogram, Stability.Development),
+        new("gen_ai.retrieval.duration", "s", Instrument.Histogram, Stability.Development),
         new("gen_ai.server.request.duration", "s", Instrument.Histogram, Stability.Development),
         new("gen_ai.server.time_per_output_token", "s", Instrument.Histogram, Stability.Development),
         new("gen_ai.server.time_to_first_token", "s", Instrument.Histogram, Stability.Development),
@@ -5757,8 +6008,15 @@ public static class Metrics
         new("jvm.cpu.count", "{cpu}", Instrument.UpDownCounter, Stability.Stable),
         new("jvm.cpu.recent_utilization", "1", Instrument.Gauge, Stability.Stable),
         new("jvm.cpu.time", "s", Instrument.Counter, Stability.Stable),
-        new("jvm.file_descriptor.count", "{file_descriptor}", Instrument.UpDownCounter, Stability.Development),
-        new("jvm.file_descriptor.limit", "{file_descriptor}", Instrument.UpDownCounter, Stability.Development),
+        new("jvm.executor.queue.capacity", "{task}", Instrument.UpDownCounter, Stability.Development),
+        new("jvm.executor.queue.size", "{task}", Instrument.UpDownCounter, Stability.Development),
+        new("jvm.executor.task.completed", "{task}", Instrument.Counter, Stability.Development),
+        new("jvm.executor.task.rejected", "{task}", Instrument.Counter, Stability.Development),
+        new("jvm.executor.thread.core", "{thread}", Instrument.UpDownCounter, Stability.Development),
+        new("jvm.executor.thread.count", "{thread}", Instrument.UpDownCounter, Stability.Development),
+        new("jvm.executor.thread.limit", "{thread}", Instrument.UpDownCounter, Stability.Development),
+        new("jvm.file_descriptor.count", "{file_descriptor}", Instrument.UpDownCounter, Stability.ReleaseCandidate),
+        new("jvm.file_descriptor.limit", "{file_descriptor}", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("jvm.gc.duration", "s", Instrument.Histogram, Stability.Stable),
         new("jvm.memory.committed", "By", Instrument.UpDownCounter, Stability.Stable),
         new("jvm.memory.init", "By", Instrument.UpDownCounter, Stability.Development),
@@ -5782,9 +6040,11 @@ public static class Metrics
         new("k8s.container.memory.limit", "By", Instrument.UpDownCounter, Stability.Deprecated),
         new("k8s.container.memory.limit.current", "By", Instrument.UpDownCounter, Stability.Development),
         new("k8s.container.memory.limit.desired", "By", Instrument.UpDownCounter, Stability.Development),
+        new("k8s.container.memory.limit.utilization", "1", Instrument.Gauge, Stability.Development),
         new("k8s.container.memory.request", "By", Instrument.UpDownCounter, Stability.Deprecated),
         new("k8s.container.memory.request.current", "By", Instrument.UpDownCounter, Stability.Development),
         new("k8s.container.memory.request.desired", "By", Instrument.UpDownCounter, Stability.Development),
+        new("k8s.container.memory.request.utilization", "1", Instrument.Gauge, Stability.Development),
         new("k8s.container.ready", "{container}", Instrument.UpDownCounter, Stability.Development),
         new("k8s.container.restart.count", "{restart}", Instrument.UpDownCounter, Stability.Development),
         new("k8s.container.status.reason", "{container}", Instrument.UpDownCounter, Stability.Development),
@@ -5834,49 +6094,63 @@ public static class Metrics
         new("k8s.node.condition.status", "{node}", Instrument.UpDownCounter, Stability.Development),
         new("k8s.node.cpu.allocatable", "{cpu}", Instrument.UpDownCounter, Stability.Development),
         new("k8s.node.cpu.time", "s", Instrument.Counter, Stability.ReleaseCandidate),
-        new("k8s.node.cpu.usage", "{cpu}", Instrument.Gauge, Stability.Development),
+        new("k8s.node.cpu.usage", "{cpu}", Instrument.Gauge, Stability.ReleaseCandidate),
         new("k8s.node.ephemeral_storage.allocatable", "By", Instrument.UpDownCounter, Stability.Development),
-        new("k8s.node.filesystem.available", "By", Instrument.UpDownCounter, Stability.Development),
-        new("k8s.node.filesystem.capacity", "By", Instrument.UpDownCounter, Stability.Development),
-        new("k8s.node.filesystem.inode.count", "{inode}", Instrument.UpDownCounter, Stability.Development),
-        new("k8s.node.filesystem.inode.free", "{inode}", Instrument.UpDownCounter, Stability.Development),
-        new("k8s.node.filesystem.usage", "By", Instrument.UpDownCounter, Stability.Development),
+        new("k8s.node.filesystem.available", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
+        new("k8s.node.filesystem.capacity", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
+        new("k8s.node.filesystem.inode.count", "{inode}", Instrument.UpDownCounter, Stability.ReleaseCandidate),
+        new("k8s.node.filesystem.inode.free", "{inode}", Instrument.UpDownCounter, Stability.ReleaseCandidate),
+        new("k8s.node.filesystem.usage", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("k8s.node.memory.allocatable", "By", Instrument.UpDownCounter, Stability.Development),
         new("k8s.node.memory.available", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("k8s.node.memory.paging.faults", "{fault}", Instrument.Counter, Stability.Deprecated),
         new("k8s.node.memory.rss", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("k8s.node.memory.usage", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("k8s.node.memory.working_set", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
-        new("k8s.node.network.errors", "{error}", Instrument.Counter, Stability.Development),
-        new("k8s.node.network.io", "By", Instrument.Counter, Stability.Development),
-        new("k8s.node.paging.faults", "{fault}", Instrument.Counter, Stability.Development),
+        new("k8s.node.network.errors", "{error}", Instrument.Counter, Stability.ReleaseCandidate),
+        new("k8s.node.network.io", "By", Instrument.Counter, Stability.ReleaseCandidate),
+        new("k8s.node.paging.faults", "{fault}", Instrument.Counter, Stability.ReleaseCandidate),
+        new("k8s.node.pid.limit", "{thread}", Instrument.UpDownCounter, Stability.Development),
+        new("k8s.node.pid.usage", "{thread}", Instrument.UpDownCounter, Stability.Development),
         new("k8s.node.pod.allocatable", "{pod}", Instrument.UpDownCounter, Stability.Development),
         new("k8s.node.system_container.cpu.time", "s", Instrument.Counter, Stability.Development),
         new("k8s.node.system_container.cpu.usage", "{cpu}", Instrument.Gauge, Stability.Development),
         new("k8s.node.system_container.memory.usage", "By", Instrument.UpDownCounter, Stability.Development),
         new("k8s.node.system_container.memory.working_set", "By", Instrument.UpDownCounter, Stability.Development),
-        new("k8s.node.uptime", "s", Instrument.Gauge, Stability.Development),
+        new("k8s.node.uptime", "s", Instrument.Gauge, Stability.ReleaseCandidate),
         new("k8s.persistentvolume.status.phase", "{persistentvolume}", Instrument.UpDownCounter, Stability.Development),
         new("k8s.persistentvolume.storage.capacity", "By", Instrument.UpDownCounter, Stability.Development),
         new("k8s.persistentvolumeclaim.status.phase", "{persistentvolumeclaim}", Instrument.UpDownCounter, Stability.Development),
         new("k8s.persistentvolumeclaim.storage.capacity", "By", Instrument.UpDownCounter, Stability.Development),
         new("k8s.persistentvolumeclaim.storage.request", "By", Instrument.UpDownCounter, Stability.Development),
+        new("k8s.pod.cpu.limit.current", "{cpu}", Instrument.UpDownCounter, Stability.Development),
+        new("k8s.pod.cpu.limit.desired", "{cpu}", Instrument.UpDownCounter, Stability.Development),
+        new("k8s.pod.cpu.limit.utilization", "1", Instrument.Gauge, Stability.Development),
+        new("k8s.pod.cpu.request.current", "{cpu}", Instrument.UpDownCounter, Stability.Development),
+        new("k8s.pod.cpu.request.desired", "{cpu}", Instrument.UpDownCounter, Stability.Development),
+        new("k8s.pod.cpu.request.utilization", "1", Instrument.Gauge, Stability.Development),
         new("k8s.pod.cpu.time", "s", Instrument.Counter, Stability.ReleaseCandidate),
-        new("k8s.pod.cpu.usage", "{cpu}", Instrument.Gauge, Stability.Development),
-        new("k8s.pod.filesystem.available", "By", Instrument.UpDownCounter, Stability.Development),
-        new("k8s.pod.filesystem.capacity", "By", Instrument.UpDownCounter, Stability.Development),
-        new("k8s.pod.filesystem.usage", "By", Instrument.UpDownCounter, Stability.Development),
+        new("k8s.pod.cpu.usage", "{cpu}", Instrument.Gauge, Stability.ReleaseCandidate),
+        new("k8s.pod.filesystem.available", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
+        new("k8s.pod.filesystem.capacity", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
+        new("k8s.pod.filesystem.usage", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("k8s.pod.memory.available", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
+        new("k8s.pod.memory.limit.current", "By", Instrument.UpDownCounter, Stability.Development),
+        new("k8s.pod.memory.limit.desired", "By", Instrument.UpDownCounter, Stability.Development),
+        new("k8s.pod.memory.limit.utilization", "1", Instrument.Gauge, Stability.Development),
         new("k8s.pod.memory.paging.faults", "{fault}", Instrument.Counter, Stability.Deprecated),
+        new("k8s.pod.memory.request.current", "By", Instrument.UpDownCounter, Stability.Development),
+        new("k8s.pod.memory.request.desired", "By", Instrument.UpDownCounter, Stability.Development),
+        new("k8s.pod.memory.request.utilization", "1", Instrument.Gauge, Stability.Development),
         new("k8s.pod.memory.rss", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("k8s.pod.memory.usage", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("k8s.pod.memory.working_set", "By", Instrument.UpDownCounter, Stability.ReleaseCandidate),
-        new("k8s.pod.network.errors", "{error}", Instrument.Counter, Stability.Development),
-        new("k8s.pod.network.io", "By", Instrument.Counter, Stability.Development),
-        new("k8s.pod.paging.faults", "{fault}", Instrument.Counter, Stability.Development),
+        new("k8s.pod.network.errors", "{error}", Instrument.Counter, Stability.ReleaseCandidate),
+        new("k8s.pod.network.io", "By", Instrument.Counter, Stability.ReleaseCandidate),
+        new("k8s.pod.paging.faults", "{fault}", Instrument.Counter, Stability.ReleaseCandidate),
         new("k8s.pod.status.phase", "{pod}", Instrument.UpDownCounter, Stability.Development),
         new("k8s.pod.status.reason", "{pod}", Instrument.UpDownCounter, Stability.Development),
-        new("k8s.pod.uptime", "s", Instrument.Gauge, Stability.Development),
+        new("k8s.pod.uptime", "s", Instrument.Gauge, Stability.ReleaseCandidate),
         new("k8s.pod.volume.available", "By", Instrument.UpDownCounter, Stability.Development),
         new("k8s.pod.volume.capacity", "By", Instrument.UpDownCounter, Stability.Development),
         new("k8s.pod.volume.inode.count", "{inode}", Instrument.UpDownCounter, Stability.Development),
@@ -5917,6 +6191,7 @@ public static class Metrics
         new("k8s.service.load_balancer.ingress.count", "{ingress}", Instrument.Gauge, Stability.Development),
         new("k8s.statefulset.current_pods", "{pod}", Instrument.UpDownCounter, Stability.Deprecated),
         new("k8s.statefulset.desired_pods", "{pod}", Instrument.UpDownCounter, Stability.Deprecated),
+        new("k8s.statefulset.pod.available", "{pod}", Instrument.UpDownCounter, Stability.Development),
         new("k8s.statefulset.pod.current", "{pod}", Instrument.UpDownCounter, Stability.Development),
         new("k8s.statefulset.pod.desired", "{pod}", Instrument.UpDownCounter, Stability.Development),
         new("k8s.statefulset.pod.ready", "{pod}", Instrument.UpDownCounter, Stability.Development),
@@ -6033,13 +6308,13 @@ public static class Metrics
         new("process.uptime", "s", Instrument.Gauge, Stability.ReleaseCandidate),
         new("process.windows.handle.count", "{handle}", Instrument.UpDownCounter, Stability.ReleaseCandidate),
         new("resource.missing_service_name", "{resource}", Instrument.Counter, Stability.Development),
-        new("rpc.client.call.duration", "s", Instrument.Histogram, Stability.ReleaseCandidate),
+        new("rpc.client.call.duration", "s", Instrument.Histogram, Stability.Stable),
         new("rpc.client.duration", "ms", Instrument.Histogram, Stability.Deprecated),
         new("rpc.client.request.size", "By", Instrument.Histogram, Stability.Deprecated),
         new("rpc.client.requests_per_rpc", "{count}", Instrument.Histogram, Stability.Deprecated),
         new("rpc.client.response.size", "By", Instrument.Histogram, Stability.Deprecated),
         new("rpc.client.responses_per_rpc", "{count}", Instrument.Histogram, Stability.Deprecated),
-        new("rpc.server.call.duration", "s", Instrument.Histogram, Stability.ReleaseCandidate),
+        new("rpc.server.call.duration", "s", Instrument.Histogram, Stability.Stable),
         new("rpc.server.duration", "ms", Instrument.Histogram, Stability.Deprecated),
         new("rpc.server.request.size", "By", Instrument.Histogram, Stability.Deprecated),
         new("rpc.server.requests_per_rpc", "{count}", Instrument.Histogram, Stability.Deprecated),
@@ -6377,7 +6652,7 @@ public static class Metrics
         public const string Name = "container.cpu.usage";
         public const string Unit = "{cpu}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class ContainerDiskIo
     {
@@ -6391,21 +6666,21 @@ public static class Metrics
         public const string Name = "container.filesystem.available";
         public const string Unit = "By";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class ContainerFilesystemCapacity
     {
         public const string Name = "container.filesystem.capacity";
         public const string Unit = "By";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class ContainerFilesystemUsage
     {
         public const string Name = "container.filesystem.usage";
         public const string Unit = "By";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class ContainerMemoryAvailable
     {
@@ -6454,14 +6729,14 @@ public static class Metrics
         public const string Name = "container.paging.faults";
         public const string Unit = "{fault}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class ContainerUptime
     {
         public const string Name = "container.uptime";
         public const string Unit = "s";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class CpuFrequency
     {
@@ -6533,12 +6808,19 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    public static class DbClientConnectionLimit
+    {
+        public const string Name = "db.client.connection.limit";
+        public const string Unit = "{connection}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
     public static class DbClientConnectionMax
     {
         public const string Name = "db.client.connection.max";
         public const string Unit = "{connection}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
     public static class DbClientConnectionPendingRequests
     {
@@ -6946,6 +7228,13 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    public static class GenAiClientInvokeAgentDuration
+    {
+        public const string Name = "gen_ai.client.invoke_agent.duration";
+        public const string Unit = "s";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
     public static class GenAiClientOperationDuration
     {
         public const string Name = "gen_ai.client.operation.duration";
@@ -6981,9 +7270,9 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
-    public static class GenAiInvokeWorkflowDuration
+    public static class GenAiRetrievalDuration
     {
-        public const string Name = "gen_ai.invoke_workflow.duration";
+        public const string Name = "gen_ai.retrieval.duration";
         public const string Unit = "s";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
@@ -7527,19 +7816,68 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Stable;
     }
+    public static class JvmExecutorQueueCapacity
+    {
+        public const string Name = "jvm.executor.queue.capacity";
+        public const string Unit = "{task}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class JvmExecutorQueueSize
+    {
+        public const string Name = "jvm.executor.queue.size";
+        public const string Unit = "{task}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class JvmExecutorTaskCompleted
+    {
+        public const string Name = "jvm.executor.task.completed";
+        public const string Unit = "{task}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class JvmExecutorTaskRejected
+    {
+        public const string Name = "jvm.executor.task.rejected";
+        public const string Unit = "{task}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class JvmExecutorThreadCore
+    {
+        public const string Name = "jvm.executor.thread.core";
+        public const string Unit = "{thread}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class JvmExecutorThreadCount
+    {
+        public const string Name = "jvm.executor.thread.count";
+        public const string Unit = "{thread}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class JvmExecutorThreadLimit
+    {
+        public const string Name = "jvm.executor.thread.limit";
+        public const string Unit = "{thread}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
     public static class JvmFileDescriptorCount
     {
         public const string Name = "jvm.file_descriptor.count";
         public const string Unit = "{file_descriptor}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class JvmFileDescriptorLimit
     {
         public const string Name = "jvm.file_descriptor.limit";
         public const string Unit = "{file_descriptor}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class JvmGcDuration
     {
@@ -7702,6 +8040,13 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    public static class K8sContainerMemoryLimitUtilization
+    {
+        public const string Name = "k8s.container.memory.limit.utilization";
+        public const string Unit = "1";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
     public static class K8sContainerMemoryRequest
     {
         public const string Name = "k8s.container.memory.request";
@@ -7721,6 +8066,13 @@ public static class Metrics
         public const string Name = "k8s.container.memory.request.desired";
         public const string Unit = "By";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class K8sContainerMemoryRequestUtilization
+    {
+        public const string Name = "k8s.container.memory.request.utilization";
+        public const string Unit = "1";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
     public static class K8sContainerReady
@@ -8071,7 +8423,7 @@ public static class Metrics
         public const string Name = "k8s.node.cpu.usage";
         public const string Unit = "{cpu}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sNodeEphemeralStorageAllocatable
     {
@@ -8085,35 +8437,35 @@ public static class Metrics
         public const string Name = "k8s.node.filesystem.available";
         public const string Unit = "By";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sNodeFilesystemCapacity
     {
         public const string Name = "k8s.node.filesystem.capacity";
         public const string Unit = "By";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sNodeFilesystemInodeCount
     {
         public const string Name = "k8s.node.filesystem.inode.count";
         public const string Unit = "{inode}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sNodeFilesystemInodeFree
     {
         public const string Name = "k8s.node.filesystem.inode.free";
         public const string Unit = "{inode}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sNodeFilesystemUsage
     {
         public const string Name = "k8s.node.filesystem.usage";
         public const string Unit = "By";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sNodeMemoryAllocatable
     {
@@ -8162,20 +8514,34 @@ public static class Metrics
         public const string Name = "k8s.node.network.errors";
         public const string Unit = "{error}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sNodeNetworkIo
     {
         public const string Name = "k8s.node.network.io";
         public const string Unit = "By";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sNodePagingFaults
     {
         public const string Name = "k8s.node.paging.faults";
         public const string Unit = "{fault}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
+    }
+    public static class K8sNodePidLimit
+    {
+        public const string Name = "k8s.node.pid.limit";
+        public const string Unit = "{thread}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class K8sNodePidUsage
+    {
+        public const string Name = "k8s.node.pid.usage";
+        public const string Unit = "{thread}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
     public static class K8sNodePodAllocatable
@@ -8218,7 +8584,7 @@ public static class Metrics
         public const string Name = "k8s.node.uptime";
         public const string Unit = "s";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sPersistentvolumeStatusPhase
     {
@@ -8255,6 +8621,48 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    public static class K8sPodCpuLimitCurrent
+    {
+        public const string Name = "k8s.pod.cpu.limit.current";
+        public const string Unit = "{cpu}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class K8sPodCpuLimitDesired
+    {
+        public const string Name = "k8s.pod.cpu.limit.desired";
+        public const string Unit = "{cpu}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class K8sPodCpuLimitUtilization
+    {
+        public const string Name = "k8s.pod.cpu.limit.utilization";
+        public const string Unit = "1";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class K8sPodCpuRequestCurrent
+    {
+        public const string Name = "k8s.pod.cpu.request.current";
+        public const string Unit = "{cpu}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class K8sPodCpuRequestDesired
+    {
+        public const string Name = "k8s.pod.cpu.request.desired";
+        public const string Unit = "{cpu}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class K8sPodCpuRequestUtilization
+    {
+        public const string Name = "k8s.pod.cpu.request.utilization";
+        public const string Unit = "1";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
     public static class K8sPodCpuTime
     {
         public const string Name = "k8s.pod.cpu.time";
@@ -8267,28 +8675,28 @@ public static class Metrics
         public const string Name = "k8s.pod.cpu.usage";
         public const string Unit = "{cpu}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sPodFilesystemAvailable
     {
         public const string Name = "k8s.pod.filesystem.available";
         public const string Unit = "By";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sPodFilesystemCapacity
     {
         public const string Name = "k8s.pod.filesystem.capacity";
         public const string Unit = "By";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sPodFilesystemUsage
     {
         public const string Name = "k8s.pod.filesystem.usage";
         public const string Unit = "By";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sPodMemoryAvailable
     {
@@ -8297,12 +8705,54 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
+    public static class K8sPodMemoryLimitCurrent
+    {
+        public const string Name = "k8s.pod.memory.limit.current";
+        public const string Unit = "By";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class K8sPodMemoryLimitDesired
+    {
+        public const string Name = "k8s.pod.memory.limit.desired";
+        public const string Unit = "By";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class K8sPodMemoryLimitUtilization
+    {
+        public const string Name = "k8s.pod.memory.limit.utilization";
+        public const string Unit = "1";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
     public static class K8sPodMemoryPagingFaults
     {
         public const string Name = "k8s.pod.memory.paging.faults";
         public const string Unit = "{fault}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
+    }
+    public static class K8sPodMemoryRequestCurrent
+    {
+        public const string Name = "k8s.pod.memory.request.current";
+        public const string Unit = "By";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class K8sPodMemoryRequestDesired
+    {
+        public const string Name = "k8s.pod.memory.request.desired";
+        public const string Unit = "By";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+    }
+    public static class K8sPodMemoryRequestUtilization
+    {
+        public const string Name = "k8s.pod.memory.request.utilization";
+        public const string Unit = "1";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
     public static class K8sPodMemoryRss
     {
@@ -8330,21 +8780,21 @@ public static class Metrics
         public const string Name = "k8s.pod.network.errors";
         public const string Unit = "{error}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sPodNetworkIo
     {
         public const string Name = "k8s.pod.network.io";
         public const string Unit = "By";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sPodPagingFaults
     {
         public const string Name = "k8s.pod.paging.faults";
         public const string Unit = "{fault}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sPodStatusPhase
     {
@@ -8365,7 +8815,7 @@ public static class Metrics
         public const string Name = "k8s.pod.uptime";
         public const string Unit = "s";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
     public static class K8sPodVolumeAvailable
     {
@@ -8646,6 +9096,13 @@ public static class Metrics
         public const string Unit = "{pod}";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
+    }
+    public static class K8sStatefulsetPodAvailable
+    {
+        public const string Name = "k8s.statefulset.pod.available";
+        public const string Unit = "{pod}";
+        public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
     public static class K8sStatefulsetPodCurrent
     {
@@ -9464,7 +9921,7 @@ public static class Metrics
         public const string Name = "rpc.client.call.duration";
         public const string Unit = "s";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Stable;
     }
     public static class RpcClientDuration
     {
@@ -9506,7 +9963,7 @@ public static class Metrics
         public const string Name = "rpc.server.call.duration";
         public const string Unit = "s";
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
-        public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
+        public const Stability Stability = global::Nami.SemanticConventions.Stability.Stable;
     }
     public static class RpcServerDuration
     {
@@ -10019,33 +10476,33 @@ public static class Spans
     public static IReadOnlyList<SpanDefinition> All { get; } = Array.AsReadOnly(new SpanDefinition[]
     {
         new("a2a.client", "a2a.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "a2a.method.name" })),
-        new("a2a.grpc.server", "rpc.grpc.call.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "a2a.method.name", "rpc.response.status_code" })),
+        new("a2a.grpc.server", "rpc.grpc.call.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "a2a.method.name", "rpc.status_code", "rpc.system.name" })),
         new("a2a.http.server", "http.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "a2a.method.name", "http.request.method", "url.path", "url.scheme" })),
         new("a2a.server", "a2a.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "a2a.method.name" })),
         new("anthropic.gen_ai.client.inference", "gen_ai.client.inference", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" })),
         new("aws.bedrock.gen_ai.client.inference", "gen_ai.client.inference", "Client", Stability.Development, Array.AsReadOnly(new string[] { "aws.bedrock.guardrail.id", "gen_ai.operation.name", "gen_ai.provider.name" })),
         new("aws.client", "aws.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "rpc.system" })),
-        new("aws.lambda.server", "aws.lambda.server", "Server", Stability.Development, Array.AsReadOnly(new string[] {  })),
+        new("aws.lambda.server", "faas.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "faas.trigger" })),
         new("aws.s3.client", "aws.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "rpc.system" })),
         new("azure.ai.gen_ai.client.inference", "gen_ai.client.inference", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" })),
-        new("azure.cosmosdb.client", "azure.cosmosdb.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "db.operation.name" })),
+        new("azure.cosmosdb.client", "db.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "db.operation.name", "db.system.name" })),
         new("cicd.pipeline.run.server", "cicd.pipeline.run.server", "Server", Stability.ReleaseCandidate, Array.AsReadOnly(new string[] { "cicd.pipeline.result" })),
         new("cicd.pipeline.task.internal", "cicd.pipeline.task.internal", "Internal", Stability.ReleaseCandidate, Array.AsReadOnly(new string[] { "cicd.pipeline.task.name", "cicd.pipeline.task.run.id", "cicd.pipeline.task.run.result", "cicd.pipeline.task.run.url.full" })),
         new("cli.client", "cli.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "process.executable.name", "process.exit.code", "process.pid" })),
         new("cli.internal", "cli.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "process.executable.name", "process.exit.code", "process.pid" })),
-        new("db.cassandra.client", "db.cassandra.client", "Client", Stability.Development, Array.AsReadOnly(new string[] {  })),
+        new("db.cassandra.client", "db.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "db.system.name" })),
         new("db.client", "db.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] { "db.system.name" })),
-        new("db.couchdb.client", "db.couchdb.client", "Client", Stability.Development, Array.AsReadOnly(new string[] {  })),
-        new("db.elasticsearch.client", "db.elasticsearch.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "db.operation.name", "http.request.method", "url.full" })),
-        new("db.hbase.client", "db.hbase.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "db.operation.name" })),
-        new("db.mariadb.client", "db.sql.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] {  })),
-        new("db.mongodb.client", "db.mongodb.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "db.collection.name", "db.operation.name" })),
-        new("db.mysql.client", "db.sql.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] {  })),
-        new("db.oracledb.client", "db.sql.client", "Client", Stability.ReleaseCandidate, Array.AsReadOnly(new string[] {  })),
-        new("db.postgresql.client", "db.sql.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] {  })),
-        new("db.redis.client", "db.redis.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "db.operation.name" })),
-        new("db.sql.client", "db.sql.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] {  })),
-        new("db.sql_server.client", "db.sql.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] {  })),
+        new("db.couchdb.client", "db.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "db.system.name" })),
+        new("db.elasticsearch.client", "db.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "db.operation.name", "db.system.name", "http.request.method", "url.full" })),
+        new("db.hbase.client", "db.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "db.operation.name", "db.system.name" })),
+        new("db.mariadb.client", "db.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] { "db.system.name" })),
+        new("db.mongodb.client", "db.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "db.collection.name", "db.operation.name", "db.system.name" })),
+        new("db.mysql.client", "db.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] { "db.system.name" })),
+        new("db.oracledb.client", "db.client", "Client", Stability.ReleaseCandidate, Array.AsReadOnly(new string[] { "db.system.name" })),
+        new("db.postgresql.client", "db.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] { "db.system.name" })),
+        new("db.redis.client", "db.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "db.operation.name", "db.system.name" })),
+        new("db.sql.client", "db.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] { "db.system.name" })),
+        new("db.sql_server.client", "db.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] { "db.system.name" })),
         new("dotnet.dns.lookup.internal", "dotnet.dns.lookup.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] {  })),
         new("dotnet.http.connection_setup.internal", "dotnet.http.connection_setup.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] {  })),
         new("dotnet.http.request.wait_for_connection.internal", "dotnet.http.request.wait_for_connection.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] {  })),
@@ -10070,79 +10527,81 @@ public static class Spans
         new("faas.timer.server", "faas.timer.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "faas.trigger" })),
         new("gen_ai.client.embeddings", "gen_ai.client.embeddings", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" })),
         new("gen_ai.client.inference", "gen_ai.client.inference", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" })),
+        new("gen_ai.client.invoke_agent", "gen_ai.client.invoke_agent", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" })),
         new("gen_ai.create_agent.client", "gen_ai.create_agent.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" })),
-        new("gen_ai.execute_tool.command.internal", "gen_ai.execute_tool.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
-        new("gen_ai.execute_tool.internal", "gen_ai.execute_tool.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
-        new("gen_ai.execute_tool.load_skill.internal", "gen_ai.execute_tool.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
-        new("gen_ai.execute_tool.read_skill_resource.internal", "gen_ai.execute_tool.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
-        new("gen_ai.execute_tool.transfer.internal", "gen_ai.execute_tool.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
+        new("gen_ai.execute_tool", "gen_ai.execute_tool", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
+        new("gen_ai.execute_tool.command", "gen_ai.execute_tool", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
+        new("gen_ai.execute_tool.load_skill", "gen_ai.execute_tool", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
+        new("gen_ai.execute_tool.read_skill_resource", "gen_ai.execute_tool", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
+        new("gen_ai.execute_tool.transfer", "gen_ai.execute_tool", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" })),
         new("gen_ai.fetch_response.client", "gen_ai.fetch_response.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name", "gen_ai.response.id" })),
-        new("gen_ai.invoke_agent.client", "gen_ai.invoke_agent.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" })),
         new("gen_ai.invoke_agent.internal", "gen_ai.invoke_agent.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name" })),
-        new("gen_ai.invoke_workflow.internal", "gen_ai.invoke_workflow.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name" })),
         new("gen_ai.memory.client", "gen_ai.memory.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name" })),
         new("gen_ai.plan.internal", "gen_ai.plan.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name" })),
-        new("gen_ai.retrieval.client", "gen_ai.retrieval.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name" })),
+        new("gen_ai.realtime_inference.client", "gen_ai.realtime_inference.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" })),
+        new("gen_ai.retrieval", "gen_ai.retrieval", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name" })),
+        new("gen_ai.retrieval.client", "gen_ai.retrieval.client", "Client", Stability.Deprecated, Array.AsReadOnly(new string[] { "gen_ai.operation.name" })),
+        new("gen_ai.user_speech.internal", "gen_ai.user_speech.internal", "Internal", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name" })),
         new("graphql.server", "graphql.server", "Server", Stability.Development, Array.AsReadOnly(new string[] {  })),
         new("http.client", "http.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] { "http.request.method", "server.address", "server.port", "url.full" })),
         new("http.server", "http.server", "Server", Stability.Stable, Array.AsReadOnly(new string[] { "http.request.method", "url.path", "url.scheme" })),
         new("mcp.client", "mcp.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "mcp.method.name" })),
         new("mcp.server", "mcp.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "mcp.method.name" })),
-        new("messaging.aws.sns.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.aws.sqs.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.aws.sqs.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.aws.sqs.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.create.producer", "messaging.create.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.eventhubs.create.producer", "messaging.create.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.eventhubs.generic.client", "messaging.eventhubs.generic.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.eventhubs.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.eventhubs.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.eventhubs.send.client", "messaging.send.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.eventhubs.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.eventhubs.settle.client", "messaging.settle.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.gcp_pubsub.create.producer", "messaging.create.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.gcp_pubsub.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.gcp_pubsub.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.gcp_pubsub.send.client", "messaging.send.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.gcp_pubsub.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.gcp_pubsub.settle.client", "messaging.settle.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.kafka.create.producer", "messaging.create.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.kafka.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.kafka.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.kafka.send.client", "messaging.send.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.kafka.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.kafka.settle.client", "messaging.settle.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.rabbitmq.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system" })),
-        new("messaging.rabbitmq.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system" })),
-        new("messaging.rabbitmq.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system" })),
-        new("messaging.rabbitmq.settle.client", "messaging.settle.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system" })),
-        new("messaging.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.rocketmq.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.consumer.group.name", "messaging.operation.name", "messaging.rocketmq.namespace", "messaging.system" })),
-        new("messaging.rocketmq.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.consumer.group.name", "messaging.operation.name", "messaging.rocketmq.namespace", "messaging.system" })),
-        new("messaging.rocketmq.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.rocketmq.namespace", "messaging.system" })),
-        new("messaging.send.client", "messaging.send.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.servicebus.create.producer", "messaging.create.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.servicebus.generic.client", "messaging.servicebus.generic.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.servicebus.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.servicebus.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.servicebus.send.client", "messaging.send.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.servicebus.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.servicebus.settle.client", "messaging.settle.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
-        new("messaging.settle.client", "messaging.settle.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" })),
+        new("messaging.aws.sns.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.aws.sqs.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.aws.sqs.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.aws.sqs.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.create.producer", "messaging.create.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.eventhubs.create.producer", "messaging.create.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.eventhubs.generic.client", "messaging.eventhubs.generic.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.eventhubs.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.eventhubs.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.eventhubs.send.client", "messaging.send.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.eventhubs.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.eventhubs.settle.client", "messaging.settle.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.gcp_pubsub.create.producer", "messaging.create.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.gcp_pubsub.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.gcp_pubsub.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.gcp_pubsub.send.client", "messaging.send.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.gcp_pubsub.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.gcp_pubsub.settle.client", "messaging.settle.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.kafka.create.producer", "messaging.create.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.kafka.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.kafka.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.kafka.send.client", "messaging.send.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.kafka.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.kafka.settle.client", "messaging.settle.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.rabbitmq.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.rabbitmq.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.rabbitmq.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.rabbitmq.settle.client", "messaging.settle.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.rocketmq.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.consumer.group.name", "messaging.operation.name", "messaging.system.name", "rocketmq.namespace" })),
+        new("messaging.rocketmq.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.consumer.group.name", "messaging.operation.name", "messaging.system.name", "rocketmq.namespace" })),
+        new("messaging.rocketmq.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name", "rocketmq.namespace" })),
+        new("messaging.send.client", "messaging.send.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.servicebus.create.producer", "messaging.create.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.servicebus.generic.client", "messaging.servicebus.generic.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.servicebus.process.consumer", "messaging.process.consumer", "Consumer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.servicebus.receive.client", "messaging.receive.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.servicebus.send.client", "messaging.send.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.servicebus.send.producer", "messaging.send.producer", "Producer", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.servicebus.settle.client", "messaging.settle.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
+        new("messaging.settle.client", "messaging.settle.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" })),
         new("openai.fetch_response.client", "gen_ai.fetch_response.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name", "gen_ai.response.id" })),
         new("openai.gen_ai.client.inference", "gen_ai.client.inference", "Client", Stability.Development, Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name", "gen_ai.request.model" })),
-        new("rpc.call.client", "rpc.call.client", "Client", Stability.ReleaseCandidate, Array.AsReadOnly(new string[] { "rpc.system.name" })),
-        new("rpc.call.server", "rpc.call.server", "Server", Stability.ReleaseCandidate, Array.AsReadOnly(new string[] { "rpc.system.name" })),
-        new("rpc.connect_rpc.call.client", "rpc.connect_rpc.call.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "server.address" })),
-        new("rpc.connect_rpc.call.server", "rpc.connect_rpc.call.server", "Server", Stability.Development, Array.AsReadOnly(new string[] {  })),
-        new("rpc.dubbo.call.client", "rpc.dubbo.call.client", "Client", Stability.ReleaseCandidate, Array.AsReadOnly(new string[] { "rpc.method", "rpc.response.status_code" })),
-        new("rpc.dubbo.call.server", "rpc.dubbo.call.server", "Server", Stability.ReleaseCandidate, Array.AsReadOnly(new string[] { "rpc.response.status_code" })),
-        new("rpc.grpc.call.client", "rpc.grpc.call.client", "Client", Stability.ReleaseCandidate, Array.AsReadOnly(new string[] { "rpc.method", "rpc.response.status_code", "server.address" })),
-        new("rpc.grpc.call.server", "rpc.grpc.call.server", "Server", Stability.ReleaseCandidate, Array.AsReadOnly(new string[] { "rpc.response.status_code" })),
-        new("rpc.jsonrpc.call.client", "rpc.jsonrpc.call.client", "Client", Stability.Development, Array.AsReadOnly(new string[] {  })),
-        new("rpc.jsonrpc.call.server", "rpc.jsonrpc.call.server", "Server", Stability.Development, Array.AsReadOnly(new string[] {  })),
+        new("rpc.call.client", "rpc.call.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] { "rpc.system.name" })),
+        new("rpc.call.server", "rpc.call.server", "Server", Stability.Stable, Array.AsReadOnly(new string[] { "rpc.system.name" })),
+        new("rpc.connect_rpc.call.client", "rpc.call.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "rpc.system.name", "server.address" })),
+        new("rpc.connect_rpc.call.server", "rpc.call.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "rpc.system.name" })),
+        new("rpc.dubbo.call.client", "rpc.call.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] { "rpc.method", "rpc.status_code", "rpc.system.name" })),
+        new("rpc.dubbo.call.server", "rpc.call.server", "Server", Stability.Stable, Array.AsReadOnly(new string[] { "rpc.status_code", "rpc.system.name" })),
+        new("rpc.grpc.call.client", "rpc.call.client", "Client", Stability.Stable, Array.AsReadOnly(new string[] { "rpc.method", "rpc.status_code", "rpc.system.name", "server.address" })),
+        new("rpc.grpc.call.server", "rpc.call.server", "Server", Stability.Stable, Array.AsReadOnly(new string[] { "rpc.status_code", "rpc.system.name" })),
+        new("rpc.jsonrpc.call.client", "rpc.call.client", "Client", Stability.Development, Array.AsReadOnly(new string[] { "rpc.system.name" })),
+        new("rpc.jsonrpc.call.server", "rpc.call.server", "Server", Stability.Development, Array.AsReadOnly(new string[] { "rpc.system.name" })),
     });
     public static class A2aClient
     {
@@ -10156,7 +10615,7 @@ public static class Spans
         public const string Id = "a2a.grpc.server";
         public const string Name = "rpc.grpc.call.server";
         public const string Kind = "Server";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "a2a.method.name", "rpc.response.status_code" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "a2a.method.name", "rpc.status_code", "rpc.system.name" });
     }
     public static class A2aHttpServer
     {
@@ -10196,9 +10655,9 @@ public static class Spans
     public static class AwsLambdaServer
     {
         public const string Id = "aws.lambda.server";
-        public const string Name = "aws.lambda.server";
+        public const string Name = "faas.server";
         public const string Kind = "Server";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] {  });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "faas.trigger" });
     }
     public static class AwsS3Client
     {
@@ -10217,9 +10676,9 @@ public static class Spans
     public static class AzureCosmosdbClient
     {
         public const string Id = "azure.cosmosdb.client";
-        public const string Name = "azure.cosmosdb.client";
+        public const string Name = "db.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.operation.name" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.operation.name", "db.system.name" });
     }
     public static class CicdPipelineRunServer
     {
@@ -10252,9 +10711,9 @@ public static class Spans
     public static class DbCassandraClient
     {
         public const string Id = "db.cassandra.client";
-        public const string Name = "db.cassandra.client";
+        public const string Name = "db.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] {  });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.system.name" });
     }
     public static class DbClient
     {
@@ -10266,79 +10725,79 @@ public static class Spans
     public static class DbCouchdbClient
     {
         public const string Id = "db.couchdb.client";
-        public const string Name = "db.couchdb.client";
+        public const string Name = "db.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] {  });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.system.name" });
     }
     public static class DbElasticsearchClient
     {
         public const string Id = "db.elasticsearch.client";
-        public const string Name = "db.elasticsearch.client";
+        public const string Name = "db.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.operation.name", "http.request.method", "url.full" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.operation.name", "db.system.name", "http.request.method", "url.full" });
     }
     public static class DbHbaseClient
     {
         public const string Id = "db.hbase.client";
-        public const string Name = "db.hbase.client";
+        public const string Name = "db.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.operation.name" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.operation.name", "db.system.name" });
     }
     public static class DbMariadbClient
     {
         public const string Id = "db.mariadb.client";
-        public const string Name = "db.sql.client";
+        public const string Name = "db.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] {  });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.system.name" });
     }
     public static class DbMongodbClient
     {
         public const string Id = "db.mongodb.client";
-        public const string Name = "db.mongodb.client";
+        public const string Name = "db.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.collection.name", "db.operation.name" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.collection.name", "db.operation.name", "db.system.name" });
     }
     public static class DbMysqlClient
     {
         public const string Id = "db.mysql.client";
-        public const string Name = "db.sql.client";
+        public const string Name = "db.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] {  });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.system.name" });
     }
     public static class DbOracledbClient
     {
         public const string Id = "db.oracledb.client";
-        public const string Name = "db.sql.client";
+        public const string Name = "db.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] {  });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.system.name" });
     }
     public static class DbPostgresqlClient
     {
         public const string Id = "db.postgresql.client";
-        public const string Name = "db.sql.client";
+        public const string Name = "db.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] {  });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.system.name" });
     }
     public static class DbRedisClient
     {
         public const string Id = "db.redis.client";
-        public const string Name = "db.redis.client";
+        public const string Name = "db.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.operation.name" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.operation.name", "db.system.name" });
     }
     public static class DbSqlClient
     {
         public const string Id = "db.sql.client";
-        public const string Name = "db.sql.client";
+        public const string Name = "db.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] {  });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.system.name" });
     }
     public static class DbSqlServerClient
     {
         public const string Id = "db.sql_server.client";
-        public const string Name = "db.sql.client";
+        public const string Name = "db.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] {  });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "db.system.name" });
     }
     public static class DotnetDnsLookupInternal
     {
@@ -10508,6 +10967,13 @@ public static class Spans
         public const string Kind = "Client";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" });
     }
+    public static class GenAiClientInvokeAgent
+    {
+        public const string Id = "gen_ai.client.invoke_agent";
+        public const string Name = "gen_ai.client.invoke_agent";
+        public const string Kind = "Client";
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" });
+    }
     public static class GenAiCreateAgentClient
     {
         public const string Id = "gen_ai.create_agent.client";
@@ -10515,38 +10981,38 @@ public static class Spans
         public const string Kind = "Client";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" });
     }
-    public static class GenAiExecuteToolCommandInternal
+    public static class GenAiExecuteTool
     {
-        public const string Id = "gen_ai.execute_tool.command.internal";
-        public const string Name = "gen_ai.execute_tool.internal";
+        public const string Id = "gen_ai.execute_tool";
+        public const string Name = "gen_ai.execute_tool";
         public const string Kind = "Internal";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" });
     }
-    public static class GenAiExecuteToolInternal
+    public static class GenAiExecuteToolCommand
     {
-        public const string Id = "gen_ai.execute_tool.internal";
-        public const string Name = "gen_ai.execute_tool.internal";
+        public const string Id = "gen_ai.execute_tool.command";
+        public const string Name = "gen_ai.execute_tool";
         public const string Kind = "Internal";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" });
     }
-    public static class GenAiExecuteToolLoadSkillInternal
+    public static class GenAiExecuteToolLoadSkill
     {
-        public const string Id = "gen_ai.execute_tool.load_skill.internal";
-        public const string Name = "gen_ai.execute_tool.internal";
+        public const string Id = "gen_ai.execute_tool.load_skill";
+        public const string Name = "gen_ai.execute_tool";
         public const string Kind = "Internal";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" });
     }
-    public static class GenAiExecuteToolReadSkillResourceInternal
+    public static class GenAiExecuteToolReadSkillResource
     {
-        public const string Id = "gen_ai.execute_tool.read_skill_resource.internal";
-        public const string Name = "gen_ai.execute_tool.internal";
+        public const string Id = "gen_ai.execute_tool.read_skill_resource";
+        public const string Name = "gen_ai.execute_tool";
         public const string Kind = "Internal";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" });
     }
-    public static class GenAiExecuteToolTransferInternal
+    public static class GenAiExecuteToolTransfer
     {
-        public const string Id = "gen_ai.execute_tool.transfer.internal";
-        public const string Name = "gen_ai.execute_tool.internal";
+        public const string Id = "gen_ai.execute_tool.transfer";
+        public const string Name = "gen_ai.execute_tool";
         public const string Kind = "Internal";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.tool.name" });
     }
@@ -10557,24 +11023,10 @@ public static class Spans
         public const string Kind = "Client";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name", "gen_ai.response.id" });
     }
-    public static class GenAiInvokeAgentClient
-    {
-        public const string Id = "gen_ai.invoke_agent.client";
-        public const string Name = "gen_ai.invoke_agent.client";
-        public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" });
-    }
     public static class GenAiInvokeAgentInternal
     {
         public const string Id = "gen_ai.invoke_agent.internal";
         public const string Name = "gen_ai.invoke_agent.internal";
-        public const string Kind = "Internal";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name" });
-    }
-    public static class GenAiInvokeWorkflowInternal
-    {
-        public const string Id = "gen_ai.invoke_workflow.internal";
-        public const string Name = "gen_ai.invoke_workflow.internal";
         public const string Kind = "Internal";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name" });
     }
@@ -10592,11 +11044,32 @@ public static class Spans
         public const string Kind = "Internal";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name" });
     }
+    public static class GenAiRealtimeInferenceClient
+    {
+        public const string Id = "gen_ai.realtime_inference.client";
+        public const string Name = "gen_ai.realtime_inference.client";
+        public const string Kind = "Client";
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name", "gen_ai.provider.name" });
+    }
+    public static class GenAiRetrieval
+    {
+        public const string Id = "gen_ai.retrieval";
+        public const string Name = "gen_ai.retrieval";
+        public const string Kind = "Internal";
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name" });
+    }
     public static class GenAiRetrievalClient
     {
         public const string Id = "gen_ai.retrieval.client";
         public const string Name = "gen_ai.retrieval.client";
         public const string Kind = "Client";
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name" });
+    }
+    public static class GenAiUserSpeechInternal
+    {
+        public const string Id = "gen_ai.user_speech.internal";
+        public const string Name = "gen_ai.user_speech.internal";
+        public const string Kind = "Internal";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name" });
     }
     public static class GraphqlServer
@@ -10639,301 +11112,301 @@ public static class Spans
         public const string Id = "messaging.aws.sns.send.producer";
         public const string Name = "messaging.send.producer";
         public const string Kind = "Producer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingAwsSqsProcessConsumer
     {
         public const string Id = "messaging.aws.sqs.process.consumer";
         public const string Name = "messaging.process.consumer";
         public const string Kind = "Consumer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingAwsSqsReceiveClient
     {
         public const string Id = "messaging.aws.sqs.receive.client";
         public const string Name = "messaging.receive.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingAwsSqsSendProducer
     {
         public const string Id = "messaging.aws.sqs.send.producer";
         public const string Name = "messaging.send.producer";
         public const string Kind = "Producer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingCreateProducer
     {
         public const string Id = "messaging.create.producer";
         public const string Name = "messaging.create.producer";
         public const string Kind = "Producer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingEventhubsCreateProducer
     {
         public const string Id = "messaging.eventhubs.create.producer";
         public const string Name = "messaging.create.producer";
         public const string Kind = "Producer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingEventhubsGenericClient
     {
         public const string Id = "messaging.eventhubs.generic.client";
         public const string Name = "messaging.eventhubs.generic.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingEventhubsProcessConsumer
     {
         public const string Id = "messaging.eventhubs.process.consumer";
         public const string Name = "messaging.process.consumer";
         public const string Kind = "Consumer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingEventhubsReceiveClient
     {
         public const string Id = "messaging.eventhubs.receive.client";
         public const string Name = "messaging.receive.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingEventhubsSendClient
     {
         public const string Id = "messaging.eventhubs.send.client";
         public const string Name = "messaging.send.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingEventhubsSendProducer
     {
         public const string Id = "messaging.eventhubs.send.producer";
         public const string Name = "messaging.send.producer";
         public const string Kind = "Producer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingEventhubsSettleClient
     {
         public const string Id = "messaging.eventhubs.settle.client";
         public const string Name = "messaging.settle.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingGcpPubsubCreateProducer
     {
         public const string Id = "messaging.gcp_pubsub.create.producer";
         public const string Name = "messaging.create.producer";
         public const string Kind = "Producer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingGcpPubsubProcessConsumer
     {
         public const string Id = "messaging.gcp_pubsub.process.consumer";
         public const string Name = "messaging.process.consumer";
         public const string Kind = "Consumer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingGcpPubsubReceiveClient
     {
         public const string Id = "messaging.gcp_pubsub.receive.client";
         public const string Name = "messaging.receive.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingGcpPubsubSendClient
     {
         public const string Id = "messaging.gcp_pubsub.send.client";
         public const string Name = "messaging.send.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingGcpPubsubSendProducer
     {
         public const string Id = "messaging.gcp_pubsub.send.producer";
         public const string Name = "messaging.send.producer";
         public const string Kind = "Producer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingGcpPubsubSettleClient
     {
         public const string Id = "messaging.gcp_pubsub.settle.client";
         public const string Name = "messaging.settle.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingKafkaCreateProducer
     {
         public const string Id = "messaging.kafka.create.producer";
         public const string Name = "messaging.create.producer";
         public const string Kind = "Producer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingKafkaProcessConsumer
     {
         public const string Id = "messaging.kafka.process.consumer";
         public const string Name = "messaging.process.consumer";
         public const string Kind = "Consumer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingKafkaReceiveClient
     {
         public const string Id = "messaging.kafka.receive.client";
         public const string Name = "messaging.receive.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingKafkaSendClient
     {
         public const string Id = "messaging.kafka.send.client";
         public const string Name = "messaging.send.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingKafkaSendProducer
     {
         public const string Id = "messaging.kafka.send.producer";
         public const string Name = "messaging.send.producer";
         public const string Kind = "Producer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingKafkaSettleClient
     {
         public const string Id = "messaging.kafka.settle.client";
         public const string Name = "messaging.settle.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingProcessConsumer
     {
         public const string Id = "messaging.process.consumer";
         public const string Name = "messaging.process.consumer";
         public const string Kind = "Consumer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingRabbitmqProcessConsumer
     {
         public const string Id = "messaging.rabbitmq.process.consumer";
         public const string Name = "messaging.process.consumer";
         public const string Kind = "Consumer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingRabbitmqReceiveClient
     {
         public const string Id = "messaging.rabbitmq.receive.client";
         public const string Name = "messaging.receive.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingRabbitmqSendProducer
     {
         public const string Id = "messaging.rabbitmq.send.producer";
         public const string Name = "messaging.send.producer";
         public const string Kind = "Producer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingRabbitmqSettleClient
     {
         public const string Id = "messaging.rabbitmq.settle.client";
         public const string Name = "messaging.settle.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.destination.name", "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingReceiveClient
     {
         public const string Id = "messaging.receive.client";
         public const string Name = "messaging.receive.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingRocketmqProcessConsumer
     {
         public const string Id = "messaging.rocketmq.process.consumer";
         public const string Name = "messaging.process.consumer";
         public const string Kind = "Consumer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.consumer.group.name", "messaging.operation.name", "messaging.rocketmq.namespace", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.consumer.group.name", "messaging.operation.name", "messaging.system.name", "rocketmq.namespace" });
     }
     public static class MessagingRocketmqReceiveClient
     {
         public const string Id = "messaging.rocketmq.receive.client";
         public const string Name = "messaging.receive.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.consumer.group.name", "messaging.operation.name", "messaging.rocketmq.namespace", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.consumer.group.name", "messaging.operation.name", "messaging.system.name", "rocketmq.namespace" });
     }
     public static class MessagingRocketmqSendProducer
     {
         public const string Id = "messaging.rocketmq.send.producer";
         public const string Name = "messaging.send.producer";
         public const string Kind = "Producer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.rocketmq.namespace", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name", "rocketmq.namespace" });
     }
     public static class MessagingSendClient
     {
         public const string Id = "messaging.send.client";
         public const string Name = "messaging.send.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingSendProducer
     {
         public const string Id = "messaging.send.producer";
         public const string Name = "messaging.send.producer";
         public const string Kind = "Producer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingServicebusCreateProducer
     {
         public const string Id = "messaging.servicebus.create.producer";
         public const string Name = "messaging.create.producer";
         public const string Kind = "Producer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingServicebusGenericClient
     {
         public const string Id = "messaging.servicebus.generic.client";
         public const string Name = "messaging.servicebus.generic.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingServicebusProcessConsumer
     {
         public const string Id = "messaging.servicebus.process.consumer";
         public const string Name = "messaging.process.consumer";
         public const string Kind = "Consumer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingServicebusReceiveClient
     {
         public const string Id = "messaging.servicebus.receive.client";
         public const string Name = "messaging.receive.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingServicebusSendClient
     {
         public const string Id = "messaging.servicebus.send.client";
         public const string Name = "messaging.send.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingServicebusSendProducer
     {
         public const string Id = "messaging.servicebus.send.producer";
         public const string Name = "messaging.send.producer";
         public const string Kind = "Producer";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingServicebusSettleClient
     {
         public const string Id = "messaging.servicebus.settle.client";
         public const string Name = "messaging.settle.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class MessagingSettleClient
     {
         public const string Id = "messaging.settle.client";
         public const string Name = "messaging.settle.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "messaging.operation.name", "messaging.system.name" });
     }
     public static class OpenaiFetchResponseClient
     {
@@ -10966,58 +11439,58 @@ public static class Spans
     public static class RpcConnectRpcCallClient
     {
         public const string Id = "rpc.connect_rpc.call.client";
-        public const string Name = "rpc.connect_rpc.call.client";
+        public const string Name = "rpc.call.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "server.address" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "rpc.system.name", "server.address" });
     }
     public static class RpcConnectRpcCallServer
     {
         public const string Id = "rpc.connect_rpc.call.server";
-        public const string Name = "rpc.connect_rpc.call.server";
+        public const string Name = "rpc.call.server";
         public const string Kind = "Server";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] {  });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "rpc.system.name" });
     }
     public static class RpcDubboCallClient
     {
         public const string Id = "rpc.dubbo.call.client";
-        public const string Name = "rpc.dubbo.call.client";
+        public const string Name = "rpc.call.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "rpc.method", "rpc.response.status_code" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "rpc.method", "rpc.status_code", "rpc.system.name" });
     }
     public static class RpcDubboCallServer
     {
         public const string Id = "rpc.dubbo.call.server";
-        public const string Name = "rpc.dubbo.call.server";
+        public const string Name = "rpc.call.server";
         public const string Kind = "Server";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "rpc.response.status_code" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "rpc.status_code", "rpc.system.name" });
     }
     public static class RpcGrpcCallClient
     {
         public const string Id = "rpc.grpc.call.client";
-        public const string Name = "rpc.grpc.call.client";
+        public const string Name = "rpc.call.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "rpc.method", "rpc.response.status_code", "server.address" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "rpc.method", "rpc.status_code", "rpc.system.name", "server.address" });
     }
     public static class RpcGrpcCallServer
     {
         public const string Id = "rpc.grpc.call.server";
-        public const string Name = "rpc.grpc.call.server";
+        public const string Name = "rpc.call.server";
         public const string Kind = "Server";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "rpc.response.status_code" });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "rpc.status_code", "rpc.system.name" });
     }
     public static class RpcJsonrpcCallClient
     {
         public const string Id = "rpc.jsonrpc.call.client";
-        public const string Name = "rpc.jsonrpc.call.client";
+        public const string Name = "rpc.call.client";
         public const string Kind = "Client";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] {  });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "rpc.system.name" });
     }
     public static class RpcJsonrpcCallServer
     {
         public const string Id = "rpc.jsonrpc.call.server";
-        public const string Name = "rpc.jsonrpc.call.server";
+        public const string Name = "rpc.call.server";
         public const string Kind = "Server";
-        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] {  });
+        public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "rpc.system.name" });
     }
 }
 

@@ -11,7 +11,7 @@ namespace Nami.IntegrationTests.Receiver;
 public sealed class WireSchemaTests
 {
     private const string MisleadingSchemaUrlAttribute = "https://attribute.invalid/";
-    private const string ResourceSchemaUrl = "https://opentelemetry.io/schemas/1.44.0";
+    private const string ResourceSchemaUrl = "https://opentelemetry.io/schemas/1.45.0";
     [UsedImplicitly] public TestContext TestContext { get; set; } = null!;
 
     [TestMethod]

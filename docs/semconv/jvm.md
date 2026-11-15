@@ -6,14 +6,25 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `jvm.buffer.pool.name` | `string` | development |  | Name of the buffer pool. | `"mapped"`, `"direct"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `jvm.gc.action` | `string` | stable |  | Name of the garbage collector action. | `"end of minor GC"`, `"end of major GC"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `jvm.gc.cause` | `string` | development |  | Name of the garbage collector cause. | `"System.gc()"`, `"Allocation Failure"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `jvm.gc.name` | `string` | stable |  | Name of the garbage collector. | `"G1 Young Generation"`, `"G1 Old Generation"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `jvm.memory.pool.name` | `string` | stable |  | Name of the memory pool. | `"G1 Old Gen"`, `"G1 Eden space"`, `"G1 Survivor Space"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `jvm.memory.type` | `enum` | stable |  | The type of memory. | `"heap"`, `"non_heap"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `jvm.thread.daemon` | `boolean` | stable |  | Whether the thread is daemon or not. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `jvm.thread.state` | `enum` | stable |  | State of the thread. | `"runnable"`, `"blocked"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `jvm.buffer.pool.name` | `string` | development |  | Name of the buffer pool. | `"mapped"`, `"direct"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `jvm.executor.name` | `string` | development |  | Name of the executor. | `"pool-1-thread-*"`, `"ForkJoinPool.commonPool-worker-*"`, `"orders-vt-*"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `jvm.executor.owner.name` | `string` | development |  | Name of the logical component that owns the executor. | `"tomcat"`, `"jetty"`, `"netty"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `jvm.executor.thread.state` | `enum` | development |  | State of an executor thread. | `"active"`, `"idle"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `jvm.executor.type` | `string` | development |  | The fully qualified class name of the executor implementation. | `"java.util.concurrent.ThreadPoolExecutor"`, `"java.util.concurrent.ForkJoinPool"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `jvm.gc.action` | `string` | stable |  | Name of the garbage collector action. | `"end of minor GC"`, `"end of major GC"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `jvm.gc.cause` | `string` | development |  | Name of the garbage collector cause. | `"System.gc()"`, `"Allocation Failure"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `jvm.gc.name` | `string` | stable |  | Name of the garbage collector. | `"G1 Young Generation"`, `"G1 Old Generation"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `jvm.memory.pool.name` | `string` | stable |  | Name of the memory pool. | `"G1 Old Gen"`, `"G1 Eden space"`, `"G1 Survivor Space"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `jvm.memory.type` | `enum` | stable |  | The type of memory. | `"heap"`, `"non_heap"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `jvm.thread.daemon` | `boolean` | stable |  | Whether the thread is daemon or not. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `jvm.thread.state` | `enum` | stable |  | State of the thread. | `"runnable"`, `"blocked"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+
+### `jvm.executor.thread.state` values
+
+| Value | Stability | Deprecated | Brief |
+| --- | --- | --- | --- |
+| `active` | development |  | The thread is currently executing a task. |
+| `idle` | development |  | The thread currently exists but is not executing a task. |
 
 ### `jvm.memory.type` values
 
@@ -47,8 +58,15 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `jvm.cpu.count` | updowncounter | `{cpu}` | stable |  | Number of processors available to the Java virtual machine. |
 | `jvm.cpu.recent_utilization` | gauge | `1` | stable |  | Recent CPU utilization for the process as reported by the JVM. |
 | `jvm.cpu.time` | counter | `s` | stable |  | CPU time used by the process as reported by the JVM. |
-| `jvm.file_descriptor.count` | updowncounter | `{file_descriptor}` | development |  | Number of open file descriptors as reported by the JVM. |
-| `jvm.file_descriptor.limit` | updowncounter | `{file_descriptor}` | development |  | Measure of max open file descriptors as reported by the JVM. |
+| `jvm.executor.queue.capacity` | updowncounter | `{task}` | development |  | The maximum number of tasks the executor queue can hold. |
+| `jvm.executor.queue.size` | updowncounter | `{task}` | development |  | The number of tasks currently queued for execution. |
+| `jvm.executor.task.completed` | counter | `{task}` | development |  | The number of tasks completed by the executor. |
+| `jvm.executor.task.rejected` | counter | `{task}` | development |  | The number of task submissions rejected by the executor. |
+| `jvm.executor.thread.core` | updowncounter | `{thread}` | development |  | The number of core threads configured for the executor. |
+| `jvm.executor.thread.count` | updowncounter | `{thread}` | development |  | The number of executor threads that are currently in the state described by the `jvm.executor.thread.state` attribute. |
+| `jvm.executor.thread.limit` | updowncounter | `{thread}` | development |  | The maximum number of threads allowed for the executor. |
+| `jvm.file_descriptor.count` | updowncounter | `{file_descriptor}` | release_candidate |  | Number of open file descriptors as reported by the JVM. |
+| `jvm.file_descriptor.limit` | updowncounter | `{file_descriptor}` | release_candidate |  | Measure of max open file descriptors as reported by the JVM. |
 | `jvm.gc.duration` | histogram | `s` | stable |  | Duration of JVM garbage collection actions. |
 | `jvm.memory.committed` | updowncounter | `By` | stable |  | Measure of memory committed. |
 | `jvm.memory.init` | updowncounter | `By` | development |  | Measure of initial memory requested. |

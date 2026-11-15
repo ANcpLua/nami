@@ -6,8 +6,8 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `openshift.clusterquota.name` | `string` | development |  | The name of the cluster quota. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `openshift.clusterquota.uid` | `string` | development |  | The UID of the cluster quota. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `openshift.clusterquota.name` | `string` | development |  | The name of the cluster quota. | `"opentelemetry"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `openshift.clusterquota.uid` | `string` | development |  | The UID of the cluster quota. | `"275ecb36-5aa8-4c2a-9c47-d8bb681b9aff"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ## Metrics
 

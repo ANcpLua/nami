@@ -66,13 +66,17 @@ public static class CapturedActivityAssertions
     }
 
     /// <summary>
-    ///     The one definition of a captured HTTP header or RPC metadata attribute, including the registry's
-    ///     rpc.grpc.*.metadata names, which were renamed to rpc.*.metadata and are still emitted.
+    ///     The one definition of a captured HTTP header or RPC metadata attribute: the semantic conventions'
+    ///     rpc.request.header, rpc.response.header and rpc.response.trailer names (v1.45.0), and the
+    ///     rpc.*.metadata and rpc.grpc.*.metadata names they replace, which instrumentation still emits.
     /// </summary>
     public static bool IsCapturedField(string key)
     {
         return key.StartsWith("http.request.header.", StringComparison.Ordinal) ||
                key.StartsWith("http.response.header.", StringComparison.Ordinal) ||
+               key.StartsWith("rpc.request.header.", StringComparison.Ordinal) ||
+               key.StartsWith("rpc.response.header.", StringComparison.Ordinal) ||
+               key.StartsWith("rpc.response.trailer.", StringComparison.Ordinal) ||
                key.StartsWith("rpc.request.metadata.", StringComparison.Ordinal) ||
                key.StartsWith("rpc.response.metadata.", StringComparison.Ordinal) ||
                key.StartsWith("rpc.grpc.request.metadata.", StringComparison.Ordinal) ||

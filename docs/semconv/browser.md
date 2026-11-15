@@ -6,17 +6,17 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `browser.brands` | `string[]` | development |  | Array of brand name and version separated by a space | `[" Not A;Brand 99","Chromium 99","Chrome 99"]` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `browser.document.url.full` | `string` | development |  | Absolute URL of the current browser document according to [RFC3986](https://www.rfc-editor.org/rfc/rfc3986). | `"https://www.example.com/search?q=OpenTelemetry#SemConv"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `browser.language` | `string` | development |  | Preferred language of the user using the browser | `"en"`, `"en-US"`, `"fr"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `browser.mobile` | `boolean` | development |  | A boolean that is true if the browser is running on a mobile device |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `browser.platform` | `string` | development |  | The platform on which the browser is running | `"Windows"`, `"macOS"`, `"Android"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `browser.web_vital.delta` | `double` | development |  | The delta between the current value and the last-reported value. See [delta](https://github.com/GoogleChrome/web-vitals?tab=readme-ov-file#report-only-the-delta-of-changes). | `0.2` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `browser.web_vital.id` | `string` | development |  | A unique ID representing this particular metric instance. | `"v3-1677874579383-6381583661209"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `browser.web_vital.name` | `enum` | development |  | Name of the web vital. | `"cls"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `browser.web_vital.navigation_type` | `enum` | development |  | The type of navigation, as reported by the [Navigation Timing API](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/type), with additional values reported by the web-vitals library. | `"navigate"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `browser.web_vital.rating` | `enum` | development |  | The rating of the web vital value against the "good", "needs improvement", and "poor" thresholds defined for the metric. | `"good"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `browser.web_vital.value` | `double` | development |  | Value of the web vital. | `1.0` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `browser.brands` | `string[]` | development |  | Array of brand name and version separated by a space | `[" Not A;Brand 99","Chromium 99","Chrome 99"]` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `browser.document.url.full` | `string` | development |  | Absolute URL of the current browser document according to [RFC3986](https://www.rfc-editor.org/rfc/rfc3986). | `"https://www.example.com/search?q=OpenTelemetry#SemConv"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `browser.language` | `string` | development |  | Preferred language of the user using the browser | `"en"`, `"en-US"`, `"fr"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `browser.mobile` | `boolean` | development |  | A boolean that is true if the browser is running on a mobile device |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `browser.platform` | `string` | development |  | The platform on which the browser is running | `"Windows"`, `"macOS"`, `"Android"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `browser.web_vital.delta` | `double` | development |  | The delta between the current value and the last-reported value. See [delta](https://github.com/GoogleChrome/web-vitals?tab=readme-ov-file#report-only-the-delta-of-changes). | `0.2` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `browser.web_vital.id` | `string` | development |  | A unique ID representing this particular metric instance. | `"v3-1677874579383-6381583661209"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `browser.web_vital.name` | `enum` | development |  | Name of the web vital. | `"cls"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `browser.web_vital.navigation_type` | `enum` | development |  | The type of navigation, as reported by the [Navigation Timing API](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/type), with additional values reported by the web-vitals library. | `"navigate"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `browser.web_vital.rating` | `enum` | development |  | The rating of the web vital value against the "good", "needs improvement", and "poor" thresholds defined for the metric. | `"good"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `browser.web_vital.value` | `double` | development |  | Value of the web vital. | `1.0` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `browser.web_vital.name` values
 

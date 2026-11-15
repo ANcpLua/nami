@@ -6,8 +6,8 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `nfs.operation.name` | `string` | development |  | NFSv4+ operation name. | `"OPEN"`, `"READ"`, `"GETATTR"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
-| `nfs.server.repcache.status` | `string` | development |  | Linux: one of "hit" (NFSD_STATS_RC_HITS), "miss" (NFSD_STATS_RC_MISSES), or "nocache" (NFSD_STATS_RC_NOCACHE -- uncacheable) | `"hit"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `nfs.operation.name` | `string` | development |  | NFSv4+ operation name. | `"OPEN"`, `"READ"`, `"GETATTR"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
+| `nfs.server.repcache.status` | `string` | development |  | Linux: one of "hit" (NFSD_STATS_RC_HITS), "miss" (NFSD_STATS_RC_MISSES), or "nocache" (NFSD_STATS_RC_NOCACHE -- uncacheable) | `"hit"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ## Metrics
 

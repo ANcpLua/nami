@@ -6,7 +6,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 
 | Key | Type | Stability | Deprecated | Brief | Examples | Annotations |
 | --- | --- | --- | --- | --- | --- | --- |
-| `profile.frame.type` | `enum` | development |  | Describes the interpreter or compiler of a single frame. | `"cpython"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.44.0"` |
+| `profile.frame.type` | `enum` | development |  | Describes the interpreter or compiler of a single frame. | `"cpython"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `profile.frame.type` values
 
@@ -14,6 +14,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | --- | --- | --- | --- |
 | `beam` | development |  | [Erlang](https://en.wikipedia.org/wiki/BEAM_(Erlang_virtual_machine)) |
 | `cpython` | development |  | [Python](https://wikipedia.org/wiki/Python_(programming_language)) |
+| `cuda` | development |  | [CUDA](https://wikipedia.org/wiki/CUDA) |
 | `dotnet` | development |  | [.NET](https://wikipedia.org/wiki/.NET) |
 | `go` | development |  | [Go](https://wikipedia.org/wiki/Go_(programming_language)), |
 | `jvm` | development |  | [JVM](https://wikipedia.org/wiki/Java_virtual_machine) |

@@ -1,6 +1,6 @@
 # Nami semantic conventions
 
-Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schemas/0.2.0`).
+Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schemas/0.3.0`).
 
 | Namespace | Attributes | Stable attributes | Metrics | Stable metrics |
 | --- | --- | --- | --- | --- |
@@ -11,11 +11,11 @@ Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schem
 | [`aspnetcore`](aspnetcore.md) | 23 | 8 | 29 | 7 |
 | [`aws`](aws.md) | 52 | 0 | 0 | 0 |
 | [`az`](az.md) | 2 | 0 | 0 | 0 |
-| [`azure`](azure.md) | 10 | 0 | 2 | 0 |
+| [`azure`](azure.md) | 14 | 0 | 2 | 0 |
 | [`browser`](browser.md) | 11 | 0 | 0 | 0 |
 | [`cassandra`](cassandra.md) | 6 | 0 | 0 | 0 |
 | [`cicd`](cicd.md) | 16 | 0 | 5 | 0 |
-| [`client`](client.md) | 2 | 2 | 0 | 0 |
+| [`client`](client.md) | 8 | 2 | 0 | 0 |
 | [`cloud`](cloud.md) | 6 | 0 | 0 | 0 |
 | [`cloudevents`](cloudevents.md) | 5 | 0 | 0 | 0 |
 | [`cloudfoundry`](cloudfoundry.md) | 11 | 0 | 0 | 0 |
@@ -23,43 +23,44 @@ Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schem
 | [`container`](container.md) | 18 | 4 | 14 | 0 |
 | [`cpu`](cpu.md) | 2 | 0 | 3 | 0 |
 | [`cpython`](cpython.md) | 1 | 0 | 3 | 0 |
-| [`db`](db.md) | 48 | 9 | 22 | 1 |
+| [`db`](db.md) | 48 | 9 | 23 | 1 |
 | [`deployment`](deployment.md) | 5 | 1 | 0 | 0 |
-| [`destination`](destination.md) | 2 | 0 | 0 | 0 |
+| [`destination`](destination.md) | 6 | 0 | 0 | 0 |
 | [`device`](device.md) | 4 | 0 | 0 | 0 |
 | [`disk`](disk.md) | 1 | 0 | 0 | 0 |
 | [`dns`](dns.md) | 2 | 0 | 1 | 0 |
 | [`dotnet`](dotnet.md) | 1 | 1 | 19 | 19 |
 | [`elasticsearch`](elasticsearch.md) | 1 | 0 | 0 | 0 |
-| [`enduser`](enduser.md) | 4 | 0 | 0 | 0 |
+| [`enduser`](enduser.md) | 2 | 0 | 0 | 0 |
 | [`error`](error.md) | 2 | 1 | 0 | 0 |
 | [`event`](event.md) | 1 | 0 | 0 | 0 |
 | [`exception`](exception.md) | 4 | 3 | 0 | 0 |
-| [`faas`](faas.md) | 16 | 0 | 9 | 0 |
+| [`faas`](faas.md) | 18 | 0 | 9 | 0 |
 | [`feature_flag`](feature_flag.md) | 13 | 0 | 0 | 0 |
 | [`file`](file.md) | 21 | 0 | 0 | 0 |
-| [`gcp`](gcp.md) | 27 | 0 | 0 | 0 |
-| [`gen_ai`](gen_ai.md) | 85 | 0 | 21 | 0 |
+| [`gcp`](gcp.md) | 31 | 0 | 0 | 0 |
+| [`gen_ai`](gen_ai.md) | 85 | 0 | 22 | 0 |
 | [`geo`](geo.md) | 7 | 0 | 0 | 0 |
 | [`go`](go.md) | 4 | 0 | 12 | 0 |
 | [`graphql`](graphql.md) | 3 | 0 | 0 | 0 |
 | [`heroku`](heroku.md) | 3 | 0 | 0 | 0 |
 | [`host`](host.md) | 15 | 0 | 0 | 0 |
-| [`http`](http.md) | 26 | 7 | 10 | 2 |
+| [`http`](http.md) | 28 | 7 | 10 | 2 |
 | [`hw`](hw.md) | 27 | 0 | 42 | 0 |
 | [`ios`](ios.md) | 2 | 0 | 0 | 0 |
 | [`jsonrpc`](jsonrpc.md) | 2 | 0 | 0 | 0 |
-| [`jvm`](jvm.md) | 8 | 6 | 21 | 12 |
-| [`k8s`](k8s.md) | 90 | 42 | 157 | 0 |
+| [`jvm`](jvm.md) | 12 | 6 | 28 | 12 |
+| [`k8s`](k8s.md) | 90 | 42 | 174 | 0 |
+| [`kafka`](kafka.md) | 4 | 0 | 0 | 0 |
 | [`kestrel`](kestrel.md) | 0 | 0 | 8 | 8 |
 | [`linux`](linux.md) | 1 | 0 | 0 | 0 |
 | [`log`](log.md) | 7 | 0 | 0 | 0 |
 | [`mcp`](mcp.md) | 4 | 0 | 4 | 0 |
 | [`message`](message.md) | 4 | 0 | 0 | 0 |
-| [`messaging`](messaging.md) | 48 | 0 | 10 | 0 |
+| [`messaging`](messaging.md) | 49 | 0 | 10 | 0 |
 | [`nami`](nami.md) | 4 | 0 | 3 | 0 |
 | [`net`](net.md) | 15 | 0 | 0 | 0 |
-| [`network`](network.md) | 17 | 8 | 0 | 0 |
+| [`network`](network.md) | 25 | 8 | 0 | 0 |
 | [`nfs`](nfs.md) | 2 | 0 | 16 | 0 |
 | [`nodejs`](nodejs.md) | 1 | 0 | 9 | 0 |
 | [`oci`](oci.md) | 1 | 0 | 0 | 0 |
@@ -76,16 +77,18 @@ Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schem
 | [`pprof`](pprof.md) | 11 | 0 | 0 | 0 |
 | [`process`](process.md) | 38 | 0 | 16 | 0 |
 | [`profile`](profile.md) | 1 | 0 | 0 | 0 |
+| [`rabbitmq`](rabbitmq.md) | 2 | 0 | 0 | 0 |
 | [`resource`](resource.md) | 0 | 0 | 1 | 0 |
-| [`rpc`](rpc.md) | 22 | 0 | 12 | 0 |
+| [`rocketmq`](rocketmq.md) | 8 | 0 | 0 | 0 |
+| [`rpc`](rpc.md) | 26 | 4 | 12 | 2 |
 | [`security_rule`](security_rule.md) | 8 | 0 | 0 | 0 |
-| [`server`](server.md) | 2 | 2 | 0 | 0 |
-| [`service`](service.md) | 7 | 4 | 0 | 0 |
+| [`server`](server.md) | 8 | 2 | 0 | 0 |
+| [`service`](service.md) | 9 | 4 | 0 | 0 |
 | [`session`](session.md) | 2 | 0 | 0 | 0 |
 | [`signalr`](signalr.md) | 2 | 2 | 2 | 2 |
-| [`source`](source.md) | 2 | 0 | 0 | 0 |
+| [`source`](source.md) | 6 | 0 | 0 | 0 |
 | [`state`](state.md) | 1 | 0 | 0 | 0 |
-| [`system`](system.md) | 17 | 0 | 46 | 0 |
+| [`system`](system.md) | 18 | 0 | 46 | 0 |
 | [`telemetry`](telemetry.md) | 5 | 5 | 0 | 0 |
 | [`test`](test.md) | 4 | 0 | 0 | 0 |
 | [`thread`](thread.md) | 2 | 0 | 0 | 0 |
@@ -97,5 +100,5 @@ Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schem
 | [`vcs`](vcs.md) | 21 | 0 | 10 | 0 |
 | [`webengine`](webengine.md) | 3 | 0 | 0 | 0 |
 
-Total attributes: 973; stable and not deprecated: 121.
-Total metrics: 559; stable and not deprecated: 51.
+Total attributes: 1037; stable and not deprecated: 125.
+Total metrics: 585; stable and not deprecated: 53.
