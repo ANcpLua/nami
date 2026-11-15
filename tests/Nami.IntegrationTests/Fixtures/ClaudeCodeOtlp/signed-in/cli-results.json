@@ -1,0 +1,68 @@
+{
+  "source": "claude -p --output-format json, final result object; result text and other ids omitted",
+  "sessions": [
+    {
+      "session": "s1",
+      "sessionId": "00000000-0000-4000-8000-00000000000c",
+      "subtype": "success",
+      "isError": false,
+      "terminalReason": "completed",
+      "numTurns": 6,
+      "durationMs": 14035,
+      "durationApiMs": 12780,
+      "totalCostUsd": 0.00332877,
+      "subagentsSpawned": 0,
+      "modelUsage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 12,
+          "outputTokens": 1042,
+          "cacheReadInputTokens": 106057,
+          "cacheCreationInputTokens": 8730,
+          "costUSD": 0.00332877
+        }
+      }
+    },
+    {
+      "session": "s2",
+      "sessionId": "00000000-0000-4000-8000-000000000018",
+      "subtype": "success",
+      "isError": false,
+      "terminalReason": "completed",
+      "numTurns": 8,
+      "durationMs": 10610,
+      "durationApiMs": 18464,
+      "totalCostUsd": 0.00576223,
+      "subagentsSpawned": 1,
+      "modelUsage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 18,
+          "outputTokens": 1697,
+          "cacheReadInputTokens": 141738,
+          "cacheCreationInputTokens": 21711,
+          "costUSD": 0.00576223
+        }
+      }
+    },
+    {
+      "session": "s3",
+      "sessionId": "00000000-0000-4000-8000-000000000029",
+      "subtype": "success",
+      "isError": false,
+      "terminalReason": "completed",
+      "numTurns": 2,
+      "durationMs": 3875,
+      "durationApiMs": 3227,
+      "totalCostUsd": 0.00127774,
+      "subagentsSpawned": 0,
+      "modelUsage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 4,
+          "outputTokens": 123,
+          "cacheReadInputTokens": 32284,
+          "cacheCreationInputTokens": 4465,
+          "costUSD": 0.00127774
+        }
+      }
+    }
+  ]
+}
