@@ -34,7 +34,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `duration_ms` | `int` | development |  | Duration in milliseconds of the operation a record describes. |  | `nami.persisted`: `true`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `true` |
 | `effort` | `string` | development |  | Effort level applied to an API request; absent when Claude Code sends none. | `"low"`, `"medium"`, `"high"` | `nami.persisted`: `true`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `true` |
 | `enabled_via` | `string` | development |  | How a loaded plugin came to be enabled. | `"default-enable"`, `"user-install"`, `"org-policy"` | `nami.persisted`: `true`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `true` |
-| `error` | `string` | development |  | Error message of a failed tool call or API request. | `"Shell command failed"` | `nami.persisted`: `false`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `false` |
+| `error` | `string` | development |  | Error message of a failed tool call or API request; ingest passes it through the exception-text sanitizer, which removes credentials, and keeps up to 1024 UTF-8 bytes. | `"Shell command failed"` | `nami.max_utf8_bytes`: `1024`, `nami.persisted`: `true`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `false` |
 | `error_class` | `string` | development |  | Short class token of a failed API request or tool execution. | `"ShellError"`, `"Error_ENOENT"`, `"invalid_api_key"` | `nami.persisted`: `true`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `false` |
 | `error_type` | `string` | development |  | Category of a failed tool call on `tool_result`. | `"ShellError"`, `"Error:ENOENT"` | `nami.persisted`: `true`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `false` |
 | `event.sequence` | `int` | development |  | Counter that orders Claude Code's events, from 0, per Claude Code process. |  | `nami.persisted`: `true`, `nami.producer`: `"claude_code"`, `nami.source_schema`: `"https://ancplua.github.io/nami/schemas/0.4.0"`, `nami.token_exempt`: `true` |
@@ -298,7 +298,7 @@ keeps the key.
 | `client_request_id` | `string` |  | recommended | yes |
 | `duration_ms` | `int` |  | required | yes |
 | `effort` | `string` |  | conditionally_required: When Claude Code sends an effort level. | yes |
-| `error` | `string` |  | required | no |
+| `error` | `string` |  | required | yes |
 | `event.sequence` | `int` |  | required | yes |
 | `gen_ai.agent.name` | `string` |  | conditionally_required: When `OTEL_RESOURCE_ATTRIBUTES` sets it on the resource; Claude Code copies resource attributes onto every record. | yes |
 | `model` | `string` |  | required | yes |
@@ -536,7 +536,7 @@ keeps the key.
 | `anthropic.provider` | `string` |  | required | yes |
 | `bash_command` | `string` | in `tool_parameters` | opt_in | yes |
 | `duration_ms` | `int` | `string` | required | yes |
-| `error` | `string` |  | opt_in | no |
+| `error` | `string` |  | opt_in | yes |
 | `error_type` | `string` |  | conditionally_required: When the call failed. | yes |
 | `event.sequence` | `int` |  | required | yes |
 | `full_command` | `string` | in `tool_parameters` | opt_in | yes |
@@ -619,7 +619,7 @@ keeps the key.
 | `client_request_id` | `string` |  | recommended | yes |
 | `duration_ms` | `int` |  | required | yes |
 | `effort` | `string` |  | conditionally_required: When Claude Code sends an effort level. | yes |
-| `error` | `string` |  | conditionally_required: When the request failed. | no |
+| `error` | `string` |  | conditionally_required: When the request failed. | yes |
 | `error_class` | `string` |  | conditionally_required: When the request failed. | yes |
 | `first_content_ms` | `int` |  | conditionally_required: When the request succeeded on the streaming path. | yes |
 | `gen_ai.agent.name` | `string` |  | conditionally_required: When `OTEL_RESOURCE_ATTRIBUTES` sets it on the resource; Claude Code copies resource attributes onto every record. | yes |
@@ -710,7 +710,7 @@ keeps the key.
 | `anthropic.plan` | `string` |  | conditionally_required: When the session is signed in. | no |
 | `anthropic.provider` | `string` |  | required | yes |
 | `duration_ms` | `int` |  | required | yes |
-| `error` | `string` |  | conditionally_required: When the call failed. | no |
+| `error` | `string` |  | conditionally_required: When the call failed. | yes |
 | `error.type` | `enum` |  | conditionally_required: When the call failed. | yes |
 | `error_class` | `string` |  | conditionally_required: When the call failed. | yes |
 | `gen_ai.agent.name` | `string` |  | conditionally_required: When `OTEL_RESOURCE_ATTRIBUTES` sets it on the resource; Claude Code copies resource attributes onto every record. | yes |

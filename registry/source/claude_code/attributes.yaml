@@ -346,17 +346,21 @@ attributes:
     type: string
     stability: development
     brief: >
-      Error message of a failed tool call or API request.
+      Error message of a failed tool call or API request; ingest passes it through the
+      exception-text sanitizer, which removes credentials, and keeps up to 1024 UTF-8 bytes.
     note: >
-      With `OTEL_LOG_TOOL_DETAILS=1`, `tool_result` and the `claude_code.tool.execution` span
-      carry a tool's full error message, which can quote file or command content; `api_error`
-      and the `claude_code.llm_request` span carry the API's message. Not persisted:
+      `api_error` and the `claude_code.llm_request` span carry the API's message. With
+      `OTEL_LOG_TOOL_DETAILS=1`, `tool_result` and the `claude_code.tool.execution` span carry a
+      tool's full error message, which can quote file or command content. Ingest applies the
+      sanitizer of `exception.message` (credential assignments, authorization values, tokens
+      and URL secrets redacted) first and the bound of `nami.max_utf8_bytes` after it.
       `error_type` and `error_class` carry the category.
     examples: ["Shell command failed"]
     annotations:
       nami.producer: claude_code
-      nami.persisted: false
+      nami.persisted: true
       nami.token_exempt: false
+      nami.max_utf8_bytes: 1024
   - key: error_class
     type: string
     stability: development

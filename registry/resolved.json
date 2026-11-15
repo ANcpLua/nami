@@ -6745,17 +6745,18 @@
     },
     {
       "annotations": {
-        "nami.persisted": false,
+        "nami.max_utf8_bytes": 1024,
+        "nami.persisted": true,
         "nami.producer": "claude_code",
         "nami.source_schema": "https://ancplua.github.io/nami/schemas/0.4.0",
         "nami.token_exempt": false
       },
-      "brief": "Error message of a failed tool call or API request.\n",
+      "brief": "Error message of a failed tool call or API request; ingest passes it through the exception-text sanitizer, which removes credentials, and keeps up to 1024 UTF-8 bytes.\n",
       "examples": [
         "Shell command failed"
       ],
       "key": "error",
-      "note": "With `OTEL_LOG_TOOL_DETAILS=1`, `tool_result` and the `claude_code.tool.execution` span carry a tool's full error message, which can quote file or command content; `api_error` and the `claude_code.llm_request` span carry the API's message. Not persisted: `error_type` and `error_class` carry the category.\n",
+      "note": "`api_error` and the `claude_code.llm_request` span carry the API's message. With `OTEL_LOG_TOOL_DETAILS=1`, `tool_result` and the `claude_code.tool.execution` span carry a tool's full error message, which can quote file or command content. Ingest applies the sanitizer of `exception.message` (credential assignments, authorization values, tokens and URL secrets redacted) first and the bound of `nami.max_utf8_bytes` after it. `error_type` and `error_class` carry the category.\n",
       "stability": "development",
       "type": "string"
     },
