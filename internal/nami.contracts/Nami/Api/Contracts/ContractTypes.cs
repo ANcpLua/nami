@@ -8,7 +8,7 @@ namespace Nami.Api.Contracts;
 public static class ContractTypes
 {
     public static IJsonTypeInfoResolver Resolver => GeneratedContractJsonContext.Default;
-    public static IReadOnlyList<string> Tools { get; } = ["changes_recent", "errors_recent", "logs_search", "sources_status", "traces_get", "traces_slowest"];
+    public static IReadOnlyList<string> Tools { get; } = ["changes_recent", "errors_recent", "logs_search", "sources_status", "traces_slowest", "traces_get"];
     public static JsonTypeInfo<T> TypeInfo<T>() => GeneratedContractJsonContext.Default.Options.GetTypeInfo<T>();
     public static (string Input, string Output) Analysis(string operation) => operation switch
     {

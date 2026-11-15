@@ -12,7 +12,7 @@ internal static class StorageIdentity
     internal static string Compute(string domain, string prefix, Action<StringBuilder> appendSegments)
     {
         var builder = new StringBuilder(512);
-        builder.Append(domain).Append('\n');
+        builder.Append(domain).Append('\r');
         appendSegments(builder);
 
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));

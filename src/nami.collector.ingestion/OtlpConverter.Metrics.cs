@@ -280,8 +280,8 @@ internal static partial class OtlpConverter
                     _ => throw new InvalidDataException("OTLP metric exemplars require a numeric value.")
                 },
                 FilteredAttributes = ToContractAttributes(attributes),
-                TraceId = RequireIdOrAbsent(exemplar.TraceId, 16, "exemplar.trace_id"),
-                SpanId = RequireIdOrAbsent(exemplar.SpanId, 8, "exemplar.span_id")
+                TraceId = exemplar.TraceId.Length is 0 ? null : Convert.ToHexStringLower(exemplar.TraceId.Span),
+                SpanId = exemplar.SpanId.Length is 0 ? null : Convert.ToHexStringLower(exemplar.SpanId.Span)
             });
         }
 
