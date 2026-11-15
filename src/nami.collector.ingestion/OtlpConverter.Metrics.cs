@@ -177,7 +177,7 @@ internal static partial class OtlpConverter
             TimeUnixNano = point.TimeUnixNano,
             StartTimeUnixNano = NullIfZero(point.StartTimeUnixNano),
             Flags = point.Flags,
-            Exemplars = ConvertExemplars(point.Exemplars)
+            Exemplars = ConvertExemplars(point.Exemplars, ProducerOfScope(stream.ScopeName))
         };
     }
 
@@ -212,7 +212,7 @@ internal static partial class OtlpConverter
                 TimeUnixNano = point.TimeUnixNano,
                 StartTimeUnixNano = NullIfZero(point.StartTimeUnixNano),
                 Flags = point.Flags,
-                Exemplars = ConvertExemplars(point.Exemplars)
+                Exemplars = ConvertExemplars(point.Exemplars, ProducerOfScope(stream.ScopeName))
             };
 
     private static MetricPointIngestionRecord CreateSummaryPoint(MetricStreamMetadata stream,
@@ -255,15 +255,15 @@ internal static partial class OtlpConverter
                 TimeUnixNano = point.TimeUnixNano,
                 StartTimeUnixNano = NullIfZero(point.StartTimeUnixNano),
                 Flags = point.Flags,
-                Exemplars = ConvertExemplars(point.Exemplars)
+                Exemplars = ConvertExemplars(point.Exemplars, ProducerOfScope(stream.ScopeName))
             };
 
-    private static NormalizedMetricExemplars ConvertExemplars(IEnumerable<ProtoExemplar> exemplars)
+    private static NormalizedMetricExemplars ConvertExemplars(IEnumerable<ProtoExemplar> exemplars, string? producer)
     {
         var converted = new NormalizedMetricExemplars();
         foreach (var exemplar in exemplars)
         {
-            var attributes = ExtractMetricAttributes(exemplar.FilteredAttributes);
+            var attributes = ConvertRecordAttributes(exemplar.FilteredAttributes, producer);
             converted.Renames.AddRange(NormalizedAttributes.Collect([attributes]));
             converted.Add(new CommonContract.MetricExemplar
             {
@@ -336,7 +336,7 @@ internal static partial class OtlpConverter
         ScopeSchemaUrl = stream.ScopeSchemaUrl,
         ScopeAttributes = stream.ScopeAttributes,
         ScopeDroppedAttributesCount = stream.ScopeDroppedAttributesCount,
-        Attributes = ExtractMetricAttributes(attributes),
+        Attributes = ConvertRecordAttributes(attributes, ProducerOfScope(stream.ScopeName)),
         ResourceAttributes = stream.ResourceAttributes,
         ResourceEntityRefs = stream.ResourceEntityRefs,
         ResourceIdentity = stream.ResourceIdentity,
@@ -345,28 +345,6 @@ internal static partial class OtlpConverter
         InstrumentMetadata = stream.InstrumentMetadata,
         TimeUnixNano = 0
     };
-
-    private static NormalizedAttributes ExtractMetricAttributes(
-        RepeatedField<KeyValue> attributes)
-    {
-        ValidateAttributeKeys(attributes);
-        var result = new NormalizedAttributes();
-        foreach (var attribute in attributes)
-        {
-            if (string.IsNullOrEmpty(attribute.Key)) continue;
-            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attribute.Key, out var key);
-            NormalizedAttributes.RecordRename(result, attribute.Key, key);
-            if (!AttributeKeySets.IsPersistable(key))
-            {
-                NamiCollectorMetrics.AttributeDropped(key);
-                continue;
-            }
-
-            SetNormalizedAttribute(result, key, ConvertProtoAnyValue(attribute.Value, key), renamed);
-        }
-
-        return result;
-    }
 
     private static void ValidateAscendingBounds(string metricName, RepeatedField<double> bounds)
     {
