@@ -1,4 +1,4 @@
-<Project Sdk="ANcpLua.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <!-- OTLP decoding. The project graph is the boundary: this assembly references neither
        Storage nor the host, so the compiler, not a text scan, keeps decoding storage-blind. -->
   <PropertyGroup>
@@ -46,6 +46,13 @@
     <Protobuf Include="Protos/opentelemetry/proto/collector/trace/v1/trace_service.proto" ProtoRoot="Protos" GrpcServices="None"/>
     <Protobuf Include="Protos/opentelemetry/proto/collector/logs/v1/logs_service.proto" ProtoRoot="Protos" GrpcServices="None"/>
     <Protobuf Include="Protos/opentelemetry/proto/collector/metrics/v1/metrics_service.proto" ProtoRoot="Protos" GrpcServices="None"/>
+  </ItemGroup>
+
+  <!-- The ANcpLua SDK added these global usings until 15 Nov; kept so the code compiles unchanged. -->
+  <ItemGroup>
+    <Using Include="System.Diagnostics.CodeAnalysis"/>
+    <Using Include="System.Globalization"/>
+    <Using Include="System.Text"/>
   </ItemGroup>
 
 </Project>

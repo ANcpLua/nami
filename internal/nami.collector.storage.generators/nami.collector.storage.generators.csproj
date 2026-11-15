@@ -1,4 +1,4 @@
-<Project Sdk="ANcpLua.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>Nami.Collector.Storage.Generators</RootNamespace>
@@ -15,17 +15,17 @@
     <!-- Explicit Roslyn references also work under IDE language-server builds. -->
     <DisableImplicitRoslynPackageReference>true</DisableImplicitRoslynPackageReference>
 
-    <!-- RS0030 originates in compiled-in ANcpLua.Roslyn.Utilities polyfills. -->
-    <NoWarn>$(NoWarn);RS0030</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ANcpLua.Roslyn.Utilities.Sources" PrivateAssets="all"/>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
   </ItemGroup>
 
+  <!-- The ANcpLua SDK added these global usings until 15 Nov; kept so the code compiles unchanged. -->
   <ItemGroup>
-    <Using Include="ANcpLua.Roslyn.Utilities"/>
+    <Using Include="System.Diagnostics.CodeAnalysis"/>
+    <Using Include="System.Globalization"/>
+    <Using Include="System.Text"/>
   </ItemGroup>
 
   <ItemGroup>

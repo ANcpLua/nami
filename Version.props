@@ -20,8 +20,6 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Generator tooling">
-    <!-- renovate: datasource=nuget depName=ANcpLua.Roslyn.Utilities.Sources -->
-    <ANcpLuaRoslynUtilitiesVersion>5.0.0-preview.1</ANcpLuaRoslynUtilitiesVersion>
     <!-- renovate: datasource=nuget depName=Microsoft.VisualStudio.Threading.Analyzers -->
     <VisualStudioThreadingAnalyzersVersion>18.12.1</VisualStudioThreadingAnalyzersVersion>
   </PropertyGroup>
