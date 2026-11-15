@@ -1,19 +1,4 @@
 <Project>
-  <!-- Preserve analyzer inputs while distinguishing repository and SDK versions in IDE views. -->
-  <ItemGroup Condition="'$(ANcpLuaSdkName)' != ''">
-    <AdditionalFiles Update="@(AdditionalFiles)">
-      <Link Condition="'%(Filename)%(Extension)' == 'Version.props'">Build/SDK/Version.props</Link>
-    </AdditionalFiles>
-    <AdditionalFiles Update="$(MSBuildThisFileDirectory)Version.props;$(MSBuildThisFileDirectory)Directory.Build.props;$(MSBuildThisFileDirectory)Directory.Packages.props"
-                     Link="Build/Repository/%(Filename)%(Extension)"/>
-  </ItemGroup>
-
-  <!-- Private Collector modules ship together on one conventions pin; incubating coupling
-       is intentional here. A module made packable keeps the public-library diagnostic. -->
-  <PropertyGroup Condition="$(MSBuildProjectName.StartsWith('nami.collector')) And '$(IsPackable)' != 'true'">
-    <OtelSemConvInstrumentationLibrary>true</OtelSemConvInstrumentationLibrary>
-  </PropertyGroup>
-
   <Target Name="GenerateVersionConstant" BeforeTargets="CoreCompile" Condition="'$(MSBuildProjectExtension)' == '.csproj'">
     <PropertyGroup>
       <_NamiInformationalVersion>$(InformationalVersion)</_NamiInformationalVersion>

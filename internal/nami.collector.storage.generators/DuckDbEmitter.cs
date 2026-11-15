@@ -1,5 +1,3 @@
-using SourceString = ANcpLua.Roslyn.Utilities.StringExtensions;
-
 namespace Nami.Collector.Storage.Generators;
 
 internal static class DuckDbEmitter

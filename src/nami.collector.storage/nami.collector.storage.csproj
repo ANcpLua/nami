@@ -1,4 +1,4 @@
-<Project Sdk="ANcpLua.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <!-- DuckDB compile assets stay private to the product storage assembly. Integration tests
        explicitly reference the same pinned driver to verify physical schema and failure boundaries. -->
   <PropertyGroup>
@@ -30,6 +30,13 @@
     <InternalsVisibleTo Include="Nami.Tests"/>
     <InternalsVisibleTo Include="Nami.IntegrationTests"/>
     <InternalsVisibleTo Include="Nami.EndToEndTests"/>
+  </ItemGroup>
+
+  <!-- The ANcpLua SDK added these global usings until 15 Nov; kept so the code compiles unchanged. -->
+  <ItemGroup>
+    <Using Include="System.Diagnostics.CodeAnalysis"/>
+    <Using Include="System.Globalization"/>
+    <Using Include="System.Text"/>
   </ItemGroup>
 
 </Project>
