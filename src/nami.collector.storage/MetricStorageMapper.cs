@@ -92,42 +92,36 @@ internal static class MetricStorageMapper
         string? scopeVersion,
         string? scopeSchemaUrl,
         string? scopeAttributesJson,
-        string? resourceSchemaUrl, string? resourceIdentity = null, string? scopeIdentity = null)
-    {
-        var builder = new StringBuilder("metric_instrument\n");
-        builder.AppendSegment(metricName, true);
-        builder.AppendSegment(serviceName, true);
-        builder.AppendSegment(resourceJson, true);
-        builder.AppendSegment(scopeName, true);
-        builder.AppendSegment(scopeVersion, true);
-        builder.AppendSegment(scopeSchemaUrl, true);
-        builder.AppendSegment(scopeAttributesJson, true);
-        builder.AppendSegment(resourceSchemaUrl, true);
-        if (resourceIdentity is not null) builder.AppendSegment(resourceIdentity, true);
-        if (scopeIdentity is not null) builder.AppendSegment(scopeIdentity, true);
-        return "mi_" +
-               Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())).AsSpan(0, 16));
-    }
+        string? resourceSchemaUrl, string? resourceIdentity = null, string? scopeIdentity = null) =>
+        StorageIdentity.Compute("metric_instrument", "mi_", builder =>
+        {
+            builder.AppendSegment(metricName, true);
+            builder.AppendSegment(serviceName, true);
+            builder.AppendSegment(resourceJson, true);
+            builder.AppendSegment(scopeName, true);
+            builder.AppendSegment(scopeVersion, true);
+            builder.AppendSegment(scopeSchemaUrl, true);
+            builder.AppendSegment(scopeAttributesJson, true);
+            builder.AppendSegment(resourceSchemaUrl, true);
+            if (resourceIdentity is not null) builder.AppendSegment(resourceIdentity, true);
+            if (scopeIdentity is not null) builder.AppendSegment(scopeIdentity, true);
+        });
 
     private static string ComputeSeriesId(string instrumentId, string? attributesJson,
         MetricKind kind,
         MetricTemporality temporality,
         bool isMonotonic,
-        string? unit, string? attributesIdentity = null)
-    {
-        var builder = new StringBuilder(512);
-        builder.Append("metric_series\n");
-        builder.AppendSegment(instrumentId, true);
-        builder.AppendSegment(attributesJson, true);
-        builder.AppendSegment(((byte)kind).ToString(CultureInfo.InvariantCulture), true);
-        builder.AppendSegment(((byte)temporality).ToString(CultureInfo.InvariantCulture), true);
-        builder.AppendSegment(isMonotonic ? "1" : "0", true);
-        builder.AppendSegment(unit, true);
-        if (attributesIdentity is not null) builder.AppendSegment(attributesIdentity, true);
-
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));
-        return "ms_" + Convert.ToHexStringLower(hash.AsSpan(0, 16));
-    }
+        string? unit, string? attributesIdentity = null) =>
+        StorageIdentity.Compute("metric_series", "ms_", builder =>
+        {
+            builder.AppendSegment(instrumentId, true);
+            builder.AppendSegment(attributesJson, true);
+            builder.AppendSegment(((byte)kind).ToString(CultureInfo.InvariantCulture), true);
+            builder.AppendSegment(((byte)temporality).ToString(CultureInfo.InvariantCulture), true);
+            builder.AppendSegment(isMonotonic ? "1" : "0", true);
+            builder.AppendSegment(unit, true);
+            if (attributesIdentity is not null) builder.AppendSegment(attributesIdentity, true);
+        });
 
     // Description is non-identifying; retain the longer value on re-registration.
     // https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/metrics/data-model.md#opentelemetry-protocol-data-model-producer-recommendations
