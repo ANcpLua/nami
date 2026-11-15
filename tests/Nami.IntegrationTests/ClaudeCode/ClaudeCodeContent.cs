@@ -26,10 +26,12 @@ internal sealed record PlantedCapture(IReadOnlyList<ClaudeCodeExport> Exports, i
 ///     Every place where Claude Code 2.1.325 can send prompt, response, file or tool content, and the tool details,
 ///     after code.claude.com/docs/en/monitoring-usage (read 15 Nov 2026) and the research ledger, "Claude Code
 ///     telemetry as sent". The content events that a capture without content variables lacks are added the way
-///     Claude Code sends them: a log record whose body is <c>claude_code.{name}</c> and whose <c>event.name</c>
-///     attribute is <c>{name}</c>, with the standard attributes of the <c>api_request</c> record it follows. Every
-///     record that carries a planted value also carries the control marker, so a reader can tell a record that was
-///     stored without its content from one that was not stored at all.
+///     Claude Code sends them, a log record whose <c>event.name</c> attribute is <c>{name}</c>, with the standard
+///     attributes of the <c>api_request</c> record it follows, except for the body: Claude Code puts
+///     <c>claude_code.{name}</c> there, and these records carry content there instead, because no key names a body
+///     and so no registry decision covers it (the evaluator's gap on M2 ingest step 2). Every record that carries a
+///     planted value also carries the control marker, so a reader can tell a record that was stored without its
+///     content from one that was not stored at all.
 /// </summary>
 internal static class ClaudeCodeContent
 {
@@ -163,11 +165,11 @@ internal static class ClaudeCodeContent
         return new PlantedCapture(planted, logs, spans, toolOutputs);
     }
 
-    /// <summary>A content event that follows <paramref name="request" />, as Claude Code sends it.</summary>
+    /// <summary>A content event that follows <paramref name="request" />, with content in its attributes and its body.</summary>
     private static ProtoLog ContentEvent(ProtoLog request, string eventName, ContentMarkers markers)
     {
         var record = request.Clone();
-        record.Body = new AnyValue { StringValue = "claude_code." + eventName };
+        record.Body = new AnyValue { StringValue = markers.Content + ":body" };
         Set(record.Attributes, EventNameKey, eventName);
         Fill(record.Attributes, EventKeys[eventName], null, markers);
         return record;
