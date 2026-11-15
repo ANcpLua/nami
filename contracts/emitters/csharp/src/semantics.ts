@@ -1,5 +1,56 @@
-import type { EncodeData, ModelProperty, Numeric, Program, Scalar, Type } from "@typespec/compiler";
+import type { EncodeData, ModelProperty, Namespace, Numeric, Program, Scalar, Type } from "@typespec/compiler";
 import { getEncode, getMaxValueAsNumeric, getMinValueAsNumeric, getNamespaceFullName, isArrayModelType, resolveEncodedName } from "@typespec/compiler";
+import { isBody, isBodyRoot, isMetadata } from "@typespec/http";
+
+// Naming and selection rules both emitters apply. The TypeScript emitter imports this module from csharp/dist, so a
+// rule changes here once instead of drifting between two copies.
+
+/** The TypeSpec numeric scalars: a C# number in a mixed union, a TypeScript `number`. */
+export const NUMERIC_SCALARS: ReadonlySet<string> = new Set(["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "decimal", "decimal128"]);
+
+/** The first character upper-cased; the empty string stays empty. */
+export function pascal(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+/** Declared by the compiler's own `TypeSpec` namespace (or one below it), so no emitter writes it. */
+export function isInTypeSpec(type: { namespace?: { name?: string; namespace?: unknown } }): boolean {
+  let cursor: { name?: string; namespace?: unknown } | undefined = type.namespace;
+  while (cursor) {
+    if (cursor.name === "TypeSpec") return true;
+    cursor = cursor.namespace as typeof cursor;
+  }
+  return false;
+}
+
+/**
+ * Headers, parameters and the status code travel beside the body, and a `@body`/`@bodyRoot`
+ * property *is* the body: a response envelope made only of these has no type of its own.
+ */
+export function isHttpMetadata(program: Program, property: ModelProperty): boolean {
+  return isMetadata(program, property) || isBody(program, property) || isBodyRoot(program, property);
+}
+
+/**
+ * A type's emitted name: the name allocated to it for `language`, else its declared name followed by its template
+ * arguments' names, so each instantiation is a distinct type (`CursorPage<Trace>` is `CursorPageTrace`).
+ */
+export function emittedName(program: Program, type: Type, language = "csharp"): string {
+  const named = type as Type & { name?: string; templateMapper?: { args: readonly object[] } };
+  const parts = [named.name ?? "object"];
+  for (const arg of named.templateMapper?.args ?? []) {
+    if ("kind" in arg && "name" in arg && typeof arg.name === "string") parts.push(pascal(arg.name));
+  }
+  return languageName(program, type, parts.join(""), language);
+}
+
+/** The published schema name of a contract type: its namespace below `Nami.Api.Contracts`, dotted, then its name. */
+export function schemaName(type: { name?: string; namespace?: Namespace }): string {
+  const root = "Nami.Api.Contracts";
+  const namespace = type.namespace ? getNamespaceFullName(type.namespace) : "";
+  const below = namespace === root ? "" : namespace.startsWith(root + ".") ? namespace.slice(root.length + 1) : namespace;
+  return below ? `${below}.${type.name ?? ""}` : type.name ?? "";
+}
 
 /** One compiler-owned property, with precision and presence preserved for every output. */
 export function resolveProperty(program: Program, property: ModelProperty) {

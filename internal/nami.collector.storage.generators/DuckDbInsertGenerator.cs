@@ -358,6 +358,8 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         return attributeType is null ? null : symbol.GetAttributes().FirstOrDefault(attribute => attribute.AttributeClass.IsEqualTo(attributeType));
     }
 
+    // The TypeSpec emitter repeats this mapping for the ON CONFLICT columns it writes (conflictClause in
+    // contracts/emitters/csharp/src/outputs.ts); the two run in different builds, so keep them equal by hand.
     private static string ToSnakeCase(string name)
     {
         var sb = new StringBuilder();

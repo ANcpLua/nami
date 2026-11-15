@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { stateKeys } from "./lib.js";
 import { isNamedFloatingPointUnion, mapType, mixedUnionShape } from "./type-map.js";
 import { renderMixedUnion } from "./mixed-union.js";
-import { resolveProperty, typeIdentity } from "./semantics.js";
+import { pascal, resolveProperty, typeIdentity } from "./semantics.js";
 
 export interface OutputOptions { directory: string; namespace: string; file: string; json?: boolean; context?: string; typescript?: boolean; schema?: boolean; mutable?: boolean; strictJson?: boolean }
 export interface TableOptions { name: string; indexes?: string; uniqueIndexes?: string; conflict?: "ignore" | "update"; parameterSets?: string; derived?: boolean; bootstrap?: boolean; appenderEligible?: boolean; arrowEligible?: boolean }
@@ -43,7 +43,6 @@ export function outputFor(program: Program, type: Type): OutputOptions | undefin
   return undefined;
 }
 const quote = (value: unknown): string => JSON.stringify(value);
-const pascal = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 function namedFloat(t: Type): boolean {
   if (t.kind === "Model" && t.indexer) return namedFloat(t.indexer.value);
   if (t.kind !== "Union") return false;

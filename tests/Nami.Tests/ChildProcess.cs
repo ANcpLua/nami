@@ -7,6 +7,12 @@ namespace Nami.Tests;
 /// <summary>Runs a command with bounded execution, redirected output and ownership of its descendants.</summary>
 internal static class ChildProcess
 {
+    /// <summary>
+    ///     The dotnet host every child dotnet command uses: the SDK's own host when it set <c>DOTNET_HOST_PATH</c>,
+    ///     otherwise <c>dotnet</c> from <c>PATH</c>. A consumer built by a fixture then runs on the host that built it.
+    /// </summary>
+    internal static string DotnetHost => Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet";
+
     public static async Task<(int ExitCode, string Output, string Error)> RunAsync(ProcessStartInfo start,
         string description,
         CancellationToken cancellationToken, ChildProcessOptions? options = null)

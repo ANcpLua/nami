@@ -440,6 +440,8 @@ export interface StorageTable {
 
 const tables = new WeakMap<Program, readonly StorageTable[]>();
 
+// The C# emitter's pascal (emitters/csharp/src/semantics.ts), copied on purpose: index options name the generated C#
+// property, and the linter stays independent of the emitters' build. Keep the two spellings equal.
 function pascal(name: string): string {
   return name.charAt(0).toUpperCase() + name.slice(1);
 }

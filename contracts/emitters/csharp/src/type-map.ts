@@ -1,7 +1,7 @@
-import { languageName } from "./semantics.js";
+import { emittedName, NUMERIC_SCALARS } from "./semantics.js";
 import type { Model, Program, Scalar, Type, Union } from "@typespec/compiler";
 import { getDiscriminatedUnion, isArrayModelType, isRecordModelType, getFormat } from "@typespec/compiler";
-import { getCsharpNamespace, hasCsharpPolymorphic } from "./decorators.js";
+import { csharpNamespaceOf, hasCsharpPolymorphic } from "./decorators.js";
 import { hasCsharpBrand } from "./decorators.js";
 import { reportDiagnostic, stateKeys } from "./lib.js";
 
@@ -143,8 +143,6 @@ export function mixedUnionShape(program: Program, union: Union): MixedUnionShape
   return hasPrimitiveSide && shape.objectMember ? shape : undefined;
 }
 
-const NUMERIC_SCALARS = new Set(["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "decimal", "decimal128"]);
-
 function rootScalarName(scalar: Scalar): string {
   return scalar.baseScalar ? rootScalarName(scalar.baseScalar) : scalar.name;
 }
@@ -194,38 +192,9 @@ function mapScalar(program: Program, scalar: Scalar): string {
 }
 
 function qualifyModelOrEnum(program: Program, type: Type): string {
-  const asModel = type as { name?: string; templateMapper?: { args: readonly Type[] } };
-  let name = asModel.name ?? "object";
-  if (asModel.templateMapper?.args?.length) {
-    // Templated model: use the instantiated name (`CursorPageTrace`) so it matches the
-    // name the emitter produces for the type declaration.
-    const parts = [name];
-    for (const arg of asModel.templateMapper.args) {
-      if ("name" in arg && typeof (arg as { name?: string }).name === "string") {
-        parts.push(pascal((arg as { name: string }).name));
-      }
-    }
-    name = parts.join("");
-  }
-  name = languageName(program, type, name);
-  const ownNs = getCsharpNamespace(program, type);
-  if (ownNs) return `${ownNs}.${name}`;
-  const parentNs = climbForNamespace(program, type);
-  return parentNs ? `${parentNs}.${name}` : name;
-}
-
-function pascal(s: string): string {
-  return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
-}
-
-function climbForNamespace(program: Program, type: Type): string | undefined {
-  let cursor: { namespace?: { name?: string } & { namespace?: unknown } } | undefined =
-    type as { namespace?: { name?: string } & { namespace?: unknown } };
-  while (cursor?.namespace) {
-    const ns = cursor.namespace as unknown as Type;
-    const mapped = getCsharpNamespace(program, ns);
-    if (mapped) return mapped;
-    cursor = ns as unknown as typeof cursor;
-  }
-  return undefined;
+  // Templated model: use the instantiated name (`CursorPageTrace`) so it matches the
+  // name the emitter produces for the type declaration.
+  const name = emittedName(program, type);
+  const namespace = csharpNamespaceOf(program, type);
+  return namespace ? `${namespace}.${name}` : name;
 }

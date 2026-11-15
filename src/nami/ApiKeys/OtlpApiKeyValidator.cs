@@ -1,7 +1,9 @@
 namespace Nami.ApiKeys;
 
 /// <summary>
-///     Resolve the credential, and with it the project and roles, for both transports.
+///     Resolve the credential, and with it the project and roles, for both transports. The TypeScript host's
+///     <c>credential</c> in src/nami.mcp/src/main.ts repeats this match for /mcp; this one stays the authority, because
+///     the engine resolves the credential of every call again.
 /// </summary>
 internal static class OtlpApiKeyValidator
 {

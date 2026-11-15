@@ -69,7 +69,7 @@ internal sealed partial class OwnedProcess : IAsyncDisposable
         {
             control = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
                 PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-            var hostStart = new ProcessStartInfo(Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet")
+            var hostStart = new ProcessStartInfo(ChildProcess.DotnetHost)
             {
                 UseShellExecute = false,
                 CreateNoWindow = true,

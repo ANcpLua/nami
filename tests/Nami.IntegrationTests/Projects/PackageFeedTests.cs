@@ -42,7 +42,7 @@ public sealed class PackageFeedTests(TestContext context) : IAsyncDisposable
 
         var build = await consumer.BuildAsync(context.CancellationToken);
         Assert.AreEqual(0, build.ExitCode, build.Output + build.Error);
-        var start = new ProcessStartInfo("dotnet");
+        var start = new ProcessStartInfo(ChildProcess.DotnetHost);
         start.ArgumentList.Add(build.AssemblyPath);
         var execution = await ChildProcess.RunAsync(start, "the package consumer", context.CancellationToken);
 

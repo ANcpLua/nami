@@ -80,7 +80,7 @@ public sealed class CaptureFixtureTests(TestContext context)
 
         var build = await project.BuildAsync(context.CancellationToken);
         Assert.AreEqual(0, build.ExitCode, build.Output + build.Error);
-        var start = new ProcessStartInfo("dotnet");
+        var start = new ProcessStartInfo(ChildProcess.DotnetHost);
         start.ArgumentList.Add(build.AssemblyPath);
         var run = await ChildProcess.RunAsync(start, "the attributed capture consumer", context.CancellationToken);
         Assert.AreEqual(0, run.ExitCode, run.Error);

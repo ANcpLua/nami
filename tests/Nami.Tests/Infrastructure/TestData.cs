@@ -48,6 +48,10 @@ internal static class TestData
         }
     }
 
+    // Not TimeConversions.ToUnixNanoUnsigned on purpose: tests compare the times the product stores with this value,
+    // so it stays a second, independent computation of the same conversion. The two agree from the Unix epoch to
+    // 2262, where this one's signed arithmetic overflows (the product's unsigned range lasts until 2554); both throw
+    // outside their range, this one OverflowException and the product ArgumentOutOfRangeException.
     internal static ulong Nanos(DateTimeOffset value)
     {
         return checked((ulong)((value.UtcTicks - DateTimeOffset.UnixEpoch.UtcTicks) * 100));

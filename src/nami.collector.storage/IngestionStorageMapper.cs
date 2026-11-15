@@ -111,15 +111,9 @@ internal static class IngestionStorageMapper
         });
     }
 
-    private static string StableStorageId(string prefix, Action<StringBuilder> appendParts)
-    {
-        var builder = new StringBuilder(512);
-        builder.Append(prefix).Append('\n');
-        appendParts(builder);
-
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));
-        return prefix + "_" + Convert.ToHexStringLower(hash.AsSpan(0, 16));
-    }
+    // The domain line is the prefix itself: a log id is "log_" and the hash of "log\n" and its segments.
+    private static string StableStorageId(string prefix, Action<StringBuilder> appendParts) =>
+        StorageIdentity.Compute(prefix, prefix + "_", appendParts);
 
     private static void AppendIdentityPart(StringBuilder builder, byte value) =>
         builder.AppendSegment(value.ToString(CultureInfo.InvariantCulture), true);

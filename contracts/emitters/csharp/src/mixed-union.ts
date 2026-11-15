@@ -1,10 +1,9 @@
 import type { Model, ModelProperty, Program, Union } from "@typespec/compiler";
 import { getDiscriminatedUnion, getDiscriminator, isArrayModelType, resolveEncodedName, walkPropertiesInherited } from "@typespec/compiler";
 import { mapType, type MixedUnionShape } from "./type-map.js";
-import { resolveProperty } from "./semantics.js";
+import { pascal, resolveProperty } from "./semantics.js";
 
 const quote = (value: string): string => JSON.stringify(value);
-const pascal = (value: string): string => value[0]!.toUpperCase() + value.slice(1);
 type WriterCase = { type: string; name: string; body: string };
 
 /** A switch expression on the closed hierarchy makes a new leaf invalidate both writers. */

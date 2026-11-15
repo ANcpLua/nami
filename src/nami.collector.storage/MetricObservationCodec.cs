@@ -56,6 +56,9 @@ internal static class MetricObservationCodec
         null => "absent"
     };
 
+    // Not StorageIdentity on purpose: observation and measurement ids are persisted in this form, a JSON array of the
+    // parts hashed whole (all 32 bytes, no domain line), so moving them to the shared recipe would give every stored
+    // observation a new key. Keep the two forms apart unless a migration rewrites the stored ids.
     private static string Fingerprint(string prefix, params string?[] parts)
     {
         var buffer = new ArrayBufferWriter<byte>();

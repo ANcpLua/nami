@@ -25,6 +25,17 @@ export function getCsharpNamespace(program: { stateMap: (k: symbol) => Map<Type,
   return program.stateMap(stateKeys.csharpNamespace).get(target) as string | undefined;
 }
 
+/** The C# namespace a type is emitted in: its own `@csharpNamespace`, else that of its nearest enclosing namespace. */
+export function csharpNamespaceOf(program: { stateMap: (k: symbol) => Map<Type, unknown> }, target: Type): string | undefined {
+  const own = getCsharpNamespace(program, target);
+  if (own) return own;
+  for (let cursor = (target as { namespace?: Namespace }).namespace; cursor; cursor = cursor.namespace) {
+    const mapped = getCsharpNamespace(program, cursor);
+    if (mapped) return mapped;
+  }
+  return undefined;
+}
+
 export function hasCsharpBrand(program: { stateMap: (k: symbol) => Map<Type, unknown> }, target: Type): boolean {
   return program.stateMap(stateKeys.csharpBrand).has(target);
 }

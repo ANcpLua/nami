@@ -1,4 +1,4 @@
-import { recordOutput } from "./semantics.js";
+import { pascal, recordOutput } from "./semantics.js";
 import type { DecoratorContext, Model, Program, Union } from "@typespec/compiler";
 import { emitFile, getDiscriminatedUnion } from "@typespec/compiler";
 import { resolve } from "node:path";
@@ -25,7 +25,7 @@ export async function emitAttributeProjection(program: Program): Promise<void> {
       if(!property) throw new Error(`No value property on ${model.name}`);
       const sourceModel=sourceObject.derivedModels.flatMap(m=>m.derivedModels.length?m.derivedModels:[m]).find(m=>m.properties.get("type")?.type.kind==="String" && (m.properties.get("type")!.type as {value:string}).value===tag);
       if(!sourceModel) throw new Error(`No stored representation for attribute tag ${tag}`);
-      const name=property.name[0]!.toUpperCase()+property.name.slice(1);
+      const name=pascal(property.name);
       const value=tag==="kvlist" ? `item.${name}.ToDictionary(pair => pair.Key, pair => ToContract(pair.Value), StringComparer.Ordinal)` : `item.${name}`;
       objectArms.push(`        ${mapType(program,sourceModel)} item => new ${targetName}.ObjectValue(new ${mapType(program,model)} { ${name} = ${value} }),`);
     }
@@ -54,7 +54,7 @@ export async function emitStorageAttributeProjection(program: Program): Promise<
       const model=tagged.get(tag);
       if(!model) throw new Error(`Missing stored ${tag} alternative`);
       const property=[...model.properties.values()].find(p=>p.name!=="type")!;
-      const name=property.name[0]!.toUpperCase()+property.name.slice(1);
+      const name=pascal(property.name);
       return `new ${targetName}.ObjectValue(new ${mapType(program,model)} { ${name} = ${value} })`;
     };
     const arms=[...source.variants].map(([key,variant])=> {

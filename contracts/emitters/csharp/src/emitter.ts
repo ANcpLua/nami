@@ -3,14 +3,13 @@ import { relative, resolve } from "node:path";
 import { emitExactSchema } from "./exact-schema.js";
 import { emitAttributeProjection, emitStorageAttributeProjection } from "./attribute-projection.js";
 import { emitProjections, emitModelProjections, emitCatalogProjections } from "./projections.js";
-import { emitToolMetadata } from "./tool-metadata.js";
+import { emitToolMetadata, toolContracts } from "./tool-metadata.js";
 import { emitOutputs, outputFor } from "./outputs.js";
-import { admitsNull, effectiveEncoding, nonNullType, allocateNames, languageName, resolveProperty, numericBound as preciseBound } from "./semantics.js";
+import { admitsNull, effectiveEncoding, emittedName, isHttpMetadata, isInTypeSpec, nonNullType, allocateNames, pascal, resolveProperty, schemaName, numericBound as preciseBound } from "./semantics.js";
 import type { EmitContext, Enum, EnumMember, Model, ModelProperty, Program, Scalar, Type, Union } from "@typespec/compiler";
 import {
   emitFile,
   getDiscriminatedUnion,
-  getNamespaceFullName,
   getFriendlyName,
   getMaxLength,
   getMaxValueAsNumeric,
@@ -23,8 +22,9 @@ import {
   navigateProgram,
   resolveEncodedName,
 } from "@typespec/compiler";
-import { getAllHttpServices, isBody, isBodyRoot, isMetadata } from "@typespec/http";
+import { getAllHttpServices } from "@typespec/http";
 import {
+  csharpNamespaceOf,
   getCsharpNamespace,
   getCsharpPolymorphicDiscriminator,
   hasCsharpBrand,
@@ -52,7 +52,7 @@ export async function $onEmit(context: EmitContext): Promise<void> {
   const emittedNames = new Set<Type>();
   const candidates: {type: Type; scope: string; name: string}[] = [];
   navigateProgram(program, { model(model) {
-    if (model.name && !isInTypeSpec(model) && !outputFor(program, model)) candidates.push({type:model, scope:resolveNamespace(program,model) ?? "", name:instantiationName(program,model)});
+    if (model.name && !isInTypeSpec(model) && !outputFor(program, model)) candidates.push({type:model, scope:csharpNamespaceOf(program,model) ?? "", name:emittedName(program,model)});
   } });
   allocateNames(program, candidates);
 
@@ -60,7 +60,7 @@ export async function $onEmit(context: EmitContext): Promise<void> {
     model: (m) => {
       if (isInTypeSpec(m) || outputFor(program, m)) return;
       if (!m.name) return;
-      const ns = resolveNamespace(program, m);
+      const ns = csharpNamespaceOf(program, m);
       if (!ns) return;
       collectMediaType(program, m, getBucket(buckets, ns));
       const hasBodyProperty = inheritedProperties(m)
@@ -70,27 +70,27 @@ export async function $onEmit(context: EmitContext): Promise<void> {
       // Template instantiations share the base name (`CursorPage`); use the instantiated
       // form `CursorPageTrace` so each instantiation produces a distinct type. Template
       // DEFINITIONS are not navigated, so this only fires on concrete instantiations.
-      const emittedName = instantiationName(program, m);
+      const name = emittedName(program, m);
       if (emittedNames.has(m)) return;
       emittedNames.add(m);
-      getBucket(buckets, ns).models.push([m, emittedName]);
+      getBucket(buckets, ns).models.push([m, name]);
     },
     enum: (e) => {
       if (isInTypeSpec(e) || outputFor(program, e)) return;
-      const ns = resolveNamespace(program, e);
+      const ns = csharpNamespaceOf(program, e);
       if (!ns) return;
       getBucket(buckets, ns).enums.push(e);
     },
     union: (u) => {
       if (isInTypeSpec(u) || outputFor(program, u) || !u.name) return;
       if (!hasCsharpPolymorphic(program, u) && !isDiscriminatedUnion(program, u) && !mixedUnionShape(program, u)) return;
-      const ns = resolveNamespace(program, u);
+      const ns = csharpNamespaceOf(program, u);
       if (!ns) return;
       getBucket(buckets, ns).unions.push(u);
     },
     scalar: (s) => {
       if (isInTypeSpec(s) || outputFor(program, s) || !s.name || !hasCsharpBrand(program, s)) return;
-      const ns = resolveNamespace(program, s);
+      const ns = csharpNamespaceOf(program, s);
       if (!ns) return;
       getBucket(buckets, ns).scalars.push(s);
     },
@@ -108,17 +108,15 @@ export async function $onEmit(context: EmitContext): Promise<void> {
     const internalBases = polymorphicBaseModels(bucket.unions);
     for (const [model, name] of bucket.models) {
       if (internalBases.has(model)) continue;
-      entries.push([`${bucket.namespace}.${name}`, getFriendlyName(program, model) ?? `${getNamespaceFullName(model.namespace!)}.${name}`.replace(/^Nami\.Api\.Contracts\./u, "")]);
+      entries.push([`${bucket.namespace}.${name}`, getFriendlyName(program, model) ?? schemaName({ name, namespace: model.namespace })]);
     }
-    for (const union of bucket.unions) entries.push([`${bucket.namespace}.${union.name}`, `${getNamespaceFullName(union.namespace!)}.${union.name}`.replace(/^Nami\.Api\.Contracts\./u, "")]);
-    for (const enm of bucket.enums) entries.push([`${bucket.namespace}.${enm.name}`, `${getNamespaceFullName(enm.namespace!)}.${enm.name}`.replace(/^Nami\.Api\.Contracts\./u, "")]);
+    for (const union of bucket.unions) entries.push([`${bucket.namespace}.${union.name}`, schemaName(union)]);
+    for (const enm of bucket.enums) entries.push([`${bucket.namespace}.${enm.name}`, schemaName(enm)]);
   }
   entries.sort((a, b) => a[1].localeCompare(b[1]));
-  const analysis = entries.filter(([, name]) => /^Tools\.\w+Input$/.test(name) && entries.some(([, output]) => output === name.replace(/Input$/, "Result")));
-  const analysisCases = analysis.map(([, name]) => {
-    const operation = name.slice("Tools.".length, -"Input".length).replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
-    return `        "${operation}" => ("${name}", "${name.replace(/Input$/, "Result")}"),`;
-  }).join("\n");
+  // The tools the engine dispatches are the @tool contracts the host lists, not a second list read from model names.
+  const tools = toolContracts(program);
+  const analysisCases = tools.map((tool) => `        "${tool.name}" => ("${schemaName(tool.input)}", "${schemaName(tool.result)}"),`).join("\n");
   const [httpServices] = getAllHttpServices(program);
   const arrayBodies = new Set(httpServices.flatMap(service => service.operations).flatMap(operation => operation.responses)
     .flatMap(response => response.responses).map(response => response.body)
@@ -133,7 +131,7 @@ export async function $onEmit(context: EmitContext): Promise<void> {
   await emitToolMetadata(program, context.emitterOutputDir);
   await emitExactSchema(program);
   await emitFile(program,{path:`${program.projectRoot}/generated/consumer-files.json`, content:JSON.stringify(outputFiles(program).map(path=>relative(resolve(program.projectRoot,".."),path).replaceAll("\\", "/")).sort(),null,2)+"\n"});
-  const generated = `// <auto-generated/>\n#nullable enable\nusing System.Text.Json;\nusing System.Text.Json.Serialization;\nusing System.Text.Json.Serialization.Metadata;\nnamespace Nami.Api.Contracts;\n\npublic static class ContractTypes\n{\n    public static IJsonTypeInfoResolver Resolver => GeneratedContractJsonContext.Default;\n    public static IReadOnlyList<string> Tools { get; } = [${analysis.map(([, name]) => JSON.stringify(name.slice("Tools.".length, -"Input".length).replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase())).join(", ")}];\n    public static JsonTypeInfo<T> TypeInfo<T>() => GeneratedContractJsonContext.Default.Options.GetTypeInfo<T>();\n    public static (string Input, string Output) Analysis(string operation) => operation switch\n    {\n${analysisCases}\n        _ => throw new ArgumentException($"No generated analysis contract for {operation}.", nameof(operation))\n    };\n    public static string NameOf(Type type) => type switch\n    {\n${entries.map(([type, name]) => `        _ when type == typeof(global::${type}) => ${JSON.stringify(name)},`).join("\n")}\n        _ => throw new ArgumentException($"No generated contract for {type}.", nameof(type))\n    };\n    public static JsonTypeInfo TypeInfo(string name) => name switch\n    {\n${entries.map(([type, name]) => {
+  const generated = `// <auto-generated/>\n#nullable enable\nusing System.Text.Json;\nusing System.Text.Json.Serialization;\nusing System.Text.Json.Serialization.Metadata;\nnamespace Nami.Api.Contracts;\n\npublic static class ContractTypes\n{\n    public static IJsonTypeInfoResolver Resolver => GeneratedContractJsonContext.Default;\n    public static IReadOnlyList<string> Tools { get; } = [${tools.map((tool) => JSON.stringify(tool.name)).join(", ")}];\n    public static JsonTypeInfo<T> TypeInfo<T>() => GeneratedContractJsonContext.Default.Options.GetTypeInfo<T>();\n    public static (string Input, string Output) Analysis(string operation) => operation switch\n    {\n${analysisCases}\n        _ => throw new ArgumentException($"No generated analysis contract for {operation}.", nameof(operation))\n    };\n    public static string NameOf(Type type) => type switch\n    {\n${entries.map(([type, name]) => `        _ when type == typeof(global::${type}) => ${JSON.stringify(name)},`).join("\n")}\n        _ => throw new ArgumentException($"No generated contract for {type}.", nameof(type))\n    };\n    public static JsonTypeInfo TypeInfo(string name) => name switch\n    {\n${entries.map(([type, name]) => {
     return `        ${JSON.stringify(name)} => GeneratedContractJsonContext.Default.GetTypeInfo(typeof(global::${type}))!,`;
   }).join("\n")}\n        _ => throw new ArgumentException($"No generated serializer for {name}.", nameof(name))\n    };\n}\n\n[JsonSourceGenerationOptions(AllowOutOfOrderMetadataProperties = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow)]\n[JsonSerializable(typeof(JsonElement))]\n${entries.map(([type]) => `[JsonSerializable(typeof(global::${type}))]`).join("\n")}\n${[...arrayBodies].map(type => `[JsonSerializable(typeof(global::${type}))]`).join("\n")}\ninternal partial class GeneratedContractJsonContext : JsonSerializerContext;\n`;
   await emitFile(program, { path: `${context.emitterOutputDir}/Nami/Api/Contracts/ContractTypes.cs`, content: generated });
@@ -181,28 +179,6 @@ function routeParameters(program: Program): { namespace: string | undefined; con
   };
 }
 
-function instantiationName(program: Program, model: Model): string {
-  const allocated = languageName(program, model, "");
-  if (allocated) return allocated;
-  if (!model.templateMapper?.args.length) return model.name;
-  const parts = [model.name];
-  for (const arg of model.templateMapper.args) {
-    if ("kind" in arg && "name" in arg && typeof arg.name === "string") {
-      parts.push(pascal(arg.name));
-    }
-  }
-  return parts.join("");
-}
-
-function isInTypeSpec(type: { namespace?: { name?: string; namespace?: unknown } }): boolean {
-  let cursor: { name?: string; namespace?: unknown } | undefined = type.namespace;
-  while (cursor) {
-    if (cursor.name === "TypeSpec") return true;
-    cursor = cursor.namespace as typeof cursor;
-  }
-  return false;
-}
-
 function getBucket(buckets: Map<string, Bucket>, namespace: string): Bucket {
   let b = buckets.get(namespace);
   if (!b) {
@@ -210,18 +186,6 @@ function getBucket(buckets: Map<string, Bucket>, namespace: string): Bucket {
     buckets.set(namespace, b);
   }
   return b;
-}
-
-function resolveNamespace(program: Program, type: Model | Enum | Scalar | Union): string | undefined {
-  const own = getCsharpNamespace(program, type);
-  if (own) return own;
-  let cursor = type.namespace;
-  while (cursor) {
-    const mapped = getCsharpNamespace(program, cursor);
-    if (mapped) return mapped;
-    cursor = cursor.namespace;
-  }
-  return undefined;
 }
 
 function renderBucket(program: Program, bucket: Bucket, unions: Union[]): string {
@@ -317,7 +281,7 @@ function taggedUnionInfo(program: Program, union: Union): { property: string; ta
   };
 }
 
-function renderModel(program: Program, model: Model, emittedName: string, unions: Union[]): string {
+function renderModel(program: Program, model: Model, typeName: string, unions: Union[]): string {
   const keyword = "public sealed class";
   const memberships = unions.filter((candidate) =>
     !mixedUnionShape(program, candidate) &&
@@ -362,7 +326,7 @@ function renderModel(program: Program, model: Model, emittedName: string, unions
   }
   const members = [...constants, ...props];
   const body = members.length ? `\n${members.join("\n")}\n` : "\n";
-  return `${keyword} ${emittedName}${implementsUnion}\n{${body}}\n`;
+  return `${keyword} ${typeName}${implementsUnion}\n{${body}}\n`;
 }
 
 const NUMERIC_CS_TYPES = new Set(["sbyte", "byte", "short", "ushort", "int", "uint", "long", "ulong", "float", "double", "decimal"]);
@@ -528,15 +492,7 @@ function renderPolymorphicUnion(program: Program, union: Union): string {
 
 function localOrQualifiedType(program: Program, owner: Model | Union, type: Model | Union): string {
   if (!type.name) throw new Error("A polymorphic model or union must have an emitted name.");
-  return resolveNamespace(program, owner) === resolveNamespace(program, type) ? type.name : mapType(program, type);
-}
-
-/**
- * Headers, parameters and the status code travel beside the body, and a `@body`/`@bodyRoot`
- * property *is* the body: a response envelope made only of these has no DTO of its own.
- */
-function isHttpMetadata(program: Program, property: ModelProperty): boolean {
-  return isMetadata(program, property) || isBody(program, property) || isBodyRoot(program, property);
+  return csharpNamespaceOf(program, owner) === csharpNamespaceOf(program, type) ? type.name : mapType(program, type);
 }
 
 function inheritedProperties(model: Model): ModelProperty[] {
@@ -576,10 +532,6 @@ function renderEnumValues(members: EnumMember[], name: string): string {
   const constants = members.map((m) =>
     `    public const string ${pascal(m.name)} = "${escapeCsharpString(typeof m.value === "string" ? m.value : m.name)}";`);
   return `\npublic static class ${name}Values\n{\n${constants.join("\n")}\n}\n`;
-}
-
-function pascal(s: string): string {
-  return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
 }
 
 function escapeCsharpString(value: string): string {

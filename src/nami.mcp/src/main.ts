@@ -16,6 +16,11 @@ if (!enginePath) throw new Error("Pass --engine with the published NativeAOT eng
 const engine = new Engine(resolve(enginePath));
 await engine.ready;
 const stdio = args.includes("--stdio");
+// The host answers /mcp before the engine sees a call, so it repeats two engine rules on purpose: the default mode
+// (CollectorAuthExtensions: Unsecured only in Development; WebApplication.CreateSlimBuilder adds DOTNET_ variables
+// after ASPNETCORE_ ones, so DOTNET_ENVIRONMENT wins as here) and the key match (OtlpApiKeyValidator.Resolve: every
+// key compared in fixed time). The engine refuses blank keys at startup and checks the read role of every call again,
+// so a drift between the copies can refuse a call early but never admit one the engine refuses.
 const environment = process.env.DOTNET_ENVIRONMENT ?? process.env.ASPNETCORE_ENVIRONMENT;
 const mode = process.env[CONFIG.AuthMode] ?? (environment?.toLowerCase() === "development" ? CONFIG_DEFAULTS.AuthMode : "ApiKey");
 const keyDocument: unknown = JSON.parse(process.env[CONFIG.ProjectKeys] ?? "{}");

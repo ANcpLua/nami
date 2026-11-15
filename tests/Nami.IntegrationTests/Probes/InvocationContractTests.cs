@@ -155,7 +155,7 @@ public sealed class InvocationContractTests(TestContext context)
 
     private async Task<(int ExitCode, string Output, string Error)> RunAsync(params string[] arguments)
     {
-        var start = new ProcessStartInfo("dotnet");
+        var start = new ProcessStartInfo(ChildProcess.DotnetHost);
         start.ArgumentList.Add(ProbeAssembly);
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
         return await ChildProcess.RunAsync(start, "the managed MTP invocation probe", context.CancellationToken);
