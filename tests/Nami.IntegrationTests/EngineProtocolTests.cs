@@ -70,6 +70,19 @@ public sealed class EngineProtocolTests(TestContext context)
             Assert.IsFalse(health.GetProperty("is_error").GetBoolean());
         });
 
+    [TestMethod]
+    [DataRow("{\"service\":\"a\\ud800\"}", "service", DisplayName = "Argument value")]
+    [DataRow("{\"\\udc00\":1}", "", DisplayName = "Argument name")]
+    public Task HostFrame_ArgumentWithAnUnpairedSurrogate_RefusedAsAnInvalidArgument(string arguments, string field) =>
+        WithEngineAsync(async exchange =>
+        {
+            var reply = await exchange(Call("1", "sources_status", arguments));
+            Assert.IsTrue(reply.GetProperty("is_error").GetBoolean());
+            Assert.AreEqual("invalid_argument", reply.GetProperty("result").GetProperty("code").GetString(),
+                reply.GetRawText());
+            Assert.AreEqual(field, reply.GetProperty("result").GetProperty("field").GetString());
+        });
+
     /// <summary>Serves one engine over pipes for the test body, which exchanges frames for replies.</summary>
     private async Task WithEngineAsync(Func<Func<string, Task<JsonElement>>, Task> body)
     {

@@ -90,6 +90,21 @@ public static class ContractJson
     private static ContractIssue? Check(JsonElement schema, JsonElement value, JsonElement root, string path,
         bool allowUnset = false)
     {
+        try
+        {
+            return CheckValue(schema, value, root, path, allowUnset);
+        }
+        catch (InvalidOperationException)
+        {
+            // JsonElement will not decode a string or member name holding an unpaired UTF-16 surrogate escape, which
+            // JSON.stringify writes for such a string: that value fails its contract instead of throwing to the caller.
+            return new ContractIssue(path, "type", "must be text without unpaired UTF-16 surrogates");
+        }
+    }
+
+    private static ContractIssue? CheckValue(JsonElement schema, JsonElement value, JsonElement root, string path,
+        bool allowUnset)
+    {
         if (schema.ValueKind is JsonValueKind.True or JsonValueKind.False)
             return schema.ValueKind is JsonValueKind.True ? null : new ContractIssue(path, "false", "is not allowed");
         if (schema.TryGetProperty("$ref", out var reference))
