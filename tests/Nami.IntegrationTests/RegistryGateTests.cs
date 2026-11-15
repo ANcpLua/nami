@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -137,6 +138,168 @@ public sealed partial class RegistryGateTests(TestContext context)
         Assert.AreEqual(Stability.Deprecated, AttributeStability.Of(key));
         Assert.AreEqual(successor, DeprecatedAttributes.SuccessorOf(key));
         Assert.IsFalse(RegistryPolicy.IsPersisted(key));
+    }
+
+    [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
+    [TestMethod]
+    public void DeprecatedDefinitions_AndOnlyThey_CarryObsolete()
+    {
+        using var source = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "registry/resolved.json")));
+        var registry = source.RootElement.GetProperty("registry");
+        var catalog = source.RootElement.GetProperty("attribute_catalog");
+
+        // What the registry says: one entry per deprecated definition that has generated constants.
+        var expected = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        var deprecatedAttributes = 0;
+        foreach (var index in registry.GetProperty("attributes").EnumerateArray())
+        {
+            var attribute = catalog[index.GetInt32()];
+            if (ObsoleteMessage(attribute) is not { } message || !HasGeneratedConstants(attribute)) continue;
+            var key = attribute.GetProperty("key").GetString()!;
+            expected.Add("attribute " + key, message);
+            deprecatedAttributes++;
+            var type = attribute.GetProperty("type");
+            if (type.ValueKind == JsonValueKind.Object &&
+                type.GetProperty("members").EnumerateArray().Any(static member => ObsoleteMessage(member) is null))
+                expected.Add("values of " + key, message);
+        }
+
+        var deprecatedMetrics = 0;
+        foreach (var metric in registry.GetProperty("metrics").EnumerateArray())
+        {
+            if (ObsoleteMessage(metric) is not { } message || !HasGeneratedConstants(metric)) continue;
+            expected.Add("metric " + metric.GetProperty("name").GetString(), message);
+            deprecatedMetrics++;
+        }
+
+        // A span shape is a refinement (by id) or, when no refinement has that id, a base span (by type).
+        var shapes = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (var span in source.RootElement.GetProperty("refinements").GetProperty("spans").EnumerateArray())
+            shapes.TryAdd(span.GetProperty("id").GetString()!, span);
+        foreach (var span in registry.GetProperty("spans").EnumerateArray())
+            shapes.TryAdd(span.GetProperty("type").GetString()!, span);
+        var deprecatedSpans = 0;
+        foreach (var (id, span) in shapes)
+        {
+            if (ObsoleteMessage(span) is not { } message || !HasGeneratedConstants(span)) continue;
+            expected.Add("span " + id, message);
+            deprecatedSpans++;
+        }
+
+        // What the generated assembly says: every type and member that carries [Obsolete].
+        const BindingFlags declared = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static |
+                                      BindingFlags.Instance | BindingFlags.DeclaredOnly;
+        var actual = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        foreach (var type in typeof(RegistryInfo).Assembly.GetTypes())
+        {
+            foreach (var member in type.GetMembers(declared).Where(static member => member is not Type).Prepend(type))
+            {
+                if (member.GetCustomAttribute<ObsoleteAttribute>(false) is not { } obsolete) continue;
+                Assert.IsFalse(obsolete.IsError, member + " must warn, not fail the build of old readers");
+                actual.Add(Describe(member), obsolete.Message ?? "");
+            }
+        }
+
+        Assert.IsGreaterThan(100, deprecatedAttributes);
+        Assert.IsGreaterThan(50, deprecatedMetrics);
+        Assert.IsGreaterThan(0, deprecatedSpans);
+        var missing = expected.Keys.Except(actual.Keys, StringComparer.Ordinal).ToArray();
+        var unexpected = actual.Keys.Except(expected.Keys, StringComparer.Ordinal).ToArray();
+        Assert.IsEmpty(missing,
+            missing.Length + " deprecated definitions lack [Obsolete], first: " + string.Join(", ", missing.Take(5)));
+        Assert.IsEmpty(unexpected,
+            unexpected.Length + " definitions carry [Obsolete] without being deprecated, first: " +
+            string.Join(", ", unexpected.Take(5)));
+        foreach (var (definition, message) in expected)
+            Assert.AreEqual(message, actual[definition], definition);
+        Assert.AreEqual("Replaced by android.app.state.", actual["attribute android.state"]);
+        Assert.AreEqual("Removed, no replacement at this time.", actual["attribute db.user"]);
+
+        static string? ObsoleteMessage(JsonElement definition)
+        {
+            if (!definition.TryGetProperty("deprecated", out var deprecated) ||
+                deprecated.ValueKind != JsonValueKind.Object) return null;
+            if (deprecated.TryGetProperty("renamed_to", out var successor) &&
+                successor.ValueKind == JsonValueKind.String)
+                return "Replaced by " + successor.GetString() + ".";
+            var note = deprecated.TryGetProperty("note", out var text) && text.ValueKind == JsonValueKind.String
+                ? Whitespace().Replace(text.GetString()!, " ").Trim()
+                : "";
+            return note.Length > 0 ? note : "Deprecated.";
+        }
+
+        static bool HasGeneratedConstants(JsonElement definition)
+        {
+            return !(definition.TryGetProperty("annotations", out var annotations) &&
+                     annotations.TryGetProperty("code_generation", out var generation) &&
+                     generation.TryGetProperty("exclude", out var exclude) &&
+                     exclude.ValueKind == JsonValueKind.True);
+        }
+
+        static string Describe(MemberInfo member)
+        {
+            var owner = member.DeclaringType;
+            switch (member)
+            {
+                case FieldInfo { IsLiteral: true } field when IsAttributeClass(owner):
+                    return "attribute " + (string)field.GetRawConstantValue()!;
+                case Type values when IsAttributeClass(owner) && values.Name.EndsWith("Values", StringComparison.Ordinal) &&
+                                      owner!.GetField(values.Name[..^"Values".Length]) is { IsLiteral: true } key:
+                    return "values of " + (string)key.GetRawConstantValue()!;
+                case Type metric when owner == typeof(Metrics) && metric.GetField("Name") is { IsLiteral: true } name:
+                    return "metric " + (string)name.GetRawConstantValue()!;
+                case Type span when owner == typeof(Spans) && span.GetField("Id") is { IsLiteral: true } id:
+                    return "span " + (string)id.GetRawConstantValue()!;
+                default:
+                    return "unexpected " + (owner is null ? "" : owner.FullName + ".") + member.Name;
+            }
+        }
+
+        static bool IsAttributeClass(Type? type)
+        {
+            return type is { IsNested: false, Namespace: "Nami.SemanticConventions" } &&
+                   type.Name.EndsWith("Attributes", StringComparison.Ordinal);
+        }
+    }
+
+    [TestMethod]
+    [Timeout(240000, CooperativeCancellation = true)]
+    [DoNotParallelize]
+    public async Task Build_UseOfDeprecatedRegistryConstant_FailsUnderProductionPolicy()
+    {
+        await using var current = new FixtureProject("CurrentKeyConsumer", context: context);
+        UseRegistryConstants(current, "AndroidAttributes.AppState", "Metrics.SystemCpuTime.Name");
+        var accepted = await current.BuildAsync(context.CancellationToken);
+        Assert.AreEqual(0, accepted.ExitCode, accepted.Output + accepted.Error);
+        Assert.AreEqual("false", accepted.GetRecordedProperty("TreatWarningsAsErrors"));
+
+        await using var deprecated = new FixtureProject("DeprecatedKeyConsumer", context: context);
+        UseRegistryConstants(deprecated, "AndroidAttributes.State", "Metrics.CpuTime.Name");
+        var rejected = await deprecated.BuildAsync(context.CancellationToken);
+        var output = rejected.Output + rejected.Error;
+        Assert.AreNotEqual(0, rejected.ExitCode,
+            "A hand-written use of a deprecated registry constant must fail the build:\n" + output);
+        var errors = CompilerError().Matches(output).Select(static match => match.Groups[1].Value).Distinct().ToArray();
+        Assert.AreSequenceEqual(["CS0618"], errors, output);
+        Assert.Contains("'AndroidAttributes.State' is obsolete: 'Replaced by android.app.state.'", output);
+        Assert.Contains("'Metrics.CpuTime' is obsolete: 'Replaced by system.cpu.time.'", output);
+    }
+
+    private static void UseRegistryConstants(FixtureProject project, string attributeKey, string metricName)
+    {
+        UnionCompilerTests.UseProductionWarningPolicy(project);
+        project.AddAssemblyReference(typeof(RegistryInfo).Assembly.Location);
+        project.AddSource("Keys.cs", $$"""
+            using Nami.SemanticConventions;
+
+            namespace RegistryConsumer;
+
+            public static class Keys
+            {
+                public static string Attribute => {{attributeKey}};
+                public static string Metric => {{metricName}};
+            }
+            """);
     }
 
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
@@ -399,4 +562,10 @@ public sealed partial class RegistryGateTests(TestContext context)
 
     [GeneratedRegex(@"\bIL[23][0-9]{3}\b")]
     private static partial Regex TrimmingDiagnostic();
+
+    [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant)]
+    private static partial Regex Whitespace();
+
+    [GeneratedRegex(@"\berror ([A-Z]+\d+)\b", RegexOptions.CultureInvariant)]
+    private static partial Regex CompilerError();
 }

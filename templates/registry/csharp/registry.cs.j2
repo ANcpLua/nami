@@ -78,8 +78,14 @@ public static class DeprecatedAttributes
 public static class {{ ns.name }}Attributes
 {
 {% for a in ns.attributes %}
+{% if a.obsolete %}
+    [Obsolete({{ a.obsolete }})]
+{% endif %}
     public const string {{ a.identifier }} = {{ a.json }};
 {% if a.values %}
+{% if a.obsolete %}
+    [Obsolete({{ a.obsolete }})]
+{% endif %}
     public static class {{ a.identifier }}Values
     {
 {% for value in a.values %}
@@ -100,6 +106,9 @@ public static class Metrics
 {% endfor %}
     });
 {% for metric in ctx.metrics %}
+{% if metric.obsolete %}
+    [Obsolete({{ metric.obsolete }})]
+{% endif %}
     public static class {{ metric.name }}
     {
         public const string Name = {{ metric.json }};
@@ -119,6 +128,9 @@ public static class Spans
 {% endfor %}
     });
 {% for span in ctx.spans %}
+{% if span.obsolete %}
+    [Obsolete({{ span.obsolete }})]
+{% endif %}
     public static class {{ span.name }}
     {
         public const string Id = {{ span.id_json }};

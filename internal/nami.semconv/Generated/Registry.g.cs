@@ -2895,7 +2895,9 @@ public static class AndroidAttributes
         public const string Foreground = "foreground";
     }
     public const string OsApiLevel = "android.os.api_level";
+    [Obsolete("Replaced by android.app.state.")]
     public const string State = "android.state";
+    [Obsolete("Replaced by android.app.state.")]
     public static class StateValues
     {
         public const string Created = "created";
@@ -3131,7 +3133,9 @@ public static class AwsAttributes
 
 public static class AzAttributes
 {
+    [Obsolete("Replaced by azure.resource_provider.namespace.")]
     public const string Namespace = "az.namespace";
+    [Obsolete("Replaced by azure.service.request.id.")]
     public const string ServiceRequestId = "az.service_request_id";
 }
 
@@ -3398,14 +3402,19 @@ public static class CloudfoundryAttributes
 
 public static class CodeAttributes
 {
+    [Obsolete("Replaced by code.column.number.")]
     public const string Column = "code.column";
     public const string ColumnNumber = "code.column.number";
     public const string FilePath = "code.file.path";
+    [Obsolete("Replaced by code.file.path.")]
     public const string Filepath = "code.filepath";
+    [Obsolete("Value should be included in `code.function.name` which is expected to be a fully-qualified name.")]
     public const string Function = "code.function";
     public const string FunctionName = "code.function.name";
     public const string LineNumber = "code.line.number";
+    [Obsolete("Replaced by code.line.number.")]
     public const string Lineno = "code.lineno";
+    [Obsolete("Value should be included in `code.function.name` which is expected to be a fully-qualified name.")]
     public const string Namespace = "code.namespace";
     public const string Stacktrace = "code.stacktrace";
 }
@@ -3415,7 +3424,9 @@ public static class ContainerAttributes
     public const string Command = "container.command";
     public const string CommandArgs = "container.command_args";
     public const string CommandLine = "container.command_line";
+    [Obsolete("Replaced by cpu.mode.")]
     public const string CpuState = "container.cpu.state";
+    [Obsolete("Replaced by cpu.mode.")]
     public static class CpuStateValues
     {
         public const string User = "user";
@@ -3430,8 +3441,10 @@ public static class ContainerAttributes
     public const string ImageRepoDigests = "container.image.repo_digests";
     public const string ImageTags = "container.image.tags";
     public const string Label = "container.label";
+    [Obsolete("Replaced by container.label.")]
     public const string Labels = "container.labels";
     public const string Name = "container.name";
+    [Obsolete("Replaced by container.runtime.name.")]
     public const string Runtime = "container.runtime";
     public const string RuntimeDescription = "container.runtime.description";
     public const string RuntimeName = "container.runtime.name";
@@ -3467,7 +3480,9 @@ public static class CpythonAttributes
 
 public static class DbAttributes
 {
+    [Obsolete("Replaced by cassandra.consistency.level.")]
     public const string CassandraConsistencyLevel = "db.cassandra.consistency_level";
+    [Obsolete("Replaced by cassandra.consistency.level.")]
     public static class CassandraConsistencyLevelValues
     {
         public const string All = "all";
@@ -3482,11 +3497,17 @@ public static class DbAttributes
         public const string Serial = "serial";
         public const string LocalSerial = "local_serial";
     }
+    [Obsolete("Replaced by cassandra.coordinator.dc.")]
     public const string CassandraCoordinatorDc = "db.cassandra.coordinator.dc";
+    [Obsolete("Replaced by cassandra.coordinator.id.")]
     public const string CassandraCoordinatorId = "db.cassandra.coordinator.id";
+    [Obsolete("Replaced by cassandra.query.idempotent.")]
     public const string CassandraIdempotence = "db.cassandra.idempotence";
+    [Obsolete("Replaced by cassandra.page.size.")]
     public const string CassandraPageSize = "db.cassandra.page_size";
+    [Obsolete("Replaced by cassandra.speculative_execution.count.")]
     public const string CassandraSpeculativeExecutionCount = "db.cassandra.speculative_execution_count";
+    [Obsolete("Replaced by db.collection.name.")]
     public const string CassandraTable = "db.cassandra.table";
     public const string ClientConnectionPoolName = "db.client.connection.pool.name";
     public const string ClientConnectionState = "db.client.connection.state";
@@ -3495,23 +3516,32 @@ public static class DbAttributes
         public const string Idle = "idle";
         public const string Used = "used";
     }
+    [Obsolete("Replaced by db.client.connection.pool.name.")]
     public const string ClientConnectionsPoolName = "db.client.connections.pool.name";
+    [Obsolete("Replaced by db.client.connection.state.")]
     public const string ClientConnectionsState = "db.client.connections.state";
+    [Obsolete("Replaced by db.client.connection.state.")]
     public static class ClientConnectionsStateValues
     {
         public const string Idle = "idle";
         public const string Used = "used";
     }
     public const string CollectionName = "db.collection.name";
+    [Obsolete("Replaced by `server.address` and `server.port`.")]
     public const string ConnectionString = "db.connection_string";
+    [Obsolete("Replaced by azure.client.id.")]
     public const string CosmosdbClientId = "db.cosmosdb.client_id";
+    [Obsolete("Replaced by azure.cosmosdb.connection.mode.")]
     public const string CosmosdbConnectionMode = "db.cosmosdb.connection_mode";
+    [Obsolete("Replaced by azure.cosmosdb.connection.mode.")]
     public static class CosmosdbConnectionModeValues
     {
         public const string Gateway = "gateway";
         public const string Direct = "direct";
     }
+    [Obsolete("Replaced by azure.cosmosdb.consistency.level.")]
     public const string CosmosdbConsistencyLevel = "db.cosmosdb.consistency_level";
+    [Obsolete("Replaced by azure.cosmosdb.consistency.level.")]
     public static class CosmosdbConsistencyLevelValues
     {
         public const string Strong = "Strong";
@@ -3520,8 +3550,11 @@ public static class DbAttributes
         public const string Eventual = "Eventual";
         public const string ConsistentPrefix = "ConsistentPrefix";
     }
+    [Obsolete("Replaced by db.collection.name.")]
     public const string CosmosdbContainer = "db.cosmosdb.container";
+    [Obsolete("Removed, no replacement at this time.")]
     public const string CosmosdbOperationType = "db.cosmosdb.operation_type";
+    [Obsolete("Removed, no replacement at this time.")]
     public static class CosmosdbOperationTypeValues
     {
         public const string Batch = "batch";
@@ -3540,20 +3573,34 @@ public static class DbAttributes
         public const string Replace = "replace";
         public const string Upsert = "upsert";
     }
+    [Obsolete("Replaced by azure.cosmosdb.operation.contacted_regions.")]
     public const string CosmosdbRegionsContacted = "db.cosmosdb.regions_contacted";
+    [Obsolete("Replaced by azure.cosmosdb.operation.request_charge.")]
     public const string CosmosdbRequestCharge = "db.cosmosdb.request_charge";
+    [Obsolete("Replaced by azure.cosmosdb.request.body.size.")]
     public const string CosmosdbRequestContentLength = "db.cosmosdb.request_content_length";
+    [Obsolete("Use `db.response.status_code` instead.")]
     public const string CosmosdbStatusCode = "db.cosmosdb.status_code";
+    [Obsolete("Replaced by azure.cosmosdb.response.sub_status_code.")]
     public const string CosmosdbSubStatusCode = "db.cosmosdb.sub_status_code";
+    [Obsolete("Replaced by db.namespace.")]
     public const string ElasticsearchClusterName = "db.elasticsearch.cluster.name";
+    [Obsolete("Replaced by elasticsearch.node.name.")]
     public const string ElasticsearchNodeName = "db.elasticsearch.node.name";
+    [Obsolete("Replaced by db.operation.parameter.")]
     public const string ElasticsearchPathParts = "db.elasticsearch.path_parts";
+    [Obsolete("Removed, no general replacement at this time. For Elasticsearch, use `db.elasticsearch.node.name` instead.")]
     public const string InstanceId = "db.instance.id";
+    [Obsolete("Removed, no replacement at this time.")]
     public const string JdbcDriverClassname = "db.jdbc.driver_classname";
+    [Obsolete("Replaced by db.collection.name.")]
     public const string MongodbCollection = "db.mongodb.collection";
+    [Obsolete("Removed, no replacement at this time.")]
     public const string MssqlInstanceName = "db.mssql.instance_name";
+    [Obsolete("Replaced by db.namespace.")]
     public const string Name = "db.name";
     public const string Namespace = "db.namespace";
+    [Obsolete("Replaced by db.operation.name.")]
     public const string Operation = "db.operation";
     public const string OperationBatchSize = "db.operation.batch.size";
     public const string OperationName = "db.operation.name";
@@ -3561,13 +3608,18 @@ public static class DbAttributes
     public const string QueryParameter = "db.query.parameter";
     public const string QuerySummary = "db.query.summary";
     public const string QueryText = "db.query.text";
+    [Obsolete("Replaced by `db.namespace` (string).")]
     public const string RedisDatabaseIndex = "db.redis.database_index";
     public const string ResponseReturnedRows = "db.response.returned_rows";
     public const string ResponseStatusCode = "db.response.status_code";
+    [Obsolete("Replaced by `db.collection.name`, but only if not extracting the value from `db.query.text`.")]
     public const string SqlTable = "db.sql.table";
+    [Obsolete("Replaced by db.query.text.")]
     public const string Statement = "db.statement";
     public const string StoredProcedureName = "db.stored_procedure.name";
+    [Obsolete("Replaced by db.system.name.")]
     public const string System = "db.system";
+    [Obsolete("Replaced by db.system.name.")]
     public static class SystemValues
     {
         public const string OtherSql = "other_sql";
@@ -3665,11 +3717,13 @@ public static class DbAttributes
         public const string Teradata = "teradata";
         public const string Trino = "trino";
     }
+    [Obsolete("Removed, no replacement at this time.")]
     public const string User = "db.user";
 }
 
 public static class DeploymentAttributes
 {
+    [Obsolete("Replaced by deployment.environment.name.")]
     public const string Environment = "deployment.environment";
     public const string EnvironmentName = "deployment.environment.name";
     public static class EnvironmentNameValues
@@ -3743,12 +3797,15 @@ public static class ElasticsearchAttributes
 
 public static class EnduserAttributes
 {
+    [Obsolete("Use `user.roles` instead.")]
     public const string Role = "enduser.role";
+    [Obsolete("Removed, no replacement at this time.")]
     public const string Scope = "enduser.scope";
 }
 
 public static class ErrorAttributes
 {
+    [Obsolete("Use domain-specific error message attribute. For example, use `feature_flag.error.message` for feature flag errors.")]
     public const string Message = "error.message";
     public const string Type = "error.type";
     public static class TypeValues
@@ -3759,11 +3816,13 @@ public static class ErrorAttributes
 
 public static class EventAttributes
 {
+    [Obsolete("The value of this attribute MUST now be set as the value of the EventName field on the LogRecord to indicate that the LogRecord represents an Event.")]
     public const string Name = "event.name";
 }
 
 public static class ExceptionAttributes
 {
+    [Obsolete("It's no longer recommended to record exceptions that are handled and do not escape the scope of a span.")]
     public const string Escaped = "exception.escaped";
     public const string Message = "exception.message";
     public const string Stacktrace = "exception.stacktrace";
@@ -3800,6 +3859,7 @@ public static class FaasAttributes
     public const string InvokedRegion = "faas.invoked_region";
     public const string MaxMemory = "faas.max_memory";
     public const string Name = "faas.name";
+    [Obsolete("Replaced by faas.invocation.start_time.")]
     public const string Time = "faas.time";
     public const string Trigger = "faas.trigger";
     public static class TriggerValues
@@ -3817,8 +3877,11 @@ public static class FeatureFlagAttributes
 {
     public const string ContextId = "feature_flag.context.id";
     public const string ErrorMessage = "feature_flag.error.message";
+    [Obsolete("Replaced by feature_flag.error.message.")]
     public const string EvaluationErrorMessage = "feature_flag.evaluation.error.message";
+    [Obsolete("Replaced by feature_flag.result.reason.")]
     public const string EvaluationReason = "feature_flag.evaluation.reason";
+    [Obsolete("Replaced by feature_flag.result.reason.")]
     public static class EvaluationReasonValues
     {
         public const string Static = "static";
@@ -3849,6 +3912,7 @@ public static class FeatureFlagAttributes
     public const string ResultValue = "feature_flag.result.value";
     public const string ResultVariant = "feature_flag.result.variant";
     public const string SetId = "feature_flag.set.id";
+    [Obsolete("Replaced by feature_flag.result.variant.")]
     public const string Variant = "feature_flag.variant";
     public const string Version = "feature_flag.version";
 }
@@ -4228,6 +4292,7 @@ public static class HostAttributes
 
 public static class HttpAttributes
 {
+    [Obsolete("Replaced by client.address.")]
     public const string ClientIp = "http.client_ip";
     public const string ConnectionState = "http.connection.state";
     public static class ConnectionStateValues
@@ -4235,7 +4300,9 @@ public static class HttpAttributes
         public const string Active = "active";
         public const string Idle = "idle";
     }
+    [Obsolete("Split into `network.protocol.name` and `network.protocol.version`")]
     public const string Flavor = "http.flavor";
+    [Obsolete("Split into `network.protocol.name` and `network.protocol.version`")]
     public static class FlavorValues
     {
         public const string Http10 = "1.0";
@@ -4245,7 +4312,9 @@ public static class HttpAttributes
         public const string Spdy = "SPDY";
         public const string Quic = "QUIC";
     }
+    [Obsolete("Replaced by one of `server.address`, `client.address` or `http.request.header.host`, depending on the usage.")]
     public const string Host = "http.host";
+    [Obsolete("Replaced by http.request.method.")]
     public const string Method = "http.method";
     public const string RequestBodyContent = "http.request.body.content";
     public const string RequestBodySize = "http.request.body.size";
@@ -4268,21 +4337,31 @@ public static class HttpAttributes
     public const string RequestMethodOriginal = "http.request.method_original";
     public const string RequestResendCount = "http.request.resend_count";
     public const string RequestSize = "http.request.size";
+    [Obsolete("Replaced by `http.request.header.content-length`.")]
     public const string RequestContentLength = "http.request_content_length";
+    [Obsolete("Replaced by http.request.body.size.")]
     public const string RequestContentLengthUncompressed = "http.request_content_length_uncompressed";
     public const string ResponseBodyContent = "http.response.body.content";
     public const string ResponseBodySize = "http.response.body.size";
     public const string ResponseHeader = "http.response.header";
     public const string ResponseSize = "http.response.size";
     public const string ResponseStatusCode = "http.response.status_code";
+    [Obsolete("Replaced by `http.response.header.content-length`.")]
     public const string ResponseContentLength = "http.response_content_length";
+    [Obsolete("Replaced by http.response.body.size.")]
     public const string ResponseContentLengthUncompressed = "http.response_content_length_uncompressed";
     public const string Route = "http.route";
+    [Obsolete("Replaced by url.scheme.")]
     public const string Scheme = "http.scheme";
+    [Obsolete("Replaced by server.address.")]
     public const string ServerName = "http.server_name";
+    [Obsolete("Replaced by http.response.status_code.")]
     public const string StatusCode = "http.status_code";
+    [Obsolete("Split to `url.path` and `url.query`.")]
     public const string Target = "http.target";
+    [Obsolete("Replaced by url.full.")]
     public const string Url = "http.url";
+    [Obsolete("Replaced by user_agent.original.")]
     public const string UserAgent = "http.user_agent";
 }
 
@@ -4391,7 +4470,9 @@ public static class IosAttributes
         public const string Foreground = "foreground";
         public const string Terminate = "terminate";
     }
+    [Obsolete("Replaced by ios.app.state.")]
     public const string State = "ios.state";
+    [Obsolete("Replaced by ios.app.state.")]
     public static class StateValues
     {
         public const string Active = "active";
@@ -4564,6 +4645,7 @@ public static class K8sAttributes
     public const string PodHostname = "k8s.pod.hostname";
     public const string PodIp = "k8s.pod.ip";
     public const string PodLabel = "k8s.pod.label";
+    [Obsolete("Replaced by k8s.pod.label.")]
     public const string PodLabels = "k8s.pod.labels";
     public const string PodName = "k8s.pod.name";
     public const string PodStartTime = "k8s.pod.start_time";
@@ -4653,7 +4735,9 @@ public static class KafkaAttributes
 
 public static class LinuxAttributes
 {
+    [Obsolete("Replaced by system.memory.linux.slab.state.")]
     public const string MemorySlabState = "linux.memory.slab.state";
+    [Obsolete("Replaced by system.memory.linux.slab.state.")]
     public static class MemorySlabStateValues
     {
         public const string Reclaimable = "reclaimable";
@@ -4715,14 +4799,19 @@ public static class McpAttributes
 
 public static class MessageAttributes
 {
+    [Obsolete("Deprecated, no replacement at this time.")]
     public const string CompressedSize = "message.compressed_size";
+    [Obsolete("Deprecated, no replacement at this time.")]
     public const string Id = "message.id";
+    [Obsolete("Deprecated, no replacement at this time.")]
     public const string Type = "message.type";
+    [Obsolete("Deprecated, no replacement at this time.")]
     public static class TypeValues
     {
         public const string Sent = "SENT";
         public const string Received = "RECEIVED";
     }
+    [Obsolete("Deprecated, no replacement at this time.")]
     public const string UncompressedSize = "message.uncompressed_size";
 }
 
@@ -4737,25 +4826,41 @@ public static class MessagingAttributes
     public const string DestinationSubscriptionName = "messaging.destination.subscription.name";
     public const string DestinationTemplate = "messaging.destination.template";
     public const string DestinationTemporary = "messaging.destination.temporary";
+    [Obsolete("Removed. No replacement at this time.")]
     public const string DestinationPublishAnonymous = "messaging.destination_publish.anonymous";
+    [Obsolete("Removed. No replacement at this time.")]
     public const string DestinationPublishName = "messaging.destination_publish.name";
+    [Obsolete("Replaced by messaging.consumer.group.name.")]
     public const string EventhubsConsumerGroup = "messaging.eventhubs.consumer.group";
+    [Obsolete("Replaced by azure.eventhubs.message.enqueued_time.")]
     public const string EventhubsMessageEnqueuedTime = "messaging.eventhubs.message.enqueued_time";
+    [Obsolete("Replaced by gcp.pubsub.message.ack_deadline.")]
     public const string GcpPubsubMessageAckDeadline = "messaging.gcp_pubsub.message.ack_deadline";
+    [Obsolete("Replaced by gcp.pubsub.message.ack_id.")]
     public const string GcpPubsubMessageAckId = "messaging.gcp_pubsub.message.ack_id";
+    [Obsolete("Replaced by gcp.pubsub.message.delivery_attempt.")]
     public const string GcpPubsubMessageDeliveryAttempt = "messaging.gcp_pubsub.message.delivery_attempt";
+    [Obsolete("Replaced by gcp.pubsub.message.ordering_key.")]
     public const string GcpPubsubMessageOrderingKey = "messaging.gcp_pubsub.message.ordering_key";
+    [Obsolete("Replaced by kafka.cluster.id.")]
     public const string KafkaClusterId = "messaging.kafka.cluster.id";
+    [Obsolete("Replaced by messaging.consumer.group.name.")]
     public const string KafkaConsumerGroup = "messaging.kafka.consumer.group";
+    [Obsolete("Record string representation of the partition ID in `messaging.destination.partition.id` attribute.")]
     public const string KafkaDestinationPartition = "messaging.kafka.destination.partition";
+    [Obsolete("Replaced by kafka.message.key.")]
     public const string KafkaMessageKey = "messaging.kafka.message.key";
+    [Obsolete("Replaced by kafka.offset.")]
     public const string KafkaMessageOffset = "messaging.kafka.message.offset";
+    [Obsolete("Replaced by kafka.message.tombstone.")]
     public const string KafkaMessageTombstone = "messaging.kafka.message.tombstone";
+    [Obsolete("Replaced by kafka.offset.")]
     public const string KafkaOffset = "messaging.kafka.offset";
     public const string MessageBodySize = "messaging.message.body.size";
     public const string MessageConversationId = "messaging.message.conversation_id";
     public const string MessageEnvelopeSize = "messaging.message.envelope.size";
     public const string MessageId = "messaging.message.id";
+    [Obsolete("Replaced by messaging.operation.type.")]
     public const string Operation = "messaging.operation";
     public const string OperationName = "messaging.operation.name";
     public const string OperationType = "messaging.operation.type";
@@ -4767,21 +4872,33 @@ public static class MessagingAttributes
         public const string Process = "process";
         public const string Settle = "settle";
     }
+    [Obsolete("Replaced by rabbitmq.destination.routing_key.")]
     public const string RabbitmqDestinationRoutingKey = "messaging.rabbitmq.destination.routing_key";
+    [Obsolete("Replaced by rabbitmq.message.delivery_tag.")]
     public const string RabbitmqMessageDeliveryTag = "messaging.rabbitmq.message.delivery_tag";
+    [Obsolete("Replaced by `messaging.consumer.group.name` on the consumer spans. No replacement for producer spans.")]
     public const string RocketmqClientGroup = "messaging.rocketmq.client_group";
+    [Obsolete("Replaced by rocketmq.consumption_model.")]
     public const string RocketmqConsumptionModel = "messaging.rocketmq.consumption_model";
+    [Obsolete("Replaced by rocketmq.consumption_model.")]
     public static class RocketmqConsumptionModelValues
     {
         public const string Clustering = "clustering";
         public const string Broadcasting = "broadcasting";
     }
+    [Obsolete("Replaced by rocketmq.message.delay_time_level.")]
     public const string RocketmqMessageDelayTimeLevel = "messaging.rocketmq.message.delay_time_level";
+    [Obsolete("Replaced by rocketmq.message.delivery_timestamp.")]
     public const string RocketmqMessageDeliveryTimestamp = "messaging.rocketmq.message.delivery_timestamp";
+    [Obsolete("Replaced by rocketmq.message.group.")]
     public const string RocketmqMessageGroup = "messaging.rocketmq.message.group";
+    [Obsolete("Replaced by rocketmq.message.keys.")]
     public const string RocketmqMessageKeys = "messaging.rocketmq.message.keys";
+    [Obsolete("Replaced by rocketmq.message.tag.")]
     public const string RocketmqMessageTag = "messaging.rocketmq.message.tag";
+    [Obsolete("Replaced by rocketmq.message.type.")]
     public const string RocketmqMessageType = "messaging.rocketmq.message.type";
+    [Obsolete("Replaced by rocketmq.message.type.")]
     public static class RocketmqMessageTypeValues
     {
         public const string Normal = "normal";
@@ -4789,9 +4906,13 @@ public static class MessagingAttributes
         public const string Delay = "delay";
         public const string Transaction = "transaction";
     }
+    [Obsolete("Replaced by rocketmq.namespace.")]
     public const string RocketmqNamespace = "messaging.rocketmq.namespace";
+    [Obsolete("Replaced by messaging.destination.subscription.name.")]
     public const string ServicebusDestinationSubscriptionName = "messaging.servicebus.destination.subscription_name";
+    [Obsolete("Replaced by azure.servicebus.disposition_status.")]
     public const string ServicebusDispositionStatus = "messaging.servicebus.disposition_status";
+    [Obsolete("Replaced by azure.servicebus.disposition_status.")]
     public static class ServicebusDispositionStatusValues
     {
         public const string Complete = "complete";
@@ -4799,9 +4920,13 @@ public static class MessagingAttributes
         public const string DeadLetter = "dead_letter";
         public const string Defer = "defer";
     }
+    [Obsolete("Replaced by azure.servicebus.message.delivery_count.")]
     public const string ServicebusMessageDeliveryCount = "messaging.servicebus.message.delivery_count";
+    [Obsolete("Replaced by azure.servicebus.message.enqueued_time.")]
     public const string ServicebusMessageEnqueuedTime = "messaging.servicebus.message.enqueued_time";
+    [Obsolete("Replaced by messaging.system.name.")]
     public const string System = "messaging.system";
+    [Obsolete("Replaced by messaging.system.name.")]
     public static class SystemValues
     {
         public const string Activemq = "activemq";
@@ -4845,27 +4970,44 @@ public static class NamiAttributes
 
 public static class NetAttributes
 {
+    [Obsolete("Replaced by network.local.address.")]
     public const string HostIp = "net.host.ip";
+    [Obsolete("Replaced by server.address.")]
     public const string HostName = "net.host.name";
+    [Obsolete("Replaced by server.port.")]
     public const string HostPort = "net.host.port";
+    [Obsolete("Replaced by network.peer.address.")]
     public const string PeerIp = "net.peer.ip";
+    [Obsolete("Replaced by `server.address` on client spans and `client.address` on server spans.")]
     public const string PeerName = "net.peer.name";
+    [Obsolete("Replaced by `server.port` on client spans and `client.port` on server spans.")]
     public const string PeerPort = "net.peer.port";
+    [Obsolete("Replaced by network.protocol.name.")]
     public const string ProtocolName = "net.protocol.name";
+    [Obsolete("Replaced by network.protocol.version.")]
     public const string ProtocolVersion = "net.protocol.version";
+    [Obsolete("Split to `network.transport` and `network.type`.")]
     public const string SockFamily = "net.sock.family";
+    [Obsolete("Split to `network.transport` and `network.type`.")]
     public static class SockFamilyValues
     {
         public const string Inet = "inet";
         public const string Inet6 = "inet6";
         public const string Unix = "unix";
     }
+    [Obsolete("Replaced by network.local.address.")]
     public const string SockHostAddr = "net.sock.host.addr";
+    [Obsolete("Replaced by network.local.port.")]
     public const string SockHostPort = "net.sock.host.port";
+    [Obsolete("Replaced by network.peer.address.")]
     public const string SockPeerAddr = "net.sock.peer.addr";
+    [Obsolete("Removed. No replacement at this time.")]
     public const string SockPeerName = "net.sock.peer.name";
+    [Obsolete("Replaced by network.peer.port.")]
     public const string SockPeerPort = "net.sock.peer.port";
+    [Obsolete("Replaced by network.transport.")]
     public const string Transport = "net.transport";
+    [Obsolete("Replaced by network.transport.")]
     public static class TransportValues
     {
         public const string IpTcp = "ip_tcp";
@@ -5024,7 +5166,9 @@ public static class OpenshiftAttributes
 
 public static class OpentracingAttributes
 {
+    [Obsolete("OpenTracing compatibility requirements are [deprecated in OpenTelemetry Specification](https://opentelemetry.io/docs/specs/otel/compatibility/opentracing/)")]
     public const string RefType = "opentracing.ref_type";
+    [Obsolete("OpenTracing compatibility requirements are [deprecated in OpenTelemetry Specification](https://opentelemetry.io/docs/specs/otel/compatibility/opentracing/)")]
     public static class RefTypeValues
     {
         public const string ChildOf = "child_of";
@@ -5093,7 +5237,9 @@ public static class OtelAttributes
         public const string PrometheusHttpTextMetricExporter = "prometheus_http_text_metric_exporter";
     }
     public const string EventName = "otel.event.name";
+    [Obsolete("Replaced by otel.scope.name.")]
     public const string LibraryName = "otel.library.name";
+    [Obsolete("Replaced by otel.scope.version.")]
     public const string LibraryVersion = "otel.library.version";
     public const string ScopeName = "otel.scope.name";
     public const string ScopeSchemaUrl = "otel.scope.schema_url";
@@ -5123,11 +5269,13 @@ public static class OtelAttributes
 
 public static class PeerAttributes
 {
+    [Obsolete("Use `server.service.name` on the client side or `client.service.name` on the server side.")]
     public const string Service = "peer.service";
 }
 
 public static class PoolAttributes
 {
+    [Obsolete("Replaced by db.client.connection.pool.name.")]
     public const string Name = "pool.name";
 }
 
@@ -5158,7 +5306,9 @@ public static class ProcessAttributes
         public const string Voluntary = "voluntary";
         public const string Involuntary = "involuntary";
     }
+    [Obsolete("Replaced by cpu.mode.")]
     public const string CpuState = "process.cpu.state";
+    [Obsolete("Replaced by cpu.mode.")]
     public static class CpuStateValues
     {
         public const string System = "system";
@@ -5170,6 +5320,7 @@ public static class ProcessAttributes
     public const string ExecutableBuildIdGnu = "process.executable.build_id.gnu";
     public const string ExecutableBuildIdGo = "process.executable.build_id.go";
     public const string ExecutableBuildIdHtlhash = "process.executable.build_id.htlhash";
+    [Obsolete("Replaced by process.executable.build_id.htlhash.")]
     public const string ExecutableBuildIdProfiling = "process.executable.build_id.profiling";
     public const string ExecutableName = "process.executable.name";
     public const string ExecutablePath = "process.executable.path";
@@ -5179,7 +5330,9 @@ public static class ProcessAttributes
     public const string Interactive = "process.interactive";
     public const string LinuxCgroup = "process.linux.cgroup";
     public const string Owner = "process.owner";
+    [Obsolete("Replaced by system.paging.fault.type.")]
     public const string PagingFaultType = "process.paging.fault_type";
+    [Obsolete("Replaced by system.paging.fault.type.")]
     public static class PagingFaultTypeValues
     {
         public const string Major = "major";
@@ -5264,7 +5417,9 @@ public static class RocketmqAttributes
 
 public static class RpcAttributes
 {
+    [Obsolete("Replaced by rpc.status_code.")]
     public const string ConnectRpcErrorCode = "rpc.connect_rpc.error_code";
+    [Obsolete("Replaced by rpc.status_code.")]
     public static class ConnectRpcErrorCodeValues
     {
         public const string Cancelled = "cancelled";
@@ -5284,11 +5439,17 @@ public static class RpcAttributes
         public const string DataLoss = "data_loss";
         public const string Unauthenticated = "unauthenticated";
     }
+    [Obsolete("Replaced by rpc.request.header.")]
     public const string ConnectRpcRequestMetadata = "rpc.connect_rpc.request.metadata";
+    [Obsolete("Split to `rpc.response.header` for metadata sent before the response payload and `rpc.response.trailer` for metadata sent after it.")]
     public const string ConnectRpcResponseMetadata = "rpc.connect_rpc.response.metadata";
+    [Obsolete("Replaced by rpc.request.header.")]
     public const string GrpcRequestMetadata = "rpc.grpc.request.metadata";
+    [Obsolete("Split to `rpc.response.header` for metadata sent before the response payload and `rpc.response.trailer` for metadata sent after it.")]
     public const string GrpcResponseMetadata = "rpc.grpc.response.metadata";
+    [Obsolete("Use string representation of the gRPC status code on the `rpc.status_code` attribute.")]
     public const string GrpcStatusCode = "rpc.grpc.status_code";
+    [Obsolete("Use string representation of the gRPC status code on the `rpc.status_code` attribute.")]
     public static class GrpcStatusCodeValues
     {
         public const double Ok = 0;
@@ -5309,30 +5470,45 @@ public static class RpcAttributes
         public const double DataLoss = 15;
         public const double Unauthenticated = 16;
     }
+    [Obsolete("Use string representation of the error code on the `rpc.status_code` attribute.")]
     public const string JsonrpcErrorCode = "rpc.jsonrpc.error_code";
+    [Obsolete("Use the span status description when reporting JSON-RPC spans.")]
     public const string JsonrpcErrorMessage = "rpc.jsonrpc.error_message";
+    [Obsolete("Replaced by jsonrpc.request.id.")]
     public const string JsonrpcRequestId = "rpc.jsonrpc.request_id";
+    [Obsolete("Replaced by jsonrpc.protocol.version.")]
     public const string JsonrpcVersion = "rpc.jsonrpc.version";
+    [Obsolete("Deprecated, no replacement at this time.")]
     public const string MessageCompressedSize = "rpc.message.compressed_size";
+    [Obsolete("Deprecated, no replacement at this time.")]
     public const string MessageId = "rpc.message.id";
+    [Obsolete("Deprecated, no replacement at this time.")]
     public const string MessageType = "rpc.message.type";
+    [Obsolete("Deprecated, no replacement at this time.")]
     public static class MessageTypeValues
     {
         public const string Sent = "SENT";
         public const string Received = "RECEIVED";
     }
+    [Obsolete("Deprecated, no replacement at this time.")]
     public const string MessageUncompressedSize = "rpc.message.uncompressed_size";
     public const string Method = "rpc.method";
     public const string MethodOriginal = "rpc.method_original";
     public const string RequestHeader = "rpc.request.header";
+    [Obsolete("Replaced by rpc.request.header.")]
     public const string RequestMetadata = "rpc.request.metadata";
     public const string ResponseHeader = "rpc.response.header";
+    [Obsolete("Split to `rpc.response.header` for metadata sent before the response payload and `rpc.response.trailer` for metadata sent after it.")]
     public const string ResponseMetadata = "rpc.response.metadata";
+    [Obsolete("Replaced by rpc.status_code.")]
     public const string ResponseStatusCode = "rpc.response.status_code";
     public const string ResponseTrailer = "rpc.response.trailer";
+    [Obsolete("Value should be included in `rpc.method` which is expected to be a fully-qualified name.")]
     public const string Service = "rpc.service";
     public const string StatusCode = "rpc.status_code";
+    [Obsolete("Replaced by rpc.system.name.")]
     public const string System = "rpc.system";
+    [Obsolete("Replaced by rpc.system.name.")]
     public static class SystemValues
     {
         public const string Grpc = "grpc";
@@ -5392,7 +5568,9 @@ public static class ServiceAttributes
     public const string InstanceId = "service.instance.id";
     public const string Name = "service.name";
     public const string Namespace = "service.namespace";
+    [Obsolete("Use `server.service.name` on the client side or `client.service.name` on the server side.")]
     public const string PeerName = "service.peer.name";
+    [Obsolete("Use `server.service.namespace` on the client side or `client.service.namespace` on the server side.")]
     public const string PeerNamespace = "service.peer.namespace";
     public const string Version = "service.version";
 }
@@ -5433,7 +5611,9 @@ public static class SourceAttributes
 
 public static class StateAttributes
 {
+    [Obsolete("Replaced by db.client.connection.state.")]
     public const string State = "state";
+    [Obsolete("Replaced by db.client.connection.state.")]
     public static class StateValues
     {
         public const string Idle = "idle";
@@ -5443,8 +5623,11 @@ public static class StateAttributes
 
 public static class SystemAttributes
 {
+    [Obsolete("Replaced by cpu.logical_number.")]
     public const string CpuLogicalNumber = "system.cpu.logical_number";
+    [Obsolete("Replaced by cpu.mode.")]
     public const string CpuState = "system.cpu.state";
+    [Obsolete("Replaced by cpu.mode.")]
     public static class CpuStateValues
     {
         public const string User = "user";
@@ -5455,6 +5638,7 @@ public static class SystemAttributes
         public const string Interrupt = "interrupt";
         public const string Steal = "steal";
     }
+    [Obsolete("Replaced by system.device.name.")]
     public const string Device = "system.device";
     public const string DeviceName = "system.device.name";
     public const string FilesystemMode = "system.filesystem.mode";
@@ -5494,7 +5678,9 @@ public static class SystemAttributes
         public const string Used = "used";
         public const string Available = "available";
     }
+    [Obsolete("Replaced by network.connection.state.")]
     public const string NetworkState = "system.network.state";
+    [Obsolete("Replaced by network.connection.state.")]
     public static class NetworkStateValues
     {
         public const string Close = "close";
@@ -5528,13 +5714,17 @@ public static class SystemAttributes
         public const string Used = "used";
         public const string Free = "free";
     }
+    [Obsolete("Replaced by system.paging.fault.type.")]
     public const string PagingType = "system.paging.type";
+    [Obsolete("Replaced by system.paging.fault.type.")]
     public static class PagingTypeValues
     {
         public const string Major = "major";
         public const string Minor = "minor";
     }
+    [Obsolete("Replaced by process.state.")]
     public const string ProcessStatus = "system.process.status";
+    [Obsolete("Replaced by process.state.")]
     public static class ProcessStatusValues
     {
         public const string Running = "running";
@@ -5542,7 +5732,9 @@ public static class SystemAttributes
         public const string Stopped = "stopped";
         public const string Defunct = "defunct";
     }
+    [Obsolete("Replaced by process.state.")]
     public const string ProcessesStatus = "system.processes.status";
+    [Obsolete("Replaced by process.state.")]
     public static class ProcessesStatusValues
     {
         public const string Running = "running";
@@ -5617,6 +5809,7 @@ public static class TlsAttributes
     public const string ClientJa3 = "tls.client.ja3";
     public const string ClientNotAfter = "tls.client.not_after";
     public const string ClientNotBefore = "tls.client.not_before";
+    [Obsolete("Replaced by server.address.")]
     public const string ClientServerName = "tls.client.server_name";
     public const string ClientSubject = "tls.client.subject";
     public const string ClientSupportedCiphers = "tls.client.supported_ciphers";
@@ -5773,12 +5966,18 @@ public static class VcsAttributes
         public const string Branch = "branch";
         public const string Tag = "tag";
     }
+    [Obsolete("Replaced by vcs.change.id.")]
     public const string RepositoryChangeId = "vcs.repository.change.id";
+    [Obsolete("Replaced by vcs.change.title.")]
     public const string RepositoryChangeTitle = "vcs.repository.change.title";
     public const string RepositoryName = "vcs.repository.name";
+    [Obsolete("Replaced by vcs.ref.head.name.")]
     public const string RepositoryRefName = "vcs.repository.ref.name";
+    [Obsolete("Replaced by vcs.ref.head.revision.")]
     public const string RepositoryRefRevision = "vcs.repository.ref.revision";
+    [Obsolete("Replaced by vcs.ref.head.type.")]
     public const string RepositoryRefType = "vcs.repository.ref.type";
+    [Obsolete("Replaced by vcs.ref.head.type.")]
     public static class RepositoryRefTypeValues
     {
         public const string Branch = "branch";
@@ -6689,6 +6888,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
+    [Obsolete("Replaced by container.paging.faults.")]
     public static class ContainerMemoryPagingFaults
     {
         public const string Name = "container.memory.paging.faults";
@@ -6738,6 +6938,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
+    [Obsolete("Replaced by system.cpu.frequency.")]
     public static class CpuFrequency
     {
         public const string Name = "cpu.frequency";
@@ -6745,6 +6946,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by system.cpu.time.")]
     public static class CpuTime
     {
         public const string Name = "cpu.time";
@@ -6752,6 +6954,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by system.cpu.utilization.")]
     public static class CpuUtilization
     {
         public const string Name = "cpu.utilization";
@@ -6815,6 +7018,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by db.client.connection.limit.")]
     public static class DbClientConnectionMax
     {
         public const string Name = "db.client.connection.max";
@@ -6850,6 +7054,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by `db.client.connection.create_time` with unit `s`.")]
     public static class DbClientConnectionsCreateTime
     {
         public const string Name = "db.client.connections.create_time";
@@ -6857,6 +7062,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by db.client.connection.idle.max.")]
     public static class DbClientConnectionsIdleMax
     {
         public const string Name = "db.client.connections.idle.max";
@@ -6864,6 +7070,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by db.client.connection.idle.min.")]
     public static class DbClientConnectionsIdleMin
     {
         public const string Name = "db.client.connections.idle.min";
@@ -6871,6 +7078,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by db.client.connection.limit.")]
     public static class DbClientConnectionsMax
     {
         public const string Name = "db.client.connections.max";
@@ -6878,6 +7086,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by db.client.connection.pending_requests.")]
     public static class DbClientConnectionsPendingRequests
     {
         public const string Name = "db.client.connections.pending_requests";
@@ -6885,6 +7094,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by db.client.connection.timeouts.")]
     public static class DbClientConnectionsTimeouts
     {
         public const string Name = "db.client.connections.timeouts";
@@ -6892,6 +7102,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by db.client.connection.count.")]
     public static class DbClientConnectionsUsage
     {
         public const string Name = "db.client.connections.usage";
@@ -6899,6 +7110,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by `db.client.connection.use_time` with unit `s`.")]
     public static class DbClientConnectionsUseTime
     {
         public const string Name = "db.client.connections.use_time";
@@ -6906,6 +7118,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by `db.client.connection.wait_time` with unit `s`.")]
     public static class DbClientConnectionsWaitTime
     {
         public const string Name = "db.client.connections.wait_time";
@@ -6913,6 +7126,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by azure.cosmosdb.client.active_instance.count.")]
     public static class DbClientCosmosdbActiveInstanceCount
     {
         public const string Name = "db.client.cosmosdb.active_instance.count";
@@ -6920,6 +7134,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by azure.cosmosdb.client.operation.request_charge.")]
     public static class DbClientCosmosdbOperationRequestCharge
     {
         public const string Name = "db.client.cosmosdb.operation.request_charge";
@@ -7760,6 +7975,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by jvm.buffer.memory.used.")]
     public static class JvmBufferMemoryUsage
     {
         public const string Name = "jvm.buffer.memory.usage";
@@ -7942,6 +8158,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Stable;
     }
+    [Obsolete("Replaced by k8s.container.cpu.limit.desired.")]
     public static class K8sContainerCpuLimit
     {
         public const string Name = "k8s.container.cpu.limit";
@@ -7970,6 +8187,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.container.cpu.request.desired.")]
     public static class K8sContainerCpuRequest
     {
         public const string Name = "k8s.container.cpu.request";
@@ -8019,6 +8237,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.container.memory.limit.desired.")]
     public static class K8sContainerMemoryLimit
     {
         public const string Name = "k8s.container.memory.limit";
@@ -8047,6 +8266,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.container.memory.request.desired.")]
     public static class K8sContainerMemoryRequest
     {
         public const string Name = "k8s.container.memory.request";
@@ -8117,6 +8337,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.cronjob.job.active.")]
     public static class K8sCronjobActiveJobs
     {
         public const string Name = "k8s.cronjob.active_jobs";
@@ -8131,6 +8352,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.daemonset.node.current_scheduled.")]
     public static class K8sDaemonsetCurrentScheduledNodes
     {
         public const string Name = "k8s.daemonset.current_scheduled_nodes";
@@ -8138,6 +8360,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.daemonset.node.desired_scheduled.")]
     public static class K8sDaemonsetDesiredScheduledNodes
     {
         public const string Name = "k8s.daemonset.desired_scheduled_nodes";
@@ -8145,6 +8368,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.daemonset.node.misscheduled.")]
     public static class K8sDaemonsetMisscheduledNodes
     {
         public const string Name = "k8s.daemonset.misscheduled_nodes";
@@ -8180,6 +8404,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.daemonset.node.ready.")]
     public static class K8sDaemonsetReadyNodes
     {
         public const string Name = "k8s.daemonset.ready_nodes";
@@ -8187,6 +8412,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.deployment.pod.available.")]
     public static class K8sDeploymentAvailablePods
     {
         public const string Name = "k8s.deployment.available_pods";
@@ -8194,6 +8420,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.deployment.pod.desired.")]
     public static class K8sDeploymentDesiredPods
     {
         public const string Name = "k8s.deployment.desired_pods";
@@ -8215,6 +8442,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.hpa.pod.current.")]
     public static class K8sHpaCurrentPods
     {
         public const string Name = "k8s.hpa.current_pods";
@@ -8222,6 +8450,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.hpa.pod.desired.")]
     public static class K8sHpaDesiredPods
     {
         public const string Name = "k8s.hpa.desired_pods";
@@ -8229,6 +8458,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.hpa.pod.max.")]
     public static class K8sHpaMaxPods
     {
         public const string Name = "k8s.hpa.max_pods";
@@ -8257,6 +8487,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.hpa.pod.min.")]
     public static class K8sHpaMinPods
     {
         public const string Name = "k8s.hpa.min_pods";
@@ -8292,6 +8523,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.job.pod.active.")]
     public static class K8sJobActivePods
     {
         public const string Name = "k8s.job.active_pods";
@@ -8299,6 +8531,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.job.pod.desired_successful.")]
     public static class K8sJobDesiredSuccessfulPods
     {
         public const string Name = "k8s.job.desired_successful_pods";
@@ -8306,6 +8539,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.job.pod.failed.")]
     public static class K8sJobFailedPods
     {
         public const string Name = "k8s.job.failed_pods";
@@ -8313,6 +8547,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.job.pod.max_parallel.")]
     public static class K8sJobMaxParallelPods
     {
         public const string Name = "k8s.job.max_parallel_pods";
@@ -8355,6 +8590,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.job.pod.successful.")]
     public static class K8sJobSuccessfulPods
     {
         public const string Name = "k8s.job.successful_pods";
@@ -8369,6 +8605,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.node.cpu.allocatable.")]
     public static class K8sNodeAllocatableCpu
     {
         public const string Name = "k8s.node.allocatable.cpu";
@@ -8376,6 +8613,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.node.ephemeral_storage.allocatable.")]
     public static class K8sNodeAllocatableEphemeralStorage
     {
         public const string Name = "k8s.node.allocatable.ephemeral_storage";
@@ -8383,6 +8621,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.node.memory.allocatable.")]
     public static class K8sNodeAllocatableMemory
     {
         public const string Name = "k8s.node.allocatable.memory";
@@ -8390,6 +8629,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.node.pod.allocatable.")]
     public static class K8sNodeAllocatablePods
     {
         public const string Name = "k8s.node.allocatable.pods";
@@ -8481,6 +8721,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
+    [Obsolete("Replaced by k8s.node.paging.faults.")]
     public static class K8sNodeMemoryPagingFaults
     {
         public const string Name = "k8s.node.memory.paging.faults";
@@ -8726,6 +8967,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.pod.paging.faults.")]
     public static class K8sPodMemoryPagingFaults
     {
         public const string Name = "k8s.pod.memory.paging.faults";
@@ -8859,6 +9101,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.replicaset.pod.available.")]
     public static class K8sReplicasetAvailablePods
     {
         public const string Name = "k8s.replicaset.available_pods";
@@ -8866,6 +9109,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.replicaset.pod.desired.")]
     public static class K8sReplicasetDesiredPods
     {
         public const string Name = "k8s.replicaset.desired_pods";
@@ -8887,6 +9131,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.replicationcontroller.pod.available.")]
     public static class K8sReplicationControllerAvailablePods
     {
         public const string Name = "k8s.replication_controller.available_pods";
@@ -8894,6 +9139,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.replicationcontroller.pod.desired.")]
     public static class K8sReplicationControllerDesiredPods
     {
         public const string Name = "k8s.replication_controller.desired_pods";
@@ -8901,6 +9147,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.replicationcontroller.pod.available.")]
     public static class K8sReplicationcontrollerAvailablePods
     {
         public const string Name = "k8s.replicationcontroller.available_pods";
@@ -8908,6 +9155,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.replicationcontroller.pod.desired.")]
     public static class K8sReplicationcontrollerDesiredPods
     {
         public const string Name = "k8s.replicationcontroller.desired_pods";
@@ -9083,6 +9331,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.statefulset.pod.current.")]
     public static class K8sStatefulsetCurrentPods
     {
         public const string Name = "k8s.statefulset.current_pods";
@@ -9090,6 +9339,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.statefulset.pod.desired.")]
     public static class K8sStatefulsetDesiredPods
     {
         public const string Name = "k8s.statefulset.desired_pods";
@@ -9132,6 +9382,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by k8s.statefulset.pod.ready.")]
     public static class K8sStatefulsetReadyPods
     {
         public const string Name = "k8s.statefulset.ready_pods";
@@ -9139,6 +9390,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by k8s.statefulset.pod.updated.")]
     public static class K8sStatefulsetUpdatedPods
     {
         public const string Name = "k8s.statefulset.updated_pods";
@@ -9244,6 +9496,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by messaging.client.sent.messages.")]
     public static class MessagingClientPublishedMessages
     {
         public const string Name = "messaging.client.published.messages";
@@ -9265,6 +9518,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by messaging.client.consumed.messages.")]
     public static class MessagingProcessMessages
     {
         public const string Name = "messaging.process.messages";
@@ -9272,6 +9526,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by messaging.client.operation.duration.")]
     public static class MessagingPublishDuration
     {
         public const string Name = "messaging.publish.duration";
@@ -9279,6 +9534,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by messaging.client.sent.messages.")]
     public static class MessagingPublishMessages
     {
         public const string Name = "messaging.publish.messages";
@@ -9286,6 +9542,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by messaging.client.operation.duration.")]
     public static class MessagingReceiveDuration
     {
         public const string Name = "messaging.receive.duration";
@@ -9293,6 +9550,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by messaging.client.consumed.messages.")]
     public static class MessagingReceiveMessages
     {
         public const string Name = "messaging.receive.messages";
@@ -9678,6 +9936,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by otel.sdk.exporter.span.exported.")]
     public static class OtelSdkExporterSpanExportedCount
     {
         public const string Name = "otel.sdk.exporter.span.exported.count";
@@ -9692,6 +9951,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by otel.sdk.exporter.span.inflight.")]
     public static class OtelSdkExporterSpanInflightCount
     {
         public const string Name = "otel.sdk.exporter.span.inflight.count";
@@ -9741,6 +10001,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by otel.sdk.processor.span.processed.")]
     public static class OtelSdkProcessorSpanProcessedCount
     {
         public const string Name = "otel.sdk.processor.span.processed.count";
@@ -9762,6 +10023,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Obsoleted.")]
     public static class OtelSdkSpanEnded
     {
         public const string Name = "otel.sdk.span.ended";
@@ -9769,6 +10031,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Obsoleted.")]
     public static class OtelSdkSpanEndedCount
     {
         public const string Name = "otel.sdk.span.ended.count";
@@ -9783,6 +10046,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by otel.sdk.span.live.")]
     public static class OtelSdkSpanLiveCount
     {
         public const string Name = "otel.sdk.span.live.count";
@@ -9860,6 +10124,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.ReleaseCandidate;
     }
+    [Obsolete("Replaced by process.unix.file_descriptor.count.")]
     public static class ProcessOpenFileDescriptorCount
     {
         public const string Name = "process.open_file_descriptor.count";
@@ -9923,6 +10188,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Stable;
     }
+    [Obsolete("Replaced by `rpc.client.call.duration` with unit `s`.")]
     public static class RpcClientDuration
     {
         public const string Name = "rpc.client.duration";
@@ -9930,6 +10196,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Removed, no replacement at this time.")]
     public static class RpcClientRequestSize
     {
         public const string Name = "rpc.client.request.size";
@@ -9937,6 +10204,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Removed, no replacement at this time.")]
     public static class RpcClientRequestsPerRpc
     {
         public const string Name = "rpc.client.requests_per_rpc";
@@ -9944,6 +10212,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Removed, no replacement at this time.")]
     public static class RpcClientResponseSize
     {
         public const string Name = "rpc.client.response.size";
@@ -9951,6 +10220,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Removed, no replacement at this time.")]
     public static class RpcClientResponsesPerRpc
     {
         public const string Name = "rpc.client.responses_per_rpc";
@@ -9965,6 +10235,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Stable;
     }
+    [Obsolete("Replaced by `rpc.server.call.duration` with unit `s`.")]
     public static class RpcServerDuration
     {
         public const string Name = "rpc.server.duration";
@@ -9972,6 +10243,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Removed, no replacement at this time.")]
     public static class RpcServerRequestSize
     {
         public const string Name = "rpc.server.request.size";
@@ -9979,6 +10251,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Removed, no replacement at this time.")]
     public static class RpcServerRequestsPerRpc
     {
         public const string Name = "rpc.server.requests_per_rpc";
@@ -9986,6 +10259,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Removed, no replacement at this time.")]
     public static class RpcServerResponseSize
     {
         public const string Name = "rpc.server.response.size";
@@ -9993,6 +10267,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Removed, no replacement at this time.")]
     public static class RpcServerResponsesPerRpc
     {
         public const string Name = "rpc.server.responses_per_rpc";
@@ -10119,6 +10394,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Gauge;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by system.memory.linux.available.")]
     public static class SystemLinuxMemoryAvailable
     {
         public const string Name = "system.linux.memory.available";
@@ -10126,6 +10402,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by system.memory.linux.slab.usage.")]
     public static class SystemLinuxMemorySlabUsage
     {
         public const string Name = "system.linux.memory.slab.usage";
@@ -10203,6 +10480,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by system.memory.linux.shared.")]
     public static class SystemMemoryShared
     {
         public const string Name = "system.memory.shared";
@@ -10231,6 +10509,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by system.network.connection.count.")]
     public static class SystemNetworkConnections
     {
         public const string Name = "system.network.connections";
@@ -10238,6 +10517,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by system.network.packet.dropped.")]
     public static class SystemNetworkDropped
     {
         public const string Name = "system.network.dropped";
@@ -10273,6 +10553,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Counter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by system.network.packet.count.")]
     public static class SystemNetworkPackets
     {
         public const string Name = "system.network.packets";
@@ -10343,6 +10624,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.Histogram;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Development;
     }
+    [Obsolete("Replaced by v8js.memory.heap.space.available_size.")]
     public static class V8jsHeapSpaceAvailableSize
     {
         public const string Name = "v8js.heap.space.available_size";
@@ -10350,6 +10632,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by v8js.memory.heap.space.physical_size.")]
     public static class V8jsHeapSpacePhysicalSize
     {
         public const string Name = "v8js.heap.space.physical_size";
@@ -10357,6 +10640,7 @@ public static class Metrics
         public const Instrument Instrument = global::Nami.SemanticConventions.Instrument.UpDownCounter;
         public const Stability Stability = global::Nami.SemanticConventions.Stability.Deprecated;
     }
+    [Obsolete("Replaced by v8js.memory.heap.space.size.")]
     public static class V8jsMemoryHeapLimit
     {
         public const string Name = "v8js.memory.heap.limit";
@@ -11058,6 +11342,7 @@ public static class Spans
         public const string Kind = "Internal";
         public static IReadOnlyList<string> RequiredAttributes { get; } = Array.AsReadOnly(new string[] { "gen_ai.operation.name" });
     }
+    [Obsolete("Calls to retrieval or search services SHOULD be instrumented following database or other applicable client semantic conventions. Retrieval performed by GenAI frameworks and applications SHOULD be reported with the `gen_ai.retrieval` span.")]
     public static class GenAiRetrievalClient
     {
         public const string Id = "gen_ai.retrieval.client";

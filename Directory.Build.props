@@ -23,7 +23,9 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest</AnalysisLevel>
     <AnalysisMode>Recommended</AnalysisMode>
-    <WarningsAsErrors>$(WarningsAsErrors);CA1816;CA2000;CA2012;CA2016;CS8509;CS8655;CS8846</WarningsAsErrors>
+    <!-- CS0618: a deprecated semantic-convention constant carries [Obsolete]; using one fails the build.
+         A reader that must accept an old key says so with a narrow #pragma and a reason. -->
+    <WarningsAsErrors>$(WarningsAsErrors);CA1816;CA2000;CA2012;CA2016;CS0618;CS8509;CS8655;CS8846</WarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(NamiAot)' == 'false'">

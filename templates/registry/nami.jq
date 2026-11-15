@@ -192,11 +192,24 @@ def nami_markdown_index:
 
 def nami_pascal_name: gsub("[^A-Za-z0-9]+"; "_") | split("_") | map(. as $p | ($p[0:1] | ascii_upcase) + $p[1:]) | join("") | if test("^[0-9]") then "_" + . else . end;
 def nami_cs_stability: if .deprecated != null then "Deprecated" else (.stability // "development" | nami_stability_variant) end;
+# null, or the C# string literal of the [Obsolete] message on a deprecated definition's
+# constants: the successor when the registry names one, otherwise the one-line note.
+def nami_cs_obsolete:
+  if .deprecated == null then null
+  else
+    .deprecated as $d
+    | (if $d.renamed_to then "Replaced by \($d.renamed_to)."
+       else (($d.note // "") | nami_text) as $note
+         | if $note != "" then $note else "Deprecated." end
+       end)
+    | tojson
+  end;
 def nami_cs_attr:
   . as $attribute
   | . + {identifier: (.key | nami_rest | nami_pascal_name),
        json: (.key | tojson),
        cs_stability: nami_cs_stability,
+       obsolete: nami_cs_obsolete,
        persisted: ((if .annotations | has("nami.persisted") then .annotations."nami.persisted" else true end) and (.deprecated == null)),
        token_exempt: (.annotations."nami.token_exempt" // false),
        successor: (.deprecated.renamed_to // null | tojson),
@@ -213,5 +226,5 @@ def nami_cs:
   | [nami_merge("attributes"; .key)[] | nami_cs_attr] as $attrs
   | {schema_url:$root.schema_url,attributes:$attrs,
      namespaces:([$attrs[].key | nami_root]|unique|map(. as $ns | {name:($ns|nami_pascal_name), attributes:[$attrs[]|select((.key|nami_root)==$ns)|select(nami_excluded_from_codegen|not)]})),
-     metrics:[nami_merge("metrics"; .name)[] | select(nami_excluded_from_codegen|not) | {name:(.name|nami_pascal_name),json:(.name|tojson),unit:(.unit//""|tojson),instrument:(.instrument|nami_instrument_variant),stability:nami_cs_stability}],
-     spans:[(([($root.refinements.spans // [])[] | . + {shape_id:.id}] + [nami_merge("spans"; .type)[] | . + {shape_id:.type}]) | unique_by(.shape_id))[] | select(nami_excluded_from_codegen|not) | {name:(.shape_id|nami_pascal_name),id_json:(.shape_id|tojson),json:(.type|tojson),stability:nami_cs_stability,kind:(.kind|nami_pascal_name),required:[.attributes[]|select(.requirement_level=="required")|.key|tojson]}]};
+     metrics:[nami_merge("metrics"; .name)[] | select(nami_excluded_from_codegen|not) | {name:(.name|nami_pascal_name),json:(.name|tojson),unit:(.unit//""|tojson),instrument:(.instrument|nami_instrument_variant),stability:nami_cs_stability,obsolete:nami_cs_obsolete}],
+     spans:[(([($root.refinements.spans // [])[] | . + {shape_id:.id}] + [nami_merge("spans"; .type)[] | . + {shape_id:.type}]) | unique_by(.shape_id))[] | select(nami_excluded_from_codegen|not) | {name:(.shape_id|nami_pascal_name),id_json:(.shape_id|tojson),json:(.type|tojson),stability:nami_cs_stability,obsolete:nami_cs_obsolete,kind:(.kind|nami_pascal_name),required:[.attributes[]|select(.requirement_level=="required")|.key|tojson]}]};
