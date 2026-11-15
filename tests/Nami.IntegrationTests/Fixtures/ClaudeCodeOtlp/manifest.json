@@ -1,0 +1,82 @@
+{
+  "captures": [
+    {
+      "file": "00001-traces.pb",
+      "json": "00001-traces.json",
+      "signal": "traces",
+      "path": "/v1/traces",
+      "contentType": "application/x-protobuf",
+      "contentEncoding": null,
+      "userAgent": "OTel-OTLP-Exporter-JavaScript/0.208.0",
+      "receivedAt": "2026-11-15T11:48:47.103826+00:00",
+      "receivedAtUnixNano": "1794743327103826257",
+      "bytes": 2678,
+      "sha256": "fb69e0a6cf077a2efe4d6aaba4b0d91b739e88ab64d9260897c84a04d3015429"
+    },
+    {
+      "file": "00002-logs.pb",
+      "json": "00002-logs.json",
+      "signal": "logs",
+      "path": "/v1/logs",
+      "contentType": "application/x-protobuf",
+      "contentEncoding": null,
+      "userAgent": "OTel-OTLP-Exporter-JavaScript/0.208.0",
+      "receivedAt": "2026-11-15T11:48:47.105537+00:00",
+      "receivedAtUnixNano": "1794743327105537198",
+      "bytes": 6732,
+      "sha256": "fd0fd0f63034fc39ca76dce367b2f6ae239272712cd1c3a0aa3311fafd1b85cf"
+    },
+    {
+      "file": "00003-metrics.pb",
+      "json": "00003-metrics.json",
+      "signal": "metrics",
+      "path": "/v1/metrics",
+      "contentType": "application/x-protobuf",
+      "contentEncoding": null,
+      "userAgent": "OTel-OTLP-Exporter-JavaScript/0.208.0",
+      "receivedAt": "2026-11-15T11:48:47.107760+00:00",
+      "receivedAtUnixNano": "1794743327107760339",
+      "bytes": 1385,
+      "sha256": "d57a70edc5a557d516ad01026ef39fcfd0ece4e0952ef87f783f2d1fbabf1cbe"
+    },
+    {
+      "file": "00004-traces.pb",
+      "json": "00004-traces.json",
+      "signal": "traces",
+      "path": "/v1/traces",
+      "contentType": "application/x-protobuf",
+      "contentEncoding": null,
+      "userAgent": "OTel-OTLP-Exporter-JavaScript/0.208.0",
+      "receivedAt": "2026-11-15T11:50:53.503279+00:00",
+      "receivedAtUnixNano": "1794743453503279052",
+      "bytes": 4280,
+      "sha256": "51540b496acd1326fcbd252026e322772bcc17926d40b5b5fe02f2ada8bf1ef2"
+    },
+    {
+      "file": "00005-logs.pb",
+      "json": "00005-logs.json",
+      "signal": "logs",
+      "path": "/v1/logs",
+      "contentType": "application/x-protobuf",
+      "contentEncoding": null,
+      "userAgent": "OTel-OTLP-Exporter-JavaScript/0.208.0",
+      "receivedAt": "2026-11-15T11:50:53.504639+00:00",
+      "receivedAtUnixNano": "1794743453504639550",
+      "bytes": 10961,
+      "sha256": "023c54e209584f51c98a0e441101a76d63c7bef82f99ea30c80ecf14b94a868d"
+    },
+    {
+      "file": "00006-metrics.pb",
+      "json": "00006-metrics.json",
+      "signal": "metrics",
+      "path": "/v1/metrics",
+      "contentType": "application/x-protobuf",
+      "contentEncoding": null,
+      "userAgent": "OTel-OTLP-Exporter-JavaScript/0.208.0",
+      "receivedAt": "2026-11-15T11:50:53.507117+00:00",
+      "receivedAtUnixNano": "1794743453507116703",
+      "bytes": 1387,
+      "sha256": "eb512c0d65de31d102a27dc9bbb9f0dbb169fd977d30d47b2b8367e1d90ae42d"
+    }
+  ]
+}
