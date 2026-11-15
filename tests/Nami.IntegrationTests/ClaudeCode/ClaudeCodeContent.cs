@@ -9,26 +9,31 @@ using ProtoLog = Nami.Tests.Wire.OpenTelemetry.Proto.Logs.V1.LogRecord;
 
 namespace Nami.IntegrationTests.ClaudeCode;
 
+/// <summary>The three markers that <see cref="ClaudeCodeContent.Plant" /> writes.</summary>
+/// <param name="Content">Goes into every content key as <c>{Content}:{key}</c>.</param>
+/// <param name="Detail">Goes into every tool-detail key as <c>{Detail}:{key}</c>.</param>
+/// <param name="Control">Goes into <c>gen_ai.agent.name</c>, a key nami keeps, on every record that carries either.</param>
+internal sealed record ContentMarkers(string Content, string Detail, string Control);
+
 /// <summary>A capture with content planted, and how many records of each kind carry it.</summary>
 /// <param name="Exports">The bodies in arrival order; metrics bodies are unchanged.</param>
-/// <param name="Logs">Log records (events) that carry planted content.</param>
-/// <param name="Spans">Spans that carry planted content in their own attributes.</param>
+/// <param name="Logs">Log records (events) that carry planted content or tool details.</param>
+/// <param name="Spans">Spans that carry planted content or tool details in their own attributes.</param>
 /// <param name="ToolOutputs">Spans that carry a planted <c>tool.output</c> span event.</param>
 internal sealed record PlantedCapture(IReadOnlyList<ClaudeCodeExport> Exports, int Logs, int Spans, int ToolOutputs);
 
 /// <summary>
-///     Every place where Claude Code 2.1.325 can send prompt, response, file or tool content, after
-///     code.claude.com/docs/en/monitoring-usage (read 15 Nov 2026) and the research ledger, "Claude Code telemetry
-///     as sent". Each is filled with <c>{sentinel}:{key}</c>. The content events that a capture without content
-///     variables lacks are added the way Claude Code sends them: a log record whose body is
-///     <c>claude_code.{name}</c> and whose <c>event.name</c> attribute is <c>{name}</c>, with the standard attributes
-///     of the <c>api_request</c> record it follows. Every record that carries content also carries the control marker
-///     in <c>gen_ai.agent.name</c>, a key nami keeps, so a reader can tell a record that was stored without its
-///     content from one that was not stored at all.
+///     Every place where Claude Code 2.1.325 can send prompt, response, file or tool content, and the tool details,
+///     after code.claude.com/docs/en/monitoring-usage (read 15 Nov 2026) and the research ledger, "Claude Code
+///     telemetry as sent". The content events that a capture without content variables lacks are added the way
+///     Claude Code sends them: a log record whose body is <c>claude_code.{name}</c> and whose <c>event.name</c>
+///     attribute is <c>{name}</c>, with the standard attributes of the <c>api_request</c> record it follows. Every
+///     record that carries a planted value also carries the control marker, so a reader can tell a record that was
+///     stored without its content from one that was not stored at all.
 /// </summary>
 internal static class ClaudeCodeContent
 {
-    /// <summary>Event (log record) attributes, by event name; each event's gate variable is in the comment.</summary>
+    /// <summary>Content in event (log record) attributes, by event name; each event's gate variable is in the comment.</summary>
     internal static IReadOnlyDictionary<string, string[]> EventKeys { get; } = new Dictionary<string, string[]>
     {
         ["user_prompt"] = ["prompt", "prompt_text"], // OTEL_LOG_USER_PROMPTS
@@ -41,7 +46,7 @@ internal static class ClaudeCodeContent
         ["system_prompt"] = ["system_prompt", "prompt", "body"]
     };
 
-    /// <summary>Span attributes, by span name.</summary>
+    /// <summary>Content in span attributes, by span name.</summary>
     internal static IReadOnlyDictionary<string, string[]> SpanKeys { get; } = new Dictionary<string, string[]>
     {
         // user_prompt: OTEL_LOG_USER_PROMPTS; new_context: ENABLE_BETA_TRACING_DETAILED, the user prompt
@@ -53,13 +58,44 @@ internal static class ClaudeCodeContent
         ["claude_code.tool"] = ["new_context", "tool_input"]
     };
 
-    /// <summary>The <c>tool.output</c> span event on <c>claude_code.tool</c> (OTEL_LOG_TOOL_CONTENT).</summary>
+    /// <summary>Content in the <c>tool.output</c> span event on <c>claude_code.tool</c> (OTEL_LOG_TOOL_CONTENT).</summary>
     internal static string[] ToolOutputKeys { get; } = ["content", "output", "diff"];
+
+    /// <summary>
+    ///     Tool details (OTEL_LOG_TOOL_DETAILS) in event attributes: the tool parameters with the Bash command, and the
+    ///     full error message of a failed tool.
+    /// </summary>
+    internal static IReadOnlyDictionary<string, string[]> EventDetailKeys { get; } = new Dictionary<string, string[]>
+    {
+        ["tool_decision"] = ["tool_parameters"],
+        ["tool_result"] = ["tool_parameters", "error"]
+    };
+
+    /// <summary>Tool details in span attributes, by span name.</summary>
+    internal static IReadOnlyDictionary<string, string[]> SpanDetailKeys { get; } = new Dictionary<string, string[]>
+    {
+        ["claude_code.tool"] = ["full_command", "file_path"],
+        ["claude_code.tool.execution"] = ["error"]
+    };
+
+    /// <summary>Tool details in the <c>tool.output</c> span event.</summary>
+    internal static string[] ToolOutputDetailKeys { get; } = ["bash_command", "file_path"];
+
+    /// <summary>Every tool-detail key that is planted, once.</summary>
+    internal static IReadOnlyList<string> DetailKeys { get; } =
+    [
+        .. EventDetailKeys.Values.Concat(SpanDetailKeys.Values).Append(ToolOutputDetailKeys)
+            .SelectMany(static keys => keys).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)
+    ];
 
     /// <summary>The events that Claude Code sends only with content variables, added after each api_request.</summary>
     private static readonly string[] s_bodyEvents = ["api_request_body", "api_response_body"];
 
-    internal static PlantedCapture Plant(IReadOnlyList<ClaudeCodeExport> exports, string sentinel, string control)
+#pragma warning disable CS0618 // Claude Code 2.1.325 names each event only in this deprecated attribute; the fixture writes it as Claude Code does.
+    private const string EventNameKey = EventAttributes.Name;
+#pragma warning restore CS0618
+
+    internal static PlantedCapture Plant(IReadOnlyList<ClaudeCodeExport> exports, ContentMarkers markers)
     {
         var planted = new List<ClaudeCodeExport>(exports.Count);
         var (logs, spans, toolOutputs) = (0, 0, 0);
@@ -78,12 +114,10 @@ internal static class ClaudeCodeContent
                             foreach (var record in records)
                             {
                                 scope.LogRecords.Add(record);
-                                var name = Text(record.Attributes, EventNameKey);
-                                if (name is not null && EventKeys.TryGetValue(name, out var keys))
-                                {
-                                    Fill(record.Attributes, keys, sentinel, control);
+                                var name = Text(record.Attributes, EventNameKey) ?? "";
+                                if (Fill(record.Attributes, EventKeys.GetValueOrDefault(name),
+                                        EventDetailKeys.GetValueOrDefault(name), markers))
                                     logs++;
-                                }
 
                                 if (name != "api_request") continue;
                                 var added = s_bodyEvents.ToList();
@@ -91,7 +125,7 @@ internal static class ClaudeCodeContent
                                     added.Add("system_prompt");
                                 foreach (var eventName in added)
                                 {
-                                    scope.LogRecords.Add(ContentEvent(record, eventName, sentinel, control));
+                                    scope.LogRecords.Add(ContentEvent(record, eventName, markers));
                                     logs++;
                                 }
                             }
@@ -106,12 +140,13 @@ internal static class ClaudeCodeContent
                         foreach (var span in request.ResourceSpans.SelectMany(static resource => resource.ScopeSpans)
                                      .SelectMany(static scope => scope.Spans))
                         {
-                            if (!SpanKeys.TryGetValue(span.Name, out var keys)) continue;
-                            Fill(span.Attributes, keys, sentinel, control);
+                            if (!Fill(span.Attributes, SpanKeys.GetValueOrDefault(span.Name),
+                                    SpanDetailKeys.GetValueOrDefault(span.Name), markers))
+                                continue;
                             spans++;
                             if (span.Name != "claude_code.tool") continue;
                             var output = new Span.Types.Event { Name = "tool.output", TimeUnixNano = span.EndTimeUnixNano };
-                            Fill(output.Attributes, ToolOutputKeys, sentinel, control);
+                            Fill(output.Attributes, ToolOutputKeys, ToolOutputDetailKeys, markers);
                             span.Events.Add(output);
                             toolOutputs++;
                         }
@@ -128,24 +163,25 @@ internal static class ClaudeCodeContent
         return new PlantedCapture(planted, logs, spans, toolOutputs);
     }
 
-#pragma warning disable CS0618 // Claude Code 2.1.325 names each event only in this deprecated attribute; the fixture writes it as Claude Code does.
-    private const string EventNameKey = EventAttributes.Name;
-#pragma warning restore CS0618
-
     /// <summary>A content event that follows <paramref name="request" />, as Claude Code sends it.</summary>
-    private static ProtoLog ContentEvent(ProtoLog request, string eventName, string sentinel, string control)
+    private static ProtoLog ContentEvent(ProtoLog request, string eventName, ContentMarkers markers)
     {
         var record = request.Clone();
         record.Body = new AnyValue { StringValue = "claude_code." + eventName };
         Set(record.Attributes, EventNameKey, eventName);
-        Fill(record.Attributes, EventKeys[eventName], sentinel, control);
+        Fill(record.Attributes, EventKeys[eventName], null, markers);
         return record;
     }
 
-    private static void Fill(RepeatedField<KeyValue> attributes, IEnumerable<string> keys, string sentinel, string control)
+    /// <summary>Plants the content and the tool details; false when the record carries neither.</summary>
+    private static bool Fill(RepeatedField<KeyValue> attributes, string[]? content, string[]? details,
+        ContentMarkers markers)
     {
-        foreach (var key in keys) Set(attributes, key, sentinel + ":" + key);
-        Set(attributes, GenAiAttributes.AgentName, control);
+        if (content is null && details is null) return false;
+        foreach (var key in content ?? []) Set(attributes, key, markers.Content + ":" + key);
+        foreach (var key in details ?? []) Set(attributes, key, markers.Detail + ":" + key);
+        Set(attributes, GenAiAttributes.AgentName, markers.Control);
+        return true;
     }
 
     private static void Set(RepeatedField<KeyValue> attributes, string key, string value)
