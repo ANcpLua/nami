@@ -603,7 +603,7 @@ internal static partial class OtlpConverter
             ProjectIdHint = projectIdHint,
             TraceId = RequireIdOrAbsent(log.TraceId, 16, "trace_id"),
             SpanId = RequireIdOrAbsent(log.SpanId, 8, "span_id"),
-            EventName = NullIfEmpty(log.EventName),
+            EventName = NullIfEmpty(log.EventName) ?? DeprecatedEventNameAttribute(log.Attributes),
             Flags = log.Flags,
             DroppedAttributesCount = log.DroppedAttributesCount,
             TimeOrigin =
@@ -621,6 +621,26 @@ internal static partial class OtlpConverter
             ResourceAttributes = resourceAttributes,
             ResourceEntityRefs = resourceEntityRefs
         };
+    }
+
+    // Semantic conventions v1.45.0 deprecate the event.name attribute: "The value of this attribute MUST now be set as
+    // the value of the EventName field on the LogRecord". A producer that still sends only the attribute gets that done
+    // here, at ingest: Claude Code 2.1.325 names each of its events this way and leaves the field empty. The allowlist
+    // drops the deprecated key itself, so without this read the name would be lost. The field wins when both are set.
+    // https://github.com/open-telemetry/semantic-conventions/blob/v1.45.0/model/event/deprecated/registry-deprecated.yaml
+    private static string? DeprecatedEventNameAttribute(RepeatedField<ProtoKeyValue> attributes)
+    {
+        foreach (var attribute in attributes)
+        {
+#pragma warning disable CS0618 // A compatibility read of the deprecated key, for producers that predate the field; see above.
+            if (!string.Equals(attribute.Key, EventAttributes.Name, StringComparison.Ordinal)) continue;
+#pragma warning restore CS0618
+            return attribute.Value is { ValueCase: ProtoAnyValue.ValueOneofCase.StringValue } value
+                ? NullIfEmpty(value.StringValue)
+                : null;
+        }
+
+        return null;
     }
 
     private static NormalizedAttributes ExtractLogAttributes(RepeatedField<ProtoKeyValue> attributes)
