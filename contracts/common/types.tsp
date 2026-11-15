@@ -75,6 +75,8 @@ scalar DurationNs extends uint64;
 @minValue(0)
 scalar DurationMs extends float64;
 
+// Adapted from the `duration` expression of ajv-formats (MIT, THIRD-PARTY-NOTICES.txt), with
+// explicit ASCII digit classes. The notice goes only when this pattern does.
 @doc("ISO 8601 duration format (e.g., PT1H30M)")
 @pattern("^P(?!$)(([0-9]+Y)?([0-9]+M)?([0-9]+D)?(T(?=[0-9])([0-9]+H)?([0-9]+M)?([0-9]+S)?)?|([0-9]+W)?)(?![\\s\\S])")
 scalar IsoDuration extends string;

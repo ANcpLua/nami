@@ -211,4 +211,4 @@ TypeSpec, and regenerate.
 ## License
 
 nami is free, under the [MIT license](LICENSE). `contracts/THIRD-PARTY-NOTICES.txt` carries the MIT
-notice of ajv-formats, whose URI grammar `contracts/common/types.tsp` adapts.
+notice of ajv-formats, whose `duration` pattern `contracts/common/types.tsp` adapts for `IsoDuration`.
