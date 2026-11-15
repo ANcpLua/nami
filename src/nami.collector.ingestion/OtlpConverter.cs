@@ -387,7 +387,14 @@ internal static partial class OtlpConverter
                 l.DroppedAttributesCount)).ToList();
     }
 
-    private static OtlpAttributeValue ConvertProtoAnyValue(ProtoAnyValue? value, string? attributeKey = null)
+    // OTLP sets no bound on how deeply arrays and key-value lists nest. Protobuf's recursion limit admits 31 key-value
+    // lists in a span attribute, more than the stored JSON and the tools' results carry: at 29 traces_get could not
+    // render the trace, at 31 the store refused the whole export with a retryable 503. Past this bound the value
+    // refuses its own record through partial success, and the export's other records are kept.
+    private const int MaxValueNesting = 16;
+
+    private static OtlpAttributeValue ConvertProtoAnyValue(ProtoAnyValue? value, string? attributeKey = null,
+        int nesting = 0)
     {
         // All keyed carriers, including nested maps and metric metadata, converge here.
         // A key exemption never bypasses this value policy before original data is journaled.
@@ -403,8 +410,8 @@ internal static partial class OtlpConverter
             ProtoAnyValue.ValueOneofCase.DoubleValue => OtlpAttributeValue.FromDouble(value.DoubleValue),
             ProtoAnyValue.ValueOneofCase.BoolValue => OtlpAttributeValue.FromBool(value.BoolValue),
             ProtoAnyValue.ValueOneofCase.BytesValue => OtlpAttributeValue.FromBytes(CopyBytes(value.BytesValue)),
-            ProtoAnyValue.ValueOneofCase.ArrayValue => ConvertProtoArrayValue(value.ArrayValue),
-            ProtoAnyValue.ValueOneofCase.KvlistValue => ConvertProtoKeyValueList(value.KvlistValue),
+            ProtoAnyValue.ValueOneofCase.ArrayValue => ConvertProtoArrayValue(value.ArrayValue, nesting + 1),
+            ProtoAnyValue.ValueOneofCase.KvlistValue => ConvertProtoKeyValueList(value.KvlistValue, nesting + 1),
             ProtoAnyValue.ValueOneofCase.None => OtlpAttributeValue.Empty,
             // Alpha, profiles-only (opentelemetry-proto 1.10+): an index into a string table no other
             // signal carries. The proto asks non-profiling receivers to treat it as absent, which is what
@@ -414,13 +421,15 @@ internal static partial class OtlpConverter
         };
     }
 
-    private static OtlpAttributeValue ConvertProtoArrayValue(ProtoArrayValue value)
+    private static OtlpAttributeValue ConvertProtoArrayValue(ProtoArrayValue value, int nesting)
     {
-        return OtlpAttributeValue.FromArray(value.Values.Select(static item => ConvertProtoAnyValue(item)).ToList());
+        RequireNesting(nesting);
+        return OtlpAttributeValue.FromArray(value.Values.Select(item => ConvertProtoAnyValue(item, null, nesting)).ToList());
     }
 
-    private static OtlpAttributeValue ConvertProtoKeyValueList(ProtoKeyValueList value)
+    private static OtlpAttributeValue ConvertProtoKeyValueList(ProtoKeyValueList value, int nesting)
     {
+        RequireNesting(nesting);
         ValidateAttributeKeys(value.Values);
         var items = new NormalizedAttributes();
         foreach (var item in value.Values)
@@ -432,10 +441,19 @@ internal static partial class OtlpConverter
                 continue;
             }
 
-            items[item.Key] = ConvertProtoAnyValue(item.Value, item.Key);
+            items[item.Key] = ConvertProtoAnyValue(item.Value, item.Key, nesting);
         }
 
         return OtlpAttributeValue.FromKeyValueList(items);
+    }
+
+    private static void RequireNesting(int nesting)
+    {
+        if (nesting > MaxValueNesting)
+        {
+            throw new InvalidDataException(
+                $"OTLP attribute values nest arrays and key-value lists at most {MaxValueNesting} deep.");
+        }
     }
 
     private static SpanIngestionRecord CreateSpanRecordFromProto(

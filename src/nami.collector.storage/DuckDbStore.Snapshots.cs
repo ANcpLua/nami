@@ -113,6 +113,8 @@ internal sealed partial class DuckDbStore
             }
         }, cancelAfterClaim: true, ct);
 
+    private const int MaxStabilityRowsPerStatement = 300;
+
     private void RecordIngestion(DuckDBConnection connection, DbTransaction transaction, string signal,
         IEnumerable<ArrivingResource> arriving, CancellationToken cancellationToken)
     {
@@ -121,6 +123,7 @@ internal sealed partial class DuckDbStore
         var seenAttributes = new HashSet<(string Project, string Key)>();
         var seenRenames = new HashSet<(string Project, string Key)>();
         var lastResources = new Dictionary<(string Project, string Service), string>();
+        var stabilities = new List<AttributeStabilityRow>();
         foreach (var resource in arriving.Distinct())
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -149,21 +152,14 @@ internal sealed partial class DuckDbStore
             {
                 if (content is null) continue;
                 using var attributes = JsonDocument.Parse(content);
-                foreach (var property in attributes.RootElement.EnumerateObject()
-                             .Where(property => seenAttributes.Add((resource.ProjectId, property.Name))))
-                {
-                    var stability = new AttributeStabilityRow
+                stabilities.AddRange(attributes.RootElement.EnumerateObject()
+                    .Where(property => seenAttributes.Add((resource.ProjectId, property.Name)))
+                    .Select(property => new AttributeStabilityRow
                     {
                         ProjectId = resource.ProjectId,
                         AttributeKey = property.Name,
                         Stability = AttributeStabilityWire.Name(property.Name)
-                    };
-                    using var write = connection.CreateCommand();
-                    write.Transaction = transaction;
-                    write.CommandText = AttributeStabilityRow.InsertSql;
-                    AttributeStabilityRow.AddParameters(write, stability);
-                    write.ExecuteNonQuery();
-                }
+                    }));
             }
 
             foreach (var rename in resource.Renames ?? [])
@@ -216,6 +212,19 @@ internal sealed partial class DuckDbStore
             record.CommandText = ResourceObservationRow.InsertSql;
             ResourceObservationRow.AddParameters(record, observation);
             record.ExecuteNonQuery();
+        }
+
+        // One statement per key held the single writer for about 50 s on an export carrying 20,000 keys.
+        for (var offset = 0; offset < stabilities.Count; offset += MaxStabilityRowsPerStatement)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var count = Math.Min(MaxStabilityRowsPerStatement, stabilities.Count - offset);
+            using var write = connection.CreateCommand();
+            write.Transaction = transaction;
+            // CA2100: the generated row type's multi-row INSERT of $n placeholders; the keys are parameters.
+            write.CommandText = AttributeStabilityRow.BuildMultiRowInsertSql(count);
+            for (var i = 0; i < count; i++) AttributeStabilityRow.AddParameters(write, stabilities[offset + i]);
+            write.ExecuteNonQuery();
         }
     }
 
