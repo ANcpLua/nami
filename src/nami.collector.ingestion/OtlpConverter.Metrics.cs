@@ -1,4 +1,3 @@
-using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Nami.Collector.Ingestion.Primitives;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
@@ -281,20 +280,12 @@ internal static partial class OtlpConverter
                     _ => throw new InvalidDataException("OTLP metric exemplars require a numeric value.")
                 },
                 FilteredAttributes = ToContractAttributes(attributes),
-                TraceId = MetricExemplarId(exemplar.TraceId, 16, "trace_id"),
-                SpanId = MetricExemplarId(exemplar.SpanId, 8, "span_id")
+                TraceId = RequireIdOrAbsent(exemplar.TraceId, 16, "exemplar.trace_id"),
+                SpanId = RequireIdOrAbsent(exemplar.SpanId, 8, "exemplar.span_id")
             });
         }
 
         return converted;
-    }
-
-    private static string? MetricExemplarId(ByteString bytes, int length, string field)
-    {
-        if (bytes.IsEmpty) return null;
-        if (bytes.Length != length || bytes.Span.IndexOfAnyExcept((byte)0) < 0)
-            throw new InvalidDataException($"OTLP exemplar {field} must be a nonzero {length}-byte identifier.");
-        return Convert.ToHexStringLower(bytes.Span);
     }
 
     private static NormalizedContractAttributes ToContractAttributes(
