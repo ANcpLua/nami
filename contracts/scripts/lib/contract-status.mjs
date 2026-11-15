@@ -3,7 +3,7 @@ import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { canonicalize } from "./canonical-schema.mjs";
 
-export const generatedDirectories = [
+const generatedDirectories = [
   "src/nami.collector.ingestion/Generated", "src/nami.collector.ingestion/Configuration/Generated",
   "src/nami.collector.storage/Generated", "src/nami/Generated", "contracts/generated",
   "internal/nami.contracts/Nami", "internal/nami.contracts/Generated", "contracts/json-schema", "contracts/openapi",
@@ -27,7 +27,7 @@ async function filesIn(directory) {
   return result.sort();
 }
 
-export async function snapshot(root) {
+async function snapshot(root) {
   const contents = new Map();
   const files = {};
   for (const directory of generatedDirectories) {
@@ -54,7 +54,7 @@ async function restore(root, original) {
   }
 }
 
-export function compareFiles(before, after) {
+function compareFiles(before, after) {
   return [...new Set([...Object.keys(before), ...Object.keys(after)])].sort().flatMap((path) =>
     before[path] === after[path] ? [] : [{ path, change: !(path in before) ? "added" : !(path in after) ? "removed" : "modified",
       beforeHash: before[path] ?? null, afterHash: after[path] ?? null }]);
@@ -72,7 +72,7 @@ function schemaChanges(before, after, path = "") {
   return [{ path: path || "/", change: "modified", before, after }];
 }
 
-export function compareSchemas(before, after) {
+function compareSchemas(before, after) {
   if (before === null || after === null) return { status: "UNAVAILABLE", changes: [], compatibility: "NOT_ASSESSED", quality: "NOT_ASSESSED" };
   const changes = schemaChanges(before, after);
   const kinds = new Set(changes.map((change) => change.change));

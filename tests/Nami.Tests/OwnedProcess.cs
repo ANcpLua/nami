@@ -35,7 +35,6 @@ internal sealed partial class OwnedProcess : IAsyncDisposable
     internal int ExitCode => _exit.IsCompletedSuccessfully ? _exit.Result
         : Volatile.Read(ref _forced) != 0 ? -1 : throw new InvalidOperationException("The command is still running.");
 
-    internal StreamWriter StandardInput => _host.StandardInput;
     internal StreamReader StandardOutput => _host.StandardOutput;
     internal StreamReader StandardError => _host.StandardError;
 

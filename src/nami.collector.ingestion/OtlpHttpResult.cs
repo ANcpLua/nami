@@ -55,14 +55,12 @@ internal sealed class OtlpHttpResult : IResult
 internal sealed class OtlpUnsupportedMediaTypeException(string? contentType, Exception? innerException)
     : NotSupportedException($"Unsupported OTLP Content-Type '{contentType ?? "<missing>"}'.", innerException)
 {
-    public OtlpUnsupportedMediaTypeException() : this(null, null) { }
     public OtlpUnsupportedMediaTypeException(string? contentType) : this(contentType, null) { }
 }
 
 internal sealed class OtlpUnsupportedContentEncodingException(string? contentEncoding, Exception? innerException)
     : NotSupportedException($"Unsupported OTLP Content-Encoding '{contentEncoding ?? "<missing>"}'.", innerException)
 {
-    public OtlpUnsupportedContentEncodingException() : this(null, null) { }
     public OtlpUnsupportedContentEncodingException(string? contentEncoding) : this(contentEncoding, null) { }
 }
 
@@ -74,5 +72,4 @@ internal sealed class OtlpPayloadTooLargeException(string? message, Exception? i
     : IOException(message, innerException)
 {
     public OtlpPayloadTooLargeException() : this(OtlpPayloadParser.PayloadTooLargeMessage, null) { }
-    public OtlpPayloadTooLargeException(string? message) : this(message, null) { }
 }

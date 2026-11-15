@@ -21,11 +21,6 @@ public static class SpanAssertions
         RequireParent(child, parent.TraceId, parent.SpanId);
     }
 
-    public static void HasParentContext(SpanRecord child, ActivityContext parent)
-    {
-        RequireParent(child, parent.TraceId.ToHexString(), parent.SpanId.ToHexString());
-    }
-
     private static void RequireParent(SpanRecord child, string trace, string parent)
     {
         RequireIdentity(trace, parent);

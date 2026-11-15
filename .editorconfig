@@ -99,31 +99,11 @@ dotnet_naming_symbols.all_members.applicable_kinds = *
 dotnet_analyzer_diagnostic.severity = none
 generated_code = true
 
-[*.generated.cs]
-dotnet_analyzer_diagnostic.severity = none
-generated_code = true
-
 [**/obj/**/*.cs]
 dotnet_analyzer_diagnostic.severity = none
 generated_code = true
 
-[**/Protos/**/*.cs]
-dotnet_analyzer_diagnostic.severity = none
-generated_code = true
-
-[**/generated/**/*.cs]
-dotnet_analyzer_diagnostic.severity = none
-generated_code = true
-
 [eng/build/**/*.cs]
-# Fallout injects fields and uses a top-level build type, so its generated conventions require these suppressions.
-dotnet_diagnostic.CA1822.severity = none
-dotnet_diagnostic.CS0649.severity = none
-dotnet_diagnostic.CS0169.severity = none
-dotnet_diagnostic.CA1050.severity = none
-dotnet_diagnostic.CA2211.severity = none
-dotnet_diagnostic.IDE1006.severity = none
-
 dotnet_style_qualification_for_field = false:warning
 dotnet_style_qualification_for_property = false:warning
 dotnet_style_qualification_for_method = false:warning

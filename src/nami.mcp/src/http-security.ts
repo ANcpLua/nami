@@ -5,7 +5,7 @@ import {
   originValidationResponse,
 } from "@modelcontextprotocol/server";
 
-export function unique(values: readonly string[]): string[] {
+function unique(values: readonly string[]): string[] {
   return [...new Set(values)];
 }
 
