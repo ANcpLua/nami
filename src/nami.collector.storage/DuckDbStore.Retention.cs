@@ -4,6 +4,70 @@ namespace Nami.Collector.Storage;
 
 internal sealed partial class DuckDbStore
 {
+    private const int RetentionBatchSize = 1000;
+    private static readonly TimeSpan s_shutdownCheckpointTimeout = TimeSpan.FromSeconds(30);
+
+    public async Task<(long Logs, long Spans, long MetricPoints, long MetricSeries)> DeleteExpiredAsync(
+        ulong cutoffUnixNano, CancellationToken ct = default)
+    {
+        long logs = 0, spans = 0, metricPoints = 0, metricSeries = 0, metadata = 0;
+        try
+        {
+            // Logs first: a span stays while a log of its trace remains.
+            while (true)
+            {
+                var deleted = await DeleteExpiredLogsBatchAsync(cutoffUnixNano, RetentionBatchSize, ct)
+                    .ConfigureAwait(false);
+                logs += deleted;
+                if (deleted < RetentionBatchSize)
+                    break;
+            }
+
+            // A pass removes only spans without a child, so a trace goes one level per pass: a short pass is
+            // not the last one, an empty pass is.
+            while (true)
+            {
+                var deleted = await DeleteExpiredSpansBatchAsync(cutoffUnixNano, RetentionBatchSize, ct)
+                    .ConfigureAwait(false);
+                spans += deleted;
+                if (deleted is 0)
+                    break;
+            }
+
+            while (true)
+            {
+                var deleted = await DeleteExpiredMetricsBatchAsync(cutoffUnixNano, RetentionBatchSize, ct)
+                    .ConfigureAwait(false);
+                metricPoints += deleted.Points;
+                metricSeries += deleted.Series;
+                if (deleted.Points < RetentionBatchSize)
+                    break;
+            }
+
+            metadata = await DeleteExpiredMetadataAsync(cutoffUnixNano, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (logs + spans + metricPoints + metricSeries + metadata > 0)
+                await CheckpointAfterDeletionAsync(ct).ConfigureAwait(false);
+        }
+
+        return (logs, spans, metricPoints, metricSeries);
+    }
+
+    private async Task CheckpointAfterDeletionAsync(CancellationToken ct)
+    {
+        if (!ct.IsCancellationRequested)
+        {
+            await CheckpointAsync(ct).ConfigureAwait(false);
+            return;
+        }
+
+        // Shutdown cancelled the sweep after it removed rows; reclaim their space within a bounded time.
+        using var timeout = new CancellationTokenSource(s_shutdownCheckpointTimeout, _timeProvider);
+        await CheckpointAsync(timeout.Token).ConfigureAwait(false);
+    }
+
     public Task<int> DeleteExpiredLogsBatchAsync(
         ulong cutoffUnixNano,
         int batchSize,

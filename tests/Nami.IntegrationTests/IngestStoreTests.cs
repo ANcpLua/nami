@@ -282,8 +282,6 @@ public sealed class IngestStoreTests(TestContext context)
         var methods = typeof(INamiStore).GetMethods()
             .Where(static m => m.Name.Contains("Delete", StringComparison.Ordinal)).Select(static m => m.Name).Order()
             .ToArray();
-        Assert.HasCount(4, methods);
-        Assert.IsTrue(methods.All(static n => n.StartsWith("DeleteExpired", StringComparison.Ordinal)),
-            string.Join(",", methods));
+        Assert.AreSequenceEqual(["DeleteExpiredAsync"], methods);
     }
 }
