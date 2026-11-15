@@ -82,6 +82,7 @@ public sealed partial class RegistryGateTests(TestContext context)
         CollectionAssert.AreEqual(constants.Order(StringComparer.Ordinal).ToArray(), sources);
     }
 
+    [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
     [TestMethod]
     public void Registry_NestedCoreDependency_ResolvesOnce()
     {
