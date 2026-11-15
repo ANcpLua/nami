@@ -45,6 +45,39 @@ public sealed class IngestStoreTests(TestContext context)
 
     [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
     [TestMethod]
+    public async Task Watermark_ClockStepsBack_DoesNotRegress()
+    {
+        var clock = new FakeTimeProvider(TestData.s_now);
+        await using var store = new DuckDbStore(":memory:", timeProvider: clock);
+        var received = TestData.Nanos(TestData.s_now);
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1))),
+            context.CancellationToken);
+        var before = Assert.ContainsSingle(
+            (await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Signals);
+        Assert.AreEqual(received, before.WatermarkUnixNano);
+        Assert.AreEqual(received, before.LastSeenUnixNano);
+
+        // The system clock is set back by an hour, as a time correction does; AdjustTime moves the clock in either direction.
+        clock.AdjustTime(TestData.s_now.AddHours(-1));
+        Assert.AreEqual(TestData.s_now.AddHours(-1), clock.GetUtcNow());
+        var read = Assert.ContainsSingle(
+            (await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Signals);
+        Assert.AreEqual(received, read.WatermarkUnixNano, "A read after the clock stepped back lowered the watermark.");
+        Assert.AreEqual(received, read.LastSeenUnixNano);
+
+        await StorageTestData.SeedTraces(store,
+            OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), offset: 1), context.CancellationToken);
+        var after = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        var signal = Assert.ContainsSingle(after.Signals);
+        Assert.AreEqual(received, signal.WatermarkUnixNano,
+            "An export received after the clock stepped back lowered the watermark.");
+        Assert.AreEqual(received, signal.LastSeenUnixNano,
+            "An export received after the clock stepped back lowered last_seen.");
+        Assert.HasCount(2, after.Spans);
+    }
+
+    [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
+    [TestMethod]
     public async Task LastSeen_FutureTimestamp_UsesReceiptTime()
     {
         var clock = new FakeTimeProvider(TestData.s_now);
