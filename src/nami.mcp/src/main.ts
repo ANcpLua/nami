@@ -6,7 +6,7 @@ import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { CONFIG, CONFIG_DEFAULTS, CONTRACT_REVISION } from "./contracts/generated/manifest.js";
 import type { HealthReport, ProjectKeyDocument } from "./contracts/generated/json.js";
 import { Engine, EngineError } from "./engine.js";
-import { dnsRebindingResponse, isLoopbackBindHost } from "./http-security.js";
+import { dnsRebindingResponse, isLoopbackBindHost, isWildcardHost, requestNames } from "./http-security.js";
 import { removeReadyManifest, writeReadyManifest } from "./ready.js";
 import { createServer } from "./server.js";
 
@@ -90,7 +90,7 @@ if (stdio) {
   const domain = process.env[CONFIG.RailwayPublicDomain];
   const publicUrl = process.env[CONFIG.PublicUrl] ?? (domain ? `https://${domain}` : undefined);
   const localOrigins = ["localhost", "127.0.0.1", "[::1]"];
-  const allowedHosts = new Set([...localOrigins, hostname]);
+  let publicOrigin: URL | undefined;
   if (publicUrl) {
     const origin = new URL(publicUrl);
     // Plain HTTP is an origin only for this machine itself: a container whose MCP port is published on the host's
@@ -98,10 +98,13 @@ if (stdio) {
     const loopback = origin.protocol === "http:" && localOrigins.includes(origin.hostname);
     if ((origin.protocol !== "https:" && !loopback) || origin.username || origin.password || origin.search || origin.hash || origin.pathname !== "/")
       throw new Error("NAMI_PUBLIC_URL must be an HTTPS origin, or an HTTP origin on localhost, 127.0.0.1 or [::1], without credentials, query or path.");
-    allowedHosts.add(origin.hostname);
+    if (isWildcardHost(origin.hostname))
+      throw new Error("NAMI_PUBLIC_URL names a wildcard address; name the host at which clients reach MCP.");
+    publicOrigin = origin;
   }
   if (!isLoopbackBindHost(hostname) && !publicUrl)
     throw new Error("A non-loopback listener requires NAMI_PUBLIC_URL.");
+  const names = requestNames(hostname, publicOrigin);
   // A connection that stays silent is closed after the longest idle time Bun allows (its default of 10 seconds cut
   // every call that ran longer). A call being served is exempt, and for revision 2026-07-28 it has to be: the
   // SDK's per-request transport answers such a call with application/json once the result exists, so its client
@@ -121,7 +124,7 @@ if (stdio) {
       // Host and Origin are judged before the URL is read: with a malformed Host header the URL does not parse.
       let url: URL;
       try {
-        const refused = dnsRebindingResponse(request, [...allowedHosts], [...allowedHosts]);
+        const refused = dnsRebindingResponse(request, names);
         if (refused) return refused;
         url = new URL(request.url);
       } catch { return failure(400, -32600, "Invalid Host header or request target."); }

@@ -134,7 +134,9 @@ claude mcp add --transport http nami http://127.0.0.1:5100/mcp --header "x-otlp-
 - **`NAMI_PUBLIC_URL`.** An HTTPS origin, or a plain HTTP origin on `localhost`, `127.0.0.1` or
   `[::1]` for a port published on this machine. nami answers MCP and `/health` only when the
   request's `Host`, and its `Origin` if a browser sent one, name this machine or that origin; a page
-  of another site, or a name rebound to your machine, gets 403 before any key is looked at.
+  of another site, or a name rebound to your machine, gets 403 before any key is looked at. The
+  wildcard address nami binds inside the container (`0.0.0.0`) is not such a name: it is refused as
+  `Host`, as `Origin` and as `NAMI_PUBLIC_URL`.
 - **A host port chosen by Docker** (`-p 127.0.0.1::5100`, read it with `docker port nami 5100/tcp`)
   works with the same setting: `Host` and `Origin` are compared by name, not by port, so
   `NAMI_PUBLIC_URL=http://127.0.0.1:5100` stays right whatever port the host side gets.
