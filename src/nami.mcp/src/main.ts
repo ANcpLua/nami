@@ -85,11 +85,15 @@ if (stdio) {
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error("NAMI_PORT is outside its supported range.");
   const domain = process.env[CONFIG.RailwayPublicDomain];
   const publicUrl = process.env[CONFIG.PublicUrl] ?? (domain ? `https://${domain}` : undefined);
-  const allowedHosts = new Set(["localhost", "127.0.0.1", "[::1]", hostname]);
+  const localOrigins = ["localhost", "127.0.0.1", "[::1]"];
+  const allowedHosts = new Set([...localOrigins, hostname]);
   if (publicUrl) {
     const origin = new URL(publicUrl);
-    if (origin.protocol !== "https:" || origin.username || origin.password || origin.search || origin.hash || origin.pathname !== "/")
-      throw new Error("NAMI_PUBLIC_URL must be an HTTPS origin without credentials, query or path.");
+    // Plain HTTP is an origin only for this machine itself: a container whose MCP port is published on the host's
+    // loopback (-p 127.0.0.1:5100:5100) is reached at http://127.0.0.1:5100. Anything else needs TLS in front.
+    const loopback = origin.protocol === "http:" && localOrigins.includes(origin.hostname);
+    if ((origin.protocol !== "https:" && !loopback) || origin.username || origin.password || origin.search || origin.hash || origin.pathname !== "/")
+      throw new Error("NAMI_PUBLIC_URL must be an HTTPS origin, or an HTTP origin on localhost, 127.0.0.1 or [::1], without credentials, query or path.");
     allowedHosts.add(origin.hostname);
   }
   if (!isLoopbackBindHost(hostname) && !publicUrl)

@@ -95,6 +95,42 @@ loopback, and with `--stdio` `mcp` is `null`. The store stays where `NAMI_DATA_P
 `data_path` reports it as an absolute path. With `NAMI_OTLP_PORT=0` nami does not export its own
 telemetry, because that exporter needs the port before the listener is bound.
 
+## Run in a container
+
+The image (`src/nami/Dockerfile`) holds the same two processes. Inside the container nami listens
+on every interface, so two things that a loopback process on your machine does without are required:
+project keys, because the default mode outside Development is `ApiKey` and the container does not
+pass `--stdio`, and `NAMI_PUBLIC_URL`, the origin at which you reach MCP. Publish the ports on the
+host's loopback only:
+
+```bash
+docker build -f src/nami/Dockerfile -t nami .
+docker volume create nami-data
+docker run -d --name nami \
+  -p 127.0.0.1:5100:5100 -p 127.0.0.1:4318:4318 -p 127.0.0.1:4317:4317 \
+  -v nami-data:/data \
+  -e NAMI_PUBLIC_URL=http://127.0.0.1:5100 \
+  -e NAMI_OTLP_PROJECT_KEYS='{"default":[{"key":"<ingest key>","roles":["ingest"]},{"key":"<read key>","roles":["read"]}]}' \
+  nami
+claude mcp add --transport http nami http://127.0.0.1:5100/mcp --header "x-otlp-api-key: <read key>"
+```
+
+- **Keys.** nami issues no keys; you choose them. `NAMI_OTLP_PROJECT_KEYS` is a JSON object from
+  project name to its keys, each with the roles `ingest`, `read` or both. Make two long random
+  strings, for example with `openssl rand -hex 32`: producers send the ingest key and the agent
+  sends the read key, both in the `x-otlp-api-key` header
+  (`OTEL_EXPORTER_OTLP_HEADERS=x-otlp-api-key=<ingest key>` for an OpenTelemetry SDK). A request
+  without a key is answered 401, one with a key that lacks the role 403.
+- **`NAMI_PUBLIC_URL`.** An HTTPS origin, or a plain HTTP origin on `localhost`, `127.0.0.1` or
+  `[::1]` for a port published on this machine. nami answers MCP and `/health` only when the
+  request's `Host`, and its `Origin` if a browser sent one, name this machine or that origin; a page
+  of another site, or a name rebound to your machine, gets 403 before any key is looked at.
+- **A host port chosen by Docker** (`-p 127.0.0.1::5100`, read it with `docker port nami 5100/tcp`)
+  works with the same setting: `Host` and `Origin` are compared by name, not by port, so
+  `NAMI_PUBLIC_URL=http://127.0.0.1:5100` stays right whatever port the host side gets.
+- Every connection reaches the container from Docker's bridge, never from 127.0.0.1, so nami cannot
+  tell local clients from others there: the key, not the address, is what admits a request.
+
 ## Send telemetry
 
 Any OpenTelemetry SDK exports to nami with its standard settings:

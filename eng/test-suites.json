@@ -13,7 +13,7 @@
   },
   "EndToEnd": {
     "project": "tests/Nami.EndToEndTests/Nami.EndToEndTests.csproj",
-    "minimumExpectedTests": 55,
+    "minimumExpectedTests": 58,
     "verbosity": "Detailed",
     "timeout": "20m"
   },
