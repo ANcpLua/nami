@@ -485,7 +485,7 @@ internal static partial class OtlpConverter
         {
             (body, budget.Remaining) = (OtlpAttributeValue.Empty, Limits.MaxRecordAttributeBytes);
             NamiCollectorMetrics.AttributeDropped();
-            bodyDropped = 1;
+            bodyDropped = log.Flags >> 31 >> 1;
         }
 
         budget.Value = Limits.MaxValueUtf8Bytes;

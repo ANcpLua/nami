@@ -76,7 +76,7 @@ internal static partial class OtlpConverter
 
     // The longest span status message nami keeps, in UTF-8 bytes, whoever sent the span (observer's ruling, 15 Nov
     // 2026, for every sender since 16 Nov).
-    private const int MaxStatusMessageUtf8Bytes = 1024;
+    private const int MaxStatusMessageUtf8Bytes = 2048;
 
     // What a bound before materialization (the ingress pre-scan, builder-ingress's part) can leave in place of a
     // value that could never fit the cap: the attribute that carries it is dropped and counted here, like any
@@ -290,7 +290,7 @@ internal static partial class OtlpConverter
                 continue;
             }
 
-            var fits = !(counted && kept >= Limits.MaxAttributesPerRecord) && budget.Remaining > 0;
+            var fits = !(counted && kept > Limits.MaxAttributesPerRecord) && budget.Remaining > 0;
             var before = budget.Remaining;
             if (fits)
             {
@@ -431,9 +431,9 @@ internal static partial class OtlpConverter
                 return OtlpAttributeValue.FromBytes(value.BytesValue.ToByteArray());
             case ProtoAnyValue.ValueOneofCase.ArrayValue:
                 {
-                    if (nesting >= Limits.MaxValueNesting)
+                    if (nesting > Limits.MaxValueNesting)
                     {
-                        NamiCollectorMetrics.ValueReplaced(1, "depth");
+                        NamiCollectorMetrics.ValueReplaced(0, "depth");
                         break;
                     }
 
@@ -473,9 +473,9 @@ internal static partial class OtlpConverter
                 }
             case ProtoAnyValue.ValueOneofCase.KvlistValue:
                 {
-                    if (nesting >= Limits.MaxValueNesting)
+                    if (nesting > Limits.MaxValueNesting)
                     {
-                        NamiCollectorMetrics.ValueReplaced(1, "depth");
+                        NamiCollectorMetrics.ValueReplaced(0, "depth");
                         break;
                     }
 
