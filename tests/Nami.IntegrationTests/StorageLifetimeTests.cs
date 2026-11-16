@@ -228,6 +228,32 @@ public sealed class StorageLifetimeTests(TestContext context)
         Assert.AreEqual(1, connections.Items[0].CheckpointCalls);
     }
 
+    /// <summary>
+    ///     The thread pool may start the writer late. A write is queued, DisposeAsync completes the queue and cancels
+    ///     the store's token, and only then does the writer reach its first read. That read ends at once, so the
+    ///     queued job is ended by the drain in the writer's finally and by nothing else. Without the drain the caller
+    ///     waits for ever behind a DisposeAsync that reported success.
+    /// </summary>
+    [TestMethod]
+    public async Task Dispose_WriterStartsAfterShutdown_EndsTheQueuedWrite()
+    {
+        var connections = new Connections();
+        // The fake clock never advances, so DisposeAsync waits for shutdown itself and not for its 5-second deadline.
+        var store = DuckDbStore.CreateForTesting(connections.Create, ":memory:",
+            timeProvider: new FakeTimeProvider(TestData.s_now), beforeWriterLoop: UntilShutdown);
+        var write = SeedTrace(store, context.CancellationToken);
+        Assert.IsFalse(write.IsCompleted);
+
+        await store.DisposeAsync();
+
+        Assert.IsTrue(await EndsBeforeDeadline(write),
+            "DisposeAsync reported success while a write that was queued before it never completed.");
+        await Assert.ThrowsAsync<OperationCanceledException>(() => write);
+        var writer = Assert.ContainsSingle(connections.Items);
+        Assert.AreEqual(1, writer.DisposeCalls);
+        Assert.AreEqual(ConnectionState.Closed, writer.State);
+    }
+
     [TestMethod]
     public async Task Snapshot_CanceledAfterInsert_RollsBackSnapshotAndWatermark()
     {
@@ -402,6 +428,37 @@ public sealed class StorageLifetimeTests(TestContext context)
 
     private string DatabasePath(string name) =>
         Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("No test directory"), name);
+
+    /// <summary>Holds the writer before its first read until shutdown has cancelled the store's token.</summary>
+    private static async ValueTask UntilShutdown(CancellationToken shutdown)
+    {
+        var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var registration = shutdown.Register(
+            static state => ((TaskCompletionSource)state!).TrySetResult(), cancelled);
+        await cancelled.Task;
+    }
+
+    /// <summary>
+    ///     Whether a call has ended, with any outcome, 10 seconds after the store let go of it. A call that passes
+    ///     ends at once; the deadline is only how long a call that never ends is waited for.
+    /// </summary>
+    private static async Task<bool> EndsBeforeDeadline(Task call)
+    {
+        try
+        {
+            await call.WaitAsync(TimeSpan.FromSeconds(10));
+        }
+        catch (TimeoutException) when (!call.IsCompleted)
+        {
+            return false;
+        }
+        catch (Exception) when (call.IsCompleted)
+        {
+            // The outcome is the caller's to assert.
+        }
+
+        return true;
+    }
 
     private sealed class ReadGate(CancellationToken cancellationToken) : IDisposable
     {

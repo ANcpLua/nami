@@ -12,6 +12,7 @@ internal sealed partial class DuckDbStore : INamiStore
 
     private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(5);
     private readonly Func<CancellationToken, ValueTask>? _beforeWrite;
+    private readonly Func<CancellationToken, ValueTask>? _beforeWriterLoop;
 
     private readonly CancellationTokenSource _cts;
     private readonly string _databasePath;
@@ -43,7 +44,7 @@ internal sealed partial class DuckDbStore : INamiStore
         TimeSpan? snapshotLifetime = null)
         : this(static value => new DuckDBConnection(value), databasePath, jobQueueCapacity, maxConcurrentReads,
             readQueueCapacity, memoryLimit, threads, tempDirectory, beforeWrite, loggerFactory, timeProvider,
-            snapshotLifetime)
+            snapshotLifetime, beforeWriterLoop: null)
     {
     }
 
@@ -59,9 +60,11 @@ internal sealed partial class DuckDbStore : INamiStore
         Func<CancellationToken, ValueTask>? beforeWrite = null,
         ILoggerFactory? loggerFactory = null,
         TimeProvider? timeProvider = null,
-        TimeSpan? snapshotLifetime = null) =>
+        TimeSpan? snapshotLifetime = null,
+        Func<CancellationToken, ValueTask>? beforeWriterLoop = null) =>
         new(connectionFactory, databasePath, jobQueueCapacity, maxConcurrentReads, readQueueCapacity,
-            memoryLimit, threads, tempDirectory, beforeWrite, loggerFactory, timeProvider, snapshotLifetime);
+            memoryLimit, threads, tempDirectory, beforeWrite, loggerFactory, timeProvider, snapshotLifetime,
+            beforeWriterLoop);
 
     private DuckDbStore(
         Func<string, DuckDBConnection> connectionFactory,
@@ -75,7 +78,8 @@ internal sealed partial class DuckDbStore : INamiStore
         Func<CancellationToken, ValueTask>? beforeWrite,
         ILoggerFactory? loggerFactory,
         TimeProvider? timeProvider,
-        TimeSpan? snapshotLifetime)
+        TimeSpan? snapshotLifetime,
+        Func<CancellationToken, ValueTask>? beforeWriterLoop)
     {
         ArgumentNullException.ThrowIfNull(connectionFactory);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(jobQueueCapacity);
@@ -94,6 +98,7 @@ internal sealed partial class DuckDbStore : INamiStore
             ["vacuum_rebuild_indexes"] = ulong.MaxValue.ToString(CultureInfo.InvariantCulture)
         }.ConnectionString;
         _beforeWrite = beforeWrite;
+        _beforeWriterLoop = beforeWriterLoop;
         _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(jobQueueCapacity)
         {
             FullMode = BoundedChannelFullMode.Wait,
@@ -466,6 +471,10 @@ internal sealed partial class DuckDbStore : INamiStore
     {
         try
         {
+            // Test seam: holds the writer before its first read, which is where the thread pool leaves a writer
+            // that it starts late. It receives the token that shutdown cancels.
+            if (_beforeWriterLoop is not null)
+                await _beforeWriterLoop(_cts.Token).ConfigureAwait(false);
             await foreach (var job in _jobs.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
             {
                 if (!job.TryClaim())
