@@ -31,7 +31,8 @@ public sealed class ClaudeCodeConverterTests
     private const string TracingScope = "com.anthropic.claude_code.tracing";
     private const string MeterScope = "com.anthropic.claude_code";
     private const string ForeignScope = "com.example.checkout";
-    private const string Marker = "...[truncated]";
+    private const string Marker = "…[truncated]";
+    private const int MarkerBytes = 14;
 
     // A key the registry persists for every sender, next to each producer key: it shows the record was converted.
     private const string Ordinary = "gen_ai.agent.name";
@@ -123,31 +124,6 @@ public sealed class ClaudeCodeConverterTests
         Assert.AreEqual(parameters, log.Attributes["tool_parameters"].AsString());
     }
 
-    /// <summary>
-    ///     <c>full_command</c> is persisted and bounded (observer's ruling, 15 Nov): at most
-    ///     <c>ValueLimits.MaxUtf8Bytes</c> bytes of UTF-8, the marker that log bodies use included, cut between
-    ///     characters, where it arrives as an attribute of its own (the tool span). Inside <c>tool_parameters</c> it
-    ///     is part of that string.
-    /// </summary>
-    [TestMethod]
-    public void FullCommand_IsKeptUpToTheRegistrysBound_WithTheTruncationMarker()
-    {
-        var bound = ValueLimits.MaxUtf8Bytes["full_command"];
-        Assert.AreEqual(4096, bound);
-        var atTheBound = new string('a', bound);
-        var onePast = new string('a', bound + 1);
-        var twoByteCharacters = new string('é', bound);
-
-        Assert.AreEqual(atTheBound, SpanCommand(atTheBound), "a command of exactly the bound is kept whole");
-        Assert.AreEqual(new string('a', bound - Marker.Length) + Marker, SpanCommand(onePast));
-        var cut = SpanCommand(twoByteCharacters)!;
-        Assert.AreEqual(new string('é', (bound - Marker.Length) / 2) + Marker, cut, "cut between characters, never inside one");
-        Assert.IsLessThanOrEqualTo(bound, Encoding.UTF8.GetByteCount(cut));
-
-        static string? SpanCommand(string command) =>
-            ConvertSpan(TracingScope, NewSpan([Text("full_command", command)])).Attributes["full_command"].AsString();
-    }
-
     /// <summary>A bounded key is cut when it holds a string. A value of another type is kept in the type it was sent in.</summary>
     [TestMethod]
     public void FullCommand_ThatIsNotAString_IsKeptAsSent()
@@ -184,7 +160,7 @@ public sealed class ClaudeCodeConverterTests
         Assert.AreEqual((int)Status.Types.StatusCode.Error, span.StatusCode.GetValueOrDefault());
         Assert.AreEqual(failure, ConvertSpan(scope, WithStatus(failure)).StatusMessage, "text without credentials is kept");
         var cut = ConvertSpan(scope, WithStatus(text)).StatusMessage!;
-        Assert.AreEqual(new string('é', (1024 - Marker.Length) / 2) + Marker, cut);
+        Assert.AreEqual(new string('é', (1024 - MarkerBytes) / 2) + Marker, cut);
         Assert.IsLessThanOrEqualTo(1024, Encoding.UTF8.GetByteCount(cut));
         var atTheBound = new string('a', 1024);
         Assert.AreEqual(atTheBound, ConvertSpan(scope, WithStatus(atTheBound)).StatusMessage, "exactly 1024 bytes are kept whole");
@@ -203,15 +179,12 @@ public sealed class ClaudeCodeConverterTests
     }
 
     /// <summary>
-    ///     Claude Code's <c>error</c> attribute passes the credential stage first, as every string does, and is
-    ///     kept up to <c>ValueLimits.MaxUtf8Bytes</c> (1024) after it, on
-    ///     the events and the spans that carry it, under every scope.
+    ///     Claude Code's <c>error</c> attribute passes the credential stage as every string does, under every scope,
+    ///     and has no bound of its own: the one cap of every value holds for it (<c>AttributeBoundsTests</c>).
     /// </summary>
     [TestMethod]
-    public void Error_OnAProducersScope_LosesItsCredentials_AndIsKeptUpToTheRegistrysBound()
+    public void Error_UnderEveryScope_LosesItsCredentials_AndKeepsTheRest()
     {
-        var bound = ValueLimits.MaxUtf8Bytes["error"];
-        Assert.AreEqual(1024, bound);
         const string leaking = "Request failed with 401\nAuthorization: Bearer sk-live-0123456789abcdef\n" +
                                "connection password=hunter2-and-more;retry in 5 s";
         const string sanitized = "Request failed with 401\nAuthorization: Bearer [REDACTED]\nconnection password=[REDACTED];retry in 5 s";
@@ -220,16 +193,12 @@ public sealed class ClaudeCodeConverterTests
         Assert.AreEqual(sanitized, ConvertLog(EventsScope, new LogRecord { Attributes = { Text("error", leaking) } })
             .Attributes["error"].AsString());
         Assert.AreEqual(sanitized, ConvertSpan(TracingScope, NewSpan([Text("error", leaking)])).Attributes["error"].AsString());
+        Assert.AreEqual(sanitized, ConvertLog(ForeignScope, new LogRecord { Attributes = { Text("error", leaking) } })
+            .Attributes["error"].AsString());
         Assert.AreEqual("Shell command failed", ConvertLog(EventsScope,
             new LogRecord { Attributes = { Text("error", "Shell command failed") } }).Attributes["error"].AsString());
-        var cut = ConvertLog(EventsScope, new LogRecord { Attributes = { Text("error", text) } }).Attributes["error"].AsString()!;
-        Assert.AreEqual(new string('é', (bound - Marker.Length) / 2) + Marker, cut);
-
-        // The credential sits where the cut falls: it is removed before the text is cut, not cut in half.
-        var straddling = new string('a', bound - 30) + " password=hunter2-and-more-secret-text";
-        var kept = ConvertLog(EventsScope, new LogRecord { Attributes = { Text("error", straddling) } }).Attributes["error"].AsString()!;
-        Assert.DoesNotContain("hunter2", kept);
-        Assert.IsLessThanOrEqualTo(bound, Encoding.UTF8.GetByteCount(kept));
+        Assert.AreEqual(text, ConvertLog(EventsScope, new LogRecord { Attributes = { Text("error", text) } }).Attributes["error"].AsString(),
+            "2000 characters are far below the cap of every value");
 
         // Error text is a string; a value of another type stays as it was sent.
         var number = ConvertLog(EventsScope, new LogRecord
@@ -237,10 +206,6 @@ public sealed class ClaudeCodeConverterTests
             Attributes = { new KeyValue { Key = "error", Value = new AnyValue { IntValue = 500 } } }
         });
         Assert.AreEqual(500L, number.Attributes["error"].AsInt64());
-
-        // A key is stored on every scope (keys as sent); error text loses its credentials there too.
-        var foreign = ConvertLog(ForeignScope, new LogRecord { Attributes = { Text("error", leaking), Text(Ordinary, "builder") } });
-        Assert.AreEqual(sanitized, foreign.Attributes["error"].AsString());
     }
 
     private static string[] Keys(NormalizedAttributes attributes) =>

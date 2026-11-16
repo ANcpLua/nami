@@ -13,6 +13,10 @@ namespace Nami.Collector.Ingestion;
 
 internal static partial class OtlpConverter
 {
+    /// <inheritdoc cref="ConvertTraceRequest(ExportTraceServiceRequest, IngestLimits?)" />
+    public static MetricIngestionBatch ConvertMetrics(ExportMetricsServiceRequest request, IngestLimits? limits) =>
+        WithLimits(limits, () => ConvertMetrics(request));
+
     public static MetricIngestionBatch ConvertMetrics(ExportMetricsServiceRequest request)
     {
         var points = new List<MetricPointIngestionRecord>();
@@ -22,10 +26,11 @@ internal static partial class OtlpConverter
         foreach (var resourceMetrics in request.ResourceMetrics)
         {
             ResourceProjection resource;
+            uint resourceDropped;
             string resourceIdentity;
             try
             {
-                resource = ExtractResourceProjection(resourceMetrics.Resource);
+                resource = ExtractResourceProjection(resourceMetrics.Resource, out resourceDropped);
                 resourceIdentity = MetricAttributeIdentity(resourceMetrics.Resource?.Attributes ?? []);
             }
             catch (InvalidDataException error)
@@ -40,10 +45,12 @@ internal static partial class OtlpConverter
             foreach (var scopeMetrics in resourceMetrics.ScopeMetrics)
             {
                 NormalizedAttributes scopeAttributes;
+                uint scopeDropped;
                 string scopeIdentity;
                 try
                 {
-                    scopeAttributes = ConvertMetadataAttributes(scopeMetrics.Scope?.Attributes ?? []);
+                    scopeAttributes = ConvertAttributes(scopeMetrics.Scope?.Attributes ?? [], new RecordBudget(), true,
+                        out scopeDropped);
                     scopeIdentity = MetricAttributeIdentity(scopeMetrics.Scope?.Attributes ?? []);
                 }
                 catch (InvalidDataException error)
@@ -66,11 +73,14 @@ internal static partial class OtlpConverter
                             KeptOrNull(metric.Description), serviceName,
                             scopeSchema ?? resourceSchema,
                             resource.Attributes, resource.EntityRefs, resourceSchema,
-                            resourceMetrics.Resource?.DroppedAttributesCount ?? 0,
+                            (resourceMetrics.Resource?.DroppedAttributesCount ?? 0) + resourceDropped,
                             scopeName, scopeVersion, scopeSchema,
                             scopeAttributes,
-                            scopeMetrics.Scope?.DroppedAttributesCount ?? 0,
-                            ToContractAttributes(ConvertMetadataAttributes(metric.Metadata)), resourceIdentity,
+                            (scopeMetrics.Scope?.DroppedAttributesCount ?? 0) + scopeDropped,
+                            // Metric metadata, point attributes and exemplars are metric attributes: exempt from the
+                            // count, bounded by the bytes.
+                            ToContractAttributes(ConvertAttributes(metric.Metadata, new RecordBudget(), false, out _)),
+                            resourceIdentity,
                             scopeIdentity);
                     }
                     catch (InvalidDataException error)
@@ -180,7 +190,7 @@ internal static partial class OtlpConverter
             TimeUnixNano = point.TimeUnixNano,
             StartTimeUnixNano = NullIfZero(point.StartTimeUnixNano),
             Flags = point.Flags,
-            Exemplars = ConvertExemplars(point.Exemplars, ProducerOfScope(stream.ScopeName))
+            Exemplars = ConvertExemplars(point.Exemplars)
         };
     }
 
@@ -215,7 +225,7 @@ internal static partial class OtlpConverter
                 TimeUnixNano = point.TimeUnixNano,
                 StartTimeUnixNano = NullIfZero(point.StartTimeUnixNano),
                 Flags = point.Flags,
-                Exemplars = ConvertExemplars(point.Exemplars, ProducerOfScope(stream.ScopeName))
+                Exemplars = ConvertExemplars(point.Exemplars)
             };
 
     private static MetricPointIngestionRecord CreateSummaryPoint(MetricStreamMetadata stream,
@@ -258,15 +268,17 @@ internal static partial class OtlpConverter
                 TimeUnixNano = point.TimeUnixNano,
                 StartTimeUnixNano = NullIfZero(point.StartTimeUnixNano),
                 Flags = point.Flags,
-                Exemplars = ConvertExemplars(point.Exemplars, ProducerOfScope(stream.ScopeName))
+                Exemplars = ConvertExemplars(point.Exemplars)
             };
 
-    private static NormalizedMetricExemplars ConvertExemplars(IEnumerable<ProtoExemplar> exemplars, string? producer)
+    private static NormalizedMetricExemplars ConvertExemplars(IEnumerable<ProtoExemplar> exemplars)
     {
         var converted = new NormalizedMetricExemplars();
+        // The exemplars of one point share one record's bytes.
+        var budget = new RecordBudget();
         foreach (var exemplar in exemplars)
         {
-            var attributes = ConvertRecordAttributes(exemplar.FilteredAttributes, producer);
+            var attributes = ConvertAttributes(exemplar.FilteredAttributes, budget, false, out _);
             converted.Renames.AddRange(NormalizedAttributes.Collect([attributes]));
             converted.Add(new CommonContract.MetricExemplar
             {
@@ -339,7 +351,7 @@ internal static partial class OtlpConverter
         ScopeSchemaUrl = stream.ScopeSchemaUrl,
         ScopeAttributes = stream.ScopeAttributes,
         ScopeDroppedAttributesCount = stream.ScopeDroppedAttributesCount,
-        Attributes = ConvertRecordAttributes(attributes, ProducerOfScope(stream.ScopeName)),
+        Attributes = ConvertAttributes(attributes, new RecordBudget(), false, out _),
         ResourceAttributes = stream.ResourceAttributes,
         ResourceEntityRefs = stream.ResourceEntityRefs,
         ResourceIdentity = stream.ResourceIdentity,

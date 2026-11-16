@@ -180,54 +180,6 @@ public sealed class IngestStoreTests(TestContext context)
 
     [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
     [TestMethod]
-    [DataRow(-1, DisplayName = "Below input limit")]
-    [DataRow(0, DisplayName = "At input limit")]
-    [DataRow(1, DisplayName = "Above input limit")]
-    public void Sanitizer_Boundaries_HoldAtPlusMinusOne(int offset)
-    {
-        var text = new string('x', 128 * 1024 + offset);
-        var actual = CredentialRedaction.ExceptionText("exception.message", new AnyValue { StringValue = text });
-        if (offset > 0) Assert.AreEqual("[SANITIZATION_FAILED]", actual);
-        else
-        {
-            Assert.IsLessThanOrEqualTo(32 * 1024, Encoding.UTF8.GetByteCount(actual));
-            Assert.IsTrue(actual.StartsWith(new string('x', 100), StringComparison.Ordinal));
-        }
-    }
-
-    [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
-    [TestMethod]
-    [DataRow(-1, DisplayName = "Below UTF8 output limit")]
-    [DataRow(0, DisplayName = "At UTF8 output limit")]
-    [DataRow(1, DisplayName = "Above UTF8 output limit")]
-    public void Sanitizer_OutputUtf8Boundary_PreservesValidText(int offset)
-    {
-        var text = new string('x', 32 * 1024 + offset);
-        var value = CredentialRedaction.ExceptionText("exception.message", new AnyValue { StringValue = text });
-        if (offset <= 0) Assert.AreEqual(text, value);
-        else
-        {
-            Assert.AreEqual(32 * 1024, Encoding.UTF8.GetByteCount(value));
-            Assert.IsTrue(value.EndsWith('…'));
-        }
-
-        var unicode =
-            CredentialRedaction.ExceptionText("exception.message", new AnyValue { StringValue = new string('ü', 20000) });
-        Assert.IsLessThanOrEqualTo(32 * 1024, Encoding.UTF8.GetByteCount(unicode));
-        Assert.IsFalse(unicode.Contains('\uFFFD'));
-    }
-
-    [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
-    [TestMethod]
-    public void Sanitizer_InvalidUtf16_FailsClosed()
-    {
-        Assert.AreEqual("[SANITIZATION_FAILED]",
-            CredentialRedaction.ExceptionText("exception.stacktrace",
-                new AnyValue { StringValue = "invalid" + '\ud800' }));
-    }
-
-    [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
-    [TestMethod]
     [DoNotParallelize]
     public async Task Resource_MissingServiceName_CountedNotDropped()
     {

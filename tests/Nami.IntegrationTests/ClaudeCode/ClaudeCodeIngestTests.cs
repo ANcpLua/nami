@@ -30,7 +30,7 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     private const string Detail = "nami-detail-6a1f3e92";
     private const string Control = "nami-control-93d4a2f6";
 
-    private const string TruncationMarker = "...[truncated]";
+    private const string TruncationMarker = "…[truncated]";
 
     private static readonly string[] s_contentColumns = ["logs.attributes_json", "logs.body", "spans.attributes_json", "spans.events_json"];
 
@@ -127,16 +127,20 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
         var failedResult = Assert.ContainsSingle(AttributesOfEvents(path, "tool_result")
             .Where(static json => Text(json, "error") is not null));
         Assert.IsEmpty(StoredRows.ColumnsContaining(path, secret), "no credential is stored");
-        Assert.IsEmpty(StoredRows.ColumnsContaining(path, tail), "the part beyond 1024 bytes is stored nowhere");
+        Assert.IsFalse(StoredRows.ColumnsContaining(path, tail).ContainsKey("spans.status_message"),
+            "the part of the status message beyond 1024 bytes is not stored");
         foreach (var stored in new[] { failedSpan[0], Text(failedSpan[1]!, "error"), Text(failedResult, "error") })
         {
             Assert.IsNotNull(stored);
             Assert.StartsWith("Shell command failed: could not push\nAuthorization: Bearer [REDACTED]\n", stored);
             Assert.Contains("remote https://git.example.test/nami.git rejected the push\n", stored);
             Assert.Contains("password=[REDACTED];retry in 5 s\n", stored);
-            Assert.EndsWith(TruncationMarker, stored);
-            Assert.IsLessThanOrEqualTo(1024, Encoding.UTF8.GetByteCount(stored));
         }
+
+        // The status message keeps its own 1024 bytes; the error attribute is far below the cap of every value.
+        Assert.EndsWith(TruncationMarker, failedSpan[0]!);
+        Assert.IsLessThanOrEqualTo(1024, Encoding.UTF8.GetByteCount(failedSpan[0]!));
+        Assert.EndsWith(tail, Text(failedResult, "error")!);
     }
 
     /// <summary>

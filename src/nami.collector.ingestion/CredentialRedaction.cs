@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Text.RegularExpressions;
-using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
 
 namespace Nami.Collector.Ingestion;
 
@@ -24,11 +23,6 @@ internal static class CredentialRedaction
 {
     internal const string Replacement = "[REDACTED]";
     internal const string FailureReplacement = "[SANITIZATION_FAILED]";
-
-    // The limits of exception text (PRD R6): longer input is refused whole, the kept text is cut after redaction.
-    private const int MaxExceptionInputCharacters = 128 * 1024;
-    private const int MaxExceptionUtf8Bytes = 32 * 1024;
-    private static readonly UTF8Encoding s_strictUtf8 = new(false, true);
 
     private static readonly Regex s_embeddedUrls = new("""(?:[a-z][a-z0-9+.-]*://|//)[^\s<>"'\x60]+""",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking,
@@ -155,30 +149,6 @@ internal static class CredentialRedaction
             // Never log the exception: a parser/regex exception can retain the input.
             return Failed(attributeKey, "processing_error");
         }
-    }
-
-    /// <summary>
-    ///     Exception text (the registry's exception text keys): the stage, inside the limits of PRD R6. A value that is
-    ///     no string, text over 128 Ki UTF-16 units and text that is no valid UTF-16 are refused whole; the redacted
-    ///     text is cut at 32 KiB of UTF-8.
-    /// </summary>
-    internal static string ExceptionText(string key, ProtoAnyValue? value)
-    {
-        if (value?.ValueCase is not ProtoAnyValue.ValueOneofCase.StringValue) return Failed(key, "invalid_type");
-        var text = value.StringValue;
-        if (text.Length > MaxExceptionInputCharacters) return Failed(key, "input_limit");
-
-        try
-        {
-            _ = s_strictUtf8.GetByteCount(text);
-        }
-        catch (EncoderFallbackException)
-        {
-            return Failed(key, "invalid_text");
-        }
-
-        var redacted = Redact(text, key);
-        return ReferenceEquals(redacted, FailureReplacement) ? redacted : BoundExceptionText(redacted);
     }
 
     private static string Failed(string? attributeKey, string category)
@@ -399,21 +369,5 @@ internal static class CredentialRedaction
                 element.WriteTo(writer);
                 break;
         }
-    }
-
-    private static string BoundExceptionText(string text)
-    {
-        if (s_strictUtf8.GetByteCount(text) <= MaxExceptionUtf8Bytes) return text;
-        const string Marker = "…";
-        const int Budget = MaxExceptionUtf8Bytes - 3;
-        var characters = 0;
-        var bytes = 0;
-        foreach (var rune in text.EnumerateRunes().TakeWhile(rune => bytes + rune.Utf8SequenceLength <= Budget))
-        {
-            bytes += rune.Utf8SequenceLength;
-            characters += rune.Utf16SequenceLength;
-        }
-
-        return text[..characters] + Marker;
     }
 }

@@ -8,7 +8,8 @@ namespace Nami.Grpc;
 internal sealed class LogsServiceImpl(
     INamiStore store,
     TimeProvider timeProvider,
-    IOptions<OtlpApiKeyOptions>? options = null)
+    IOptions<OtlpApiKeyOptions>? options = null,
+    IOptions<IngestLimits>? limits = null)
     : OtlpExportService
 {
     public Task<ExportLogsServiceResponse> Export(
@@ -17,9 +18,9 @@ internal sealed class LogsServiceImpl(
     {
         return GrpcExport.ExecuteAsync(async () =>
         {
-            var logBatch = OtlpConverter.ConvertLogs(request, timeProvider);
+            var logBatch = OtlpConverter.ConvertLogs(request, timeProvider, limits?.Value);
             var logs = IngestionStorageMapper.ToLogStorageRows(
-                logBatch, AuthenticatedProject.ForGrpcIngest(context, options?.Value));
+                logBatch, AuthenticatedProject.ForGrpcIngest(context, options?.Value), limits?.Value);
 
             if (logs.Count <= 0) return OtlpExportAck.Create(logBatch);
 

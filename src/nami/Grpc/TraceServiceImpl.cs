@@ -5,7 +5,10 @@ using OpenTelemetry.Proto.Collector.Trace.V1;
 
 namespace Nami.Grpc;
 
-internal sealed class TraceServiceImpl(INamiStore store, IOptions<OtlpApiKeyOptions>? options = null)
+internal sealed class TraceServiceImpl(
+    INamiStore store,
+    IOptions<OtlpApiKeyOptions>? options = null,
+    IOptions<IngestLimits>? limits = null)
     : OtlpExportService
 {
     public Task<ExportTraceServiceResponse> Export(
@@ -14,7 +17,7 @@ internal sealed class TraceServiceImpl(INamiStore store, IOptions<OtlpApiKeyOpti
     {
         return GrpcExport.ExecuteAsync(async () =>
         {
-            var traceBatch = OtlpConverter.ConvertTraceRequest(request);
+            var traceBatch = OtlpConverter.ConvertTraceRequest(request, limits?.Value);
             var spans = IngestionStorageMapper.ToSpanStorageRows(
                 traceBatch, AuthenticatedProject.ForGrpcIngest(context, options?.Value));
 

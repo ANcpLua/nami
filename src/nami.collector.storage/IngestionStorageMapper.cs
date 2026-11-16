@@ -2,17 +2,19 @@ namespace Nami.Collector.Storage;
 
 internal static class IngestionStorageMapper
 {
-    private const int MaxPersistedLogBodyUtf8Bytes = 64 * 1024;
-
     public static List<SpanStorageRow> ToSpanStorageRows(TraceIngestionBatch batch,
         string? authenticatedProjectId = null)
     {
         return batch.Spans.Select(span => ToSpanStorageRow(span, authenticatedProjectId)).ToList();
     }
 
-    public static List<LogStorageRow> ToLogStorageRows(LogIngestionBatch batch, string? authenticatedProjectId = null)
+    // limits: the cap of every value (observer's ruling, 16 Nov 2026). Ingest has cut each string of a body to it
+    // already; a map or list body beyond it is stored as its cut canonical text.
+    public static List<LogStorageRow> ToLogStorageRows(LogIngestionBatch batch, string? authenticatedProjectId = null,
+        IngestLimits? limits = null)
     {
-        return batch.Logs.Select(log => ToLogStorageRow(log, authenticatedProjectId)).ToList();
+        var cap = limits?.MaxValueUtf8Bytes ?? IngestLimits.DefaultMaxValueUtf8Bytes;
+        return batch.Logs.Select(log => ToLogStorageRow(log, authenticatedProjectId, cap)).ToList();
     }
 
     private static SpanStorageRow ToSpanStorageRow(SpanIngestionRecord span, string? authenticatedProjectId)
@@ -44,7 +46,7 @@ internal static class IngestionStorageMapper
         }, projection);
     }
 
-    private static LogStorageRow ToLogStorageRow(LogIngestionRecord log, string? authenticatedProjectId)
+    private static LogStorageRow ToLogStorageRow(LogIngestionRecord log, string? authenticatedProjectId, int cap)
     {
         var projectId = ProjectScope.ForIngest(log.ProjectIdHint, authenticatedProjectId);
         var severityText = log.SeverityText;
@@ -54,7 +56,7 @@ internal static class IngestionStorageMapper
         // Omitted suffixes contribute only to the digest and are never stored.
         var storedBody = StoredRecordMapper.ToStored(log.Body);
         var originalBody = storedBody is null ? null : EncodeBody(storedBody);
-        var body = ToPersistedLogBody(storedBody, originalBody);
+        var body = ToPersistedLogBody(storedBody, originalBody, cap);
         var attributesJson = PersistedAttributePolicy.SerializeAttributes(log.Attributes);
         var resourceJson = PersistedAttributePolicy.SerializeAttributes(log.ResourceAttributes);
         var resourceEntityRefsJson = StorageJsonSerializerContext.SerializeResourceEntityRefs(log.ResourceEntityRefs);
@@ -131,39 +133,39 @@ internal static class IngestionStorageMapper
     ///     is truncated before encoding; any other body that exceeds the limit is stored as its
     ///     truncated canonical text, so the column always holds valid JSON.
     /// </summary>
-    private static string? ToPersistedLogBody(StoredAttributeValue? body, string? original)
+    private static string? ToPersistedLogBody(StoredAttributeValue? body, string? original, int cap)
     {
         switch (body)
         {
             case null: return null;
             case StoredAttributeValue.StringValue text:
                 {
-                    return Encoding.UTF8.GetByteCount(text.Value) <= MaxPersistedLogBodyUtf8Bytes
+                    return Encoding.UTF8.GetByteCount(text.Value) <= cap
                         ? original
-                        : EncodeBody(new StoredAttributeValue.StringValue(TruncateBodyText(text.Value)));
+                        : EncodeBody(new StoredAttributeValue.StringValue(BoundedText.Truncate(text.Value, cap)));
                 }
             case StoredAttributeValue.ArrayValue or StoredAttributeValue.BoolValue or StoredAttributeValue.ObjectValue:
                 break;
         }
 
         var encoded = original ?? throw new InvalidDataException("Nonempty log bodies require canonical content.");
-        return FitsBodyBudget(encoded)
+        return FitsBodyBudget(encoded, cap)
             ? encoded
             : EncodeBody(
-                new StoredAttributeValue.StringValue(TruncateBodyText(StoredAttributeValue.StableString(body))));
+                new StoredAttributeValue.StringValue(BoundedText.Truncate(StoredAttributeValue.StableString(body), cap)));
     }
 
     private static string EncodeBody(StoredAttributeValue body) =>
         JsonSerializer.Serialize(body, StorageJsonSerializerContext.Default.StoredAttributeValue);
 
-    private static bool FitsBodyBudget(string encoded)
+    private static bool FitsBodyBudget(string encoded, int cap)
     {
-        if (Encoding.UTF8.GetByteCount(encoded) <= MaxPersistedLogBodyUtf8Bytes) return true;
+        if (Encoding.UTF8.GetByteCount(encoded) <= cap) return true;
         // Match the string-body budget: count decoded UTF-8 text, not JSON escape
         // expansion. A surrogate-pair escape must not erase an otherwise bounded map.
         // Structural bytes still count, so a large collection cannot bypass the cap.
         using var document = JsonDocument.Parse(encoded);
-        var remaining = MaxPersistedLogBodyUtf8Bytes;
+        var remaining = cap;
         return FitsBodyBudget(document.RootElement, ref remaining);
     }
 
@@ -212,8 +214,6 @@ internal static class IngestionStorageMapper
 
         return true;
     }
-
-    private static string TruncateBodyText(string raw) => BoundedText.Truncate(raw, MaxPersistedLogBodyUtf8Bytes);
 
     private static string? GetResourceEntityRefsIdentity(
         IReadOnlyList<ResourceEntityRefIngestionRecord> entityRefs,

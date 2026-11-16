@@ -96,7 +96,16 @@ All three land in the same rows. What the tools can answer comes from the resour
   event named `exception`; `errors_recent` groups both together.
 - Telemetry is stored as it was sent: keys, types, containers, event fields and content. What a
   sender captures is decided at the source, not by nami. Ingest changes a record in two ways only:
-  size bounds, and the credential stage.
+  the credential stage, and size bounds.
+- The size bounds are nami's own receiver policy. One attribute value keeps 256 KiB as nami stores
+  it, arrays and maps counted whole: a longer string is cut between characters and ends in
+  `…[truncated]`; a larger array, map or bytes value is dropped. A span, event, link, log record and
+  scope keep 128 attributes; a value nested deeper than 16 becomes an empty value; one record keeps
+  1 MiB of attributes. What a bound removes is added to the record's dropped attributes count. A
+  record over a limit keeps its session, usage and cost attributes first and then its smallest
+  attributes, whatever order they were sent in. A span status message keeps 1024 bytes.
+  `docs/prd/nami.md`, row R6, has the policy in full, the settings and the five points where it
+  differs from the attribute limits OpenTelemetry defines for SDKs.
 - No token or password is stored. Every string nami keeps (attribute keys and values on every
   carrier, log bodies, names, status messages) first passes one credential stage, whatever key or
   field carries it. The stage replaces what it recognises with `[REDACTED]` and leaves the rest of
