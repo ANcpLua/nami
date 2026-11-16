@@ -15,12 +15,8 @@ internal static class StoreScan
     internal static async Task<IReadOnlyList<string>> FindAsync(string databasePath, string needle,
         CancellationToken cancellationToken)
     {
-        // The builder quotes a path that holds a separator of the connection string, such as ';' or '='.
-        await using var connection = new DuckDBConnection(new DuckDBConnectionStringBuilder
-        {
-            DataSource = databasePath,
-            ["vacuum_rebuild_indexes"] = ulong.MaxValue.ToString(CultureInfo.InvariantCulture)
-        }.ConnectionString);
+        await using var connection = new DuckDBConnection(
+            string.Create(CultureInfo.InvariantCulture, $"DataSource={databasePath};vacuum_rebuild_indexes={ulong.MaxValue}"));
         await connection.OpenAsync(cancellationToken);
         var columns = new List<(string Schema, string Table, string Column, string Type)>();
         await using (var list = connection.CreateCommand())
