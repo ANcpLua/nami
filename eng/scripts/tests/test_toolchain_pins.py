@@ -30,9 +30,10 @@ def image_tag(image):
 
 
 def unpinned_base_images():
-    # Every image a stage starts from carries the digest of its index; a stage that continues another one has none.
+    # Every image a stage starts from carries the digest of its index; a stage that continues another one has none,
+    # and neither has "scratch": that is no image but the empty stage (the Dockerfile's stage "symbols").
     dockerfile = read("src/nami/Dockerfile")
-    stages = set(re.findall(r"^FROM\s+\S+\s+AS\s+(\S+)", dockerfile, re.M | re.I))
+    stages = set(re.findall(r"^FROM\s+\S+\s+AS\s+(\S+)", dockerfile, re.M | re.I)) | {"scratch"}
     return [image for image in re.findall(r"^FROM\s+(\S+)", dockerfile, re.M)
             if image not in stages and not re.search(r"@sha256:[0-9a-f]{64}$", image)]
 
