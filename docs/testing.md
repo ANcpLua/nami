@@ -480,6 +480,9 @@ also reject concurrent source or output mutations. Do not bypass a busy lock.
 
 Tests remain native MSTest/MTP. Fresh TRX is validated by the runner before it records the current
 summary. A zero-test, failed or skipped run cannot pass; filtered runs cannot replace the full gate.
+The one exception holds on a machine that is not Linux: a test skipped with a reason that ends in
+`Linux only` (it reads `/proc`, or needs `/dev/shm`) counts there as run, for the skip rule and for
+the suite floor. On Linux every skip fails the run.
 Build success, inspection findings and analysis validity are distinct facts in every summary.
 
 ## Agent control verification
