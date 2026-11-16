@@ -42,7 +42,6 @@ public sealed class ChildProcessTests(TestContext context) : IAsyncDisposable
     [Timeout(30_000, CooperativeCancellation = true)]
     public async Task OwnedProcess_TerminateAsync_AllowsTheCommandToFlushAndExit()
     {
-        if (OperatingSystem.IsWindows()) Assert.Inconclusive("This test requires POSIX signals.");
         await using var process = await OwnedProcess.StartAsync(Shell(
             "trap 'printf shutdown-flushed; exit 23' TERM; printf 'ready\\n'; while :; do sleep 1; done"),
             context.CancellationToken);
@@ -59,7 +58,6 @@ public sealed class ChildProcessTests(TestContext context) : IAsyncDisposable
     [Timeout(30_000, CooperativeCancellation = true)]
     public async Task OwnedProcess_TerminateAsync_DeadlineStillAllowsForcedCleanup()
     {
-        if (OperatingSystem.IsWindows()) Assert.Inconclusive("This test requires POSIX signals.");
         await using var process = await OwnedProcess.StartAsync(Shell(
             "trap '' TERM; printf 'ready\\n'; while :; do sleep 1; done"), context.CancellationToken);
         Assert.AreEqual("ready", await process.StandardOutput.ReadLineAsync(context.CancellationToken));
@@ -73,6 +71,41 @@ public sealed class ChildProcessTests(TestContext context) : IAsyncDisposable
         Assert.IsTrue(process.HasExited);
         Assert.AreEqual(-1, process.ExitCode);
         Assert.AreEqual("", await process.StandardOutput.ReadToEndAsync(context.CancellationToken));
+    }
+
+    [TestMethod]
+    [DoNotParallelize] // DOTNET_HOST_PATH belongs to the whole test process, and every child dotnet command reads it.
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task OwnedProcess_StartupFailure_KeepsBothHostStreamsInTheCallersEncodings()
+    {
+        // The wrapper stands in for the dotnet host: it writes to both streams and then becomes the real ownership
+        // host, which cannot start the missing command. StartAsync kills the host's process group and reads the streams.
+        var wrapper = Path.Combine(context.TestTempDirectory!, "dotnet-wrapper.sh");
+        await File.WriteAllTextAsync(wrapper, $"""
+                                               #!/bin/sh
+                                               printf 'host-output \303\244\n'
+                                               printf 'host-error \303\244\n' >&2
+                                               exec '{ChildProcess.DotnetHost}' "$@"
+                                               """, context.CancellationToken);
+        File.SetUnixFileMode(wrapper, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        var start = new ProcessStartInfo(Path.Combine(context.TestTempDirectory!, "missing-command"))
+        {
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.Latin1
+        };
+        InvalidOperationException failure;
+        using (new EnvironmentScope(("DOTNET_HOST_PATH", wrapper)))
+        {
+            failure = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
+                OwnedProcess.StartAsync(start, context.CancellationToken));
+        }
+
+        Assert.AreEqual("host-output \u00e4\n", failure.Data["Output"]);
+        // The wrapper wrote the two UTF-8 bytes of U+00E4. Latin-1, the caller's encoding for this stream, makes two
+        // characters of them.
+        var error = Assert.IsInstanceOfType<string>(failure.Data["Error"]);
+        Assert.StartsWith("host-error \u00c3\u00a4\n", error);
+        Assert.Contains("missing-command", error);
     }
 
     [TestMethod]

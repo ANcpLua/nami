@@ -22,7 +22,7 @@ from artifact_lifetime import store_for
 
 def inherited_lease():
     descriptor = os.environ.get("NAMI_ARTIFACT_LEASE_FD")
-    return {"pass_fds": (int(descriptor),)} if descriptor and os.name != "nt" else {}
+    return {"pass_fds": (int(descriptor),)} if descriptor else {}
 
 
 class HarnessError(Exception):
@@ -258,8 +258,7 @@ def main():
         begin(root, "tests")
     os.environ["NAMI_TEST_RUN_DIR"] = str(run)
     os.environ["NAMI_FIXTURE_WORK_ROOT"] = str(owned_run.workspaces)
-    if os.name != "nt":
-        os.environ["NAMI_ARTIFACT_LEASE_FD"] = str(owned_run.lease.fileno())
+    os.environ["NAMI_ARTIFACT_LEASE_FD"] = str(owned_run.lease.fileno())
     summary = {"status": "RUNNING", "directory": str(run), "configuration": args.configuration,
                "requested": selected, "lane": args.lane, "filtered": bool(args.filter), "suites": []}
     if (root / ".git").exists():
@@ -323,7 +322,7 @@ def main():
                 config = project.parent / "testconfig.json"
             if name == "EndToEnd" and not (root / "artifacts/publish/mcp/main.js").is_file():
                 raise HarnessError("The bundled TypeScript MCP host is missing. Prepare PublishNative first.")
-            if name == "EndToEnd" and not (root / "artifacts/publish" / ("nami.exe" if os.name == "nt" else "nami")).is_file():
+            if name == "EndToEnd" and not (root / "artifacts/publish/nami").is_file():
                 raise HarnessError("The NativeAOT Nami host is missing. Run without --no-build, or prepare PublishNative first.")
             if not config.is_file():
                 raise HarnessError(f"MSTest configuration is missing: {config}")

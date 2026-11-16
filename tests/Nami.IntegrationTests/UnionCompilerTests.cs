@@ -164,7 +164,7 @@ public sealed partial class UnionCompilerTests(TestContext context)
         var published = await project.PublishAsync(true, context.CancellationToken);
         Assert.AreEqual(0, published.ExitCode, published.Output + published.Error);
         var run = await ChildProcess.RunAsync(new ProcessStartInfo(
-                Path.Combine(published.OutputDirectory, project.Definition.Name + (OperatingSystem.IsWindows() ? ".exe" : ""))),
+                Path.Combine(published.OutputDirectory, project.Definition.Name)),
             "the NativeAOT union consumer", context.CancellationToken);
         Assert.AreEqual(0, run.ExitCode, run.Output + run.Error);
         Assert.AreEqual("15 wire and 8 stored roundtrips; 7 defaults and 12 invalid tags rejected; reflection disabled", run.Output);

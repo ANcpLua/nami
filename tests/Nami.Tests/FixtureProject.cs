@@ -441,8 +441,7 @@ public sealed record FixtureBuildResult(
         ? throw new InvalidOperationException("Select an assembly with GetAssemblyPath(targetFramework).")
         : Path.Combine(OutputDirectory, AssemblyName + ".dll");
 
-    public string NativePath =>
-        Path.Combine(OutputDirectory, AssemblyName + (OperatingSystem.IsWindows() ? ".exe" : ""));
+    public string NativePath => Path.Combine(OutputDirectory, AssemblyName);
 
     public string? GetRecordedProperty(string name, string? targetFramework = null)
     {

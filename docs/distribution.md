@@ -46,6 +46,9 @@ claude mcp add --env NAMI_OTLP_AUTH_MODE=Unsecured --transport stdio nami -- bun
 
 Your telemetry stays in a file on your disk. Nothing leaves the machine.
 
+nami runs natively on macOS and Linux. On Windows, run it in WSL2 (the Linux build) or as
+the Linux container under Docker Desktop; there is no native Windows build.
+
 *Before publishing:* true today for Claude Code. Check Cowork once, and replace the
 build paths with the install command when a packaged release exists.
 
