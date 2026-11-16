@@ -9,11 +9,13 @@ namespace Nami.Collector.Ingestion;
 ///     credential stage these bounds are the only thing ingest does to it. One instance serves the request readers
 ///     (HTTP and gRPC), the bounded parse and the converter, so the three count against the same numbers.
 ///     <para>
-///         nami follows the OpenTelemetry Common Specification
-///         (https://opentelemetry.io/docs/specs/otel/common/#anyvalue and #attribute-limits). Where a bound differs
-///         from it, that is nami's receiver policy: the value bound counts encoded bytes of the whole value, nested
-///         elements included, where the specification counts the characters of each string; nesting is bounded;
-///         and one record has a byte budget.
+///         nami takes the data model from the current OpenTelemetry Common Specification: what an AnyValue is, how
+///         values nest, what an empty value is (https://opentelemetry.io/docs/specs/otel/common/#anyvalue). The
+///         bounds are nami receiver policy; compare the SDK attribute limits in the Common Specification
+///         (#attribute-limits), which are written for SDKs. nami differs from them in five ways: it counts UTF-8
+///         bytes, not characters; it bounds nesting, at 16; its record budget also covers resource and metric
+///         attributes; it reduces a record deterministically, priority keys first; and it uses its own truncation
+///         marker and sentinel.
 ///     </para>
 ///     <para>Everything a bound removes is counted in the record's <c>dropped_attributes_count</c>.</para>
 /// </summary>
@@ -47,8 +49,9 @@ internal sealed class IngestLimits
     internal static IngestLimits Default => new();
 
     /// <summary>
-    ///     The most UTF-8 bytes one attribute value (or log body) keeps, counted as it is encoded: the elements of an
-    ///     array, the members of a map and their encoding overhead count toward the value that holds them.
+    ///     nami receiver policy: the most UTF-8 bytes one attribute value (or log body) keeps, counted as it is
+    ///     encoded: the elements of an array, the members of a map and their encoding overhead count toward the
+    ///     value that holds them. Compare the SDK limits in the Common Specification, which count characters.
     /// </summary>
     [ConfigurationKeyName(MaxValueUtf8BytesKey)]
     [ConfiguredRange(Key = MaxValueUtf8BytesKey, Minimum = 1, Maximum = MaxConfigurableBytes)]
