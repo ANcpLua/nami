@@ -65,11 +65,19 @@ internal sealed class OtlpUnsupportedContentEncodingException(string? contentEnc
 }
 
 /// <summary>
-///     The OTLP/HTTP body exceeded the decompressed size bound. OTLP 1.11 (request size limits)
-///     requires 413 Content Too Large, which the endpoint handlers answer for this exception.
+///     The OTLP/HTTP body exceeded a size bound of <see cref="IngestLimits" />, on the wire or decompressed. OTLP 1.11
+///     (request size limits) requires 413 Content Too Large, which the endpoint handlers answer for this exception,
+///     with its message as the OTLP status message.
 /// </summary>
 internal sealed class OtlpPayloadTooLargeException(string? message, Exception? innerException)
     : IOException(message, innerException)
 {
-    public OtlpPayloadTooLargeException() : this(OtlpPayloadParser.PayloadTooLargeMessage, null) { }
+    /// <summary>The body holds more bytes than a request may hold on the wire.</summary>
+    public static OtlpPayloadTooLargeException OnTheWire(int limit) =>
+        new(string.Create(CultureInfo.InvariantCulture, $"OTLP payload exceeds the {limit}-byte wire limit."), null);
+
+    /// <summary>The body holds, once decompressed, more bytes than a request may hold.</summary>
+    public static OtlpPayloadTooLargeException Decompressed(int limit) =>
+        new(string.Create(CultureInfo.InvariantCulture, $"OTLP payload exceeds the {limit}-byte decompressed limit."),
+            null);
 }
