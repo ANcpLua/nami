@@ -33,12 +33,10 @@ internal sealed partial class DuckDbStore
             InsertRowsStaged(con, tx, series, s_metricSeriesStage, token);
             InsertRowsStaged(con, tx, observations, s_metricObservationStage, token);
             // An export's first observation of a timestamp is the one that arrived first.
-            foreach (var arriving in observations.GroupBy(static row =>
-                         new MetricObservationKey(row.ProjectId, row.SeriesId, row.TimeUnixNano)))
-            {
-                token.ThrowIfCancellationRequested();
-                RefreshMetricProjection(con, tx, arriving.Key, arriving.First());
-            }
+            var arriving = new Dictionary<MetricObservationKey, MetricObservationRow>(observations.Count);
+            foreach (var row in observations)
+                arriving.TryAdd(new MetricObservationKey(row.ProjectId, row.SeriesId, row.TimeUnixNano), row);
+            RefreshMetricProjections(con, tx, [.. arriving.Keys], arriving, token);
 
             RecordIngestion(con, tx, "metrics",
                 series.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName,
@@ -87,7 +85,7 @@ internal sealed partial class DuckDbStore
                 }
             }
 
-            foreach (var key in affected) RefreshMetricProjection(con, transaction, key);
+            RefreshMetricProjections(con, transaction, [.. affected], null, token);
 
             await using (var command = con.CreateCommand())
             {

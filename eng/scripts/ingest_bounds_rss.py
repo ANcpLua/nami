@@ -6,7 +6,8 @@ initialize the path, idle, baseline VmHWM; then one request of exactly N protobu
 from each client at the same moment, idle again, peak VmHWM. Stored rows are the records sent minus what the
 responses' partial_success rejected; a request the engine refuses (413) or turns away (503) stores nothing.
 
-The compositions: empty and minimal valid spans, empty log records, number data points, empty ResourceSpans and
+The compositions: empty and minimal valid spans, empty log records, number data points (all at one time, which
+the store keeps as one observation) and distinct ones (each at its own time, each stored), empty ResourceSpans and
 ScopeSpans wrappers, one span of small attributes, spans of the attribute density Claude Code sends, a mix, and a
 fixed number of spans that fill N messages between them (the worst case inside both the record and the message
 bound). The defaults of IngestLimits.MaxRequestRecords and MaxConcurrentRequests were chosen from this script's
@@ -27,7 +28,7 @@ import a3_rss as a3  # noqa: E402  the engine process, the idle wait and the pro
 ld, text, varint, fixed64 = a3.ld, a3.text, a3.varint, a3.fixed64
 NOW = time.time_ns()
 RSS_CAP_KB = 1536 * 1024
-SHIFT = 0   # set per client, so that concurrent clients send different spans
+SHIFT = 0   # set per client, so that concurrent clients send different spans and distinct data points
 
 def span(i, attrs=0, extra=b""):
     i += SHIFT
@@ -43,6 +44,8 @@ def traces(spans_bytes):                                     # request + Resourc
 def compositions(n):
     """name -> (signal, payload, records sent). Each payload holds exactly n messages."""
     point = fixed64(3, NOW) + varint(6 << 3 | 1) + struct.pack("<q", 7)             # NumberDataPoint: time, as_int
+    def point_at(i):                                                                # its own time: its own stored point
+        return fixed64(3, NOW + SHIFT + i) + varint(6 << 3 | 1) + struct.pack("<q", 7)
     per_mixed = 1 + 2 * 8 + 1 + 1 + 2                                               # span, 8 attributes, status, event, its attribute
     mixed = (n - 3) // per_mixed
     event = ld(11, text(2, "e") + ld(3, text(1, "ek") + ld(2, text(1, "v"))))        # Event{name, attributes[KeyValue{AnyValue}]}
@@ -65,6 +68,8 @@ def compositions(n):
         "minimal valid spans": ("traces", traces([span(i) for i in range(n - 3)]), n - 3),
         "empty log records": ("logs", ld(1, ld(2, ld(2, b"") * (n - 3))), n - 3),
         "number data points": ("metrics", ld(1, ld(2, ld(2, text(1, "m") + ld(5, ld(1, point) * (n - 5))))), n - 5),
+        "distinct number data points": ("metrics", ld(1, ld(2, ld(2, text(1, "m") + ld(5, b"".join(
+            ld(1, point_at(i)) for i in range(n - 5)))))), n - 5),
         "empty ResourceSpans": ("traces", ld(1, b"") * (n - 1), 0),
         "empty ScopeSpans": ("traces", ld(1, ld(2, b"") * (n - 2)), 0),
         "one span, small attributes": ("traces", traces([span(0, attrs=(n - 4) // 2,

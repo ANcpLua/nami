@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using DuckDB.NET.Data;
 using Google.Protobuf;
 using Nami.Collector.Ingestion;
@@ -100,6 +101,120 @@ public sealed class StorageBatchWriteTests(TestContext context)
     }
 
     /// <summary>
+    ///     A metrics request at the record bound is stored in the time an exporter waits, under a memory limit a
+    ///     small machine sets. The projection of its points took one statement a point: 26 to 31 s for 3,000 points,
+    ///     longer than an OTLP exporter's timeout of 10 s, and more memory than a limit of 512 MiB allows (ledger
+    ///     N108). It is now a fixed number of statements a request.
+    /// </summary>
+    [TestMethod]
+    [DataRow(1, DisplayName = "One series of 3,000 points")]
+    [DataRow(30, DisplayName = "30 series of 100 points")]
+    [DataRow(IngestLimits.DefaultMaxRequestRecords, DisplayName = "3,000 series of one point")]
+    public async Task InsertMetrics_RequestAtTheRecordBound_IsStoredUnderASmallLimitInAnExportersTime(int series)
+    {
+        var path = DatabasePath("metrics-bound.duckdb");
+        var points = IngestLimits.DefaultMaxRequestRecords / series;
+        var rows = MetricStorageMapper.ToStorageRows(OtlpConverter.ConvertMetrics(MetricsRequest(
+            Enumerable.Range(0, series).Select(metric => Gauge("bound." + (uint)metric,
+                Enumerable.Range(0, points).Select(point => Point(point, metric * 10_000L + point, point)))))));
+        Assert.HasCount(IngestLimits.DefaultMaxRequestRecords, rows.Observations);
+        TimeSpan elapsed;
+        await using (var store = new DuckDbStore(path, memoryLimit: "256MB"))
+        {
+            var started = Stopwatch.GetTimestamp();
+            await store.InsertMetricsAsync(rows.Series, rows.Observations, context.CancellationToken);
+            elapsed = Stopwatch.GetElapsedTime(started);
+        }
+
+        Assert.AreEqual((long)series, Scalar(path, "SELECT count(*) FROM metric_series"));
+        Assert.AreEqual((long)rows.Observations.Count, Scalar(path, "SELECT count(*) FROM metric_observations"));
+        // Every point is projected with its own value, and every exemplar with its trace.
+        Assert.AreEqual((long)rows.Observations.Count, Scalar(path,
+            "SELECT count(DISTINCT value) FROM metric_points WHERE has_conflict = 0"));
+        Assert.AreEqual((long)rows.Observations.Count, Scalar(path, "SELECT count(*) FROM metric_exemplars"));
+        Assert.IsLessThan(TimeSpan.FromSeconds(10), elapsed);
+    }
+
+    /// <summary>
+    ///     A batch of points stores what the same points store one request each, whatever the batch holds: points
+    ///     that repeat a timestamp with the same or another measurement, exemplars, points of a stored series, and
+    ///     the whole batch once more. A batch names its points in a temporary table and one point is bound as
+    ///     parameters; the statements are the same.
+    /// </summary>
+    [TestMethod]
+    public async Task InsertMetrics_Batch_StoresWhatItsPointsStoreOneByOne()
+    {
+        OpenTelemetry.Proto.Metrics.V1.Metric[] first =
+        [
+            Gauge("plain", Enumerable.Range(0, 40).Select(point => Point(point, point, point % 3 is 0 ? point : null))),
+            // One timestamp, three measurements: the first one is kept and the point is marked.
+            Gauge("conflict", [Point(1, 5), Point(1, 6), Point(1, 7), Point(2, 1)]),
+            // One measurement observed twice, each time with another exemplar; and an exemplar without a trace.
+            Gauge("observed", [Point(1, 9, 1), Point(1, 9, 2), Point(2, 4, 3), Point(2, 8, 4), Point(3, 1, 5, false)]),
+            Histogram("histogram", 6)
+        ];
+        OpenTelemetry.Proto.Metrics.V1.Metric[] second =
+        [
+            // Other measurements at stored timestamps, stored measurements with new exemplars, and new points.
+            Gauge("plain", Enumerable.Range(30, 20).Select(point => Point(point, point % 2 is 0 ? point : -point, 100 + point))),
+            Gauge("conflict", [Point(2, 2), Point(3, 3)]),
+            Gauge("observed", [Point(1, 9, 6)]),
+            Histogram("histogram", 8)
+        ];
+        var batched = DatabasePath("metrics-batched.duckdb");
+        var single = DatabasePath("metrics-single.duckdb");
+        await using (var store = new DuckDbStore(batched))
+        {
+            foreach (var request in new[] { first, second, first })
+                await Insert(store, MetricsRequest(request));
+        }
+
+        await using (var store = new DuckDbStore(single))
+        {
+            foreach (var request in new[] { first, second, first })
+            {
+                foreach (var metric in request)
+                {
+                    foreach (var point in metric.Gauge?.DataPoints.ToArray() ?? [])
+                        await Insert(store, MetricsRequest([Gauge(metric.Name, [point])]));
+                    if (metric.Histogram is not { } histogram) continue;
+                    foreach (var point in histogram.DataPoints.ToArray())
+                    {
+                        await Insert(store, MetricsRequest([new OpenTelemetry.Proto.Metrics.V1.Metric
+                        {
+                            Name = metric.Name,
+                            Histogram = new OpenTelemetry.Proto.Metrics.V1.Histogram
+                            {
+                                AggregationTemporality = histogram.AggregationTemporality, DataPoints = { point }
+                            }
+                        }]));
+                    }
+                }
+            }
+        }
+
+        string[] tables = ["metric_series", "metric_observations", "metric_points", "metric_exemplars"];
+        var expected = StoreDump.Read(single);
+        var actual = StoreDump.Read(batched);
+        foreach (var table in tables)
+        {
+            Assert.IsNotEmpty(expected[table], table);
+            CollectionAssert.AreEqual(expected[table], actual[table], table);
+        }
+
+        // The first of the three measurements is the one the point keeps.
+        Assert.AreEqual(5d, Scalar(batched,
+            "SELECT p.value FROM metric_points p JOIN metric_series s USING (project_id, series_id) " +
+            "WHERE s.metric_name = 'conflict' AND p.time_unix_nano = 1000000001 AND p.has_conflict = 1"));
+
+        async Task Insert(DuckDbStore store, OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceRequest request)
+        {
+            var rows = MetricStorageMapper.ToStorageRows(OtlpConverter.ConvertMetrics(request));
+            await store.InsertMetricsAsync(rows.Series, rows.Observations, context.CancellationToken);
+        }
+    }
+
+    /// <summary>
     ///     A JSON column refuses text that is not JSON, in a batch as in a single row. The batch is refused whole,
     ///     and the store writes the next one.
     /// </summary>
@@ -172,6 +287,62 @@ public sealed class StorageBatchWriteTests(TestContext context)
 
         var request = new ExportTraceServiceRequest { ResourceSpans = { new ResourceSpans { ScopeSpans = { scope } } } };
         return IngestionStorageMapper.ToSpanStorageRows(OtlpConverter.ConvertTraceRequest(request));
+    }
+
+    private static OpenTelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceRequest MetricsRequest(
+        IEnumerable<OpenTelemetry.Proto.Metrics.V1.Metric> metrics) => new()
+    {
+        ResourceMetrics =
+        {
+            new OpenTelemetry.Proto.Metrics.V1.ResourceMetrics
+            {
+                ScopeMetrics = { new OpenTelemetry.Proto.Metrics.V1.ScopeMetrics { Metrics = { metrics } } }
+            }
+        }
+    };
+
+    private static OpenTelemetry.Proto.Metrics.V1.Metric Gauge(string name,
+        IEnumerable<OpenTelemetry.Proto.Metrics.V1.NumberDataPoint> points) => new()
+    {
+        Name = name, Gauge = new OpenTelemetry.Proto.Metrics.V1.Gauge { DataPoints = { points } }
+    };
+
+    /// <summary>A point at <paramref name="time" />; <paramref name="exemplar" /> numbers the trace of its exemplar.</summary>
+    private static OpenTelemetry.Proto.Metrics.V1.NumberDataPoint Point(int time, long value, int? exemplar = null,
+        bool traced = true)
+    {
+        var point = new OpenTelemetry.Proto.Metrics.V1.NumberDataPoint
+        {
+            TimeUnixNano = 1_000_000_000UL + (ulong)time, AsInt = value
+        };
+        if (exemplar is not { } number) return point;
+        var trace = new byte[16];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(trace, number + 1);
+        point.Exemplars.Add(new OpenTelemetry.Proto.Metrics.V1.Exemplar
+        {
+            TimeUnixNano = point.TimeUnixNano, AsInt = value,
+            TraceId = traced ? ByteString.CopyFrom(trace) : ByteString.Empty,
+            SpanId = traced ? ByteString.CopyFrom(trace, 0, 8) : ByteString.Empty
+        });
+        return point;
+    }
+
+    private static OpenTelemetry.Proto.Metrics.V1.Metric Histogram(string name, ulong count)
+    {
+        var histogram = new OpenTelemetry.Proto.Metrics.V1.Histogram
+        {
+            AggregationTemporality = OpenTelemetry.Proto.Metrics.V1.AggregationTemporality.Delta
+        };
+        for (var time = 0; time < 5; time++)
+        {
+            histogram.DataPoints.Add(new OpenTelemetry.Proto.Metrics.V1.HistogramDataPoint
+            {
+                TimeUnixNano = 1_000_000_000UL + (ulong)time, StartTimeUnixNano = 1_000_000_000UL, Count = count,
+                Sum = 12.5, ExplicitBounds = { 1, 5 }, BucketCounts = { 1, 2, count - 3 }
+            });
+        }
+
+        return new OpenTelemetry.Proto.Metrics.V1.Metric { Name = name, Histogram = histogram };
     }
 
     private static object? Scalar(string path, string sql)
