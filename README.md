@@ -93,7 +93,9 @@ reported the addresses it bound and the MCP listener is bound, so a reader sees 
 file; nami removes it when it stops. The URLs are the bound ones; a wildcard address is written as
 loopback, and with `--stdio` `mcp` is `null`. The store stays where `NAMI_DATA_PATH` says;
 `data_path` reports it as an absolute path. With `NAMI_OTLP_PORT=0` nami does not export its own
-telemetry, because that exporter needs the port before the listener is bound.
+telemetry, because that exporter needs the port before the listener is bound. Inside a
+container the manifest names the container's own ports; the ports on the host are what
+`docker port <container>` prints.
 
 ## Run in a container
 
