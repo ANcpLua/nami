@@ -264,9 +264,7 @@ public sealed class ValueBoundsTests(TestContext context)
         const int Values = 1_000_000;
         var export = Export(Text("before"), Empties(Values), Text("after"));
         var expected = Export(Text("before"), Sentinel, Text("after"));
-        var payload = transport == "json"
-            ? Encoding.UTF8.GetBytes(JsonFormatter.Default.Format(export))
-            : export.ToByteArray();
+        var payload = transport == "json" ? OtlpJson(export) : export.ToByteArray();
         ExportTraceServiceRequest parsed;
         long allocated;
         if (transport == "grpc")
@@ -310,6 +308,15 @@ public sealed class ValueBoundsTests(TestContext context)
         {
             ResourceSpans = { new ResourceSpans { ScopeSpans = { new ScopeSpans { Spans = { span } } } } }
         };
+    }
+
+    // The export as OTLP/JSON: the protobuf JSON mapping, with trace and span ids in hex where it writes base64.
+    private static byte[] OtlpJson(ExportTraceServiceRequest export)
+    {
+        var span = export.ResourceSpans[0].ScopeSpans[0].Spans[0];
+        return Encoding.UTF8.GetBytes(JsonFormatter.Default.Format(export)
+            .Replace(span.TraceId.ToBase64(), Convert.ToHexStringLower(span.TraceId.Span), StringComparison.Ordinal)
+            .Replace(span.SpanId.ToBase64(), Convert.ToHexStringLower(span.SpanId.Span), StringComparison.Ordinal));
     }
 
     private static AnyValue Text(string text) => new() { StringValue = text };
