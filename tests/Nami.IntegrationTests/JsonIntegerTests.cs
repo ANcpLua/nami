@@ -32,12 +32,12 @@ public sealed class JsonIntegerTests(TestContext context)
     [DataRow("9223372036854775807", true, DisplayName = "2^63-1 as a string")]
     [DataRow("-9223372036854775808", false, DisplayName = "-2^63 as a number")]
     [DataRow("-9223372036854775808", true, DisplayName = "-2^63 as a string")]
-    public async Task AnIntValue_ArrivesExactly_ThroughIngestStorageAndATool(string integer, bool asString)
+    public async Task AnIntValue_ArrivesExactly_ThroughIngestStorageAndATool(string sent, bool asString)
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
         await using var host = await CollectorHost.StartAsync(Path.Combine(directory, Guid.NewGuid().ToString("N") + ".duckdb"),
             context.CancellationToken);
-        var literal = asString ? "\"" + integer + "\"" : integer;
+        var literal = asString ? "\"" + sent + "\"" : sent;
         var start = TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2));
         var attributes = new JsonArray(new JsonObject
             { ["key"] = Key, ["value"] = new JsonObject { ["intValue"] = "placeholder" } });
@@ -56,7 +56,7 @@ public sealed class JsonIntegerTests(TestContext context)
         var attribute = Assert.ContainsSingle(span.GetProperty("attributes").EnumerateArray()
             .Where(static a => a.GetProperty("key").GetString() == Key).ToArray());
         Assert.AreEqual("int", attribute.GetProperty("value").GetProperty("kind").GetString());
-        Assert.AreEqual(integer, attribute.GetProperty("value").GetProperty("value").GetString());
+        Assert.AreEqual(sent, attribute.GetProperty("value").GetProperty("value").GetString());
     }
 
     /// <summary>

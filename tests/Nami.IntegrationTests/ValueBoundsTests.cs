@@ -385,14 +385,23 @@ public sealed class ValueBoundsTests(TestContext context)
         return Field(1, Field(2, Field(2, [.. span])));
     }
 
+    // One length-delimited field: tag, length, content.
     private static byte[] Field(int number, byte[] content)
     {
-        var output = new MemoryStream();
-        var coded = new CodedOutputStream(output);
-        coded.WriteTag(number, WireFormat.WireType.LengthDelimited);
-        coded.WriteBytes(ByteString.CopyFrom(content));
-        coded.Flush();
-        return output.ToArray();
+        List<byte> field = [(byte)((number << 3) | 2)];
+        for (var rest = (uint)content.Length;; rest >>= 7)
+        {
+            if (rest < 0x80)
+            {
+                field.Add((byte)rest);
+                break;
+            }
+
+            field.Add((byte)(rest | 0x80));
+        }
+
+        field.AddRange(content);
+        return [.. field];
     }
 
     private static AnyValue Mixed() => new()
