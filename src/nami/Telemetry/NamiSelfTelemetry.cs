@@ -20,19 +20,24 @@ internal static partial class NamiTelemetry
     public static readonly Histogram<double> Duration = s_meter.CreateHistogram<double>(
         Metrics.McpServerOperationDuration.Name, "s");
 
+    /// <summary>
+    ///     A failed tool call in nami's own telemetry: the span event and the log line hold the type of the exception
+    ///     and its stack frames, and those of every exception inside it (<see cref="OtlpFailureLog.Describe" />).
+    ///     The message is left out of both: an exception met while a tool reads the store can repeat received text.
+    /// </summary>
     public static void RecordException(Exception error, ILogger logger)
     {
+        var failure = OtlpFailureLog.Describe(error);
         Activity.Current?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
         {
             [ExceptionAttributes.Type] = error.GetType().FullName,
-            [ExceptionAttributes.Message] = error.Message,
-            [ExceptionAttributes.Stacktrace] = error.StackTrace
+            [ExceptionAttributes.Stacktrace] = failure
         }));
-        ToolFailed(logger, error);
+        ToolFailed(logger, failure);
     }
 
-    [LoggerMessage(EventId = 1, EventName = "exception", Level = LogLevel.Error, Message = "Nami tool failed")]
-    private static partial void ToolFailed(ILogger logger, Exception exception);
+    [LoggerMessage(EventId = 1, EventName = "exception", Level = LogLevel.Error, Message = "Nami tool failed: {Failure}")]
+    private static partial void ToolFailed(ILogger logger, string failure);
 }
 
 internal static class NamiSelfTelemetry

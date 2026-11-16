@@ -156,30 +156,40 @@ internal static class OtlpPayloadParser
     private static async Task<T> ParseJsonAsync<T>(HttpRequest request, IngestLimits limits, CancellationToken ct)
         where T : IMessage<T>, new()
     {
-        // The request's own buffer is not held while the parser builds its objects: the normalized document is all
-        // the parser reads, and the request is up to 16 MiB that a collection during the parse can then take back.
-        var (json, bounded) = await ReadNormalizedJsonAsync(request, limits, ct).ConfigureAwait(false);
-        // Read from the normalized bytes: one more copy of a 16 MiB body as a string is 32 MiB.
-        using var reader = new StreamReader(new MemoryStream(json.Array!, json.Offset, json.Count, false), Encoding.UTF8,
-            false);
-        var message = s_otlpJsonParser.Parse<T>(reader);
-        CountReplaced(bounded);
-        return message;
+        await using var payload = await ReadBoundedPayloadAsync(request, limits, ct).ConfigureAwait(false);
+        return ParseJson<T>(payload.GetBuffer().AsMemory(0, (int)payload.Length), limits);
     }
 
-    private static async Task<(ArraySegment<byte> Json, OtlpValueBoundsResult Bounded)> ReadNormalizedJsonAsync(
-        HttpRequest request, IngestLimits limits, CancellationToken ct)
+    /// <summary>
+    ///     The value bounds first, on the bytes, so that a structure over the cap is never built, and the counts as
+    ///     for protobuf. Then the parser reads the request through <see cref="OtlpJsonIdNormalizer" />, which
+    ///     normalizes what it hands over: beside the request there is the parser's own text and nothing else, where
+    ///     a normalized document held whole was up to three times the request (ledger N91).
+    /// </summary>
+    private static T ParseJson<T>(Memory<byte> utf8Json, IngestLimits limits)
+        where T : IMessage<T>, new()
     {
-        await using var payload = await ReadBoundedPayloadAsync(request, limits, ct).ConfigureAwait(false);
-
-        // The value bounds first, on the bytes, so that a structure over the cap is never built.
-        var utf8Json = payload.GetBuffer().AsSpan(0, (int)payload.Length);
-        var bounded = OtlpValueBounds.BoundJson(utf8Json, limits, out var counted);
+        var bounded = OtlpValueBounds.BoundJson(utf8Json.Span, limits, out var counted);
         RefuseTooMany(counted, limits);
 
         // The OTLP spec mandates hex for trace and span ids in JSON, but protojson decodes
-        // bytes fields as base64 — rewrite the id fields (validating them) before parsing.
-        return (OtlpJsonIdNormalizer.NormalizeIdsToProtoJsonUtf8(utf8Json), bounded);
+        // bytes fields as base64 — the id fields are rewritten (and validated) as the parser reads them.
+        using var normalized = OtlpJsonIdNormalizer.Read(utf8Json);
+        T message;
+        try
+        {
+            message = s_otlpJsonParser.Parse<T>(normalized);
+        }
+        catch (Exception) when (!normalized.Refused)
+        {
+            // The parser refused what it had read. What it had not read is still normalized: a document that is no
+            // JSON, or holds an id that is no hex, is refused for that first, wherever the parser stopped.
+            normalized.Skip();
+            throw;
+        }
+
+        CountReplaced(bounded);
+        return message;
     }
 
     // The parser builds one object per message and the store one row per record, so a request of more than either

@@ -95,10 +95,10 @@ public sealed class Utf8ReplacementCostTests(TestContext context)
     [TestMethod]
     [DataRow(Transport.HttpProtobuf, true, 8.5, DisplayName = "every byte invalid, OTLP/HTTP protobuf: 3 read + 3 replaced + 2 string")]
     [DataRow(Transport.Grpc, true, 6.5, DisplayName = "every byte invalid, OTLP/gRPC: 1 read + 3 replaced + 2 string")]
-    [DataRow(Transport.HttpJson, true, 10.5, DisplayName = "every byte invalid, OTLP/HTTP JSON: 3 read + 3 normalized + 4 builder and string")]
+    [DataRow(Transport.HttpJson, true, 7.5, DisplayName = "every byte invalid, OTLP/HTTP JSON: 3 read + 4 builder and string, normalized while read")]
     [DataRow(Transport.HttpProtobuf, false, 6.5, DisplayName = "the last byte invalid, OTLP/HTTP protobuf: 3 read + 1 replaced + 2 string")]
     [DataRow(Transport.Grpc, false, 4.5, DisplayName = "the last byte invalid, OTLP/gRPC: 1 read + 1 replaced + 2 string")]
-    [DataRow(Transport.HttpJson, false, 8.5, DisplayName = "the last byte invalid, OTLP/HTTP JSON: 3 read + 1 normalized + 4 builder and string")]
+    [DataRow(Transport.HttpJson, false, 7.5, DisplayName = "the last byte invalid, OTLP/HTTP JSON: 3 read + 4 builder and string, normalized while read")]
     public async Task OneLargeStringOfInvalidUtf8_CostsOneCopyMore(Transport transport, bool everyByte, double timesTheRequest)
     {
         var payload = LargeString(transport);
@@ -120,9 +120,10 @@ public sealed class Utf8ReplacementCostTests(TestContext context)
 
     /// <summary>
     ///     Evaluator 17, X13. The normalized document is longer than its replaced text where an integer too long
-    ///     for a double becomes a string, two quotes each. The buffer is sized for both, so forty such integers
-    ///     behind 4 MiB of invalid bytes cost what the invalid bytes alone cost; sized for the replaced text only, it
-    ///     grew by a quarter and was copied whole (13.75 times the request).
+    ///     for a double becomes a string, two quotes each. It is not held: the parser reads it a buffer at a time,
+    ///     so forty such integers behind 4 MiB of invalid bytes cost what the invalid bytes alone cost. Held in a
+    ///     buffer sized for the replaced text only, it grew by a quarter and was copied whole (13.75 times the
+    ///     request); held in one sized to the byte, it was three times the request (10 times in all).
     /// </summary>
     [TestMethod]
     public async Task Json_EveryByteInvalid_ThenSixteenDigitIntegers_CostsNoSecondBuffer()
@@ -140,7 +141,7 @@ public sealed class Utf8ReplacementCostTests(TestContext context)
 
         context.WriteLine($"allocated {allocated} bytes for a request of {payload.Length}: {(double)allocated / payload.Length:F1} times");
         Assert.AreEqual(new string('\uFFFD', Large), parsed.ResourceSpans[0].ScopeSpans[0].Spans[0].Attributes[0].Value.StringValue);
-        Assert.IsLessThan(10.5, (double)allocated / payload.Length);
+        Assert.IsLessThan(7.5, (double)allocated / payload.Length);
     }
 
     /// <summary>A valid protobuf request is checked on its bytes and not copied: the read and the string.</summary>

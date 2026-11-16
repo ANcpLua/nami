@@ -24,6 +24,8 @@ internal static class NamiCollectorMetrics
     // An attribute a size bound removed. No tag: the key is the sender's text.
     internal static void AttributeDropped() => s_dropped.Add(1);
 
+    internal static void AttributesDropped(int count) => s_dropped.Add(count);
+
     internal static void AttributeCoalesced(string key) => s_coalesced.Add(1,
         new KeyValuePair<string, object?>(CollectorSemanticAttributeCatalog.NamiAttributeNamespace, Namespace(key)));
 

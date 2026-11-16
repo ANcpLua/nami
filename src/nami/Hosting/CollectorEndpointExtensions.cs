@@ -180,18 +180,28 @@ internal static class OtlpFailureLog
 {
     /// <summary>
     ///     What nami's log says of a failed export: the type of the exception and its stack frames, and the same for
-    ///     every exception inside it. Frames name code. The message is left out: it, and those of the libraries
-    ///     below, can repeat what was sent (Google.Protobuf: "Value out of range: " and the number), and nami's log
-    ///     is nami's own. So never <see cref="Exception.ToString" /> and never <see cref="Exception.Message" />.
+    ///     every exception inside it, each member of an <see cref="AggregateException" /> included. Frames name
+    ///     code. The message is left out: it, and those of the libraries below, can repeat what was sent
+    ///     (Google.Protobuf: "Value out of range: " and the number), and nami's log is nami's own. So never
+    ///     <see cref="Exception.ToString" /> and never <see cref="Exception.Message" />.
     /// </summary>
     internal static string Describe(Exception exception)
     {
         var text = new System.Text.StringBuilder();
-        for (var current = exception; current is not null; current = current.InnerException)
+        // Depth first, in the order the exceptions are held: an exception, then what is inside it.
+        var inside = new Stack<Exception>();
+        inside.Push(exception);
+        while (inside.TryPop(out var current))
         {
             if (text.Length > 0) text.Append(Environment.NewLine).Append(" ---> ");
             text.Append(current.GetType().FullName ?? current.GetType().Name);
             if (current.StackTrace is { Length: > 0 } frames) text.Append(Environment.NewLine).Append(frames);
+
+            // InnerException is only the first of the exceptions an AggregateException holds.
+            if (current is AggregateException several)
+                for (var i = several.InnerExceptions.Count - 1; i >= 0; i--) inside.Push(several.InnerExceptions[i]);
+            else if (current.InnerException is { } inner)
+                inside.Push(inner);
         }
 
         return text.ToString();
