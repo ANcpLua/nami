@@ -52,9 +52,9 @@ public sealed class CredentialRedactionTests
     [DataRow("upstream sent Bearer " + Opaque + " twice", "upstream sent Bearer " + R + " twice",
         DisplayName = "Bearer value alone")]
     [DataRow("git clone https://builder:" + Opaque + "@git.example.test/nami.git && cd nami",
-        "git clone https://git.example.test/nami.git && cd nami", DisplayName = "URL user information")]
+        "git clone https://" + R + "@git.example.test/nami.git && cd nami", DisplayName = "URL user information")]
     [DataRow("GET https://api.example.test/v1/items?api_key=" + Opaque + "&page=2 failed",
-        "GET https://api.example.test/v1/items failed", DisplayName = "URL query")]
+        "GET https://api.example.test/v1/items?" + R + " failed", DisplayName = "URL query")]
     [DataRow("connect mongodb://svc:" + Opaque + "@db1.example.test:27017,db2.example.test:27017/orders failed",
         "connect mongodb://" + R + " failed", DisplayName = "URL the stage cannot take apart")]
     [DataRow("level=error msg=\"login failed\" password=" + Opaque + " attempt=3",
@@ -71,7 +71,7 @@ public sealed class CredentialRedactionTests
     [DataRow("password: " + Opaque + " and more\nnext line", "password: " + R + "\nnext line",
         DisplayName = "value after a colon runs to the end of its line")]
     [DataRow("Server=db.example.test;Database=orders;User Id=svc;Password=two words " + Opaque + ";Encrypt=true",
-        "Server=db.example.test;Database=orders;User Id=" + R + ";Password=" + R + ";Encrypt=true",
+        "Server=db.example.test;Database=orders;User Id=svc;Password=" + R + ";Encrypt=true",
         DisplayName = "connection-string password with a blank")]
     [DataRow("Server=db.example.test;Encrypt=true;Password=two words " + Opaque,
         "Server=db.example.test;Encrypt=true;Password=" + R, DisplayName = "connection-string password in the last pair")]
@@ -121,6 +121,14 @@ public sealed class CredentialRedactionTests
     [DataRow("{\"status\":\"ok\",\"items\":3,\"author\":\"Jane\",\"tokenizer\":\"bpe\"}", DisplayName = "JSON text")]
     [DataRow("rojo=00f067aa0ba902b7,congo=t61rcWkgMzE", DisplayName = "trace state")]
     [DataRow("{ \"max_tokens\": 1024,  \"model\": \"claude-haiku-5-5\", \"stream\": true }", DisplayName = "JSON text with its own spacing")]
+    [DataRow("SELECT * FROM orders WHERE user_id = 42 AND total > 10", DisplayName = "SQL that compares a user column")]
+    [DataRow("user=svc uid=1000 username=builder logged in", DisplayName = "user names and ids are no credentials")]
+    [DataRow("ssh -p 2222 builder@host.example.test uptime", DisplayName = "-p as a port of ssh")]
+    [DataRow("nc -l -p 8080", DisplayName = "-p as a port of another tool")]
+    [DataRow("mysql -h db.example.test -P 3306 -u root -p orders", DisplayName = "mysql asking for its password, and its port")]
+    [DataRow("curl -u svc https://api.example.test/v1/items", DisplayName = "curl with a user name alone")]
+    [DataRow("curl --user-agent probe:1.0 https://api.example.test/v1/items", DisplayName = "curl's user agent")]
+    [DataRow("run --max-tokens 100 --token-file /run/secrets/t --bypass cache --password", DisplayName = "flags that carry no credential")]
     [DataRow("", DisplayName = "empty text")]
     public void Redact_OrdinaryTelemetry_ComesThroughAsSent(string text)
     {
@@ -169,6 +177,88 @@ public sealed class CredentialRedactionTests
     }
 
     /// <summary>
+    ///     A credential on a command line: the value of a long flag whose name is or ends in a credential name, with
+    ///     '=' or a blank before it; the password of <c>curl -u</c>; the value attached to <c>-p</c> of mysql,
+    ///     mariadb and mysqldump; the value of <c>sshpass -p</c>. The rest of the command stays as sent.
+    /// </summary>
+    [TestMethod]
+    [DataRow("psql --password " + Opaque + " -h db.example.test", "psql --password " + R + " -h db.example.test", DisplayName = "--password and a blank")]
+    [DataRow("tool --PASSWORD " + Opaque, "tool --PASSWORD " + R, DisplayName = "upper case")]
+    [DataRow("tool --passwd " + Opaque + " run", "tool --passwd " + R + " run", DisplayName = "--passwd")]
+    [DataRow("tool --pass " + Opaque + " run", "tool --pass " + R + " run", DisplayName = "--pass and a blank")]
+    [DataRow("tool --pass=" + Opaque + " run", "tool --pass=" + R + " run", DisplayName = "--pass=")]
+    [DataRow("deploy --token " + Opaque + " --env prod", "deploy --token " + R + " --env prod", DisplayName = "--token")]
+    [DataRow("deploy --api-key " + Opaque, "deploy --api-key " + R, DisplayName = "--api-key")]
+    [DataRow("deploy --apikey " + Opaque, "deploy --apikey " + R, DisplayName = "--apikey")]
+    [DataRow("deploy --secret " + Opaque, "deploy --secret " + R, DisplayName = "--secret")]
+    [DataRow("login --client-secret " + Opaque + " --tenant t1", "login --client-secret " + R + " --tenant t1", DisplayName = "--client-secret")]
+    [DataRow("migrate --db-password \"two words " + Opaque + "\" up", "migrate --db-password \"" + R + "\" up", DisplayName = "a quoted value of a longer flag")]
+    [DataRow("--password " + Opaque, "--password " + R, DisplayName = "the flag at the start of the text")]
+    [DataRow("curl -u svc:" + Opaque + " https://api.example.test/v1/items", "curl -u svc:" + R + " https://api.example.test/v1/items", DisplayName = "curl -u")]
+    [DataRow("curl -s --user svc:" + Opaque + " https://api.example.test/", "curl -s --user svc:" + R + " https://api.example.test/", DisplayName = "curl --user")]
+    [DataRow("curl --user=svc:" + Opaque + " https://api.example.test/", "curl --user=svc:" + R + " https://api.example.test/", DisplayName = "curl --user=")]
+    [DataRow("curl -u \"svc:" + Opaque + "\" https://api.example.test/", "curl -u \"svc:" + R + "\" https://api.example.test/", DisplayName = "curl -u with quotes")]
+    [DataRow("mysql -h db.example.test -u root -p" + Opaque + " orders", "mysql -h db.example.test -u root -p" + R + " orders", DisplayName = "mysql -p with its value attached")]
+    [DataRow("mariadb -u root -p" + Opaque, "mariadb -u root -p" + R, DisplayName = "mariadb -p")]
+    [DataRow("mysqldump -u root -p'" + Opaque + "' orders > dump.sql", "mysqldump -u root -p'" + R + "' orders > dump.sql", DisplayName = "mysqldump -p with quotes")]
+    [DataRow("sshpass -p " + Opaque + " ssh builder@host.example.test", "sshpass -p " + R + " ssh builder@host.example.test", DisplayName = "sshpass -p")]
+    public void Redact_ACredentialOnACommandLine_IsReplaced_AndTheRestStays(string text, string expected)
+    {
+        var redacted = CredentialRedaction.Redact(text);
+
+        Assert.AreEqual(expected, redacted);
+        Assert.AreEqual(expected, CredentialRedaction.Redact(redacted), "a second pass changes nothing");
+    }
+
+    /// <summary>
+    ///     Under a credential name a number goes like a string (a PIN, a numeric password), bytes cannot be read for
+    ///     what they hold and are dropped and counted, and in a list of arguments the item after a credential flag
+    ///     goes whole. The same holds inside a JSON string. Other numbers, bytes and arguments stay.
+    /// </summary>
+    [TestMethod]
+    public void Convert_NumbersBytesAndArgumentsThatAreCredentials_AreRemoved()
+    {
+        static AnyValue S(string text) => new() { StringValue = text };
+        var span = new Span
+        {
+            TraceId = ByteString.CopyFrom(Convert.FromHexString("0af7651916cd43dd8448eb211c80319c")),
+            SpanId = ByteString.CopyFrom(Convert.FromHexString("b7ad6b7169203331")),
+            Name = "login", StartTimeUnixNano = 1_794_745_800_000_000_000, EndTimeUnixNano = 1_794_745_801_000_000_000,
+            Attributes =
+            {
+                new KeyValue { Key = "db.password", Value = new AnyValue { IntValue = 20261116 } },
+                new KeyValue { Key = "auth.session_token", Value = new AnyValue { DoubleValue = 20261116.5 } },
+                new KeyValue { Key = "http.cookie", Value = new AnyValue { BytesValue = ByteString.CopyFromUtf8(Opaque) } },
+                new KeyValue { Key = "acme.retries", Value = new AnyValue { IntValue = 3 } },
+                new KeyValue { Key = "acme.payload", Value = new AnyValue { BytesValue = ByteString.CopyFromUtf8("plain") } },
+                new KeyValue
+                {
+                    Key = "process.command_args",
+                    Value = new AnyValue { ArrayValue = new ArrayValue { Values = { S("mysql"), S("--password"), S(Opaque), S("-h"), S("db.example.test") } } }
+                },
+                Text("tool_input", "{\"pin_token\":20261116,\"retries\":3,\"args\":[\"deploy\",\"--api-key\",\"" + Opaque + "\",\"prod\"]}")
+            }
+        };
+        var batch = OtlpConverter.ConvertTraceRequest(new ExportTraceServiceRequest
+        {
+            ResourceSpans = { new ResourceSpans { ScopeSpans = { new ScopeSpans { Spans = { span } } } } }
+        });
+
+        var stored = Assert.ContainsSingle(batch.Spans);
+        var attributes = stored.Attributes;
+        Assert.AreEqual(R, attributes["db.password"].AsString());
+        Assert.AreEqual(R, attributes["auth.session_token"].AsString());
+        Assert.IsFalse(attributes.ContainsKey("http.cookie"), "bytes under a credential name are dropped");
+        Assert.AreEqual(1U, stored.DroppedAttributesCount, "and counted");
+        Assert.AreEqual(3L, attributes["acme.retries"].AsInt64());
+        Assert.AreSequenceEqual("plain"u8.ToArray(), attributes["acme.payload"].AsBytes()!);
+        string?[] arguments = [.. attributes["process.command_args"].AsArray()!.Select(static item => item.AsString())];
+        Assert.AreSequenceEqual(new[] { "mysql", "--password", R, "-h", "db.example.test" }, arguments);
+        Assert.AreEqual("{\"pin_token\":\"" + R + "\",\"retries\":3,\"args\":[\"deploy\",\"--api-key\",\"" + R + "\",\"prod\"]}",
+            attributes["tool_input"].AsString());
+    }
+
+    /// <summary>
     ///     An attribute whose own name is a credential name loses its whole value, as a string and as a list of
     ///     strings (a captured header), and a value of no credential shape goes with it. Other keys keep theirs.
     /// </summary>
@@ -205,14 +295,12 @@ public sealed class CredentialRedactionTests
 
     /// <summary>
     ///     The false positives this stage accepts, pinned so that a change to any of them is seen: a URL loses its
-    ///     query and fragment whatever they hold; a value after the word user, uid or token and a separator goes,
-    ///     which is how the exception-text sanitizer treated connection strings and how it hits SQL and prose.
+    ///     query and fragment whatever they hold, with the replacement where each stood; a value after the word
+    ///     token or pwd and a separator goes, which hits a parser message and the shell's working directory.
     /// </summary>
     [TestMethod]
-    [DataRow("see https://docs.example.test/guide?lang=en#install", "see https://docs.example.test/guide",
+    [DataRow("see https://docs.example.test/guide?lang=en#install", "see https://docs.example.test/guide?" + R + "#" + R,
         DisplayName = "query and fragment without a secret")]
-    [DataRow("SELECT * FROM orders WHERE user_id = 42 AND total > 10", "SELECT * FROM orders WHERE user_id = " + R + " AND total > 10",
-        DisplayName = "SQL that compares a user column")]
     [DataRow("Unexpected token: } at line 3", "Unexpected token: " + R, DisplayName = "parser message")]
     [DataRow("PWD=/home/builder", "PWD=" + R, DisplayName = "the shell's working directory")]
     public void Redact_AcceptedFalsePositives_AreTheseOnes(string text, string expected)

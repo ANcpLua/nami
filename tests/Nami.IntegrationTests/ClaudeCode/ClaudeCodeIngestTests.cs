@@ -133,7 +133,7 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
         {
             Assert.IsNotNull(stored);
             Assert.StartsWith("Shell command failed: could not push\nAuthorization: Bearer [REDACTED]\n", stored);
-            Assert.Contains("remote https://git.example.test/nami.git rejected the push\n", stored);
+            Assert.Contains("remote https://[REDACTED]@git.example.test/nami.git?[REDACTED] rejected the push\n", stored);
             Assert.Contains("password=[REDACTED];retry in 5 s\n", stored);
         }
 
