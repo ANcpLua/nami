@@ -18,10 +18,13 @@ RUN mkdir /data
 # Ubuntu 26.04 chiseled: glibc, libgcc and libstdc++ (all that the engine, Bun and libduckdb.so load), no shell, no
 # package manager, user app (1654). Not -extra: the engine runs with InvariantGlobalization and reads no time zone.
 FROM mcr.microsoft.com/dotnet/runtime-deps:11.0.0-resolute-chiseled@sha256:24534e1f18024d3f8026061537fa21ba424f46cc0cdab4297c5528937b1ae960
-WORKDIR /app
-COPY --from=build /app .
+# /app and everything in it belong to root, so the process (user app) can read and run its engine and its bundle but
+# not replace them. COPY makes the directory: WORKDIR would make it for the user this base image runs as, and the
+# owner of a directory renames and removes what is in it.
+COPY --from=build --chown=0:0 /app /app
 COPY --from=mcp /usr/local/bin/bun /usr/local/bin/bun
-COPY --from=mcp /source/dist/main.js /source/dist/healthcheck.js ./mcp/
+COPY --from=mcp --chown=0:0 /source/dist/main.js /source/dist/healthcheck.js /app/mcp/
+WORKDIR /app
 # A fresh named volume mounted here takes this directory's owner, so the store is writable without root.
 COPY --from=build --chown=1654:1654 /data /data
 # ASPNETCORE_HTTP_PORTS: the base image sets 8080 for ASP.NET Core's default listener; the engine binds its own
