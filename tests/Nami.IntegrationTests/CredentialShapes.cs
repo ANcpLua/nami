@@ -219,12 +219,36 @@ internal static class CredentialShapes
         P(false, "hf_ token", c => "hub hf_" + c + c + " ok");
         P(false, "pgpass line", c => "db.example.test:5432:orders:svc:" + c);
         P(false, "password in prose", c => "the password is " + c + " for now");
+        // The fourth round (ledger N77): secrets named only by the place they stand in.
+        P(false, "Slack webhook path in a URL with a query", c => "POST https://hooks.example.test/services/T0AB12CD3/B0EF45GH6/" + c + "?x=1 failed");
+        P(false, "Telegram bot path, relative", c => "GET /bot987654321:" + c + "/getUpdates 401");
+        P(false, "path parameter ;jsessionid=", c => "GET /app/home;jsessionid=" + c + " 200");
+        P(false, "path parameter ;JSESSIONID= before a query", c => "https://shop.example.test/cart;JSESSIONID=" + c + "?step=2");
+        P(false, "XML appSettings key ClientSecret, single quotes", c => "<add key='ClientSecret' value='" + c + "' />");
+        P(false, "XML appSettings key with a prefix and a value with a blank", c => "<add key=\"Smtp:Password\" value=\"" + c + " and more\"/>");
+        P(false, "pgpass line with wildcards", c => "*:*:*:replicator:" + c);
+        P(false, "pgpass line after other lines", c => "# hosts\nlocalhost:5432:app:app_user:" + c + "\n10.0.0.5:6432:billing:svc:" + c);
+        P(false, "DbPwd=", c => "DbPwd=" + c);
+        P(false, "camel-case smtpPass:", c => "smtpPass: " + c);
+        P(false, "camel-case urlSig in a logfmt line", c => "level=info urlSig=" + c + " status=200");
+        P(false, "redis requirepass value", c => "requirepass " + c);
+        P(false, "redis CONFIG SET masterauth", c => "CONFIG SET masterauth " + c);
+        P(false, "X-Auth header without the word token", c => "X-Auth: " + c);
+        P(false, "X-Api-Auth header in a curl command", c => "curl -H \"X-Api-Auth: " + c + "\" https://api.example.test/v1");
+        P(false, "echo -n user:pass | base64", c => "echo -n \"svc:" + c + "\" | base64");
+        P(false, "printf user:pass | base64 without quotes", c => "printf svc:" + c + " | base64 -w0");
+        P(false, "JWK private exponent d, inside a line of text", c => "loaded jwk {\"kty\":\"RSA\",\"d\":\"" + c + "\",\"e\":\"AQAB\"} from disk");
+        P(false, "JWK with escaped quotes", c => "{\\\"kty\\\":\\\"oct\\\",\\\"k\\\":\\\"" + c + "\\\"}");
 
         // ---- JSON documents (each its own string value)
         J(true, "JSON, password six levels deep", c => "{\"a\":{\"b\":{\"c\":{\"d\":{\"e\":{\"password\":\"" + c + "\"}}}}}}");
         J(true, "JSON, object under a credential name", c => "{\"password\":{\"value\":\"" + c + "\"}}");
         J(true, "JSON, array of objects under a credential name", c => "{\"secret\":[{\"v\":\"" + c + "\"}]}");
         J(false, "JSON, plural name tokens", c => "{\"tokens\":[\"" + c + "\"]}");
+        J(false, "JWK private exponent d", c => "{\"kty\":\"RSA\",\"d\":\"" + c + "\",\"e\":\"AQAB\"}");
+        J(false, "JWK set, every private member", c => "{\"keys\":[{\"kty\":\"RSA\",\"n\":\"sXch\",\"e\":\"AQAB\",\"d\":\"" + c + "\",\"p\":\"" + c + "\",\"q\":\"" + c + "\",\"dp\":\"" + c + "\",\"dq\":\"" + c + "\",\"qi\":\"" + c + "\"},{\"kty\":\"oct\",\"k\":\"" + c + "\"}]}");
+        J(false, "JSON headers, X-Auth member", c => "{\"headers\":{\"X-Auth\":\"" + c + "\",\"Accept\":\"*/*\"}}");
+        J(false, "JSON, camel-case member dbPwd", c => "{\"dbPwd\":\"" + c + "\",\"dbUser\":\"svc\"}");
         J(true, "JSON, number under a credential name", c => "{\"pin_token\":" + NumberOf(5, place) + "}");
         J(true, "JSON, cookie member", c => "{\"headers\":{\"cookie\":\"sid=" + c + "\"}}");
         J(true, "JSON in JSON strings, 5 levels, password at the bottom", c => Nest("{\"password\":\"" + c + "\"}", 5));
@@ -268,6 +292,9 @@ internal static class CredentialShapes
         K(true, "map under a credential-named attribute", c => new KeyValue { Key = "app.password", Value = Map(Str("value", c)) });
         K(true, "list of maps under a credential-named attribute", c => new KeyValue { Key = "app.secret", Value = Arr(Map(Str("v", c))) });
         K(false, "list under a plural name tokens", c => new KeyValue { Key = "app.tokens", Value = Arr(S(c)) });
+        K(false, "attribute key http.request.header.x-auth", c => Str("http.request.header.x-auth", c));
+        K(false, "attribute key in camel case, app.DbPwd", c => Str("app.DbPwd", c));
+        K(false, "map member in camel case, smtpPass", c => new KeyValue { Key = "app.mail", Value = Map(Str("smtpPass", c), Str("smtpUser", "svc")) });
         K(true, "map member named password, nested 6 maps deep", c => new KeyValue { Key = "app.config", Value = Map(new KeyValue { Key = "a", Value = Map(new KeyValue { Key = "b", Value = Map(new KeyValue { Key = "c", Value = Map(new KeyValue { Key = "d", Value = Map(Str("password", c)) }) }) }) }) });
         K(true, "bytes under an ordinary key holding password=value", c => Bytes("http.request.body.raw", "password=" + c, needles, "bytes under an ordinary key holding password=value"));
         K(true, "bytes under an ordinary key holding a Bearer header", c => Bytes("app.payload", "Authorization: Bearer " + c, needles, "bytes under an ordinary key holding a Bearer header"));

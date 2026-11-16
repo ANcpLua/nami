@@ -37,12 +37,10 @@ public sealed partial class CredentialShapeTests(TestContext context)
     private const string TraceId = "0af7651916cd43dd8448eb211c80319c";
     private const ulong Time = 1_794_745_800_000_000_000;
 
-    // Shapes without a pattern: a secret that is a segment of a URL path, a value named by a neighbouring XML
-    // attribute, a pgpass line, a password named only by prose, and a list under the plural tokens, which is a
+    // Shapes without a pattern: a password named only by prose, and a list under the plural tokens, which is a
     // count far more often than a credential.
     private static readonly HashSet<string> s_notRecognised = new(StringComparer.Ordinal)
     {
-        "secret in a URL path (webhook)", "bot token in a URL path", "XML appSettings key ApiKey value", "pgpass line",
         "password in prose", "JSON, plural name tokens", "list under a plural name tokens"
     };
 
@@ -92,6 +90,25 @@ public sealed partial class CredentialShapeTests(TestContext context)
         DisplayName = "a public key stays")]
     [DataRow("started 12:30:45.123, token_count=5 secret_name=db password_policy=strict", "started 12:30:45.123, token_count=5 secret_name=db password_policy=strict",
         DisplayName = "names that are about a credential and hold none")]
+    [DataRow("sent Bearer zqmnineoooxoookkkk and failed", "sent Bearer [REDACTED] and failed", DisplayName = "Bearer with a lower-case value of seventeen letters")]
+    [DataRow("Basic authentication failed; Bearer authorizations expire", "Basic authentication failed; Bearer authorizations expire", DisplayName = "prose after a scheme stays")]
+    [DataRow("POST https://hooks.example.test/services/T000/B000/ZQM900X000ZZZZZZ", "POST https://hooks.example.test/services/T000/B000/[REDACTED]", DisplayName = "Slack webhook path")]
+    [DataRow("GET /services/Tools/Builds/latestartifacts and /robots/bot42/status", "GET /services/Tools/Builds/latestartifacts and /robots/bot42/status", DisplayName = "paths that only look alike stay")]
+    [DataRow("https://api.example.test/bot123456:ZQM900X000ZZZZZZ/sendMessage", "https://api.example.test/bot123456:[REDACTED]/sendMessage", DisplayName = "Telegram bot path")]
+    [DataRow("GET /app/home;jsessionid=ZQM900X000ZZZZZZ 200", "GET /app/home;jsessionid=[REDACTED] 200", DisplayName = ";jsessionid=")]
+    [DataRow("<add key=\"ApiKey\" value=\"ZQM900X000ZZZZZZ\" />", "<add key=\"ApiKey\" value=\"[REDACTED]\" />", DisplayName = ".NET configuration entry")]
+    [DataRow("<add key=\"KeyVaultName\" value=\"prod-vault\" /><add key=\"PageSize\" value=\"50\" />", "<add key=\"KeyVaultName\" value=\"prod-vault\" /><add key=\"PageSize\" value=\"50\" />", DisplayName = "configuration entries that name no credential stay")]
+    [DataRow("db.example.test:5432:orders:svc:ZQM900X000ZZZZZZ", "db.example.test:5432:orders:svc:[REDACTED]", DisplayName = "pgpass line")]
+    [DataRow("main.ts:42:13:error:TS2304 fe80:0:0:0:abcd a.example.test:5432:db:svc:x:y", "main.ts:42:13:error:TS2304 fe80:0:0:0:abcd a.example.test:5432:db:svc:x:y", DisplayName = "a compiler line, an IPv6 address and six fields stay")]
+    [DataRow("DbPwd=ZQM900X000ZZZZZZ", "DbPwd=[REDACTED]", DisplayName = "camel-case DbPwd=")]
+    [DataRow("didPass=true compass=north bypass=1 design=2", "didPass=true compass=north bypass=1 design=2", DisplayName = "a test result and words that end alike stay")]
+    [DataRow("requirepass ZQM900X000ZZZZZZ", "requirepass [REDACTED]", DisplayName = "redis requirepass")]
+    [DataRow("X-Auth: ZQM900X000ZZZZZZ", "X-Auth: [REDACTED]", DisplayName = "X-Auth header")]
+    [DataRow("X-Auth-User: alice X-Authenticated-Scope: read", "X-Auth-User: alice X-Authenticated-Scope: read", DisplayName = "headers that go on after auth stay")]
+    [DataRow("echo -n \"svc:ZQM900X000ZZZZZZ\" | base64", "echo -n \"svc:[REDACTED]\" | base64", DisplayName = "echo user:password piped to base64")]
+    [DataRow("echo \"status: ok\"", "echo \"status: ok\"", DisplayName = "echo without base64 stays")]
+    [DataRow("{\"kty\":\"RSA\",\"d\":\"ZQM900X000ZZZZZZ\",\"e\":\"AQAB\"}", "{\"kty\":\"RSA\",\"d\":\"[REDACTED]\",\"e\":\"AQAB\"}", DisplayName = "JWK private exponent")]
+    [DataRow("{\"d\":\"2026-11-16\",\"p\":\"x\"}", "{\"d\":\"2026-11-16\",\"p\":\"x\"}", DisplayName = "members d and p without kty stay")]
     public void Stage_FurtherShapes_AreRedacted_AndTheRestStays(string text, string expected)
     {
         Assert.AreEqual(expected, CredentialRedaction.Redact(text));
@@ -345,6 +362,9 @@ public sealed partial class CredentialShapeTests(TestContext context)
     [DataRow("a;b password=x ", DisplayName = "assignments on a line with semicolons")]
     [DataRow("curl -u a:b mysql -px --token y ", DisplayName = "flags of tools")]
     [DataRow("\"k\":1,", DisplayName = "no credential at all")]
+    [DataRow("dbPwd=x x-auth=x ", DisplayName = "camel-case names and auth headers")]
+    [DataRow("h.example:1:db:u:x /bot1:xxxxxxxx /services/T0/B0/xxxxxxxxxxxx ;jsessionid=x ", DisplayName = "pgpass lines and secrets in paths")]
+    [DataRow("<add key=\"k\" value=\"x\"/> requirepass x echo a:b | base64 \"kty\" \"d\":\"x\" ", DisplayName = "configuration entries, redis, echo and JWK members")]
     public void Stage_OnOneLineOfFourMebibytes_StaysWithinALinearBudget(string unit)
     {
         var text = new StringBuilder(4 * 1024 * 1024 + unit.Length).Insert(0, unit, 4 * 1024 * 1024 / unit.Length).ToString();
