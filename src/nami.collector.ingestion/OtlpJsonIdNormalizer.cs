@@ -178,6 +178,9 @@ internal static class OtlpJsonIdNormalizer
             }
             catch
             {
+                // What was written before the refusal is not handed over: a reader after it gives nothing.
+                _position = 0;
+                _length = 0;
                 Refused = true;
                 _ended = true;
                 throw;

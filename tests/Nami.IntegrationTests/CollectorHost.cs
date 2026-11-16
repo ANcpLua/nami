@@ -37,11 +37,13 @@ internal sealed class CollectorHost : IAsyncDisposable
     private readonly GrpcChannel _channel;
     private readonly HttpClient _http = new();
     private readonly Uri _otlpHttp;
+    private readonly Uri _otlpGrpc;
 
     private CollectorHost(WebApplication application, int httpPort, int grpcPort)
     {
         _application = application;
         _otlpHttp = new Uri($"http://127.0.0.1:{httpPort}/");
+        _otlpGrpc = new Uri($"http://127.0.0.1:{grpcPort}/");
         _channel = GrpcChannel.ForAddress($"http://127.0.0.1:{grpcPort}");
     }
 
@@ -143,6 +145,9 @@ internal sealed class CollectorHost : IAsyncDisposable
 
     /// <summary>The OTLP/HTTP listener, for a request a test builds itself.</summary>
     internal Uri HttpEndpoint => _otlpHttp;
+
+    /// <summary>The OTLP/gRPC listener (HTTP/2 without TLS), for a request a test builds itself.</summary>
+    internal Uri GrpcEndpoint => _otlpGrpc;
 
     /// <summary>Calls the gRPC Export method of <paramref name="signal" /> with the given call metadata.</summary>
     internal async Task<byte[]> ExportGrpcAsync(string signal, byte[] payload, CancellationToken cancellationToken,

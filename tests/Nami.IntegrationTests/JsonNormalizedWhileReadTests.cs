@@ -229,6 +229,24 @@ public sealed class JsonNormalizedWhileReadTests(TestContext context)
         Assert.AreEqual("OTLP/JSON field 'traceId' must be 32 hex characters (16 bytes); got 33 characters.", refused.Message);
     }
 
+    /// <summary>
+    ///     The refusal leaves through the read that met it, and what was normalized before it in the same buffer is
+    ///     not handed over afterwards: a reader after a refusal is at its end.
+    /// </summary>
+    [TestMethod]
+    public void AfterARefusal_TheReaderGivesNothing()
+    {
+        using var normalized = OtlpJsonIdNormalizer.Read(
+            "{\"k\":\"kept\",\"resourceSpans\":[{\"scopeSpans\":[{\"spans\":[{\"traceId\":\"zz\"}]}]}]}"u8.ToArray());
+
+        Assert.ThrowsExactly<InvalidDataException>(() => normalized.Read());
+
+        Assert.IsTrue(normalized.Refused);
+        Assert.AreEqual(-1, normalized.Peek());
+        Assert.AreEqual(-1, normalized.Read());
+        Assert.AreEqual("", normalized.ReadToEnd());
+    }
+
     private static string OneCharacterAtATime(byte[] sent)
     {
         using var normalized = OtlpJsonIdNormalizer.Read(sent);

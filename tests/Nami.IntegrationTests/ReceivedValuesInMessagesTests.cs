@@ -122,7 +122,9 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
     ///         The log is read whole, ASP.NET Core's categories included, with every level lowered as far as a
     ///         setting can lower it (ledger N124). Below Warning those categories repeat what a sender chose: the
     ///         request log the Content-Type and the path, routing the path, and Kestrel a request line it could
-    ///         not read. nami holds them at Warning in code, so no setting writes any of it.
+    ///         not read; the gRPC server, under <c>Grpc</c>, a content type and a grpc-encoding it does not read
+    ///         and the service a path names. nami holds both families at Warning in code, so no setting writes
+    ///         any of it.
     ///     </para>
     /// </summary>
     [TestMethod]
@@ -132,6 +134,9 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
     [DataRow("number", DisplayName = "an integer out of range, which the parser repeats in its message")]
     [DataRow("request line", DisplayName = "a request line that is no HTTP, which Kestrel repeats when it says why")]
     [DataRow("path", DisplayName = "a path nami does not serve, which routing repeats")]
+    [DataRow("grpc content type", DisplayName = "gRPC: a content type that is no gRPC, which the gRPC server repeats")]
+    [DataRow("grpc service", DisplayName = "gRPC: a service nami does not have, which the gRPC server repeats")]
+    [DataRow("grpc encoding", DisplayName = "gRPC: a grpc-encoding nami does not read, which the gRPC server repeats")]
     public async Task NamisLog_HoldsNoValueThatWasSent(string shape)
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
@@ -147,6 +152,9 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
                 ["Logging:LogLevel:Microsoft.AspNetCore.Server.Kestrel"] = "Trace",
                 ["Logging:LogLevel:Microsoft.AspNetCore.Server.Kestrel.BadRequests"] = "Debug",
                 ["Logging:LogLevel:Microsoft.*.Hosting.Diagnostics"] = "Trace",
+                ["Logging:LogLevel:Grpc"] = "Trace",
+                ["Logging:LogLevel:Grpc.AspNetCore.Server"] = "Trace",
+                ["Logging:LogLevel:Grpc.AspNetCore.Server.ServerCallHandler"] = "Information",
                 [$"Logging:{typeof(Captured).FullName}:LogLevel:Default"] = "Trace",
                 [$"Logging:{typeof(Captured).FullName}:LogLevel:Microsoft.AspNetCore.Hosting.Diagnostics"] = "Trace",
                 [$"Logging:{typeof(Captured).FullName}:LogLevel:Microsoft.AspNetCore.Server.Kestrel"] = "Trace"
@@ -158,6 +166,11 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
             // No method, no target and no version: Kestrel refuses the line and, when it logs why, repeats it.
             body = await SendRawAsync(host.HttpEndpoint, "zqm-received-ZQM900X000ZZZZZZ\r\n\r\n", context.CancellationToken);
             status = body.StartsWith("HTTP/1.1 400 ", StringComparison.Ordinal) ? 400 : 0;
+        }
+        else if (shape.StartsWith("grpc ", StringComparison.Ordinal))
+        {
+            status = await SendGrpcAsync(host.GrpcEndpoint, shape, context.CancellationToken);
+            body = "";
         }
         else
         {
@@ -177,9 +190,15 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
             status = (int)response.StatusCode;
         }
 
-        Assert.AreEqual(shape switch { "number" or "request line" => 400, "path" => 404, _ => 415 }, status, body);
+        Assert.AreEqual(shape switch
+        {
+            "number" or "request line" => 400,
+            "path" => 404,
+            "grpc service" or "grpc encoding" => 200,
+            _ => 415
+        }, status, body);
         var logged = string.Join('\n', logs.Lines);
-        if (shape is not ("request line" or "path"))
+        if (shape is "content type" or "content encoding" or "number")
         {
             // nami refuses these itself and says so.
             Assert.Contains("Failed to process OTLP traces payload: ", logged, "The refusal was not logged, so the test proves nothing.");
@@ -192,7 +211,7 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
             }, logged);
         }
 
-        Assert.IsTrue(logs.Lines.Any(static line => BelowWarning(line) && !line.Contains("] Microsoft.AspNetCore", StringComparison.Ordinal)),
+        Assert.IsTrue(logs.Lines.Any(static line => BelowWarning(line) && !Held(line)),
             "The lowered levels did not reach the log, so the test proves nothing.");
         foreach (var received in s_received)
         {
@@ -200,11 +219,72 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
             Assert.DoesNotContain(received, body);
         }
 
-        Assert.IsEmpty(logs.Lines.Where(static line => BelowWarning(line) && line.Contains("] Microsoft.AspNetCore", StringComparison.Ordinal)).ToArray(),
-            "ASP.NET Core's own log is held at Warning.");
+        Assert.IsEmpty(logs.Lines.Where(static line => BelowWarning(line) && Held(line)).ToArray(),
+            "ASP.NET Core's own log and its gRPC server's are held at Warning.");
     }
 
-    private static readonly string[] s_received = ["ZQC900X000ZZZZZZ", "ZQE900X000ZZZZZZ", "ZQM900X000ZZZZZZ", "ZQP900X000ZZZZZZ", "900900900"];
+    /// <summary>
+    ///     The two families are held, and nothing else is. One broad rule, <c>*</c> at Trace, lowers every category:
+    ///     the lines below Warning of the categories outside the two families are written as the rule says, and
+    ///     those of the two families are not. A hold that raised the rule itself wrote nothing below Warning at all.
+    /// </summary>
+    [TestMethod]
+    [Timeout(120000, CooperativeCancellation = true)]
+    public async Task ABroadRuleAtTrace_LowersEveryCategory_ButTheHeldFamilies()
+    {
+        var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
+        using var logs = new Captured();
+        await using var host = await CollectorHost.StartAsync(Path.Combine(directory, "star.duckdb"), context.CancellationToken,
+            settings: new Dictionary<string, string?> { ["Logging:LogLevel:*"] = "Trace" }, logs: logs);
+        using var client = new HttpClient();
+        using var content = new ByteArrayContent("{}"u8.ToArray());
+        content.Headers.TryAddWithoutValidation("Content-Type", "application/json");
+
+        using var response = await client.PostAsync(new Uri(host.HttpEndpoint, "v1/zqp-received-ZQP900X000ZZZZZZ"), content, context.CancellationToken);
+        var grpc = await SendGrpcAsync(host.GrpcEndpoint, "grpc service", context.CancellationToken);
+
+        Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.AreEqual(200, grpc);
+        var lowered = logs.Lines.Where(static line => BelowWarning(line)).ToArray();
+        context.WriteLine(string.Join('\n', lowered.Take(20)));
+        Assert.IsNotEmpty(lowered.Where(static line => line.StartsWith("[Debug]", StringComparison.Ordinal) && !Held(line)).ToArray(),
+            "The rule lowers the categories that are not held: their Debug lines are written.");
+        Assert.IsEmpty(lowered.Where(static line => Held(line)).ToArray(), "The two families stay at Warning.");
+        var logged = string.Join('\n', logs.Lines);
+        foreach (var received in s_received) Assert.DoesNotContain(received, logged);
+    }
+
+    private static readonly string[] s_received =
+    [
+        "ZQC900X000ZZZZZZ", "ZQE900X000ZZZZZZ", "ZQM900X000ZZZZZZ", "ZQP900X000ZZZZZZ", "ZQG900X000ZZZZZZ", "ZQS900X000ZZZZZZ",
+        "ZQN900X000ZZZZZZ", "900900900"
+    ];
+
+    // A line of the two families nami holds at Warning.
+    private static bool Held(string line) =>
+        line.Contains("] Microsoft.AspNetCore", StringComparison.Ordinal) || line.Contains("] Grpc.", StringComparison.Ordinal);
+
+    // One gRPC call over HTTP/2 without TLS, built by hand so that it can be wrong; the HTTP status of the answer.
+    private static async Task<int> SendGrpcAsync(Uri endpoint, string shape, CancellationToken cancellationToken)
+    {
+        using var client = new HttpClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(endpoint, shape == "grpc service"
+            ? "zqs.received.ZQS900X000ZZZZZZ/Export"
+            : "opentelemetry.proto.collector.trace.v1.TraceService/Export"))
+        {
+            Version = HttpVersion.Version20, VersionPolicy = HttpVersionPolicy.RequestVersionExact
+        };
+        // One message: the flag (1 says compressed), its length, and an export of one empty ResourceSpans.
+        request.Content = new ByteArrayContent([(byte)(shape == "grpc encoding" ? 1 : 0), 0, 0, 0, 2, 0x0A, 0x00]);
+        request.Content.Headers.TryAddWithoutValidation("Content-Type",
+            shape == "grpc content type" ? "application/zqg-received-ZQG900X000ZZZZZZ" : "application/grpc");
+        request.Headers.TryAddWithoutValidation("TE", "trailers");
+        if (shape == "grpc encoding") request.Headers.TryAddWithoutValidation("grpc-encoding", "zqn-received-ZQN900X000ZZZZZZ");
+
+        using var response = await client.SendAsync(request, cancellationToken);
+        _ = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        return (int)response.StatusCode;
+    }
 
     private static bool BelowWarning(string line) =>
         !line.StartsWith("[Warning]", StringComparison.Ordinal) && !line.StartsWith("[Error]", StringComparison.Ordinal) &&
