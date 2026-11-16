@@ -16,8 +16,8 @@
   },
   "suites": {
     "Unit": 261,
-    "Integration": 942,
-    "EndToEnd": 54
+    "Integration": 943,
+    "EndToEnd": 55
   },
   "lanes": {
     "m2-acceptance": 29,

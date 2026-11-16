@@ -53,6 +53,23 @@ public sealed class StorageLifetimeTests(TestContext context)
     }
 
     /// <summary>
+    ///     The helpers that read a store's file for other tests take a path as the store does: a separator or a
+    ///     quote of a connection string in it is part of the path.
+    /// </summary>
+    [TestMethod]
+    public async Task TestHelpers_PathWithConnectionStringCharacters_ReadThatFile()
+    {
+        var path = Path.Combine(DatabasePath("all;of='them'"), "nami.duckdb");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await using (var store = new DuckDbStore(path))
+            await SeedTrace(store, context.CancellationToken);
+
+        Assert.ContainsSingle(StoreDump.Read(path)["spans"]);
+        Assert.AreEqual("1", Assert.ContainsSingle(
+            ClaudeCode.StoredRows.Rows(path, "SELECT count(*)::VARCHAR FROM spans"))[0]);
+    }
+
+    /// <summary>
     ///     The store that the collector's own registration builds takes the registered clock, as the endpoints and
     ///     retention do: a capture time, a receipt time and a snapshot's lifetime are read from one clock.
     /// </summary>

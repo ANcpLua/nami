@@ -99,7 +99,9 @@ internal static class StoredRows
 
     private static DuckDBConnection Open(string path)
     {
-        var connection = new DuckDBConnection($"DataSource={path};ACCESS_MODE=READ_ONLY");
+        // The builder quotes a path that holds a separator of the connection string, such as ';' or '='.
+        var connection = new DuckDBConnection(
+            new DuckDBConnectionStringBuilder { DataSource = path, ["ACCESS_MODE"] = "READ_ONLY" }.ConnectionString);
         try
         {
             connection.Open();

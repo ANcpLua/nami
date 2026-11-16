@@ -11,7 +11,9 @@ internal static class StoreDump
     /// </summary>
     internal static SortedDictionary<string, string[]> Read(string path, params string[] excluded)
     {
-        using var connection = new DuckDBConnection($"DataSource={path}");
+        // The builder quotes a path that holds a separator of the connection string, such as ';' or '='.
+        using var connection = new DuckDBConnection(
+            new DuckDBConnectionStringBuilder { DataSource = path }.ConnectionString);
         connection.Open();
         var tables = new List<string>();
         using (var list = connection.CreateCommand())
