@@ -12,10 +12,7 @@ WORKDIR /source
 RUN apt-get update && apt-get install -y --no-install-recommends clang zlib1g-dev && rm -rf /var/lib/apt/lists/*
 COPY . .
 RUN dotnet publish src/nami/nami.csproj -c Release -o /app -maxcpucount:2 -nodeReuse:false -p:UseSharedCompilation=false
-# Debug symbols stay out of the image: nami.dbg (the engine's native symbols, larger than the engine) and the
-# .pdb files of its libraries. They go to the stage "symbols" below.
-RUN mkdir /symbols && find /app -maxdepth 1 -type f \( -name '*.dbg' -o -name '*.pdb' \) -exec mv -t /symbols {} + \
-    && test -s /symbols/nami.dbg
+RUN mkdir /symbols && cp /app/nami.dbg /symbols/
 # The runtime image has no shell, so the data directory is made here and copied with its owner.
 RUN mkdir /data
 
