@@ -76,8 +76,10 @@ missing product models. Neither count is a full instrumentation coverage claim.
 - [ ] Complete concurrent/reconnect/manipulated-identifier isolation and ambient-context proofs (D5/I6).
 - [x] Build MCP as a `.esproj` member of `nami.slnx`; publish `mcp/main.js` beside the native
       engine. The Dockerfile declares Bun and native runtime dependencies.
-- [ ] Verify the distributable in a clean environment without installed .NET, including its
-      native libraries and channel separation (D6).
+- [x] Verify the distributable in a clean environment without installed .NET, including its
+      native libraries (D6): the container workflow on linux/amd64 and linux/arm64 (batch m8a).
+- [ ] Verify channel separation: diagnostic output corrupts neither MCP stdout nor private
+      frames (D6).
 
 `src/nami.mcp/nami.mcp.esproj` integrates the existing Bun/package.json build into `nami.slnx`.
 The JavaScript SDK is pinned, npm install is disabled and the standalone `Mcp` target delegates
