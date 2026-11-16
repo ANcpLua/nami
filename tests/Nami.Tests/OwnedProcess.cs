@@ -72,7 +72,6 @@ internal sealed partial class OwnedProcess : IAsyncDisposable
             var hostStart = new ProcessStartInfo(ChildProcess.DotnetHost)
             {
                 UseShellExecute = false,
-                CreateNoWindow = true,
                 WorkingDirectory = start.WorkingDirectory,
                 RedirectStandardInput = start.RedirectStandardInput,
                 RedirectStandardOutput = true,
