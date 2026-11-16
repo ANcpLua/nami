@@ -340,6 +340,59 @@ public sealed class StorageLifetimeTests(TestContext context)
     }
 
     /// <summary>
+    ///     A job's cancellation interrupts the writer's connection, and the interrupt can land on the ROLLBACK that
+    ///     ends the job's transaction: the transaction stays open and aborted (evaluator-18: 126 of 4,000 rounds).
+    ///     The connection is put into that state here, under a job. When the job was cancelled, the writer ends the
+    ///     transaction after it and the next write is stored; in any case shutdown ends it before its CHECKPOINT.
+    ///     Before, DisposeAsync failed with "Current transaction is aborted".
+    /// </summary>
+    [TestMethod]
+    [DataRow(true, DisplayName = "The job was cancelled: the writer goes on")]
+    [DataRow(false, DisplayName = "Left until shutdown: the CHECKPOINT still runs")]
+    public async Task WriterLeftInAnAbortedTransaction_IsRolledBack(bool cancelled)
+    {
+        var connections = new Connections();
+        var path = DatabasePath("aborted.duckdb");
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        var store = DuckDbStore.CreateForTesting(connections.Create, path, maxConcurrentReads: 1,
+            timeProvider: new FakeTimeProvider(TestData.s_now));
+        var disposed = false;
+        try
+        {
+            var writer = connections.Items[0];
+            writer.AfterNonQuery = command =>
+            {
+                if (command.CommandText != "CHECKPOINT") return;
+                writer.AfterNonQuery = null;
+                using var leave = writer.CreateCommand();
+                leave.CommandText = "BEGIN TRANSACTION";
+                leave.ExecuteNonQuery();
+                leave.CommandText = "SELECT error('left by a job') FROM range(3)";
+                Assert.ThrowsExactly<DuckDBException>(() => leave.ExecuteNonQuery());
+                leave.CommandText = "SELECT count(*) FROM spans";
+                Assert.Contains("Current transaction is aborted",
+                    Assert.ThrowsExactly<DuckDBException>(() => leave.ExecuteNonQuery()).Message);
+                if (cancelled) cancellation.Cancel();
+            };
+            await store.CheckpointAsync(cancellation.Token);
+
+            if (cancelled)
+                await SeedTrace(store, context.CancellationToken);
+            disposed = true;
+            await store.DisposeAsync();
+        }
+        finally
+        {
+            if (!disposed)
+                await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
+
+        await using var reopened = new DuckDbStore(path);
+        Assert.HasCount(cancelled ? 1 : 0,
+            (await reopened.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
+    }
+
+    /// <summary>
     ///     Free space is that of the volume the store's directory is on, also when the configured path reaches it
     ///     through a link. The number decides the health check's Degraded verdict.
     /// </summary>

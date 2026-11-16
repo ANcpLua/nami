@@ -293,6 +293,8 @@ internal sealed partial class DuckDbStore : INamiStore
         {
             try
             {
+                // No job runs any more; a transaction one of them left open would refuse the checkpoint.
+                RollBackLeftTransaction(Connection);
                 await using var checkpoint = Connection.CreateCommand();
                 checkpoint.CommandText = "CHECKPOINT";
                 checkpoint.ExecuteNonQuery();
@@ -494,6 +496,35 @@ internal sealed partial class DuckDbStore : INamiStore
     private static NamiStoreUnavailableException WriterStopped(Exception failure) =>
         new("DuckDB writer stopped after a failure; the store accepts no further work.", failure);
 
+
+    /// <summary>
+    ///     Ends a transaction that a cancelled job left on the writer's connection. A job's transaction is rolled
+    ///     back when the job disposes it, but the interrupt of the job's cancellation can end that ROLLBACK itself.
+    ///     An interrupt can also still be pending here, so the statement is tried again; DuckDB's refusal of a
+    ///     ROLLBACK without a transaction is the usual answer and means there is nothing to do.
+    /// </summary>
+    private static void RollBackLeftTransaction(DuckDBConnection con)
+    {
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            try
+            {
+                using var rollback = con.CreateCommand();
+                rollback.CommandText = "ROLLBACK";
+                rollback.ExecuteNonQuery();
+                return;
+            }
+            catch (DuckDBException error) when (error.Message.Contains("no transaction is active",
+                                                    StringComparison.Ordinal))
+            {
+                return;
+            }
+            catch (Exception error) when (error is DuckDBException or OperationCanceledException)
+            {
+                // Interrupted: once more.
+            }
+        }
+    }
 
     private void AddShutdownError(ref List<Exception>? errors, Exception error)
     {
@@ -1154,13 +1185,25 @@ internal sealed partial class DuckDbStore : INamiStore
             var token = linkedCancellation?.Token ?? ct;
             try
             {
-                await using var interrupt = token.Register(con.NativeConnection.Interrupt);
-                token.ThrowIfCancellationRequested();
-                if (beforeWrite is not null)
-                    await beforeWrite(token).ConfigureAwait(false);
-                token.ThrowIfCancellationRequested();
-                var result = await action(con, token).ConfigureAwait(false);
-                _tcs.TrySetResult(result);
+                var interrupt = token.Register(con.NativeConnection.Interrupt);
+                try
+                {
+                    token.ThrowIfCancellationRequested();
+                    if (beforeWrite is not null)
+                        await beforeWrite(token).ConfigureAwait(false);
+                    token.ThrowIfCancellationRequested();
+                    var result = await action(con, token).ConfigureAwait(false);
+                    _tcs.TrySetResult(result);
+                }
+                finally
+                {
+                    // Disposing the registration waits for an interrupt that is being delivered. One that landed on
+                    // the ROLLBACK of the action's own transaction left that transaction open and aborted, and the
+                    // next statement on this connection, a later write or the shutdown CHECKPOINT, would fail.
+                    await interrupt.DisposeAsync().ConfigureAwait(false);
+                    if (token.IsCancellationRequested)
+                        RollBackLeftTransaction(con);
+                }
             }
             catch (Exception) when (token.IsCancellationRequested)
             {
