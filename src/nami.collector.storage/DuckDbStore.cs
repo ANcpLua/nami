@@ -87,7 +87,7 @@ internal sealed partial class DuckDbStore : INamiStore
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxConcurrentReads);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(readQueueCapacity);
         _timeProvider = timeProvider ?? TimeProvider.System;
-        _snapshotLifetime = snapshotLifetime ?? TimeSpan.FromMinutes(30);
+        _snapshotLifetime = snapshotLifetime ?? TimeSpan.FromMinutes(29);
         var resolvedLoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
         _logger = resolvedLoggerFactory.CreateLogger<DuckDbStore>();
         _isInMemory = databasePath == ":memory:";
