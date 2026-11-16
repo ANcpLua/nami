@@ -120,6 +120,17 @@ internal static partial class OtlpConverter
             if (Replaced.TooDeep > 0) NamiCollectorMetrics.ValueReplaced(Replaced.TooDeep, "depth");
             Replaced = default;
         }
+
+        // Attributes the reading removed: over a bound, or under a key that became the key of another. Collected
+        // and counted the same way, once the reading stands: the first reading of a record that is reduced meets
+        // two keys that become one before it ends, and the second meets them again (ledger N89).
+        internal int Dropped;
+
+        internal void CountDropped()
+        {
+            if (Dropped > 0) NamiCollectorMetrics.AttributesDropped(Dropped);
+            Dropped = 0;
+        }
     }
 
     // Characters the storage writer (Utf8JsonWriter with its default encoder) writes as they are, one byte each.
@@ -227,12 +238,14 @@ internal static partial class OtlpConverter
         // again in the order of the reduction, so what is kept never depends on the order it was sent in.
         var remaining = budget.Remaining;
         var replaced = budget.Replaced;
+        var droppedBefore = budget.Dropped;
         var attributes = new NormalizedAttributes();
         var stored = keys is null ? null : new Dictionary<string, string>(StringComparer.Ordinal);
         if (!TryConvertInOrder(source, source.Count, budget, counted, nesting, attributes, stored, out dropped))
         {
             budget.Remaining = remaining;
             budget.Replaced = replaced;
+            budget.Dropped = droppedBefore;
             attributes = new NormalizedAttributes();
             stored?.Clear();
             var reduced = source.Where(static attribute => !IsUnresolvedProfilingKey(attribute))
@@ -242,8 +255,9 @@ internal static partial class OtlpConverter
             _ = TryConvertInOrder(reduced, source.Count, budget, counted, nesting, attributes, stored, out dropped, true);
         }
 
-        // The reading stands: what it replaced is counted, once.
+        // The reading stands: what it replaced and what it dropped is counted, once.
         budget.CountReplaced();
+        budget.CountDropped();
         if (stored is not null)
             foreach (var (sent, key) in stored) keys!.TryAdd(sent, key);
         if (into is null) return attributes;
@@ -298,7 +312,7 @@ internal static partial class OtlpConverter
                     if (attributes.ContainsKey(key))
                     {
                         dropped++;
-                        NamiCollectorMetrics.AttributeDropped();
+                        budget.Dropped++;
                     }
                     else
                     {
@@ -324,7 +338,7 @@ internal static partial class OtlpConverter
             }
 
             dropped++;
-            NamiCollectorMetrics.AttributeDropped();
+            budget.Dropped++;
         }
 
         return true;

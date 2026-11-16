@@ -681,6 +681,65 @@ public sealed class AttributeBoundsTests
     }
 
     /// <summary>
+    ///     Ledger N89. A record over a bound is read twice. Two keys that become one are met by the first reading,
+    ///     before the attribute that ends it, and again by the second: it is one attribute that is gone, and
+    ///     <c>nami.collector.attributes.dropped</c> counts it once, like the record's own count. Here the two keys
+    ///     come first and are the smallest, so both readings meet them, and 129 more attributes follow, one more
+    ///     than a record keeps beside them.
+    /// </summary>
+    [TestMethod]
+    public void Keys_ThatBecomeOneKey_AreCountedOnce_WhenTheRecordIsReduced()
+    {
+        KeyValue[] attributes =
+        [
+            Text("https://svc:ZQB001X000ZZZZZZ@host.example.test/", "first"),
+            Text("https://svc:ZQB002X000ZZZZZZ@host.example.test/", "second"),
+            .. Enumerable.Range(0, OtlpConverter.MaxAttributesPerRecord + 1).Select(static i => Text($"acme.pad.{i:D3}", new string('p', 200)))
+        ];
+        var counted = new long[1];
+        using var listener = ListenForDroppedAttributes(counted);
+
+        var span = Convert(attributes);
+
+        Assert.IsTrue(span.Attributes.ContainsKey("https://[REDACTED]@host.example.test/"));
+        Assert.AreEqual(3U, span.DroppedAttributesCount, "The key that is gone and the two attributes over the count.");
+        Assert.AreEqual(3L, counted[0], "The counter says what the record says.");
+    }
+
+    /// <summary>The same without a second reading: the counter and the record agree there too.</summary>
+    [TestMethod]
+    public void Keys_ThatBecomeOneKey_AreCountedOnce_WhenTheRecordIsReadOnce()
+    {
+        var counted = new long[1];
+        using var listener = ListenForDroppedAttributes(counted);
+
+        var span = Convert(Text("https://svc:ZQB001X000ZZZZZZ@host.example.test/", "first"),
+            Text("https://svc:ZQB002X000ZZZZZZ@host.example.test/", "second"), Text("acme.kept", "fits"));
+
+        Assert.AreEqual(1U, span.DroppedAttributesCount);
+        Assert.AreEqual(1L, counted[0]);
+    }
+
+    // Sums nami.collector.attributes.dropped. The meter is the process's; conversion is synchronous, so this
+    // thread's measurements are this test's.
+    private static System.Diagnostics.Metrics.MeterListener ListenForDroppedAttributes(long[] counted)
+    {
+        var thread = Environment.CurrentManagedThreadId;
+        var listener = new System.Diagnostics.Metrics.MeterListener();
+        listener.InstrumentPublished = (instrument, own) =>
+        {
+            if (instrument.Meter.Name == "nami.collector" && instrument.Name == "nami.collector.attributes.dropped")
+                own.EnableMeasurementEvents(instrument);
+        };
+        listener.SetMeasurementEventCallback<long>((_, measurement, _, _) =>
+        {
+            if (Environment.CurrentManagedThreadId == thread) counted[0] += measurement;
+        });
+        listener.Start();
+        return listener;
+    }
+
+    /// <summary>
     ///     The bound before materialization leaves a sentinel in place of a structure that could never fit. It can
     ///     sit on every carrier of all three signals; wherever it sits, its attribute is dropped and counted (a log
     ///     body becomes an empty value), the neighbour is kept, and the sentinel reaches no stored column. A metric
