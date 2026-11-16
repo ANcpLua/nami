@@ -109,11 +109,14 @@ All three land in the same rows. What the tools can answer comes from the resour
 - No token or password is stored. Every string nami keeps (attribute keys and values on every
   carrier, log bodies, names, status messages) first passes one credential stage, whatever key or
   field carries it. The stage replaces what it recognises with `[REDACTED]` and leaves the rest of
-  the string: user information, query and fragment of a URL; the value assigned to a credential
-  name (`password=`, `token:`, `api_key=`, `secret=`, `Authorization:`); `Bearer` and `Basic`
+  the string: user information, query and fragment of a URL, each with `[REDACTED]` in its place;
+  the value assigned to a credential name (`password=`, `token:`, `api_key=`, `secret=`,
+  `Authorization:`); the value of a command-line flag with such a name (`--password x`,
+  `--api-key=x`) and the password of `curl -u`, `mysql -p…` and `sshpass -p`; `Bearer` and `Basic`
   values; JSON Web Tokens; tokens with a known prefix (`sk-`, `ghp_`, `github_pat_`, `glpat-`,
   `xoxb-`, `xoxp-`, `AKIA`); and the whole value of an attribute or JSON member whose own name is a
-  credential name (`http.request.header.authorization`, `"password": ...`). A string that is a JSON
+  credential name (`http.request.header.authorization`, `"password": ...`), a number included. A user
+  name or user id is no credential and stays. A string that is a JSON
   document is redacted leaf by leaf and stays JSON. The stage recognises shapes: a credential of no
   such shape is not found, so it lowers the risk and is no guarantee. It runs at ingest, so
   `logs_search` cannot find text it removed.

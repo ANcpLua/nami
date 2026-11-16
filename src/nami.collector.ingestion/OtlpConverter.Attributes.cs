@@ -394,6 +394,12 @@ internal static partial class OtlpConverter
                 budget.Measure(Utf8Bytes(text));
                 budget.Store(StoredString(text));
                 return OtlpAttributeValue.FromString(text);
+            case ProtoAnyValue.ValueOneofCase.IntValue or ProtoAnyValue.ValueOneofCase.DoubleValue
+                when attributeKey is not null && CredentialRedaction.NamesACredential(attributeKey):
+                // A number under a credential name (a PIN, a numeric password) goes like a string would.
+                budget.Measure(CredentialRedaction.Replacement.Length);
+                budget.Store(StoredString(CredentialRedaction.Replacement));
+                return OtlpAttributeValue.FromString(CredentialRedaction.Replacement);
             case ProtoAnyValue.ValueOneofCase.IntValue:
                 budget.Measure(8);
                 budget.Store(25 + StoredDigits(value.IntValue));
@@ -410,7 +416,11 @@ internal static partial class OtlpConverter
                 // Bytes over the cap are dropped whole and counted, like a structure. A cut needs a field of the
                 // record that says so (ledger N45): a marker cannot sit inside binary data, and a cut value must
                 // never look complete.
-                if (value.BytesValue.Length > Limits.MaxValueUtf8Bytes)
+                // Bytes under a credential name cannot be read for what they hold: the attribute is dropped and
+                // counted as well.
+                if (value.BytesValue.Length > Limits.MaxValueUtf8Bytes ||
+                    (attributeKey is not null && value.BytesValue.Length > 0 &&
+                     CredentialRedaction.NamesACredential(attributeKey)))
                 {
                     budget.Value = -1;
                     return OtlpAttributeValue.Empty;
@@ -444,13 +454,19 @@ internal static partial class OtlpConverter
                     budget.Store(2);
                     var ofACredential = attributeKey is not null && CredentialRedaction.NamesACredential(attributeKey);
                     var items = new List<OtlpAttributeValue>(value.ArrayValue.Values.Count);
+                    var afterFlag = false;
                     foreach (var item in value.ArrayValue.Values)
                     {
                         // An empty value and a null inside an array are kept as they are. Every item but the
                         // first brings a comma.
                         if (items.Count > 0) budget.Store(1);
-                        items.Add(ConvertValue(item, ofACredential ? attributeKey : null, budget, nesting + 1));
+                        // In a list of arguments (process.command_args) the value of a credential flag is the
+                        // next item: it goes whole, as under a credential name.
+                        items.Add(ConvertValue(item, ofACredential ? attributeKey : afterFlag ? "password" : null, budget,
+                            nesting + 1));
                         if (budget.Exhausted) return OtlpAttributeValue.Empty;
+                        afterFlag = item?.ValueCase is ProtoAnyValue.ValueOneofCase.StringValue &&
+                                    CredentialRedaction.IsCredentialFlag(item.StringValue);
                     }
 
                     return OtlpAttributeValue.FromArray(items);

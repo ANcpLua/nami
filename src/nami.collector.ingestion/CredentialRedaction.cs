@@ -10,10 +10,12 @@ namespace Nami.Collector.Ingestion;
 ///     key or field carries it: attribute keys and values of every carrier, array items, map members, log bodies,
 ///     names, status messages, scope and schema text. No key and no field is exempt. Where a string holds a
 ///     credential, the credential is replaced by <c>[REDACTED]</c> and the rest of the string stays as sent.
-///     It removes what its patterns recognise: user information, query and fragment of a URL; the value of an
-///     assignment to a credential name (password=, token:, api_key=, secret=, authorization: ...); the value after a
+///     It removes what its patterns recognise: user information, query and fragment of a URL, each with the
+///     replacement in its place, so the removal shows; the value of an assignment to a credential name (password=,
+///     token:, api_key=, secret=, authorization: ...); the value of a command-line flag with such a name
+///     (--password x, --api-key=x); the password of curl -u, of mysql -p and of sshpass -p; the value after a
 ///     Bearer or Basic scheme; JSON Web Tokens; tokens with a known prefix; and the whole value of an attribute or
-///     JSON member whose own name is a credential name. A string that is a JSON document is redacted leaf by leaf,
+///     JSON member whose own name is a credential name, a number included. A user name is no credential and stays. A string that is a JSON document is redacted leaf by leaf,
 ///     so it stays JSON. A credential of no such shape is not recognised; this lowers the risk and is no guarantee.
 ///     The outcome depends on the text alone: every pattern matches without backtracking, in time linear in the
 ///     text, so no wall-clock deadline exists that a loaded machine could miss.
@@ -33,9 +35,45 @@ internal static class CredentialRedaction
     // environment variable such as DB_PASSWORD, GITHUB_TOKEN or AWS_SECRET_ACCESS_KEY is an assignment too; the word
     // boundary after the name keeps tokens=5, token_count and input_tokens out.
     private static readonly Regex s_credentialAssignments = new(
-        """(?:\b(?:authorization|proxy[-_ ]?authorization|pwd|user(?:[-_ ]?(?:id|name))?|uid|shared[-_ ]?access[-_ ]?(?:key|signature)|session[-_ ]?(?:token|key))|x[-_]?otlp[-_]?api[-_]?key|x[-_]?api[-_]?key|api[-_ ]?key|access[-_ ]?key(?:[-_ ]?id)?|account[-_ ]?key|client[-_ ]?secret|secret(?:[-_ ]?key)?|private[-_ ]?key|password|passwd|token)\b["']?[ \t]*(?<separator>[:=])[ \t]*(?<scheme>(?:Bearer|Basic)[ \t]+)?""",
+        """(?:\b(?:authorization|proxy[-_ ]?authorization|pwd|shared[-_ ]?access[-_ ]?(?:key|signature)|session[-_ ]?(?:token|key))|x[-_]?otlp[-_]?api[-_]?key|x[-_]?api[-_]?key|api[-_ ]?key|access[-_ ]?key(?:[-_ ]?id)?|account[-_ ]?key|client[-_ ]?secret|secret(?:[-_ ]?key)?|private[-_ ]?key|password|passwd|token)\b["']?[ \t]*(?<separator>[:=])[ \t]*(?<scheme>(?:Bearer|Basic)[ \t]+)?""",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking,
         Regex.InfiniteMatchTimeout);
+
+    // A long command-line flag whose name is, or ends in, a credential name, and '=' or blanks before its value:
+    // --password x, --db-password=x, --api-key x, --client-secret=x, --pass x. A flag starts a word.
+    private const string CredentialFlagName =
+        "--(?:[a-z0-9]+[-_])*(?:password|passwd|pass|token|api[-_]?key|secret)";
+
+    private static readonly Regex s_credentialFlags = new(
+        "(?:\\A|[\\s\"'\\x60(\\[,=])" + CredentialFlagName + "(?:=|[ \\t]+)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking,
+        Regex.InfiniteMatchTimeout);
+
+    private static readonly Regex s_credentialFlagAlone = new("\\A" + CredentialFlagName + "\\z",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking,
+        Regex.InfiniteMatchTimeout);
+
+    // Tools that take a password in a short flag. The flag is read only on the command of its tool, and in its
+    // case: -p is a port elsewhere and -P is mysql's port.
+    //   curl -u user:pass, --user user:pass, --user=user:pass   the part after the colon
+    //   mysql, mariadb, mysqldump -p<value>                      the value attached to -p
+    //   sshpass -p <value>                                       the value
+    private static readonly Regex s_curlUser = new(
+        """\b[Cc][Uu][Rr][Ll]\b[^\r\n;|&]*(?:[ \t]-u[ \t]*|[ \t]--user(?:=|[ \t]+))""",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
+
+    private static readonly Regex s_attachedPassword = new(
+        """\b(?:mysql|mariadb|mysqldump)\b[^\r\n;|&]*[ \t]-p""",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
+
+    private static readonly Regex s_sshpass = new("""\bsshpass[ \t]+-p[ \t]*""",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
+
+    private static readonly SearchValues<string> s_flagNames =
+        SearchValues.Create(["pass", "token", "key", "secret"], StringComparison.OrdinalIgnoreCase);
+
+    private static readonly SearchValues<string> s_passwordTools =
+        SearchValues.Create(["curl", "mysql", "mariadb", "sshpass"], StringComparison.OrdinalIgnoreCase);
 
     private static readonly Regex s_authorizationValues = new(
         """(?<scheme>\b(?:Bearer|Basic)[ \t]+)(?<value>[A-Za-z0-9._~+/=-]+)""",
@@ -74,7 +112,7 @@ internal static class CredentialRedaction
     private static readonly SearchValues<char> s_assignmentSeparators = SearchValues.Create(":=");
 
     private static readonly SearchValues<string> s_assignmentNames = SearchValues.Create(
-        ["authorization", "key", "secret", "password", "passwd", "pwd", "user", "uid", "token", "signature"],
+        ["authorization", "key", "secret", "password", "passwd", "pwd", "token", "signature"],
         StringComparison.OrdinalIgnoreCase);
 
     private static readonly SearchValues<string> s_schemes =
@@ -128,9 +166,11 @@ internal static class CredentialRedaction
         var firstDot = span.IndexOf('.');
         var tokens = firstDot >= 0 && span[(firstDot + 1)..].Contains('.');
         var prefixes = span.ContainsAny(s_tokenPrefixes);
+        var flags = span.Contains("--", StringComparison.Ordinal) && span.ContainsAny(s_flagNames);
+        var tools = span.Contains(" -", StringComparison.Ordinal) && span.ContainsAny(s_passwordTools);
         // In a JSON document a member's name alone can say that its value is a credential ("cookie": "...").
         var members = nesting < MaxJsonNesting && span.ContainsAny(s_credentialNameParts) && LooksLikeJson(span);
-        if (!(urls || assignments || schemes || tokens || prefixes || members)) return text;
+        if (!(urls || assignments || schemes || tokens || prefixes || members || flags || tools)) return text;
 
         try
         {
@@ -138,6 +178,14 @@ internal static class CredentialRedaction
             var redacted = text;
             if (urls) redacted = s_embeddedUrls.Replace(redacted, RedactUrl);
             if (assignments) redacted = RedactAssignments(redacted);
+            if (flags) redacted = RedactValuesAfter(redacted, s_credentialFlags, false);
+            if (tools)
+            {
+                redacted = RedactValuesAfter(redacted, s_curlUser, true);
+                redacted = RedactValuesAfter(redacted, s_attachedPassword, false);
+                redacted = RedactValuesAfter(redacted, s_sshpass, false);
+            }
+
             if (schemes) redacted = s_authorizationValues.Replace(redacted, RedactAuthorizationValue);
             if (tokens) redacted = s_jwtCandidates.Replace(redacted, RedactJwt);
             if (prefixes) redacted = s_knownApiTokens.Replace(redacted, Replacement);
@@ -176,9 +224,14 @@ internal static class CredentialRedaction
         if (uri.UserInfo.Length is 0 && uri.Query.Length is 0 && uri.Fragment.Length is 0)
             return match.Value;
 
-        // Match the existing diagnostic URL policy: retain the destination/path,
-        // remove user information and the entire query/fragment, including unnamed secrets.
+        // The destination and the path stay. User information, the whole query and the whole fragment go, unnamed
+        // secrets included, and each leaves the replacement where it stood, so a reader sees that something was
+        // removed and where.
         var safe = uri.GetComponents(UriComponents.SchemeAndServer | UriComponents.Path, UriFormat.UriEscaped);
+        if (uri.UserInfo.Length > 0 && safe.IndexOf("//", StringComparison.Ordinal) is var slashes and >= 0)
+            safe = safe.Insert(slashes + 2, Replacement + "@");
+        if (uri.Query.Length > 0) safe += "?" + Replacement;
+        if (uri.Fragment.Length > 0) safe += "#" + Replacement;
         return networkPath ? safe["http:".Length..] : safe;
     }
 
@@ -202,6 +255,43 @@ internal static class CredentialRedaction
             result.Append(Replacement);
             if (quoted) result.Append(closing);
             copied = end;
+        }
+
+        return result is null ? text : result.Append(text, copied, text.Length - copied).ToString();
+    }
+
+    /// <summary>True when the text is nothing but a flag that takes a credential: its value is the next argument.</summary>
+    internal static bool IsCredentialFlag(string text) =>
+        text.StartsWith("--", StringComparison.Ordinal) && s_credentialFlagAlone.IsMatch(text);
+
+    // Replaces the value that follows each match: a quoted value to its quote, any other to the end of its word.
+    // A word that starts with '-' after a blank is the next flag, not a value. With afterColon only the part of the
+    // value after its first ':' goes (curl's user:password), and a value without a colon stays.
+    private static string RedactValuesAfter(string text, Regex pattern, bool afterColon)
+    {
+        StringBuilder? result = null;
+        var copied = 0;
+        foreach (Match match in pattern.Matches(text))
+        {
+            var start = match.Index + match.Length;
+            if (start < copied || start >= text.Length) continue;
+            if (text[start] == '-' && text[start - 1] != '=') continue;
+            var end = SecretEnd(text, start, true, true);
+            if (end == start) continue;
+            var quoted = text[start] is '"' or '\'' && end > start + 1 && text[end - 1] == text[start];
+            var from = quoted ? start + 1 : start;
+            var to = quoted ? end - 1 : end;
+            if (afterColon)
+            {
+                var colon = text.IndexOf(':', from, to - from);
+                if (colon < 0) continue;
+                from = colon + 1;
+            }
+
+            if (from >= to) continue;
+            result ??= new StringBuilder(text.Length);
+            result.Append(text, copied, from - copied).Append(Replacement);
+            copied = to;
         }
 
         return result is null ? text : result.Append(text, copied, text.Length - copied).ToString();
@@ -355,8 +445,14 @@ internal static class CredentialRedaction
                 break;
             case JsonValueKind.Array:
                 writer.WriteStartArray();
+                // In a list of arguments the value of a credential flag is the next item.
+                var afterFlag = false;
                 foreach (var item in element.EnumerateArray())
-                    WriteRedacted(item, writer, credential, nesting, ref changed);
+                {
+                    WriteRedacted(item, writer, credential || afterFlag, nesting, ref changed);
+                    afterFlag = item.ValueKind is JsonValueKind.String && IsCredentialFlag(item.GetString()!);
+                }
+
                 writer.WriteEndArray();
                 break;
             case JsonValueKind.String:
@@ -364,6 +460,11 @@ internal static class CredentialRedaction
                 var kept = credential && text.Length > 0 ? Replacement : Redact(text, null, nesting);
                 changed |= !ReferenceEquals(kept, text);
                 writer.WriteStringValue(kept);
+                break;
+            case JsonValueKind.Number when credential:
+                // A numeric password or PIN under a credential name is a credential too.
+                writer.WriteStringValue(Replacement);
+                changed = true;
                 break;
             default:
                 element.WriteTo(writer);
