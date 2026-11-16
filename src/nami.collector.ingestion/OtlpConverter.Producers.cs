@@ -9,8 +9,9 @@ namespace Nami.Collector.Ingestion;
 // narrows what is kept and none widens it beyond the allowlist.
 internal static partial class OtlpConverter
 {
-    // The longest span status message nami keeps of a producer's span, in UTF-8 bytes (observer's ruling, 15 Nov 2026).
-    private const int MaxProducerStatusMessageUtf8Bytes = 1024;
+    // The longest span status message nami keeps, in UTF-8 bytes, whoever sent the span (observer's ruling, 15 Nov
+    // 2026, for every sender since 16 Nov).
+    private const int MaxStatusMessageUtf8Bytes = 1024;
 
     private static readonly FrozenDictionary<string, string> s_producerByScope = Producers.Scopes
         .SelectMany(static producer => producer.Value.Select(scope => KeyValuePair.Create(scope, producer.Key)))
@@ -48,13 +49,12 @@ internal static partial class OtlpConverter
             : item).ToList());
 
     // A span status message is free text that no key names. Claude Code copies the text of its error attribute into
-    // it. It is kept, through the credential stage like every other string, whoever sent it. A producer's is then cut
-    // at 1024 UTF-8 bytes. The failure metric names it by the attribute OpenTelemetry gives the status description
+    // it. It is kept, whoever sent it: through the credential stage like every other string, then cut at 1024 UTF-8
+    // bytes with the marker. The failure metric names it by the attribute OpenTelemetry gives the status description
     // outside OTLP.
-    private static string? StatusMessageOf(ProtoStatus? status, string? producer)
-    {
-        if (string.IsNullOrEmpty(status?.Message)) return null;
-        var message = CredentialRedaction.Redact(status.Message, OtelAttributes.StatusDescription);
-        return producer is null ? message : BoundedText.Truncate(message, MaxProducerStatusMessageUtf8Bytes);
-    }
+    private static string? StatusMessageOf(ProtoStatus? status) =>
+        string.IsNullOrEmpty(status?.Message)
+            ? null
+            : BoundedText.Truncate(CredentialRedaction.Redact(status.Message, OtelAttributes.StatusDescription),
+                MaxStatusMessageUtf8Bytes);
 }

@@ -469,7 +469,7 @@ internal static partial class OtlpConverter
             StatusCode = span.Status is not null
                 ? DefinedOrZero((int)span.Status.Code, (int)ProtoStatusCode.Error, StatusCodeWarning, warnings)
                 : null,
-            StatusMessage = StatusMessageOf(span.Status, producer),
+            StatusMessage = StatusMessageOf(span.Status),
             ServiceName = serviceName,
             Attributes = attributes,
             ResourceAttributes = resourceAttributes,

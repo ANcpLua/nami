@@ -164,11 +164,13 @@ public sealed class ClaudeCodeConverterTests
 
     /// <summary>
     ///     A span status message is free text that no key names, and Claude Code copies the text of its
-    ///     <c>error</c> attribute into it. Every sender's passes the credential stage (observer's rule, 16 Nov); a
-    ///     producer's is then cut at 1024 UTF-8 bytes with the marker (observer's ruling, 15 Nov).
+    ///     <c>error</c> attribute into it. Every sender's passes the credential stage (observer's rule, 16 Nov) and
+    ///     is then cut at 1024 UTF-8 bytes with the marker (observer's ruling, 15 Nov, for every sender).
     /// </summary>
     [TestMethod]
-    public void SpanStatusMessage_OnAProducersScope_LosesItsCredentials_AndIsKeptUpTo1024Bytes()
+    [DataRow(TracingScope, DisplayName = "On Claude Code's tracing scope")]
+    [DataRow(ForeignScope, DisplayName = "On another scope")]
+    public void SpanStatusMessage_OfEverySender_LosesItsCredentials_AndIsKeptUpTo1024Bytes(string scope)
     {
         const string failure = "Shell command failed";
         const string leaking = "Request failed with 401\nAuthorization: Bearer sk-live-0123456789abcdef\n" +
@@ -177,17 +179,20 @@ public sealed class ClaudeCodeConverterTests
 
         const string redacted =
             "Request failed with 401\nAuthorization: Bearer [REDACTED]\nconnection password=[REDACTED];retry in 5 s";
-        var ours = ConvertSpan(TracingScope, WithStatus(leaking));
-        Assert.AreEqual(redacted, ours.StatusMessage);
-        Assert.AreEqual((int)Status.Types.StatusCode.Error, ours.StatusCode.GetValueOrDefault());
-        Assert.AreEqual(failure, ConvertSpan(TracingScope, WithStatus(failure)).StatusMessage, "text without credentials is kept");
-        var cut = ConvertSpan(TracingScope, WithStatus(text)).StatusMessage!;
+        var span = ConvertSpan(scope, WithStatus(leaking));
+        Assert.AreEqual(redacted, span.StatusMessage);
+        Assert.AreEqual((int)Status.Types.StatusCode.Error, span.StatusCode.GetValueOrDefault());
+        Assert.AreEqual(failure, ConvertSpan(scope, WithStatus(failure)).StatusMessage, "text without credentials is kept");
+        var cut = ConvertSpan(scope, WithStatus(text)).StatusMessage!;
         Assert.AreEqual(new string('é', (1024 - Marker.Length) / 2) + Marker, cut);
         Assert.IsLessThanOrEqualTo(1024, Encoding.UTF8.GetByteCount(cut));
+        var atTheBound = new string('a', 1024);
+        Assert.AreEqual(atTheBound, ConvertSpan(scope, WithStatus(atTheBound)).StatusMessage, "exactly 1024 bytes are kept whole");
 
-        Assert.AreEqual(redacted, ConvertSpan(ForeignScope, WithStatus(leaking)).StatusMessage,
-            "another sender's status message loses its credentials too");
-        Assert.AreEqual(text, ConvertSpan(ForeignScope, WithStatus(text)).StatusMessage);
+        // The credential sits where the cut falls: it is removed before the text is cut, not cut in half.
+        var straddling = ConvertSpan(scope, WithStatus(new string('a', 1000) + " password=hunter2-and-more-secret-text")).StatusMessage!;
+        Assert.DoesNotContain("hunter2", straddling);
+        Assert.IsLessThanOrEqualTo(1024, Encoding.UTF8.GetByteCount(straddling));
 
         static Span WithStatus(string message)
         {
