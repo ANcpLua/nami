@@ -8,6 +8,8 @@ model CollectorConfigurationKeys {
   @environment("PORT") platformPort?: string;
   @environment("NAMI_PUBLIC_URL") publicUrl?: string;
   @environment("RAILWAY_PUBLIC_DOMAIN") railwayPublicDomain?: string;
+  @environment("NAMI_READY_FILE") readyFile?: string;
+  @environment("NAMI_STOP_BUDGET_SECONDS") stopBudgetSeconds?: string;
   @environment("NAMI_OTLP_PORT") otlpPort?: string;
   @environment("NAMI_GRPC_PORT") grpcPort?: string;
   @environment("NAMI_OTLP_CORS_ALLOWED_ORIGINS") corsAllowedOrigins?: string;

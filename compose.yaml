@@ -1,0 +1,28 @@
+# nami on one machine: docker compose up -d --build
+# Put the project keys into a file named .env beside this one (it is not copied into the image):
+#   NAMI_OTLP_PROJECT_KEYS={"default":[{"key":"<ingest key>","roles":["ingest"]},{"key":"<read key>","roles":["read"]}]}
+# README, "Run in a container", says how to choose the keys and how Claude Code connects.
+services:
+  nami:
+    build:
+      context: .
+      dockerfile: src/nami/Dockerfile
+    image: nami
+    # Loopback only: the three services are for this machine, not for its network.
+    ports:
+      - "127.0.0.1:5100:5100" # MCP, Streamable HTTP at /mcp
+      - "127.0.0.1:4318:4318" # OTLP/HTTP
+      - "127.0.0.1:4317:4317" # OTLP/gRPC
+    environment:
+      NAMI_PUBLIC_URL: http://127.0.0.1:5100
+      NAMI_OTLP_PROJECT_KEYS: ${NAMI_OTLP_PROJECT_KEYS:?Set NAMI_OTLP_PROJECT_KEYS in .env (see README, Run in a container)}
+      # The stop budget and the grace period below belong together: the grace period is the longer one.
+      NAMI_STOP_BUDGET_SECONDS: "25"
+    stop_grace_period: 30s
+    # A named volume, never a bind mount: the store is one DuckDB file with one writer, held by a file lock
+    # that a folder shared from Windows or macOS does not keep reliably.
+    volumes:
+      - nami-data:/data
+    restart: unless-stopped
+volumes:
+  nami-data:

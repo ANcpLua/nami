@@ -19,6 +19,13 @@ internal sealed partial class CollectorPortOptions
     public int Grpc { get; set; } = 4317;
 }
 
+internal sealed partial class CollectorStopOptions
+{
+    [Microsoft.Extensions.Configuration.ConfigurationKeyName(Nami.Collector.Ingestion.Configuration.CollectorConfigurationKeys.StopBudgetSeconds)]
+    [Nami.Collector.Ingestion.Configuration.ConfiguredRange(Key = Nami.Collector.Ingestion.Configuration.CollectorConfigurationKeys.StopBudgetSeconds, Minimum = 1, Maximum = 3600)]
+    public int BudgetSeconds { get; set; } = 8;
+}
+
 internal sealed partial class CollectorStorageOptions
 {
     [Microsoft.Extensions.Configuration.ConfigurationKeyName(Nami.Collector.Ingestion.Configuration.CollectorConfigurationKeys.DataPath)]

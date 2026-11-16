@@ -24,6 +24,19 @@ internal static class CollectorCoreExtensions
             .Bind(config)
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<CollectorStorageOptions>, CollectorStorageOptionsValidator>();
+        // One stop budget (NAMI_STOP_BUDGET_SECONDS) for both processes. The supervising host kills the engine at
+        // the end of the budget (src/nami.mcp/src/engine.ts, stopChild). The engine gives the requests it is
+        // answering the first five eighths of it (5 of the default 8 seconds, the wait of OtlpIngestGate): after
+        // that the listeners abort what is left, the store finishes the write it is in and aborts the queued ones
+        // ("Store is shutting down."), and the process ends by itself. An export that was not acknowledged is
+        // retried by its sender; an acknowledged one was written before its answer.
+        services.AddOptions<CollectorStopOptions>()
+            .Bind(config)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<CollectorStopOptions>, CollectorStopOptionsValidator>();
+        services.AddOptions<HostOptions>()
+            .Configure<IOptions<CollectorStopOptions>>(static (host, stop) =>
+                host.ShutdownTimeout = TimeSpan.FromSeconds(stop.Value.BudgetSeconds * 5 / 8.0));
         // The size bounds of ingest: one instance for the request readers, the bounded parse and the converter.
         services.AddOptions<IngestLimits>()
             .Bind(config)

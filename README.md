@@ -78,6 +78,100 @@ Streamable HTTP. `/health` on the MCP port reports native-engine readiness. A no
 listener requires `NAMI_PUBLIC_URL`; on Railway its public domain is used automatically. The
 container runs the same two-process stack ([architecture](docs/architecture.yaml)).
 
+nami starts its engine with `DOTNET_GCgen0size=0x1000000`, a 16 MiB budget for the .NET garbage
+collector's youngest generation, which keeps the engine's memory under load lower; to choose
+another value, set `DOTNET_GCgen0size` yourself (hexadecimal bytes) and nami passes yours on; the
+older spelling `COMPlus_GCgen0size` counts the same. An empty `DOTNET_GCgen0size=` turns nami's
+default off: the engine then runs with the runtime's own gen0 budget.
+
+**Ports chosen by the operating system.** `NAMI_PORT` (MCP), `NAMI_OTLP_PORT` (OTLP/HTTP) and
+`NAMI_GRPC_PORT` (OTLP/gRPC) each accept `0`: the operating system then picks a free port, so
+several nami processes start side by side without anyone probing for ports. To learn the ports,
+name a ready manifest with `--ready-file <path>` or `NAMI_READY_FILE`:
+
+```json
+{"mcp":"http://127.0.0.1:40123/mcp","otlp_http":"http://127.0.0.1:40124","otlp_grpc":"http://127.0.0.1:40125","data_path":"/work/nami.duckdb"}
+```
+
+The file exists only while that nami is ready. A file left by an earlier run is removed before the
+engine starts; the new one is written under another name and renamed into place once the engine has
+reported the addresses it bound and the MCP listener is bound, so a reader sees no file or the whole
+file; nami removes it when it stops. The URLs are the bound ones; a wildcard address is written as
+loopback, and with `--stdio` `mcp` is `null`. The store stays where `NAMI_DATA_PATH` says;
+`data_path` reports it as an absolute path. With `NAMI_OTLP_PORT=0` nami does not export its own
+telemetry, because that exporter needs the port before the listener is bound. Inside a
+container the manifest names the container's own ports; the ports on the host are what
+`docker port <container>` prints.
+
+## Run in a container
+
+The image (`src/nami/Dockerfile`) holds the same two processes. Inside the container nami listens
+on every interface, so two things that a loopback process on your machine does without are required:
+project keys, because the default mode outside Development is `ApiKey` and the container does not
+pass `--stdio`, and `NAMI_PUBLIC_URL`, the origin at which you reach MCP. Publish the ports on the
+host's loopback only:
+
+```bash
+docker build -f src/nami/Dockerfile -t nami .
+docker volume create nami-data
+docker run -d --name nami \
+  -p 127.0.0.1:5100:5100 -p 127.0.0.1:4318:4318 -p 127.0.0.1:4317:4317 \
+  -v nami-data:/data \
+  -e NAMI_PUBLIC_URL=http://127.0.0.1:5100 \
+  -e NAMI_OTLP_PROJECT_KEYS='{"default":[{"key":"<ingest key>","roles":["ingest"]},{"key":"<read key>","roles":["read"]}]}' \
+  nami
+claude mcp add --transport http nami http://127.0.0.1:5100/mcp --header "x-otlp-api-key: <read key>"
+```
+
+- **Keys.** nami issues no keys; you choose them. `NAMI_OTLP_PROJECT_KEYS` is a JSON object from
+  project name to its keys, each with the roles `ingest`, `read` or both. Make two long random
+  strings, for example with `openssl rand -hex 32`: producers send the ingest key and the agent
+  sends the read key, both in the `x-otlp-api-key` header
+  (`OTEL_EXPORTER_OTLP_HEADERS=x-otlp-api-key=<ingest key>` for an OpenTelemetry SDK). A request
+  without a key is answered 401, one with a key that lacks the role 403.
+- **`NAMI_PUBLIC_URL`.** An HTTPS origin, or a plain HTTP origin on `localhost`, `127.0.0.1` or
+  `[::1]` for a port published on this machine. nami answers MCP and `/health` only when the
+  request's `Host`, and its `Origin` if a browser sent one, name this machine or that origin; a page
+  of another site, or a name rebound to your machine, gets 403 before any key is looked at.
+- **A host port chosen by Docker** (`-p 127.0.0.1::5100`, read it with `docker port nami 5100/tcp`)
+  works with the same setting: `Host` and `Origin` are compared by name, not by port, so
+  `NAMI_PUBLIC_URL=http://127.0.0.1:5100` stays right whatever port the host side gets.
+- Every connection reaches the container from Docker's bridge, never from 127.0.0.1, so nami cannot
+  tell local clients from others there: the key, not the address, is what admits a request.
+
+**With Compose, and on Windows.** `compose.yaml` in the repository root is the same setup: the
+three ports on `127.0.0.1`, the named volume, a stop budget of 25 seconds inside a grace period of
+30. Put `NAMI_OTLP_PROJECT_KEYS=...` into a file `.env` beside it, then:
+
+```bash
+docker compose up -d --build
+```
+
+This is the way to run nami on Windows: with Docker Desktop (PowerShell or a WSL2 shell, same
+command), or with the Linux build inside WSL2. There is no native Windows build. Claude Code on
+Windows connects to `http://127.0.0.1:5100/mcp` with the read key, as above; the container never
+speaks stdio, so `--transport stdio` does not apply to it. Applications export to
+`http://127.0.0.1:4318` (OTLP/HTTP) or `127.0.0.1:4317` (OTLP/gRPC) with the ingest key.
+
+**One writer per store.** The store is one DuckDB file, and the engine holds it open with a file
+lock. A second nami on the same file, for example a second container on the same volume, does not
+start: its engine ends with "Could not set lock on file" and the first keeps running. Keep the store
+in a named volume, as above, and do not bind-mount a host folder for it: on Docker Desktop a shared
+Windows or macOS folder passes through a file-sharing layer that does not keep that lock reliably.
+For several agents, connect them all to the one running nami. If an OpenTelemetry Collector sits in
+front, cap its batch as described under [Send telemetry](#send-telemetry)
+(`send_batch_max_size: 512`).
+
+**Stopping.** `NAMI_STOP_BUDGET_SECONDS` (default 8, from 1 to 3600) is how long a stop may take.
+On SIGTERM or SIGINT nami closes MCP and tells the engine to stop. During the first five eighths of
+the budget the engine still answers the exports it is working on; then it aborts what is left, lets
+the store finish the write it is in, and ends. At the end of the budget an engine that still runs
+is killed. An export is acknowledged only after its write, so a stop loses nothing that was
+acknowledged; an export that got 503 or lost its connection was not, and its sender retries it.
+Whoever stops nami must wait longer than the budget. Docker waits 10 seconds unless told
+otherwise, which fits the default; for a longer budget raise both together, for example
+`-e NAMI_STOP_BUDGET_SECONDS=25` with `docker stop -t 30` (Compose: `stop_grace_period: 30s`).
+
 ## Send telemetry
 
 Any OpenTelemetry SDK exports to nami with its standard settings:

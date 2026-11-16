@@ -44,6 +44,8 @@ internal static class NamiSelfTelemetry
         services.AddSingleton(credential);
         var ports = new CollectorPortOptions();
         configuration.Bind(ports);
+        // The exporters need the port when the host is built, before any listener is bound: with a port the
+        // operating system chooses (0), nami does not export its own telemetry.
         if (ports.OtlpHttp <= 0) return;
         var port = ports.OtlpHttp;
         var loopback = ports.ParseBindAddress().AddressFamily == AddressFamily.InterNetworkV6 ? "[::1]" : "127.0.0.1";

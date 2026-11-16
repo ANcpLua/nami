@@ -1,0 +1,41 @@
+name: container
+# The image, built and run. A workflow of its own, not a job of check.yml: it needs no toolchain but Docker, it
+# runs on two runners (NativeAOT does not cross-compile, so each architecture is built natively), and the gate's
+# Integration suite has no minutes to spare (ledger N79). Nothing is pushed to a registry.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: container-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  image:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux/amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    name: image (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Build
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          docker version --format 'client {{.Client.Version}}, server {{.Server.Version}}'
+          docker build --platform "$PLATFORM" -f src/nami/Dockerfile -t nami:ci .
+          test "$(docker image inspect nami:ci --format '{{.Os}}/{{.Architecture}}')" = "$PLATFORM"
+      - name: Smoke
+        run: eng/scripts/container_smoke.sh --image nami:ci --bind-ready
+      - name: Compose file
+        env:
+          NAMI_OTLP_PROJECT_KEYS: '{"demo":[{"key":"fake-ingest-key-0001","roles":["ingest"]}]}'
+        run: docker compose config --quiet

@@ -7,6 +7,7 @@ import { CONFIG, CONFIG_DEFAULTS, CONTRACT_REVISION } from "./contracts/generate
 import type { HealthReport, ProjectKeyDocument } from "./contracts/generated/json.js";
 import { Engine, EngineError } from "./engine.js";
 import { dnsRebindingResponse, isLoopbackBindHost } from "./http-security.js";
+import { removeReadyManifest, writeReadyManifest } from "./ready.js";
 import { createServer } from "./server.js";
 
 const args = process.argv.slice(2);
@@ -14,6 +15,13 @@ const engineIndex = args.indexOf("--engine");
 const enginePath = engineIndex >= 0 ? args[engineIndex + 1] : undefined;
 if (!enginePath) throw new Error("Pass --engine with the published NativeAOT engine path.");
 const stdio = args.includes("--stdio");
+// The ready manifest (ready.ts). One left behind by a nami that was killed is removed before the engine starts,
+// so whoever waits for the file never reads the addresses of an earlier run.
+const readyIndex = args.indexOf("--ready-file");
+const readyOption = readyIndex >= 0 ? args[readyIndex + 1] : process.env[CONFIG.ReadyFile];
+if (readyIndex >= 0 && !readyOption) throw new Error("Pass a file path after --ready-file.");
+const readyFile = readyOption ? resolve(readyOption) : undefined;
+if (readyFile) removeReadyManifest(readyFile);
 // The host answers /mcp before the engine sees a call, so it repeats two engine rules on purpose: the default mode
 // (CollectorAuthExtensions: Unsecured only in Development; WebApplication.CreateSlimBuilder adds DOTNET_ variables
 // after ASPNETCORE_ ones, so DOTNET_ENVIRONMENT wins as here) and the key match (OtlpApiKeyValidator.Resolve: every
@@ -25,7 +33,11 @@ const mode = process.env[CONFIG.AuthMode] ?? (environment?.toLowerCase() === "de
 if (stdio && mode.toLowerCase() === "apikey")
   throw new Error(`--stdio cannot be used with ${CONFIG.AuthMode}=ApiKey: stdio carries no project key, so every tool call would be refused. `
     + `Serve Streamable HTTP and send a project's read key in x-otlp-api-key, or set ${CONFIG.AuthMode}=Unsecured for a local engine with the default project.`);
-const engine = new Engine(resolve(enginePath));
+// The engine reads the same variable and refuses the same values (CollectorStopOptions).
+const stopBudget = Number(process.env[CONFIG.StopBudgetSeconds] ?? CONFIG_DEFAULTS.StopBudgetSeconds);
+if (!Number.isInteger(stopBudget) || stopBudget < 1 || stopBudget > 3600)
+  throw new Error(`${CONFIG.StopBudgetSeconds} must be a whole number of seconds from 1 to 3600.`);
+const engine = new Engine(resolve(enginePath), stopBudget * 1000);
 await engine.ready;
 const keyDocument: unknown = JSON.parse(process.env[CONFIG.ProjectKeys] ?? "{}");
 // Engine readiness follows validation of this shared credential configuration.
@@ -65,28 +77,39 @@ async function health(signal: AbortSignal): Promise<Response> {
 
 // Ends the transport: at once, or (force false, HTTP only) after the requests being answered have their answers.
 let closeTransport: (force?: boolean) => Promise<void>;
+// The MCP URL of the ready manifest; stdio has none.
+let mcpUrl: string | null = null;
 if (stdio) {
   const handle = serveStdio(() => createServer(engine), { onerror: report });
   closeTransport = () => handle.close();
 } else {
   const hostname = process.env[CONFIG.BindAddress] ?? CONFIG_DEFAULTS.BindAddress;
   const port = Number(process.env[CONFIG.Port] ?? process.env[CONFIG.PlatformPort] ?? CONFIG_DEFAULTS.Port);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("NAMI_PORT is outside its supported range.");
+  // Port 0 lets the operating system choose; the ready manifest then names the port.
+  if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error("NAMI_PORT is outside its supported range.");
   const domain = process.env[CONFIG.RailwayPublicDomain];
   const publicUrl = process.env[CONFIG.PublicUrl] ?? (domain ? `https://${domain}` : undefined);
-  const allowedHosts = new Set(["localhost", "127.0.0.1", "[::1]", hostname]);
+  const localOrigins = ["localhost", "127.0.0.1", "[::1]"];
+  const allowedHosts = new Set([...localOrigins, hostname]);
   if (publicUrl) {
     const origin = new URL(publicUrl);
-    if (origin.protocol !== "https:" || origin.username || origin.password || origin.search || origin.hash || origin.pathname !== "/")
-      throw new Error("NAMI_PUBLIC_URL must be an HTTPS origin without credentials, query or path.");
+    // Plain HTTP is an origin only for this machine itself: a container whose MCP port is published on the host's
+    // loopback (-p 127.0.0.1:5100:5100) is reached at http://127.0.0.1:5100. Anything else needs TLS in front.
+    const loopback = origin.protocol === "http:" && localOrigins.includes(origin.hostname);
+    if ((origin.protocol !== "https:" && !loopback) || origin.username || origin.password || origin.search || origin.hash || origin.pathname !== "/")
+      throw new Error("NAMI_PUBLIC_URL must be an HTTPS origin, or an HTTP origin on localhost, 127.0.0.1 or [::1], without credentials, query or path.");
     allowedHosts.add(origin.hostname);
   }
   if (!isLoopbackBindHost(hostname) && !publicUrl)
     throw new Error("A non-loopback listener requires NAMI_PUBLIC_URL.");
   // A connection that stays silent is closed after the longest idle time Bun allows (its default of 10 seconds cut
-  // every call that ran longer). A call being served is exempt: its client may wait for the result without a byte
-  // in either direction. Event streams also carry a keep-alive comment every 5 seconds, below the 10 seconds at
-  // which this server used to and many proxies do close a silent stream.
+  // every call that ran longer). A call being served is exempt, and for revision 2026-07-28 it has to be: the
+  // SDK's per-request transport answers such a call with application/json once the result exists, so its client
+  // gets no byte, not even the status line, before that (measured with the engine stopped: 0 bytes in 17
+  // seconds). A proxy in front of nami must allow such a call a silent connection for as long as it may take.
+  // A call without a version header is answered as an event stream: its headers go out at once and a keep-alive
+  // comment follows every 5 seconds (keepAliveMs below), under the 10 seconds at which this server used to and
+  // many proxies do close a silent stream.
   // Nothing this listener answers carries a path or a stack: no development error page, and an unexpected
   // failure is a JSON-RPC internal error.
   const failure = (status: number, code: number, message: string) =>
@@ -112,11 +135,17 @@ if (stdio) {
     }
   });
   closeTransport = async (force = true) => { await server.stop(force); };
+  // A wildcard listener is reached over loopback.
+  const reachable = hostname === "0.0.0.0" ? "127.0.0.1" : hostname === "::" ? "::1" : hostname;
+  mcpUrl = `http://${reachable.includes(":") ? `[${reachable}]` : reachable}:${server.port}/mcp`;
 }
+// Ready: the engine has reported the addresses it bound, and the MCP listener (if any) is bound.
+if (readyFile) writeReadyManifest(readyFile, mcpUrl, await engine.listeners);
 let closing = false;
 async function close() {
   if (closing) return;
   closing = true;
+  if (readyFile) removeReadyManifest(readyFile);
   await closeTransport();
   await engine.close();
 }
@@ -138,6 +167,7 @@ void engine.failed.then(async (error) => {
     // The calls this failure rejected are being answered right now: they get their answer, within two seconds.
     await Promise.race([closeTransport(false), new Promise(resolve => setTimeout(resolve, 2000))]).catch(report);
   }
+  if (readyFile) removeReadyManifest(readyFile);
   process.exit(1);
 });
 if (stdio) {

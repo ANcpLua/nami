@@ -4,12 +4,13 @@ import { TOOLS } from "./contracts/generated/manifest.js";
 import type { ToolName, ToolReply, ValidatedToolCall } from "./contracts/generated/tool-contracts.js";
 const replySchemas = Object.fromEntries(TOOLS.map(tool => [tool.name, fromJsonSchema(schemas[tool.output] as JsonSchemaType)]));
 const errorSchema = fromJsonSchema(schemas["Common.ToolError"] as JsonSchemaType);
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { once } from "node:events";
 import type { EngineCommand, EngineResponse } from "./contracts/generated/api.js";
 import type { EngineResponse as EngineResponseJson } from "./contracts/generated/json.js";
 import { EngineCommandJson, EngineResponseJson as responseCodec } from "./contracts/generated/serialization.js";
 import { CONTRACT_REVISION, ENGINE_LIMITS } from "./contracts/generated/manifest.js";
+import { readListeners, type EngineListeners } from "./ready.js";
 
 /** One supervised native engine, with bounded complete JSONL frames and request correlation. */
 export class EngineError extends Error {
@@ -26,12 +27,17 @@ export class Engine {
   private shutdown: Promise<void> | undefined;
   private reportFailed!: (error: Error) => void;
   readonly ready: Promise<EngineResponse>;
+  /** The addresses the engine bound and its store, from the engine's own report (ready.ts). */
+  readonly listeners: Promise<EngineListeners>;
   /** Resolves with the reason once the engine has failed by itself and its process is gone; never after close(). */
   readonly failed = new Promise<Error>(resolve => { this.reportFailed = resolve; });
 
-  constructor(path: string) {
+  /** @param stopBudgetMs How long a stop may take before the engine is killed (NAMI_STOP_BUDGET_SECONDS). */
+  constructor(path: string, private readonly stopBudgetMs = 8000) {
     this.child = spawn(path.endsWith(".dll") ? "dotnet" : path,
-      path.endsWith(".dll") ? [path, "--engine"] : ["--engine"], { stdio: ["pipe", "pipe", "inherit"] });
+      [...(path.endsWith(".dll") ? [path] : []), "--engine", "--listeners-fd", "3"],
+      { stdio: ["pipe", "pipe", "inherit", "pipe"], env: engineEnvironment(process.env) }) as ChildProcessWithoutNullStreams;
+    this.listeners = readListeners(this.child.stdio[3] as NodeJS.ReadableStream);
     const stopChild = () => { this.child.kill("SIGKILL"); };
     process.once("exit", stopChild);
     this.exited = new Promise(resolve => this.child.once("close", () => {
@@ -112,8 +118,13 @@ export class Engine {
   private async stopChild(): Promise<void> {
     if (this.hasExited) return;
     this.child.stdin.end();
-    const graceful = setTimeout(() => this.child.kill("SIGTERM"), 5000);
-    const forced = setTimeout(() => this.child.kill("SIGKILL"), 8000);
+    // One stop budget. Closing its input tells the engine to stop: it answers what it is answering during the
+    // first five eighths of the budget (5 s of the default 8 s) and then ends by itself
+    // (CollectorCoreExtensions.cs). At that moment SIGTERM follows, for an engine that did not see its input
+    // close, and SIGKILL at the end. Whoever stops nami from outside has to wait longer than the budget: Docker
+    // with a grace period above it.
+    const graceful = setTimeout(() => this.child.kill("SIGTERM"), this.stopBudgetMs * 5 / 8);
+    const forced = setTimeout(() => this.child.kill("SIGKILL"), this.stopBudgetMs);
     graceful.unref(); forced.unref();
     try { await this.exited; } finally { clearTimeout(graceful); clearTimeout(forced); }
   }
@@ -135,6 +146,19 @@ export class Engine {
     for (const request of this.pending.values()) { request.cleanup(); request.reject(error); }
     this.pending.clear();
   }
+}
+
+/**
+ * The engine's environment: the host's, plus a gen0 budget of 16 MiB for the .NET garbage collector unless the
+ * host's environment already names one, in either spelling the runtime reads (DOTNET_ wins over COMPlus_ there,
+ * so adding the first would override an operator's second). Without the budget the collector leaves the garbage
+ * of one request lying until the next ones, which under load was most of the engine's memory growth (three
+ * clients at both bounds: about +147 MiB without, about +100 MiB with). The runtime reads this setting from the
+ * environment only.
+ */
+export function engineEnvironment(host: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return host.DOTNET_GCgen0size !== undefined || host.COMPlus_GCgen0size !== undefined
+    ? host : { ...host, DOTNET_GCgen0size: "0x1000000" };
 }
 
 function encode(request: EngineCommand): string {

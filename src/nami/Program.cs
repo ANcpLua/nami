@@ -8,6 +8,7 @@ await using var app = builder.BuildNamiCollector();
 await app.StartAsync();
 try
 {
+    EngineListenerReport.Write(app);
     await EngineProtocol.RunAsync(app.Services, app.Lifetime.ApplicationStopping);
 }
 finally

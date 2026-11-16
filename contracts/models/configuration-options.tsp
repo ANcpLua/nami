@@ -12,6 +12,11 @@ namespace Nami.Models.Configuration.Hosting {
     grpc: int32 = 4317;
   }
   @csharpForm("internal sealed partial class")
+  model CollectorStopOptions {
+    @configuredBy(CollectorConfigurationKeys.stopBudgetSeconds) @minValue(1) @maxValue(3600)
+    budgetSeconds: int32 = 8;
+  }
+  @csharpForm("internal sealed partial class")
   model CollectorStorageOptions {
     @configuredBy(CollectorConfigurationKeys.dataPath)
     dataPath: string = "nami.duckdb";

@@ -23,10 +23,18 @@ def version_property(name):
 
 
 def image_tag(image):
-    tags = re.findall(rf"^FROM\s+mcr\.microsoft\.com/dotnet/{image}:(\S+)", read("src/nami/Dockerfile"), re.M)
+    tags = re.findall(rf"^FROM\s+mcr\.microsoft\.com/dotnet/{image}:([^\s@]+)", read("src/nami/Dockerfile"), re.M)
     if len(tags) != 1:
         raise AssertionError(f"src/nami/Dockerfile names dotnet/{image} {len(tags)} times, expected once")
     return tags[0]
+
+
+def unpinned_base_images():
+    # Every image a stage starts from carries the digest of its index; a stage that continues another one has none.
+    dockerfile = read("src/nami/Dockerfile")
+    stages = set(re.findall(r"^FROM\s+\S+\s+AS\s+(\S+)", dockerfile, re.M | re.I))
+    return [image for image in re.findall(r"^FROM\s+(\S+)", dockerfile, re.M)
+            if image not in stages and not re.search(r"@sha256:[0-9a-f]{64}$", image)]
 
 
 def runtime_of(sdk):
@@ -60,10 +68,12 @@ class ToolchainPinTests(unittest.TestCase):
                 "mise.toml dotnet": sdk,
                 "src/nami/Dockerfile dotnet/sdk": sdk,
                 "Version.props DotNetRuntimeVersion": runtime,
-                "src/nami/Dockerfile dotnet/runtime-deps": runtime,
+                # The runtime image is the chiseled Ubuntu 26.04 one of that runtime: no shell, user app.
+                "src/nami/Dockerfile dotnet/runtime-deps": f"{runtime}-resolute-chiseled",
             }
             problems += [f"{name} is {pins[name]}, expected {value} for SDK {sdk}"
                          for name, value in expected.items() if pins[name] != value]
+        problems += [f"src/nami/Dockerfile: {image} is not pinned by digest" for image in unpinned_base_images()]
         if global_json["sdk"].get("rollForward") != "disable":
             problems.append(f"global.json sdk.rollForward is {global_json['sdk'].get('rollForward')}, expected disable")
         runner = global_json.get("test", {}).get("runner")
