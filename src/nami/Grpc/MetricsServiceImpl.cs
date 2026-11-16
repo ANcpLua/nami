@@ -5,7 +5,10 @@ using OpenTelemetry.Proto.Collector.Metrics.V1;
 
 namespace Nami.Grpc;
 
-internal sealed class MetricsServiceImpl(INamiStore store, IOptions<OtlpApiKeyOptions>? options = null)
+internal sealed class MetricsServiceImpl(
+    INamiStore store,
+    IOptions<OtlpApiKeyOptions>? options = null,
+    IOptions<IngestLimits>? limits = null)
     : OtlpExportService
 {
     public Task<ExportMetricsServiceResponse> Export(
@@ -14,7 +17,7 @@ internal sealed class MetricsServiceImpl(INamiStore store, IOptions<OtlpApiKeyOp
     {
         return GrpcExport.ExecuteAsync(async () =>
         {
-            var batch = OtlpConverter.ConvertMetrics(request);
+            var batch = OtlpConverter.ConvertMetrics(request, limits?.Value);
             var write = MetricStorageMapper.ToStorageRows(
                 batch, AuthenticatedProject.ForGrpcIngest(context, options?.Value));
 

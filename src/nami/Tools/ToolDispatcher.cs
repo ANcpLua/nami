@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using Nami.Api.Contracts;
 using Nami.Api.Contracts.Common;
 using Nami.Api.Contracts.Tools;
+using Nami.Collector.Ingestion;
 using Nami.Collector.Storage;
 
 namespace Nami.Tools;
@@ -150,6 +151,8 @@ internal static class ToolDispatcher
 
     private static string BoundedEcho(string value, int encodedByteLimit)
     {
+        // A refusal echoes what the caller sent; it passes the credential stage like every other string of an answer.
+        value = CredentialRedaction.Redact(value);
         var result = new StringBuilder();
         var bytes = 0;
         foreach (var rune in value.EnumerateRunes())
@@ -267,12 +270,127 @@ internal static class ToolDispatcher
         return Encoding.UTF8.GetByteCount(output.GetRawText()) > maxBytes ? Error("invalid_argument", "max_bytes is smaller than the result envelope.", "max_bytes") : new ToolRunResult(output, false);
     }
 
+    // Every item of every tool's answer is built here, on its way into a page, before the page is measured against
+    // max_bytes. So this is where an answer passes the credential stage: rows stored before the stage ran at ingest
+    // stay as they are (ruled: no migration), and no tool returns a credential out of them.
     private static JsonObject Project(JsonObject item, string[] fields)
     {
-        return fields.Length == 0
+        var projected = fields.Length == 0
             ? (JsonObject)item.DeepClone()
             : new JsonObject(item.Where(p => fields.Contains(p.Key, StringComparer.Ordinal))
                 .Select(static p => KeyValuePair.Create(p.Key, p.Value?.DeepClone())));
+        RedactCredentials(projected);
+        return projected;
+    }
+
+    // The same stage as at ingest (CredentialRedaction), over every string of the item: each string value, and for
+    // an attribute ({"key", "value"}) or a member of a key-value list whose own name is a credential name, the whole
+    // value. A string that changes is replaced in place; an ordinary string costs the stage's scans and no allocation.
+    private static void RedactCredentials(JsonNode node)
+    {
+        switch (node)
+        {
+            case JsonObject item:
+                var named = item["key"] is JsonValue key && key.GetValueKind() == JsonValueKind.String &&
+                            CredentialRedaction.NamesACredential(key.GetValue<string>());
+                var members = item["kind"] is JsonValue kind && kind.GetValueKind() == JsonValueKind.String &&
+                              kind.GetValue<string>() == "kvlist";
+                foreach (var (name, value) in item.ToArray())
+                {
+                    if (value is null) continue;
+                    if (named && name == "value")
+                    {
+                        if (WithoutStrings(value) is { } replaced) item[name] = replaced;
+                    }
+                    else if (members && name == "values" && value is JsonObject map) RedactMembers(map);
+                    else if (Redacted(value) is { } text) item[name] = text;
+                    else RedactCredentials(value);
+                }
+
+                break;
+            case JsonArray list:
+                for (var index = 0; index < list.Count; index++)
+                {
+                    if (list[index] is not { } value) continue;
+                    if (Redacted(value) is { } text) list[index] = text;
+                    else RedactCredentials(value);
+                }
+
+                break;
+        }
+    }
+
+    // The members of a key-value list: the member's name is a key the sender chose.
+    private static void RedactMembers(JsonObject map)
+    {
+        foreach (var (name, value) in map.ToArray())
+        {
+            var kept = CredentialRedaction.Redact(name);
+            var named = CredentialRedaction.NamesACredential(name);
+            var redacted = value is null ? null : named ? WithoutStrings(value) : Redacted(value);
+            if (redacted is null && value is not null && !named) RedactCredentials(value);
+            if (ReferenceEquals(kept, name))
+            {
+                if (redacted is not null) map[name] = redacted;
+                continue;
+            }
+
+            map.Remove(name);
+            map[kept] = redacted ?? value;
+        }
+    }
+
+    // The longest string an answer carries, in UTF-8 bytes. Ingest keeps up to 256 KiB of a value and an answer is
+    // 32 KiB by default, so a longer value is shortened here, in the answer only, and says so.
+    internal const int MaxAnswerValueUtf8Bytes = 4096;
+
+    // The string an answer carries for a string node, or null when the node is no string or is carried as stored:
+    // through the credential stage, then shortened to what an answer carries, with a marker that names the stored
+    // length.
+    private static JsonValue? Redacted(JsonNode node)
+    {
+        if (node is not JsonValue value || value.GetValueKind() != JsonValueKind.String) return null;
+        var text = value.GetValue<string>();
+        var redacted = CredentialRedaction.Redact(text);
+        var shortened = Shortened(redacted);
+        return ReferenceEquals(shortened, text) ? null : JsonValue.Create(shortened);
+    }
+
+    private static string Shortened(string text)
+    {
+        if (text.Length <= MaxAnswerValueUtf8Bytes / 3) return text;
+        var stored = Encoding.UTF8.GetByteCount(text);
+        if (stored <= MaxAnswerValueUtf8Bytes) return text;
+        var marker = string.Create(CultureInfo.InvariantCulture, $"...[shortened in this answer: {stored} bytes stored]");
+        var budget = MaxAnswerValueUtf8Bytes - marker.Length;
+        var length = 0;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            if (rune.Utf8SequenceLength > budget) break;
+            budget -= rune.Utf8SequenceLength;
+            length += rune.Utf16SequenceLength;
+        }
+
+        return string.Concat(text.AsSpan(0, length), marker);
+    }
+
+    // The value of a key that names a credential: a string goes whole, and so does each string of a list. Returns the
+    // node that replaces the value, or null when the value was changed in place or holds no string.
+    private static JsonValue? WithoutStrings(JsonNode value)
+    {
+        switch (value)
+        {
+            case JsonValue text when text.GetValueKind() == JsonValueKind.String:
+                return text.GetValue<string>().Length > 0 ? JsonValue.Create(CredentialRedaction.Replacement) : null;
+            case JsonArray list:
+                for (var index = 0; index < list.Count; index++)
+                    if (list[index] is JsonValue item && item.GetValueKind() == JsonValueKind.String)
+                        list[index] = JsonValue.Create(CredentialRedaction.Replacement);
+                return null;
+            default:
+                RedactCredentials(value);
+                return null;
+        }
     }
 
     private static string QueryHash(JsonElement input)

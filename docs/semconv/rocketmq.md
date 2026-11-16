@@ -12,7 +12,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `rocketmq.message.group` | `string` | development |  | It is essential for FIFO message. Messages that belong to the same message group are always processed one by one within the same consumer group. | `"myMessageGroup"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `rocketmq.message.keys` | `string[]` | development |  | Key(s) of message, another way to mark message besides message ID. | `["keyA","keyB"]` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `rocketmq.message.tag` | `string` | development |  | The secondary classifier of message besides topic. | `"tagA"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
-| `rocketmq.message.type` | `enum` | development |  | Type of message. |  | `nami.persisted`: `true`, `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"`, `nami.token_exempt`: `true` |
+| `rocketmq.message.type` | `enum` | development |  | Type of message. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `rocketmq.namespace` | `string` | development |  | Namespace of RocketMQ resources, resources in different namespaces are individual. | `"myNamespace"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
 ### `rocketmq.consumption_model` values

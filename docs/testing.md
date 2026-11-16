@@ -332,8 +332,8 @@ The wire names the acceptance tests read are in `Sessions/SessionsContract.cs` o
 posted exactly as Claude Code sent them, each checked against `manifest.json`; synthetic variants (planted gate
 runs, content sentinels) are decoded copies built in memory by `Nami.Tests/Infrastructure/ClaudeCodeCapture.cs`.
 The capture is from 15 Nov 2026, so these tests pass absolute windows and start nami with `NAMI_RETENTION_DAYS=0`.
-Two classes need no new tool and run in the gate: `ContentAtIngestTests` (EndToEnd: no prompt, response or tool
-content in the stopped engine's store or in any answer) and `ClaudeCodeCaptureTests` (Integration: the planted
+Two classes need no new tool and run in the gate: `ContentAtIngestTests` (EndToEnd: prompt, response and tool
+content is in the stopped engine's store as the session sent it) and `ClaudeCodeCaptureTests` (Integration: the planted
 gate runs and the content sentinels are what the acceptance tests say they are).
 
 ## Measurements outside the gate

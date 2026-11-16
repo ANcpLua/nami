@@ -26,6 +26,7 @@ internal static class CollectorEndpointExtensions
     private static Task<IResult> IngestOtlpTracesAsync(
         HttpContext context,
         INamiStore store,
+        IOptions<IngestLimits> limits,
         CancellationToken ct)
     {
         return IngestOtlpAsync(
@@ -34,7 +35,7 @@ internal static class CollectorEndpointExtensions
             OtlpPayloadParser.ParseTraceRequestAsync,
             static request => request.ResourceSpans.Count is 0,
             new ExportTraceServiceResponse(),
-            OtlpConverter.ConvertTraceRequest,
+            request => OtlpConverter.ConvertTraceRequest(request, limits.Value),
             async (batch, token) =>
             {
                 var spans = IngestionStorageMapper.ToSpanStorageRows(batch,
@@ -50,6 +51,7 @@ internal static class CollectorEndpointExtensions
         HttpContext context,
         INamiStore store,
         TimeProvider timeProvider,
+        IOptions<IngestLimits> limits,
         CancellationToken ct)
     {
         return IngestOtlpAsync(
@@ -58,7 +60,7 @@ internal static class CollectorEndpointExtensions
             OtlpPayloadParser.ParseLogsRequestAsync,
             static request => request.ResourceLogs.Count is 0,
             new ExportLogsServiceResponse(),
-            request => OtlpConverter.ConvertLogs(request, timeProvider),
+            request => OtlpConverter.ConvertLogs(request, timeProvider, limits.Value),
             async (batch, token) =>
             {
                 var logs = IngestionStorageMapper.ToLogStorageRows(batch, AuthenticatedProject.ForHttpIngest(context));
@@ -72,6 +74,7 @@ internal static class CollectorEndpointExtensions
     private static Task<IResult> IngestOtlpMetricsAsync(
         HttpContext context,
         INamiStore store,
+        IOptions<IngestLimits> limits,
         CancellationToken ct)
     {
         return IngestOtlpAsync(
@@ -80,7 +83,7 @@ internal static class CollectorEndpointExtensions
             OtlpPayloadParser.ParseMetricsRequestAsync,
             static request => request.ResourceMetrics.Count is 0,
             new ExportMetricsServiceResponse(),
-            OtlpConverter.ConvertMetrics,
+            request => OtlpConverter.ConvertMetrics(request, limits.Value),
             async (batch, token) =>
             {
                 var write = MetricStorageMapper.ToStorageRows(batch, AuthenticatedProject.ForHttpIngest(context));
