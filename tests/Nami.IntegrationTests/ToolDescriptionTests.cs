@@ -120,7 +120,8 @@ public sealed class ToolDescriptionTests(TestContext context)
     /// <summary>
     ///     "The resource attribute that changed, named in source_key: revision is vcs.ref.head.revision, version is
     ///     service.version, environment is deployment.environment.name, pipeline is any cicd.* attribute." A
-    ///     resource attribute outside that list is no change.
+    ///     resource attribute outside that list is no change: cloud.region is stored with the resource, which the
+    ///     test checks first, and is not reported.
     /// </summary>
     [TestMethod]
     public async Task ChangesRecent_KindAndSourceKey_NameTheResourceAttribute()
@@ -129,7 +130,7 @@ public sealed class ToolDescriptionTests(TestContext context)
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
         var payload = JsonNode.Parse(OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-5))))!;
         var resource = payload["resourceSpans"]![0]!["resource"]!["attributes"]!.AsArray();
-        resource.Add((JsonNode)OtlpData.Attribute("host.name", "web-1"));
+        resource.Add((JsonNode)OtlpData.Attribute("cloud.region", "eu-central-1"));
         resource.Add((JsonNode)OtlpData.Attribute("service.version", "1.4.0"));
         resource.Add((JsonNode)OtlpData.Attribute("cicd.pipeline.run.id", "run-17"));
         resource.Add((JsonNode)OtlpData.Attribute("vcs.ref.head.revision", "9f2c1e7"));
@@ -137,6 +138,10 @@ public sealed class ToolDescriptionTests(TestContext context)
         resource.Add((JsonNode)OtlpData.Attribute("cicd.pipeline.name", "deploy"));
         await StorageTestData.SeedTraces(store, payload.ToJsonString(), context.CancellationToken);
         clock.Advance(TimeSpan.FromSeconds(1));
+        var stored = Assert.ContainsSingle(
+            (await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Resources);
+        Assert.Contains("\"cloud.region\"", stored.AttributesJson,
+            "Precondition: the attribute outside the list is stored, so only the tool can leave it out.");
 
         var result = await CallAsync(store, "changes_recent");
 
