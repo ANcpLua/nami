@@ -2,6 +2,8 @@ using System.Data;
 using System.Data.Common;
 using System.Globalization;
 using DuckDB.NET.Data;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Nami.Collector.Storage;
 using Nami.Tests.Infrastructure;
@@ -316,6 +318,38 @@ public sealed class StorageLifetimeTests(TestContext context)
         finally
         {
             // WriterFails_DisposeReportsTheFailure asserts what DisposeAsync reports.
+            await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
+    }
+
+    /// <summary>
+    ///     A file store reads on its own connections, so a read still succeeds when the writer has stopped and
+    ///     every write is refused. The health check reports the writer, not the read.
+    /// </summary>
+    [TestMethod]
+    public async Task WriterFails_HealthCheckIsUnhealthyWithTheFailure()
+    {
+        var expected = new InvalidOperationException("Injected writer failure.");
+        var store = DuckDbStore.CreateForTesting(new Connections().Create, DatabasePath("unhealthy.duckdb"),
+            maxConcurrentReads: 1, timeProvider: new FakeTimeProvider(TestData.s_now),
+            beforeWriterLoop: _ => ValueTask.FromException(expected));
+        try
+        {
+            // A write that has ended with the failure: the writer is past the point where it stops.
+            var refusal = await Assert.ThrowsExactlyAsync<NamiStoreUnavailableException>(() =>
+                SeedTrace(store, context.CancellationToken));
+            Assert.AreSame(expected, refusal.InnerException);
+            Assert.AreEqual(0L, (await store.GetStorageStatsAsync("default", context.CancellationToken)).SpanCount);
+
+            var check = new Nami.Health.DuckDbHealthCheck(store,
+                Options.Create(new Nami.Retention.RetentionOptions { StorageMinimumFreeMegabytes = 0 }));
+            var result = await check.CheckHealthAsync(new HealthCheckContext(), context.CancellationToken);
+
+            Assert.AreEqual(HealthStatus.Unhealthy, result.Status, result.Description);
+            Assert.AreSame(expected, result.Exception);
+        }
+        finally
+        {
             await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
     }

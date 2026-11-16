@@ -225,6 +225,8 @@ internal sealed partial class DuckDbStore : INamiStore
 
     private DuckDBConnection Connection { get; }
 
+    public Exception? WriterFailure => Read(ref _writerFailure);
+
     public async ValueTask DisposeAsync()
     {
         Task<List<Exception>?> shutdown;
