@@ -524,7 +524,6 @@ internal sealed partial class DuckDbStore : INamiStore
             // No other code runs a queued job. Close the queue before the drain below, so that no job is accepted
             // after it, and keep the task faulted: ShutdownAsync reports the failure of a worker through DisposeAsync.
             Write(ref _writerFailure, error);
-            _jobs.Writer.TryComplete(error);
             throw;
         }
         finally
