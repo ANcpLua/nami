@@ -278,7 +278,8 @@ internal static class OtlpValueBounds
             // Every structure on the wire is counted, also one a later member of the oneof replaces: the parser
             // builds it before it discards it.
             var left = scan.MaxNested;
-            over = replaceable && WalkValue(value, 0, ref left, ref nested, ref scan) is Walk.Over;
+            // Walked also when it is too short to replace: the messages inside it count.
+            over = WalkValue(value, 0, ref left, ref nested, ref scan) is Walk.Over && replaceable;
         }
 
         if (!over)
