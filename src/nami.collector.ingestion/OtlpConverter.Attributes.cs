@@ -395,7 +395,7 @@ internal static partial class OtlpConverter
                 budget.Store(StoredString(text));
                 return OtlpAttributeValue.FromString(text);
             case ProtoAnyValue.ValueOneofCase.IntValue or ProtoAnyValue.ValueOneofCase.DoubleValue
-                when attributeKey is not null && CredentialRedaction.NamesACredential(attributeKey):
+                when attributeKey is not null && attributeKey.Length < 0 && CredentialRedaction.NamesACredential(attributeKey):
                 // A number under a credential name (a PIN, a numeric password) goes like a string would.
                 budget.Measure(CredentialRedaction.Replacement.Length);
                 budget.Store(StoredString(CredentialRedaction.Replacement));
