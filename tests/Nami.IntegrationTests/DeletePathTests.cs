@@ -30,7 +30,9 @@ public sealed partial class DeletePathTests(TestContext context)
     ///     <see cref="s_retentionCalls" />). The rest never touch recorded telemetry: metric_points and
     ///     metric_exemplars are projections derived from metric_observations and rewritten from them, read_snapshots
     ///     is the cache of answered reads, and DropTables recreates the schema only while the authoritative tables are
-    ///     empty (StorageSchemaTests.Open_MissingSchemaIdentityWithData_RejectsAdoptionWithoutChangingRows).
+    ///     empty (StorageSchemaTests.Open_MissingSchemaIdentityWithData_RejectsAdoptionWithoutChangingRows), and
+    ///     EmitStagedInsert drops the temporary table a batch was appended to after its rows were moved into the
+    ///     table (DuckDbStore.InsertRowsStaged).
     /// </summary>
     private static readonly string[] s_rowRemovals =
     [
@@ -46,7 +48,8 @@ public sealed partial class DeletePathTests(TestContext context)
         Storage + "DuckDbStore.MetricObservations.cs RebuildMetricProjections: DELETE FROM metric_points",
         Storage + "DuckDbStore.MetricObservations.cs RebuildMetricProjections: DELETE FROM metric_exemplars",
         Storage + "DuckDbStore.Snapshots.cs ReadSnapshotAsync: DELETE FROM read_snapshots",
-        Storage + "DuckDbStore.cs DropTables: DROP TABLE"
+        Storage + "DuckDbStore.cs DropTables: DROP TABLE",
+        "internal/nami.collector.storage.generators/DuckDbEmitter.cs EmitStagedInsert: DROP TABLE"
     ];
 
     /// <summary>Every call of a retention method in src/ and internal/: the store's sweep, and the service that starts it.</summary>

@@ -11,6 +11,8 @@ internal sealed partial class DuckDbStore : INamiStore
     ///     of the machine's memory, which lets the blocks it caches for reads grow with the store. Measured on 16 Nov
     ///     2026 (ledger N48): one export at both ingest bounds needs 37 to 55 MiB of it while it is written, the same
     ///     after 300,000 stored spans, so this leaves that request more than four times its need and refuses none.
+    ///     It applies to a store in a file, whose blocks DuckDB can drop and read again. An in-memory store has only
+    ///     its memory: with this limit, reading 500,000 spans from one was refused, so it keeps DuckDB's default.
     /// </summary>
     internal const string DefaultMemoryLimit = "256MB";
 
@@ -157,7 +159,9 @@ internal sealed partial class DuckDbStore : INamiStore
         try
         {
             Connection = OpenConnection();
-            ConfigureDatabase(Connection, memoryLimit, threads, tempDirectory);
+            ConfigureDatabase(Connection,
+                string.IsNullOrWhiteSpace(memoryLimit) && !_isInMemory ? DefaultMemoryLimit : memoryLimit, threads,
+                tempDirectory);
             var resetDerived = InitializeSchema(Connection);
             if (resetDerived || MetricProjectionsNeedRebuild(Connection))
                 RebuildMetricProjections(Connection);
@@ -686,11 +690,11 @@ internal sealed partial class DuckDbStore : INamiStore
         // bookkeeping that keeps physical row order — telemetry never needs it — which cuts ingest
         // memory and lifts bulk-write throughput. memory_limit / threads / temp_directory are
         // operator-supplied (trusted config); when unset, DuckDB's own defaults apply to threads and
-        // temp_directory, and DefaultMemoryLimit to memory_limit.
+        // temp_directory, and the caller passes DefaultMemoryLimit for a store in a file.
         ExecutePragma(con, "SET preserve_insertion_order = false");
 
-        ExecutePragma(con,
-            $"SET memory_limit = '{EscapeSqlLiteral(string.IsNullOrWhiteSpace(memoryLimit) ? DefaultMemoryLimit : memoryLimit)}'");
+        if (!string.IsNullOrWhiteSpace(memoryLimit))
+            ExecutePragma(con, $"SET memory_limit = '{EscapeSqlLiteral(memoryLimit)}'");
 
         if (threads is > 0)
             ExecutePragma(con, $"SET threads = {threads.Value.ToString(CultureInfo.InvariantCulture)}");
