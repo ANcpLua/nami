@@ -35,7 +35,7 @@
     "eng/scripts/tests/test_artifact_lifetime.py": 16,
     "eng/scripts/tests/test_gate.py": 4,
     "eng/scripts/tests/test_inspection_packages.py": 3,
-    "eng/scripts/tests/test_run_tests.py": 7,
+    "eng/scripts/tests/test_run_tests.py": 12,
     "eng/scripts/tests/test_toolchain_pins.py": 1,
     "eng/scripts/tests/test_update_typespec.py": 20
   }
