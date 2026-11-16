@@ -107,8 +107,6 @@ def mcp_tool(pin, node):
     path = Path(resolve(ROOT, "npm:@modelcontextprotocol/inspector", "mcpdo", os.environ.get("MCPDO_PATH")))
     if not os.environ.get("MCPDO_PATH"):
         path = installation(ROOT, "npm:@modelcontextprotocol/inspector") / "node_modules" / pin["package"] / pin["entry"]
-    if path.suffix == ".cmd":
-        path = path.parent / "node_modules" / pin["package"] / pin["entry"]
     path = path.resolve()
     if not path.is_file() or path.suffix not in {".js", ".mjs", ".cjs"}:
         raise Failure("SETUP_FAILED", f"Install {pin['package']}@{pin['version']} (mcpdo), or set MCPDO_PATH to its JavaScript entry point.")
@@ -167,7 +165,7 @@ class Run:
         write_json(self.directory / f"{label}.command.json", [str(item) for item in command])
         with stdout.open("w") as output, stderr.open("w") as errors:
             with subprocess.Popen(command, cwd=cwd, env=environment or self.environment, stdout=output, stderr=errors,
-                                  start_new_session=os.name != "nt") as process:
+                                  start_new_session=True) as process:
                 deadline = time.monotonic() + timeout
                 try:
                     while True:
@@ -181,8 +179,7 @@ class Run:
                             print(f"INSPECT WAIT: {label}", flush=True)
                 finally:
                     if process.poll() is None:
-                        if os.name == "nt": process.kill()
-                        else: os.killpg(process.pid, signal.SIGKILL)
+                        os.killpg(process.pid, signal.SIGKILL)
                         process.wait()
         self.summary["checks"].append(dict(name=label, exitCode=code, stdout=stdout.name, stderr=stderr.name))
         if self.lane == "compiler" and not json_output:

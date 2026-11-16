@@ -2,6 +2,7 @@
 
 import argparse
 import contextlib
+import fcntl
 import json
 import os
 import re
@@ -25,11 +26,6 @@ IDENTITY = re.compile(r"[0-9a-f]{32}\Z")
 def boot_identity():
     if sys.platform == "darwin":
         return subprocess.check_output(["/usr/sbin/sysctl", "-n", "kern.bootsessionuuid"], text=True).strip()
-    if sys.platform == "win32":
-        return subprocess.check_output([
-            "powershell", "-NoProfile", "-NonInteractive", "-Command",
-            "(Get-CimInstance Win32_OperatingSystem).LastBootUpTime.ToUniversalTime().ToString('o')"
-        ], text=True).strip()
     return Path("/proc/sys/kernel/random/boot_id").read_text().strip()
 
 
@@ -40,32 +36,12 @@ def locked(path, *, blocking=True, create=False):
     stream = path.open("a+b" if create else "r+b")
     acquired = False
     try:
-        if os.name == "nt":
-            import msvcrt
-            if path.stat().st_size == 0:
-                stream.write(b"0")
-                stream.flush()
-            stream.seek(0)
-            try:
-                msvcrt.locking(stream.fileno(), msvcrt.LK_LOCK if blocking else msvcrt.LK_NBLCK, 1)
-            except OSError as error:
-                if not blocking and error.errno in (11, 13):
-                    raise BlockingIOError(error.errno, str(error)) from error
-                raise
-        else:
-            import fcntl
-            fcntl.flock(stream, fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB))
+        fcntl.flock(stream, fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB))
         acquired = True
         yield stream
     finally:
         if acquired:
-            if os.name == "nt":
-                import msvcrt
-                stream.seek(0)
-                msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                import fcntl
-                fcntl.flock(stream, fcntl.LOCK_UN)
+            fcntl.flock(stream, fcntl.LOCK_UN)
         stream.close()
 
 
@@ -191,8 +167,7 @@ class ArtifactRun:
                         if path.is_file():
                             archive.write(path, path.relative_to(self.directory))
                 temporary.replace(self.root / "evidence.zip")
-                if os.name != "nt":
-                    os.chmod(self.root / "evidence.zip", 0o400)
+                os.chmod(self.root / "evidence.zip", 0o400)
             self.value.update(state="passed" if passed else "failed", finished=finished,
                               retentionMinutes=0 if passed else retain_minutes,
                               expires=finished + (0 if passed else retain_minutes * 60))

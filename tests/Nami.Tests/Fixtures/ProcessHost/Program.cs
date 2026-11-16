@@ -16,8 +16,7 @@ using var request = new BinaryReader(new MemoryStream(bytes));
 var start = new ProcessStartInfo(request.ReadString())
 {
     Arguments = request.ReadString(),
-    UseShellExecute = false,
-    CreateNoWindow = true
+    UseShellExecute = false
 };
 var count = request.ReadInt32();
 for (var index = 0; index < count; index++) start.ArgumentList.Add(request.ReadString());
