@@ -12,7 +12,6 @@ using Nami.Collector.Ingestion;
 using Nami.Collector.Ingestion.Configuration;
 using Nami.Collector.Storage;
 using Nami.Hosting;
-using Nami.Telemetry;
 using Nami.Tests.Infrastructure;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
@@ -21,10 +20,11 @@ using OpenTelemetry.Proto.Collector.Trace.V1;
 namespace Nami.IntegrationTests;
 
 /// <summary>
-///     The collector as src/nami/Program.cs composes it, started inside the test process on loopback: the same
-///     registrations, API-key middleware, gRPC interceptor, OTLP endpoints, Kestrel listeners and DuckDB store.
-///     Left out are the engine protocol loop on stdin and the self-telemetry exporters, which would add the engine's
-///     own rows; the credential the middleware takes from self-telemetry is registered alone.
+///     The collector as src/nami/Program.cs composes it, started inside the test process on loopback: both call
+///     <see cref="CollectorComposition.BuildNamiCollector" />, so the registrations, API-key middleware, gRPC
+///     interceptor, OTLP endpoints, Kestrel listeners and DuckDB store are the same. Left out
+///     (<see cref="CollectorParts.IngestOnly" />) are the tool service, which only the engine protocol loop on stdin
+///     calls, and the self-telemetry exporters, which would add the engine's own rows.
 /// </summary>
 internal sealed class CollectorHost : IAsyncDisposable
 {
@@ -102,15 +102,7 @@ internal sealed class CollectorHost : IAsyncDisposable
         // The core registration keeps a clock that is already registered, and the storage registration builds its
         // store on the registered clock.
         if (clock is not null) builder.Services.AddSingleton(clock);
-        builder.Services.AddNamiCollectorCore(builder.Configuration);
-        builder.Services.AddNamiCollectorStorage(builder.Configuration);
-        builder.Services.AddNamiCollectorAuth(builder.Configuration, builder.Environment);
-        builder.Services.ConfigureNamiCollectorKestrel();
-        builder.Services.AddSingleton<SelfTelemetryCredential>();
-        var application = builder.Build();
-        application.UseNamiCollectorMiddleware();
-        application.MapNamiCollectorEndpoints();
-        return application;
+        return builder.BuildNamiCollector(CollectorParts.IngestOnly);
     }
 
     private static int FreePort()
