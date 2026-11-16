@@ -35,6 +35,9 @@ jobs:
           test "$(docker image inspect nami:ci --format '{{.Os}}/{{.Architecture}}')" = "$PLATFORM"
       - name: Smoke
         run: eng/scripts/container_smoke.sh --image nami:ci --bind-ready
+      - name: Eval16 probe
+        if: always()
+        run: eng/scripts/eval16_probe.sh
       - name: Compose file
         env:
           NAMI_OTLP_PROJECT_KEYS: '{"demo":[{"key":"fake-ingest-key-0001","roles":["ingest"]}]}'
