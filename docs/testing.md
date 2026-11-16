@@ -352,10 +352,10 @@ python3 eng/scripts/a3_rss.py --engine artifacts/bin/nami/release/nami.dll --run
 
 [`ingest_bounds_rss.py`](../eng/scripts/ingest_bounds_rss.py) measures the whole path the same way for requests
 at the bounds of one request: a chosen number of protobuf messages in one of several compositions (minimal spans,
-empty log records, number data points, empty wrappers, spans of the density Claude Code sends, a fixed number of
-spans that fill the message bound), sent by one or several clients at the same moment. It reports the peak over
-idle, the answers and the stored rows per run. The defaults of the record bound and of the ingest slots come
-from it:
+empty log records, number data points that are one observation or each its own, empty wrappers, spans of the
+density Claude Code sends, a fixed number of spans that fill the message bound), sent by one or several clients at
+the same moment. It reports the peak over idle, the answers and the stored rows per run. The defaults of the
+record bound and of the ingest slots come from it:
 
 ```bash
 python3 eng/scripts/ingest_bounds_rss.py --engine artifacts/bin/nami/release/nami.dll \

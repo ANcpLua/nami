@@ -3,6 +3,7 @@ using System.Data.Common;
 using System.Globalization;
 using DuckDB.NET.Data;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Nami.Collector.Storage;
@@ -485,6 +486,121 @@ public sealed class StorageLifetimeTests(TestContext context)
     }
 
     /// <summary>
+    ///     A write that finds the writer's connection unusable is refused after the store has recorded why. The
+    ///     writer answered the write first and recorded its stop after: for that moment the write was refused and the
+    ///     health check said Healthy (ledger N127). Here the writer is held where it reports its stop to the log,
+    ///     which is where it was before it recorded anything.
+    /// </summary>
+    [TestMethod]
+    public async Task WriterStops_TheFailureIsRecordedBeforeTheWriteIsRefused()
+    {
+        var connections = new Connections();
+        using var log = new HeldWorkerFailureLog();
+        DuckDBTransaction? left = null;
+        var store = DuckDbStore.CreateForTesting(connections.Create, DatabasePath("stopped.duckdb"),
+            maxConcurrentReads: 1, loggerFactory: log, timeProvider: new FakeTimeProvider(TestData.s_now),
+            // A transaction that DuckDB.NET counts on the writer's connection: it refuses the job's own.
+            beforeWrite: _ =>
+            {
+                left ??= connections.Items[0].BeginTransaction();
+                return ValueTask.CompletedTask;
+            });
+        try
+        {
+            var refusal = await Assert.ThrowsExactlyAsync<NamiStoreUnavailableException>(() =>
+                SeedTrace(store, context.CancellationToken));
+
+            Assert.Contains("Already in a transaction", refusal.InnerException?.InnerException?.Message ?? "");
+            Assert.AreSame(refusal.InnerException, store.WriterFailure);
+            var check = new Nami.Health.DuckDbHealthCheck(store,
+                Options.Create(new Nami.Retention.RetentionOptions { StorageMinimumFreeMegabytes = 0 }));
+            var health = await check.CheckHealthAsync(new HealthCheckContext(), context.CancellationToken);
+            Assert.AreEqual(HealthStatus.Unhealthy, health.Status, health.Description);
+        }
+        finally
+        {
+            // The writer goes on from the log and ends; it does not use its connection again.
+            log.Release();
+            left?.Dispose();
+            await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
+    }
+
+    /// <summary>
+    ///     The rollback of the transaction a cancelled job left is tried three times. When an interrupt ended every
+    ///     attempt it is given up, and the answer is the last failure: before, the writer went on as if the
+    ///     transaction had ended (ledger N125). An attempt that ends the transaction is no failure, whatever came
+    ///     before it.
+    /// </summary>
+    [TestMethod]
+    [DataRow(3, true, DisplayName = "Three interrupted attempts: given up, with the last failure")]
+    [DataRow(2, false, DisplayName = "The third attempt ends the transaction")]
+    [DataRow(0, false, DisplayName = "The first attempt ends the transaction")]
+    public void RollBackLeftTransaction_ThreeInterruptedAttempts_AreReported(int interrupted, bool givenUp)
+    {
+        var attempts = 0;
+
+        var failure = DuckDbStore.RollBackLeftTransaction(() =>
+        {
+            attempts++;
+            if (attempts <= interrupted) throw new OperationCanceledException("interrupt " + (uint)attempts);
+        });
+
+        Assert.AreEqual(Math.Min(interrupted + 1, 3), attempts);
+        Assert.AreEqual(givenUp ? "interrupt 3" : null, failure?.Message);
+    }
+
+    /// <summary>
+    ///     A rollback that was given up stops the writer, as a connection that refuses a new transaction does: the
+    ///     transaction may still be open, and the next statement on the connection would meet it. The cancelled job
+    ///     is answered with the stop, later writes are refused as such, the health check is Unhealthy and DisposeAsync
+    ///     reports the failure (ledger N125). Here every ROLLBACK of the writer is interrupted.
+    /// </summary>
+    [TestMethod]
+    public async Task RollbackGivenUp_StopsTheWriterAndIsReported()
+    {
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        var rollbacks = 0;
+        var store = DuckDbStore.CreateForTesting(new Connections().Create, DatabasePath("given-up.duckdb"),
+            maxConcurrentReads: 1, timeProvider: new FakeTimeProvider(TestData.s_now),
+            // The job is cancelled while it runs on the writer.
+            beforeWrite: _ =>
+            {
+                cancellation.Cancel();
+                return ValueTask.CompletedTask;
+            },
+            rollBack: _ =>
+            {
+                rollbacks++;
+                throw new OperationCanceledException("interrupt " + (uint)rollbacks);
+            });
+        try
+        {
+            var stopped = await Assert.ThrowsExactlyAsync<NamiStoreUnavailableException>(() =>
+                store.CheckpointAsync(cancellation.Token));
+
+            Assert.AreEqual(3, rollbacks);
+            Assert.AreEqual("interrupt 3", stopped.InnerException?.InnerException?.Message);
+            Assert.AreSame(stopped.InnerException, store.WriterFailure);
+            // The writer has stopped: a write is refused, without reaching the connection.
+            Assert.AreSame(store.WriterFailure, (await Assert.ThrowsExactlyAsync<NamiStoreUnavailableException>(() =>
+                SeedTrace(store, context.CancellationToken))).InnerException);
+            Assert.AreEqual(3, rollbacks);
+            var check = new Nami.Health.DuckDbHealthCheck(store,
+                Options.Create(new Nami.Retention.RetentionOptions { StorageMinimumFreeMegabytes = 0 }));
+            var health = await check.CheckHealthAsync(new HealthCheckContext(), context.CancellationToken);
+            Assert.AreEqual(HealthStatus.Unhealthy, health.Status, health.Description);
+
+            var shutdown = await Assert.ThrowsExactlyAsync<AggregateException>(() => store.DisposeAsync().AsTask());
+            Assert.Contains("cannot end", Assert.ContainsSingle(shutdown.InnerExceptions).Message);
+        }
+        finally
+        {
+            await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
+    }
+
+    /// <summary>
     ///     Free space is that of the volume the store's directory is on, also when the configured path reaches it
     ///     through a link. The number decides the health check's Degraded verdict.
     /// </summary>
@@ -871,6 +987,32 @@ public sealed class StorageLifetimeTests(TestContext context)
         }
 
         public void Release() => _released.TrySetResult();
+    }
+
+    /// <summary>A log that holds whoever writes "DuckDB storage worker stopped unexpectedly" until it is released.</summary>
+    private sealed class HeldWorkerFailureLog : ILoggerFactory, ILogger
+    {
+        private readonly ManualResetEventSlim _released = new();
+
+        public void Release() => _released.Set();
+
+        public ILogger CreateLogger(string categoryName) => this;
+
+        public void AddProvider(ILoggerProvider provider)
+        {
+        }
+
+        public void Dispose() => _released.Dispose();
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (eventId.Id is 4106) _released.Wait();
+        }
     }
 
     private sealed class Connections

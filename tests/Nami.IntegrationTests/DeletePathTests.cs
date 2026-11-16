@@ -32,7 +32,8 @@ public sealed partial class DeletePathTests(TestContext context)
     ///     is the cache of answered reads, and DropTables recreates the schema only while the authoritative tables are
     ///     empty (StorageSchemaTests.Open_MissingSchemaIdentityWithData_RejectsAdoptionWithoutChangingRows), and
     ///     EmitStagedInsert drops the temporary table a batch was appended to after its rows were moved into the
-    ///     table (DuckDbStore.InsertRowsStaged).
+    ///     table (DuckDbStore.InsertRowsStaged), as RefreshMetricProjections drops the temporary table that named the
+    ///     measurements it projected.
     /// </summary>
     private static readonly string[] s_rowRemovals =
     [
@@ -43,8 +44,9 @@ public sealed partial class DeletePathTests(TestContext context)
         Storage + "DuckDbStore.Metrics.cs DeleteExpiredMetricsBatchAsync: DELETE FROM metric_observations",
         Storage + "DuckDbStore.Metrics.cs DeleteExpiredMetricsBatchAsync: DELETE FROM metric_exemplars",
         Storage + "DuckDbStore.Metrics.cs DeleteExpiredMetricsBatchAsync: DELETE FROM metric_series",
-        Storage + "DuckDbStore.MetricObservations.cs WriteMetricProjection: DELETE FROM metric_points",
-        Storage + "DuckDbStore.MetricObservations.cs WriteMetricProjection: DELETE FROM metric_exemplars",
+        Storage + "DuckDbStore.MetricObservations.cs RefreshMetricProjections: DELETE FROM metric_points",
+        Storage + "DuckDbStore.MetricObservations.cs RefreshMetricProjections: DELETE FROM metric_exemplars",
+        Storage + "DuckDbStore.MetricObservations.cs RefreshMetricProjections: DROP TABLE",
         Storage + "DuckDbStore.MetricObservations.cs RebuildMetricProjections: DELETE FROM metric_points",
         Storage + "DuckDbStore.MetricObservations.cs RebuildMetricProjections: DELETE FROM metric_exemplars",
         Storage + "DuckDbStore.Snapshots.cs ReadSnapshotAsync: DELETE FROM read_snapshots",

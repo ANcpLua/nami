@@ -186,6 +186,10 @@ the budget the engine still answers the exports it is working on; then it aborts
 the store finish the write it is in, and ends. At the end of the budget an engine that still runs
 is killed. An export is acknowledged only after its write, so a stop loses nothing that was
 acknowledged; an export that got 503 or lost its connection was not, and its sender retries it.
+A retry of an export that nami had already stored adds nothing: a span is one row a trace and span
+id, a data point one row a series, time and content, a log record one row a content and place in
+its request. Two equal log records of one request are two rows; a sender that batches its log
+records anew before it retries sends them at other places, and they are stored a second time.
 Whoever stops nami must wait longer than the budget. Docker waits 10 seconds unless told
 otherwise, which fits the default; for a longer budget raise both together, for example
 `-e NAMI_STOP_BUDGET_SECONDS=25` with `docker stop -t 30` (Compose: `stop_grace_period: 30s`).

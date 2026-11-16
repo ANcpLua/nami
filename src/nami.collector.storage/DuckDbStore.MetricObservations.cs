@@ -41,89 +41,135 @@ internal sealed partial class DuckDbStore
         return Convert.ToBoolean(command.ExecuteScalar(), CultureInfo.InvariantCulture);
     }
 
-    private static void RefreshMetricProjection(DuckDBConnection connection, DbTransaction transaction,
-        MetricObservationKey key,
-        MetricObservationRow? arriving = null) =>
-        WriteMetricProjection(connection, transaction, key,
-            ReadMetricProjection(connection, transaction, key, arriving));
+    private static readonly StagedInsert<MetricPointRow> s_metricPointStage = new(MetricPointRow.StageTableName,
+        MetricPointRow.CreateStageSql, MetricPointRow.StageKeyOccurrencesSql, MetricPointRow.MergeStageSql,
+        MetricPointRow.MergeStageOccurrenceSql, MetricPointRow.DropStageSql, MetricPointRow.AppendStageRow,
+        MetricPointRow.InsertSql, MetricPointRow.AddParameters);
+
+    /// <summary>The temporary table of the writer's connection that names the measurements a set of statements projects.</summary>
+    private const string ProjectionKeys = "temp.main.metric_projection_keys";
 
     /// <summary>
-    ///     Observations of one measurement project it. A different measurement at a recorded timestamp never
-    ///     replaces the first: the point keeps the measurement recorded first (the stored point, or else the
-    ///     first of the arriving export) and is marked conflicting, while the journal keeps every observation.
-    ///     A rebuild cannot tell which arrived first, so its conflicting points keep no measurement.
+    ///     Projects the measurements at <paramref name="keys" /> from their observations, in the caller's transaction
+    ///     and in a number of statements that does not grow with the keys: one statement a key took 26 to 31 s for a
+    ///     request of 3,000 data points and more memory than a limit of 512 MiB allows (ledger N108). The keys of a
+    ///     batch go through the appender into a temporary table that every statement joins; one key, what a sender
+    ///     without batching exports, is bound as parameters instead.
+    ///     <para>
+    ///         Observations of one measurement project it. A different measurement at a recorded timestamp never
+    ///         replaces the first: the point keeps the measurement recorded first (the stored point, or else the
+    ///         first of the arriving export, <paramref name="arriving" />) and is marked conflicting, while the journal
+    ///         keeps every observation. A rebuild cannot tell which arrived first, so its conflicting points keep no
+    ///         measurement. A key without observations loses its point; exemplars follow the observations.
+    ///     </para>
     /// </summary>
-    private static MetricPointRow? ReadMetricProjection(DuckDBConnection connection, DbTransaction transaction,
-        MetricObservationKey key,
-        MetricObservationRow? arriving)
+    private static void RefreshMetricProjections(DuckDBConnection connection, DbTransaction transaction,
+        IReadOnlyList<MetricObservationKey> keys,
+        IReadOnlyDictionary<MetricObservationKey, MetricObservationRow>? arriving, CancellationToken ct)
     {
-        MetricObservationRow first;
-        long measurements;
-        using (var command = connection.CreateCommand())
-        {
-            command.Transaction = transaction;
-            command.CommandText = "SELECT " + MetricObservationRow.SelectColumnList +
-                                  ", count(DISTINCT measurement_id) OVER () FROM metric_observations " +
-                                  "WHERE project_id = $1 AND series_id = $2 AND time_unix_nano = $3 ORDER BY observation_id LIMIT 1";
-            AddParameters(command, key.ProjectId, key.SeriesId, (decimal)key.TimeUnixNano);
-            using var reader = command.ExecuteReader();
-            if (!reader.Read()) return null;
-            first = MetricObservationRow.MapFromReader(reader);
-            measurements = reader.GetInt64(MetricObservationRow.ColumnCount);
-        }
-
-        if (measurements <= 1) return MetricProjection.Project(first, false);
-        var kept = ReadMetricPoint(connection, transaction, key) ??
-                   (arriving is null ? null : MetricProjection.Project(arriving, false));
-        return kept is null ? MetricProjection.Project(first, true) : kept with { HasConflict = 1 };
-    }
-
-    private static MetricPointRow? ReadMetricPoint(DuckDBConnection connection, DbTransaction transaction,
-        MetricObservationKey key)
-    {
+        if (keys.Count is 0) return;
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = "SELECT " + MetricPointRow.SelectColumnList +
-                              " FROM metric_points WHERE project_id = $1 AND series_id = $2 AND time_unix_nano = $3";
-        AddParameters(command, key.ProjectId, key.SeriesId, (decimal)key.TimeUnixNano);
-        using var reader = command.ExecuteReader();
-        return reader.Read() ? MetricPointRow.MapFromReader(reader) : null;
-    }
-
-    private static void WriteMetricProjection(DuckDBConnection connection, DbTransaction transaction,
-        MetricObservationKey key, MetricPointRow? projection)
-    {
-        using var command = connection.CreateCommand();
-        command.Transaction = transaction;
-        if (projection is null)
+        var batch = keys.Count > 1;
+        if (batch)
         {
-            command.CommandText =
-                "DELETE FROM metric_points WHERE project_id = $1 AND series_id = $2 AND time_unix_nano = $3";
-            AddParameters(command, key.ProjectId, key.SeriesId, (decimal)key.TimeUnixNano);
+            command.CommandText = "CREATE OR REPLACE TEMP TABLE metric_projection_keys " +
+                                  "(project_id VARCHAR, series_id VARCHAR, time_unix_nano UBIGINT)";
+            command.ExecuteNonQuery();
+            using var appender = connection.CreateAppender("temp", "main", "metric_projection_keys");
+            for (var i = 0; i < keys.Count; i++)
+            {
+                if ((i & 0xFF) is 0) ct.ThrowIfCancellationRequested();
+                appender.CreateRow().AppendValue(keys[i].ProjectId).AppendValue(keys[i].SeriesId)
+                    .AppendValue((ulong?)keys[i].TimeUnixNano).EndRow();
+            }
         }
         else
         {
-            command.CommandText = MetricPointRow.InsertSql;
-            MetricPointRow.AddParameters(command, projection);
+            AddParameters(command, keys[0].ProjectId, keys[0].SeriesId, (decimal)keys[0].TimeUnixNano);
         }
 
-        command.ExecuteNonQuery();
-        command.Parameters.Clear();
+        // The rows of a table (or of its alias) that are at one of the keys. Every statement below names the keys
+        // through this and nothing else, so the one key's three parameters fit each of them.
+        string At(string table) => batch
+            ? $"EXISTS (SELECT 1 FROM {ProjectionKeys} k WHERE k.project_id = {table}.project_id " +
+              $"AND k.series_id = {table}.series_id AND k.time_unix_nano = {table}.time_unix_nano)"
+            : $"{table}.project_id = $1 AND {table}.series_id = $2 AND {table}.time_unix_nano = $3";
+
+        // CA2100: the statements are written here from constants; the keys are bound parameters or went through the
+        // appender.
+        var projections = new List<MetricPointRow>(keys.Count);
+        List<MetricObservationRow>? conflicting = null;
         command.CommandText =
-            "DELETE FROM metric_exemplars WHERE project_id = $1 AND series_id = $2 AND time_unix_nano = $3";
-        AddParameters(command, key.ProjectId, key.SeriesId, (decimal)key.TimeUnixNano);
+            $"SELECT {MetricObservationRow.SelectColumnList}, measurements FROM (SELECT *, " +
+            "count(DISTINCT measurement_id) OVER (PARTITION BY project_id, series_id, time_unix_nano) AS measurements, " +
+            "row_number() OVER (PARTITION BY project_id, series_id, time_unix_nano ORDER BY observation_id) AS occurrence " +
+            $"FROM metric_observations WHERE {At("metric_observations")}) WHERE occurrence = 1";
+        using (var reader = command.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                if ((projections.Count & 0xFF) is 0) ct.ThrowIfCancellationRequested();
+                var first = MetricObservationRow.MapFromReader(reader);
+                if (reader.GetInt64(MetricObservationRow.ColumnCount) <= 1)
+                    projections.Add(MetricProjection.Project(first, false));
+                else
+                    (conflicting ??= []).Add(first);
+            }
+        }
+
+        if (conflicting is not null)
+        {
+            var stored = new Dictionary<MetricObservationKey, MetricPointRow>();
+            command.CommandText = $"SELECT {MetricPointRow.SelectColumnList} FROM metric_points WHERE {At("metric_points")}";
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var point = MetricPointRow.MapFromReader(reader);
+                    stored[new MetricObservationKey(point.ProjectId, point.SeriesId, point.TimeUnixNano)] = point;
+                }
+            }
+
+            foreach (var first in conflicting)
+            {
+                var key = new MetricObservationKey(first.ProjectId, first.SeriesId, first.TimeUnixNano);
+                projections.Add(stored.TryGetValue(key, out var kept)
+                    ? kept with { HasConflict = 1 }
+                    : arriving is not null && arriving.TryGetValue(key, out var arrived)
+                        ? MetricProjection.Project(arrived, false) with { HasConflict = 1 }
+                        : MetricProjection.Project(first, true));
+            }
+        }
+
+        if (projections.Count < keys.Count)
+        {
+            command.CommandText =
+                $"DELETE FROM metric_points WHERE {At("metric_points")} AND NOT EXISTS (SELECT 1 FROM metric_observations o " +
+                "WHERE o.project_id = metric_points.project_id AND o.series_id = metric_points.series_id " +
+                "AND o.time_unix_nano = metric_points.time_unix_nano)";
+            command.ExecuteNonQuery();
+        }
+
+        InsertRowsStaged(connection, transaction, projections, s_metricPointStage, ct);
+
+        // The exemplars of a key are the trace ids of its observations: those that no observation carries any more
+        // go, the others are added. No row is deleted and written again.
+        var carried = "SELECT o.project_id, o.series_id, o.time_unix_nano, " +
+                      "json_extract_string(e.value, '$.trace_id') AS trace_id " +
+                      $"FROM metric_observations o, json_each(o.exemplars_json) e WHERE {At("o")}";
+        command.CommandText =
+            $"DELETE FROM metric_exemplars WHERE {At("metric_exemplars")} AND NOT EXISTS (SELECT 1 FROM ({carried}) c " +
+            "WHERE c.project_id = metric_exemplars.project_id AND c.series_id = metric_exemplars.series_id " +
+            "AND c.time_unix_nano = metric_exemplars.time_unix_nano AND c.trace_id = metric_exemplars.trace_id)";
         command.ExecuteNonQuery();
-        if (projection is null) return;
-        command.Parameters.Clear();
-        command.CommandText = """
-                              INSERT INTO metric_exemplars (project_id, series_id, time_unix_nano, trace_id)
-                              SELECT $1, $2, $3, trace_id FROM (
-                                  SELECT json_extract_string(e.value, '$.trace_id') AS trace_id
-                                  FROM metric_observations o, json_each(o.exemplars_json) e
-                                  WHERE o.project_id = $1 AND o.series_id = $2 AND o.time_unix_nano = $3
-                              ) WHERE trace_id IS NOT NULL ON CONFLICT DO NOTHING
-                              """;
-        AddParameters(command, key.ProjectId, key.SeriesId, (decimal)key.TimeUnixNano);
+        command.CommandText =
+            "INSERT INTO metric_exemplars (project_id, series_id, time_unix_nano, trace_id) " +
+            $"SELECT DISTINCT project_id, series_id, time_unix_nano, trace_id FROM ({carried}) " +
+            "WHERE trace_id IS NOT NULL ON CONFLICT DO NOTHING";
+        command.ExecuteNonQuery();
+        if (!batch) return;
+        command.CommandText = $"DROP TABLE IF EXISTS {ProjectionKeys}";
         command.ExecuteNonQuery();
     }
 
@@ -159,7 +205,7 @@ internal sealed partial class DuckDbStore
                 }
             }
 
-            foreach (var key in keys) RefreshMetricProjection(connection, transaction, key);
+            RefreshMetricProjections(connection, transaction, keys, null, CancellationToken.None);
             if (keys.Count < 1000) break;
             after = keys[^1];
         }
