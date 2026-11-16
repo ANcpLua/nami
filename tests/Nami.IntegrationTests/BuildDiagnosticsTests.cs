@@ -229,8 +229,7 @@ public sealed class BuildDiagnosticsTests(TestContext context)
                                                {{evaluation.ToJsonString()}}
                                                NAMI_PROPERTIES
                                                """, context.CancellationToken);
-        if (!OperatingSystem.IsWindows())
-            File.SetUnixFileMode(dotnet, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        File.SetUnixFileMode(dotnet, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         return await ProcessRunner.RunAsync("python3",
             [
                 Path.Combine(ProcessRunner.RepositoryRoot, "eng/scripts/run_tests.py"), "--root", root, "--dotnet",

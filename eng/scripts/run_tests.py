@@ -323,7 +323,7 @@ def main():
                 config = project.parent / "testconfig.json"
             if name == "EndToEnd" and not (root / "artifacts/publish/mcp/main.js").is_file():
                 raise HarnessError("The bundled TypeScript MCP host is missing. Prepare PublishNative first.")
-            if name == "EndToEnd" and not (root / "artifacts/publish" / ("nami.exe" if os.name == "nt" else "nami")).is_file():
+            if name == "EndToEnd" and not (root / "artifacts/publish/nami").is_file():
                 raise HarnessError("The NativeAOT Nami host is missing. Run without --no-build, or prepare PublishNative first.")
             if not config.is_file():
                 raise HarnessError(f"MSTest configuration is missing: {config}")
