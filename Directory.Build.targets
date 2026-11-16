@@ -2,9 +2,6 @@
   <!-- nami has no native Windows build (README, PRD 4.1), so no project carries a guard for it. Without Windows
        in this list the platform analyzer (CA1416) accepts Unix-only calls such as File.SetUnixFileMode. The SDK
        adds its three platforms in its props, after Directory.Build.props, hence here in the targets. -->
-  <ItemGroup>
-    <SupportedPlatform Remove="Windows"/>
-  </ItemGroup>
 
   <Target Name="GenerateVersionConstant" BeforeTargets="CoreCompile" Condition="'$(MSBuildProjectExtension)' == '.csproj'">
     <PropertyGroup>
