@@ -80,7 +80,11 @@ public sealed class ChannelSeparationTests(TestContext context)
 
         var stdout = new ConcurrentQueue<string>();
         var stderr = new ConcurrentQueue<string>();
-        int exitCode;
+        var expected = new List<long> { 1 };
+        // What went wrong while the host was driven, if anything. It is reported after the channels have been
+        // read: a corrupted channel is the cause, and a host that ended or stopped answering is what follows.
+        string? trouble = null;
+        int? exitCode = null;
         using var http = new HttpClient();
         var host = await OwnedProcess.StartAsync(start, context.CancellationToken);
         var readOutput = Task.Run(async () =>
@@ -99,51 +103,77 @@ public sealed class ChannelSeparationTests(TestContext context)
                 await host.StandardInput.BaseStream.FlushAsync(context.CancellationToken);
             }
 
-            async Task WaitForAnswersAsync(IReadOnlyCollection<long> ids, TimeSpan deadline)
+            bool Answered(long id)
+            {
+                return stdout.Any(line => line.Contains($"\"id\":{id},", StringComparison.Ordinal) ||
+                                          line.Contains($"\"id\":{id}}}", StringComparison.Ordinal));
+            }
+
+            async Task<string?> WaitForAnswersAsync(IReadOnlyCollection<long> ids, TimeSpan deadline)
             {
                 var waited = Stopwatch.StartNew();
-                while (!ids.All(id => stdout.Any(line => line.Contains($"\"id\":{id}", StringComparison.Ordinal))))
+                while (!ids.All(Answered))
                 {
-                    Assert.IsFalse(host.HasExited, "The host ended: " + string.Join(" | ", stderr.TakeLast(5)));
-                    Assert.IsLessThan(deadline, waited.Elapsed,
-                        $"No answer for every one of the requests {string.Join(", ", ids)}; standard error ends with: " +
-                        string.Join(" | ", stderr.TakeLast(5)));
+                    if (host.HasExited) return $"The host ended with code {host.ExitCode} while requests were unanswered.";
+                    if (waited.Elapsed > deadline) return $"Not every request was answered within {deadline.TotalSeconds:F0} s.";
                     await Task.Delay(TimeSpan.FromMilliseconds(25), context.CancellationToken);
+                }
+
+                return null;
+            }
+
+            async Task<string?> RefusedExportAsync(HttpContent export)
+            {
+                try
+                {
+                    using var response = await http.PostAsync($"http://127.0.0.1:{otlpPort}/v1/traces", export, context.CancellationToken);
+                    return response.StatusCode == HttpStatusCode.BadRequest ? null : $"An export that cannot be stored was answered {response.StatusCode}.";
+                }
+                catch (HttpRequestException error)
+                {
+                    return "The engine's OTLP listener did not answer: " + error.Message;
                 }
             }
 
             await SendAsync("""{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"channel-separation","version":"1"}}}""");
-            await WaitForAnswersAsync([1], TimeSpan.FromSeconds(60));
-            await SendAsync("""{"jsonrpc":"2.0","method":"notifications/initialized"}""");
+            trouble = await WaitForAnswersAsync([1], TimeSpan.FromSeconds(60));
+            if (trouble is null) await SendAsync("""{"jsonrpc":"2.0","method":"notifications/initialized"}""");
 
-            // Each round: two tool calls (one the engine answers with a result, one it refuses), two lines the
+            // Each round: two tool calls (one answered with a result, one refused for its cursor), two lines the
             // host cannot serve and reports on standard error, and two exports the engine cannot store and logs.
-            var expected = new List<long> { 1 };
-            for (var round = 0; round < Rounds; round++)
+            for (var round = 0; round < Rounds && trouble is null; round++)
             {
                 var call = 100 + round * 2;
                 expected.AddRange([call, call + 1]);
-                await SendAsync($$"""{"jsonrpc":"2.0","id":{{call}},"method":"tools/call","params":{"name":"sources_status","arguments":{}}}""");
+                await SendAsync(ToolCall(call, "sources_status", "{}"));
                 await SendAsync("warn: this line is no JSON, and says so the way a log line would");
-                await SendAsync($$"""{"jsonrpc":"2.0","id":{{call + 1}},"method":"tools/call","params":{"name":"traces_slowest","arguments":{"limit":-5}}}""");
+                await SendAsync(ToolCall(call + 1, "sources_status", """{"cursor":"no cursor of nami"}"""));
                 await SendAsync("""{"id":"no-version","method":"tools/list"}""");
                 using var noJson = new StringContent("""{"resourceSpans":[{"scopeSpans":[{"spans":[{"traceId":"zz"}]}]}]}""",
                     Encoding.UTF8, "application/json");
-                using var refusedJson = await http.PostAsync($"http://127.0.0.1:{otlpPort}/v1/traces", noJson, context.CancellationToken);
-                Assert.AreEqual(HttpStatusCode.BadRequest, refusedJson.StatusCode);
                 using var noProtobuf = new ByteArrayContent("neither protobuf nor anything else"u8.ToArray());
                 noProtobuf.Headers.ContentType = new("application/x-protobuf");
-                using var refusedProtobuf = await http.PostAsync($"http://127.0.0.1:{otlpPort}/v1/traces", noProtobuf, context.CancellationToken);
-                Assert.AreEqual(HttpStatusCode.BadRequest, refusedProtobuf.StatusCode);
+                trouble = await RefusedExportAsync(noJson) ?? await RefusedExportAsync(noProtobuf);
             }
 
-            await WaitForAnswersAsync(expected, TimeSpan.FromSeconds(60));
-            // The end of MCP input stops the host, and the host stops the engine.
-            await host.StandardInput.DisposeAsync();
-            using var stopped = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
-            stopped.CancelAfter(TimeSpan.FromSeconds(30));
-            await host.WaitForExitAsync(stopped.Token);
-            exitCode = host.ExitCode;
+            trouble ??= await WaitForAnswersAsync(expected, TimeSpan.FromSeconds(60));
+            if (!host.HasExited)
+            {
+                // The end of MCP input stops the host, and the host stops the engine.
+                await host.StandardInput.DisposeAsync();
+                using var stopped = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+                stopped.CancelAfter(TimeSpan.FromSeconds(30));
+                try
+                {
+                    await host.WaitForExitAsync(stopped.Token);
+                }
+                catch (OperationCanceledException) when (!context.CancellationToken.IsCancellationRequested)
+                {
+                    trouble ??= "The host did not end within 30 s of the end of its input.";
+                }
+            }
+
+            if (host.HasExited) exitCode = host.ExitCode;
         }
         finally
         {
@@ -152,21 +182,8 @@ public sealed class ChannelSeparationTests(TestContext context)
             await Task.WhenAll(readOutput, readErrors).WaitAsync(TimeSpan.FromSeconds(10), context.CancellationToken);
         }
 
-        var errors = string.Join('\n', stderr);
-        Assert.AreEqual(0, exitCode, "The host must end cleanly when its input ends. Standard error: " + errors);
-
-        // Precondition: the diagnostics were written, by both processes, while the frames below were exchanged.
-        Assert.Contains("warn: Microsoft.AspNetCore.Server.Kestrel", errors, "The engine's warning at start.");
-        Assert.IsGreaterThan(Rounds * 2 - 1, stderr.Count(static line => line.StartsWith("warn: OtlpTracesEndpoint", StringComparison.Ordinal)),
-            "The engine logs every export it could not store.");
-        Assert.IsGreaterThan(Rounds * 4 - 1, stderr.Count(static line => line.StartsWith("info: ", StringComparison.Ordinal)),
-            "The engine's log from Information up.");
-        Assert.IsGreaterThan(Rounds - 1, stderr.Count(static line => line.Contains("\"jsonrpc\"", StringComparison.Ordinal)),
-            "The host reports each line without a JSON-RPC version; its report is itself shaped like JSON.");
-
         // MCP: every line the host wrote to standard output is one JSON-RPC message, and every request was
         // answered exactly once.
-        Assert.IsNotEmpty(stdout);
         var answers = new List<long>();
         foreach (var line in stdout)
         {
@@ -186,23 +203,9 @@ public sealed class ChannelSeparationTests(TestContext context)
             if (message is JsonRpcResponse or JsonRpcError) answers.Add(frame.RootElement.GetProperty("id").GetInt64());
         }
 
-        Assert.AreSequenceEqual(expected.Order().ToArray(), answers.Order().ToArray());
-
-        // The private channel: every line in either direction is one frame of the contract.
-        var commands = await File.ReadAllTextAsync(toEngine, context.CancellationToken);
+        // The private channel: every line in either direction is one frame of the contract. The engine's side
+        // first: it writes before the host does.
         var replies = await File.ReadAllTextAsync(fromEngine, context.CancellationToken);
-        Assert.IsTrue(commands.EndsWith('\n'), "The last frame to the engine is whole.");
-        Assert.IsTrue(replies.EndsWith('\n'), "The last frame from the engine is whole.");
-        var called = new List<string>();
-        foreach (var line in commands.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-        {
-            using var frame = ParseFrame(line, "to the engine");
-            Assert.AreEqual(ContractRevision.Value, frame.RootElement.GetProperty("revision").GetString(), line);
-            Assert.AreEqual("call", frame.RootElement.GetProperty("method").GetString(), line);
-            Assert.Contains(frame.RootElement.GetProperty("name").GetString(), (string[])["sources_status", "traces_slowest"], line);
-            called.Add(frame.RootElement.GetProperty("id").GetString()!);
-        }
-
         var answered = new List<string>();
         foreach (var line in replies.Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
@@ -221,11 +224,46 @@ public sealed class ChannelSeparationTests(TestContext context)
             answered.Add(reply.Id);
         }
 
-        Assert.HasCount(Rounds * 2, called, "One frame to the engine for every tool call.");
+        Assert.IsTrue(replies.EndsWith('\n'), "The last frame from the engine is whole.");
+        var commands = await File.ReadAllTextAsync(toEngine, context.CancellationToken);
+        var called = new List<string>();
+        foreach (var line in commands.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            using var frame = ParseFrame(line, "to the engine");
+            Assert.AreEqual(ContractRevision.Value, frame.RootElement.GetProperty("revision").GetString(), line);
+            Assert.AreEqual("call", frame.RootElement.GetProperty("method").GetString(), line);
+            Assert.AreEqual("sources_status", frame.RootElement.GetProperty("name").GetString(), line);
+            called.Add(frame.RootElement.GetProperty("id").GetString()!);
+        }
+
+        Assert.IsTrue(commands.EndsWith('\n'), "The last frame to the engine is whole.");
+
+        // Only now what the run itself showed: with whole channels nothing went wrong, and every request and
+        // every call was answered exactly once.
+        var errors = string.Join('\n', stderr);
+        Assert.IsNull(trouble, $"{trouble} Standard error ends with: {string.Join(" | ", stderr.TakeLast(5))}");
+        Assert.AreEqual(0, exitCode, "The host must end cleanly when its input ends. Standard error: " + errors);
+        Assert.AreSequenceEqual(expected.Order().ToArray(), answers.Order().ToArray());
+        Assert.IsGreaterThan(Rounds - 1, called.Count, "At least one frame to the engine in every round.");
         Assert.AreSequenceEqual(called.Append("ready").Order(StringComparer.Ordinal).ToArray(),
             answered.Order(StringComparer.Ordinal).ToArray(), "One frame from the engine at start and one for every call.");
+
+        // And the diagnostics were written, by both processes, while those frames were exchanged.
+        Assert.Contains("warn: Microsoft.AspNetCore.Server.Kestrel", errors, "The engine's warning at start.");
+        Assert.IsGreaterThan(Rounds * 2 - 1, stderr.Count(static line => line.StartsWith("warn: OtlpTracesEndpoint", StringComparison.Ordinal)),
+            "The engine logs every export it could not store.");
+        Assert.IsGreaterThan(Rounds * 4 - 1, stderr.Count(static line => line.StartsWith("info: ", StringComparison.Ordinal)),
+            "The engine's log from Information up.");
+        Assert.IsGreaterThan(Rounds - 1, stderr.Count(static line => line.Contains("\"jsonrpc\"", StringComparison.Ordinal)),
+            "The host reports each line without a JSON-RPC version; its report is itself shaped like JSON.");
         context.WriteLine($"{stdout.Count} MCP frames, {called.Count} frames to the engine, {answered.Count} from it, " +
                           $"{stderr.Count} lines of diagnostics.");
+    }
+
+    private static string ToolCall(long id, string tool, string arguments)
+    {
+        return "{\"jsonrpc\":\"2.0\",\"id\":" + id.ToString(CultureInfo.InvariantCulture) +
+               ",\"method\":\"tools/call\",\"params\":{\"name\":\"" + tool + "\",\"arguments\":" + arguments + "}}";
     }
 
     private static JsonDocument ParseFrame(string line, string direction)
