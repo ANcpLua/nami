@@ -50,6 +50,25 @@ public sealed class StorageLifetimeTests(TestContext context)
         Assert.ContainsSingle((await reopened.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
     }
 
+    /// <summary>
+    ///     The store that the collector's own registration builds takes the registered clock, as the endpoints and
+    ///     retention do: a capture time, a receipt time and a snapshot's lifetime are read from one clock.
+    /// </summary>
+    [TestMethod]
+    public async Task Open_ByTheCollectorRegistration_ReadsTheRegisteredClock()
+    {
+        var clock = new FakeTimeProvider(TestData.s_now);
+        await using var host = await CollectorHost.StartAsync(DatabasePath("registered-clock.duckdb"),
+            context.CancellationToken, clock: clock);
+
+        var first = await host.Store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        clock.Advance(TimeSpan.FromHours(1));
+        var second = await host.Store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+
+        Assert.AreEqual(TestData.s_now, first.CapturedAt);
+        Assert.AreEqual(TestData.s_now.AddHours(1), second.CapturedAt);
+    }
+
     [TestMethod]
     public async Task Open_SecondReaderFails_DisposesEveryAcquiredConnection()
     {
@@ -220,6 +239,104 @@ public sealed class StorageLifetimeTests(TestContext context)
         var repeated = await Assert.ThrowsExactlyAsync<AggregateException>(() => store.DisposeAsync().AsTask());
         Assert.AreSame(checkpointFailure, Assert.ContainsSingle(repeated.InnerExceptions));
         await Assert.ThrowsAsync<OperationCanceledException>(() => write);
+        foreach (var connection in connections.Items)
+        {
+            Assert.AreEqual(1, connection.DisposeCalls);
+            Assert.AreEqual(ConnectionState.Closed, connection.State);
+        }
+        Assert.AreEqual(1, connections.Items[0].CheckpointCalls);
+    }
+
+    /// <summary>
+    ///     The thread pool may start the writer late. A write is queued, DisposeAsync completes the queue and cancels
+    ///     the store's token, and only then does the writer reach its first read. That read ends at once, so the
+    ///     queued job is ended by the drain in the writer's finally and by nothing else. Without the drain the caller
+    ///     waits for ever behind a DisposeAsync that reported success.
+    /// </summary>
+    [TestMethod]
+    public async Task Dispose_WriterStartsAfterShutdown_EndsTheQueuedWrite()
+    {
+        var connections = new Connections();
+        // The fake clock never advances, so DisposeAsync waits for shutdown itself and not for its 5-second deadline.
+        var store = DuckDbStore.CreateForTesting(connections.Create, ":memory:",
+            timeProvider: new FakeTimeProvider(TestData.s_now), beforeWriterLoop: UntilShutdown);
+        var write = SeedTrace(store, context.CancellationToken);
+        Assert.IsFalse(write.IsCompleted);
+
+        await store.DisposeAsync();
+
+        Assert.IsTrue(await EndsBeforeDeadline(write),
+            "DisposeAsync reported success while a write that was queued before it never completed.");
+        await Assert.ThrowsAsync<OperationCanceledException>(() => write);
+        var writer = Assert.ContainsSingle(connections.Items);
+        Assert.AreEqual(1, writer.DisposeCalls);
+        Assert.AreEqual(ConnectionState.Closed, writer.State);
+    }
+
+    /// <summary>
+    ///     Only the writer runs a queued job. When the writer loop itself fails, a job that was queued before the
+    ///     failure and every call made after it end with that failure; none is accepted into a queue that nothing
+    ///     reads any more.
+    /// </summary>
+    [TestMethod]
+    public async Task WriterFails_QueuedAndLaterCallsEndWithTheFailure()
+    {
+        var expected = new InvalidOperationException("Injected writer failure.");
+        var fail = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var store = DuckDbStore.CreateForTesting(new Connections().Create, ":memory:",
+            timeProvider: new FakeTimeProvider(TestData.s_now), beforeWriterLoop: async _ =>
+            {
+                await fail.Task;
+                throw expected;
+            });
+        try
+        {
+            var queued = SeedTrace(store, context.CancellationToken);
+            Assert.IsFalse(queued.IsCompleted);
+            fail.SetResult();
+            Assert.IsTrue(await EndsBeforeDeadline(queued), "A write queued before the writer failed never completed.");
+
+            // The queued write has ended, so the writer is past the point where it stops accepting work.
+            var later = SeedTrace(store, context.CancellationToken);
+            Assert.IsTrue(await EndsBeforeDeadline(later),
+                "A write accepted after the writer had stopped never completed.");
+
+            Task[] calls =
+            [
+                queued, later, store.CheckpointAsync(context.CancellationToken),
+                store.GetStorageStatsAsync("default", context.CancellationToken),
+                store.ReadSnapshotAsync("default", ct: context.CancellationToken)
+            ];
+            foreach (var call in calls)
+            {
+                var refusal = await Assert.ThrowsExactlyAsync<NamiStoreUnavailableException>(() => call);
+                Assert.AreSame(expected, refusal.InnerException);
+            }
+        }
+        finally
+        {
+            // WriterFails_DisposeReportsTheFailure asserts what DisposeAsync reports.
+            await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
+    }
+
+    [TestMethod]
+    public async Task WriterFails_DisposeReportsTheFailure()
+    {
+        var expected = new InvalidOperationException("Injected writer failure.");
+        var connections = new Connections();
+        var store = DuckDbStore.CreateForTesting(connections.Create, DatabasePath("failed-writer.duckdb"),
+            maxConcurrentReads: 1, timeProvider: new FakeTimeProvider(TestData.s_now),
+            beforeWriterLoop: _ => ValueTask.FromException(expected));
+
+        var disposal = store.DisposeAsync().AsTask();
+
+        var failure = await Assert.ThrowsExactlyAsync<AggregateException>(() => disposal);
+        Assert.AreSame(expected, Assert.ContainsSingle(failure.InnerExceptions));
+        var repeated = await Assert.ThrowsExactlyAsync<AggregateException>(() => store.DisposeAsync().AsTask());
+        Assert.AreSame(expected, Assert.ContainsSingle(repeated.InnerExceptions));
+        // The failure is reported after the whole teardown, not instead of it.
+        Assert.HasCount(2, connections.Items);
         foreach (var connection in connections.Items)
         {
             Assert.AreEqual(1, connection.DisposeCalls);
@@ -402,6 +519,37 @@ public sealed class StorageLifetimeTests(TestContext context)
 
     private string DatabasePath(string name) =>
         Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("No test directory"), name);
+
+    /// <summary>Holds the writer before its first read until shutdown has cancelled the store's token.</summary>
+    private static async ValueTask UntilShutdown(CancellationToken shutdown)
+    {
+        var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var registration = shutdown.Register(
+            static state => ((TaskCompletionSource)state!).TrySetResult(), cancelled);
+        await cancelled.Task;
+    }
+
+    /// <summary>
+    ///     Whether a call has ended, with any outcome, 10 seconds after the store let go of it. A call that passes
+    ///     ends at once; the deadline is only how long a call that never ends is waited for.
+    /// </summary>
+    private static async Task<bool> EndsBeforeDeadline(Task call)
+    {
+        try
+        {
+            await call.WaitAsync(TimeSpan.FromSeconds(10));
+        }
+        catch (TimeoutException) when (!call.IsCompleted)
+        {
+            return false;
+        }
+        catch (Exception) when (call.IsCompleted)
+        {
+            // The outcome is the caller's to assert.
+        }
+
+        return true;
+    }
 
     private sealed class ReadGate(CancellationToken cancellationToken) : IDisposable
     {

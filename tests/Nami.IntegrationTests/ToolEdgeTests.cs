@@ -3,7 +3,9 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using DuckDB.NET.Data;
 using Microsoft.Extensions.Time.Testing;
+using Nami.Api.Contracts;
 using Nami.Collector.Storage;
 using Nami.Tests.Infrastructure;
 using Nami.Tools;
@@ -92,6 +94,75 @@ public sealed class ToolEdgeTests(TestContext context)
         Assert.AreEqual("not_found", failed.Content.GetProperty("code").GetString());
         Assert.AreEqual("snapshot", failed.Content.GetProperty("resource_type").GetString());
         Assert.AreEqual(id, failed.Content.GetProperty("resource_id").GetString());
+    }
+
+    /// <summary>
+    ///     A snapshot lives 30 minutes from its capture, whether or not a cursor into it is still in use. Until then
+    ///     every page comes from it; from then on a later page is a not_found refusal that names the snapshot (S8),
+    ///     never a crash and never rows of a newer snapshot, and the same call without cursor and snapshot_id starts
+    ///     again on a fresh one.
+    /// </summary>
+    [TestMethod]
+    public async Task Cursor_DefaultSnapshotLifetimeEnds_LaterPageRefusedAndFreshCallStartsAgain()
+    {
+        var clock = new FakeTimeProvider(TestData.s_now);
+        await using var store = new DuckDbStore(":memory:", timeProvider: clock);
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 30),
+            context.CancellationToken);
+        var service = new NamiToolService(store);
+        async Task<ToolRunResult> Call(JsonObject arguments)
+        {
+            using var input = JsonDocument.Parse(arguments.ToJsonString());
+            return await service.InvokeAsync("traces_slowest", input.RootElement, "default",
+                context.CancellationToken);
+        }
+
+        JsonObject FirstPage() => new() { ["limit"] = 100, ["max_bytes"] = 1024 };
+        var first = await Call(FirstPage());
+        Assert.IsFalse(first.IsError, first.Content.GetRawText());
+        var id = first.Content.GetProperty("snapshot_id").GetString();
+        var cursor = first.Content.GetProperty("next_cursor").GetString();
+        JsonObject NextPage() => new() { ["limit"] = 100, ["max_bytes"] = 1024, ["cursor"] = cursor };
+
+        // The last instant of the lifetime: the next page is served, from the same snapshot.
+        clock.Advance(TimeSpan.FromMinutes(30) - TimeSpan.FromTicks(1));
+        var second = await Call(NextPage());
+        Assert.IsFalse(second.IsError, second.Content.GetRawText());
+        Assert.AreEqual(id, second.Content.GetProperty("snapshot_id").GetString());
+        Assert.AreNotEqual(0, second.Content.GetProperty("traces").GetArrayLength());
+
+        // 30 minutes after the capture: the same page, and the snapshot named without a cursor, are refused.
+        clock.Advance(TimeSpan.FromTicks(1));
+        foreach (var arguments in new[]
+                     { NextPage(), new JsonObject { ["limit"] = 100, ["max_bytes"] = 1024, ["snapshot_id"] = id } })
+        {
+            var refused = await Call(arguments);
+            Assert.IsTrue(refused.IsError, refused.Content.GetRawText());
+            Assert.IsNull(ContractJson.Validate("Common.ToolError", refused.Content));
+            Assert.AreEqual("not_found", refused.Content.GetProperty("code").GetString());
+            Assert.AreEqual("Snapshot is unknown, expired, or belongs to another project.",
+                refused.Content.GetProperty("message").GetString());
+            Assert.IsFalse(refused.Content.GetProperty("retryable").GetBoolean());
+            Assert.AreEqual("snapshot_id", refused.Content.GetProperty("field").GetString());
+            Assert.AreEqual("snapshot", refused.Content.GetProperty("resource_type").GetString());
+            Assert.AreEqual(id, refused.Content.GetProperty("resource_id").GetString());
+        }
+
+        // The way on: the first call again. It reads a new snapshot and pages from there.
+        var fresh = await Call(FirstPage());
+        Assert.IsFalse(fresh.IsError, fresh.Content.GetRawText());
+        var freshId = fresh.Content.GetProperty("snapshot_id").GetString();
+        Assert.AreNotEqual(id, freshId);
+        Assert.AreEqual(first.Content.GetProperty("traces").GetRawText(),
+            fresh.Content.GetProperty("traces").GetRawText());
+        var freshNext = await Call(new JsonObject
+        {
+            ["limit"] = 100, ["max_bytes"] = 1024, ["cursor"] = fresh.Content.GetProperty("next_cursor").GetString()
+        });
+        Assert.IsFalse(freshNext.IsError, freshNext.Content.GetRawText());
+        Assert.AreEqual(freshId, freshNext.Content.GetProperty("snapshot_id").GetString());
+        // The fresh read did not bring the ended snapshot back.
+        Assert.IsTrue((await Call(NextPage())).IsError);
     }
 
     [TestMethod]
@@ -200,20 +271,36 @@ public sealed class ToolEdgeTests(TestContext context)
     [TestMethod]
     public async Task Duration_SpanEndingBeforeItsStart_IsZeroAndRanksLast()
     {
-        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
-        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-10))),
-            context.CancellationToken);
-        var valid = Assert.ContainsSingle(
-            (await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
+        var clock = new FakeTimeProvider(TestData.s_now);
+        var path = Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("No test directory"),
+            "reversed-span.duckdb");
         var reversed = 2.ToString("x32", CultureInfo.InvariantCulture);
-        await store.EnqueueAsync(new SpanBatch([
-            valid with
-            {
-                TraceId = reversed, SpanId = 2.ToString("x16", CultureInfo.InvariantCulture),
-                EndTimeUnixNano = valid.StartTimeUnixNano - 19000000000UL
-            }
-        ]), context.CancellationToken);
+        SpanStorageRow valid;
+        await using (var earlier = new DuckDbStore(path, timeProvider: clock))
+        {
+            await StorageTestData.SeedTraces(earlier,
+                OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-10)), 2), context.CancellationToken);
+            valid = (await earlier.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans
+                .Single(span => span.TraceId != reversed);
+        }
+
+        // The store refuses such a span today, so the row is written the way only an earlier build's database
+        // holds it: under the store.
+        using (var connection = new DuckDBConnection(
+                   new DuckDBConnectionStringBuilder { DataSource = path }.ConnectionString))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                "UPDATE spans SET end_time_unix_nano = start_time_unix_nano - 19000000000 WHERE trace_id = $1";
+            command.Parameters.Add(new DuckDBParameter { Value = reversed });
+            Assert.AreEqual(1, command.ExecuteNonQuery());
+        }
+
+        await using var store = new DuckDbStore(path, timeProvider: clock);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        var legacy = snapshot.Spans.Single(span => span.TraceId == reversed);
+        Assert.IsLessThan(legacy.StartTimeUnixNano, legacy.EndTimeUnixNano);
 
         var trace = Run(snapshot, "traces_get", new JsonObject { ["trace_id"] = reversed }.ToJsonString());
         Assert.IsFalse(trace.IsError, trace.Content.GetRawText());

@@ -37,6 +37,26 @@ public sealed class StorageSchemaTests(TestContext context)
         Assert.AreEqual(0L, reader.GetInt64(1));
     }
 
+    /// <summary>
+    ///     The tests of this class open the store's file under the store. A path is a path there too, not a piece
+    ///     of a connection string: its separators and quotes must not end the path or start an option.
+    /// </summary>
+    [TestMethod]
+    public async Task Open_PathWithConnectionStringCharacters_IsReadUnderTheStore()
+    {
+        var directory = Path.Combine(
+            context.TestTempDirectory ?? throw new InvalidOperationException("No test directory"), "all;of='them'");
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "nami.duckdb");
+        await using (var store = new DuckDbStore(path))
+            await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now)), context.CancellationToken);
+
+        using var connection = Open(path);
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT count(*) FROM spans";
+        Assert.AreEqual(1L, command.ExecuteScalar());
+    }
+
     [TestMethod]
     public async Task Open_EmptyObsoleteMetadata_RecreatesTheGeneratedSchema()
     {
@@ -160,6 +180,45 @@ public sealed class StorageSchemaTests(TestContext context)
         }
     }
 
+    /// <summary>
+    ///     The store refuses a span that ends before it starts, whoever built the row: the mapper of the OTLP path
+    ///     refuses it too, but EnqueueAsync takes storage rows from any caller. The batch is refused whole.
+    /// </summary>
+    [TestMethod]
+    public async Task Enqueue_SpanEndingBeforeItsStart_RefusesTheWholeBatch()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-10))),
+            context.CancellationToken);
+        var stored = Assert.ContainsSingle(
+            (await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
+        var sound = stored with { TraceId = Id(2, 32), SpanId = Id(2, 16) };
+        var reversed = stored with
+        {
+            TraceId = Id(3, 32), SpanId = Id(3, 16), EndTimeUnixNano = stored.StartTimeUnixNano - 1
+        };
+
+        var failure = await Assert.ThrowsExactlyAsync<InvalidDataException>(async () =>
+            await store.EnqueueAsync(new SpanBatch([sound, reversed]), context.CancellationToken));
+
+        Assert.AreEqual("Span end time must not precede its start.", failure.Message);
+        var after = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        Assert.AreEqual(stored.TraceId, Assert.ContainsSingle(after.Spans).TraceId);
+
+        // A span of no length is not a reversed one.
+        var instant = stored with
+        {
+            TraceId = Id(4, 32), SpanId = Id(4, 16), EndTimeUnixNano = stored.StartTimeUnixNano, DurationNs = 0
+        };
+        await store.EnqueueAsync(new SpanBatch([sound, instant]), context.CancellationToken);
+        var accepted = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        Assert.AreSequenceEqual(new[] { stored.TraceId, sound.TraceId, instant.TraceId },
+            accepted.Spans.Select(static span => span.TraceId).Order(StringComparer.Ordinal).ToArray());
+
+        static string Id(int value, int digits) =>
+            value.ToString("x" + digits.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+    }
+
     [TestMethod]
     public async Task Open_DifferentAuthoritativeHashWithData_RejectsWithoutRewritingDatabase()
     {
@@ -213,7 +272,12 @@ public sealed class StorageSchemaTests(TestContext context)
 
     private static DuckDBConnection Open(string path)
     {
-        var connection = new DuckDBConnection($"DataSource={path};vacuum_rebuild_indexes={ulong.MaxValue}");
+        // The builder quotes a path that holds a separator of the connection string, such as ';' or '='.
+        var connection = new DuckDBConnection(new DuckDBConnectionStringBuilder
+        {
+            DataSource = path,
+            ["vacuum_rebuild_indexes"] = ulong.MaxValue.ToString(CultureInfo.InvariantCulture)
+        }.ConnectionString);
         try
         {
             connection.Open();

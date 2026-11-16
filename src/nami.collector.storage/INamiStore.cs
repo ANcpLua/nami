@@ -3,14 +3,12 @@ namespace Nami.Collector.Storage;
 internal sealed class NamiStoreUnavailableException(string? message, Exception? innerException)
     : InvalidOperationException(message, innerException)
 {
-    public NamiStoreUnavailableException() : this("The Nami store is unavailable.", null) { }
     public NamiStoreUnavailableException(string? message) : this(message, null) { }
 }
 
 internal sealed class NamiSchemaMismatchException(string? message, Exception? innerException)
     : InvalidOperationException(message, innerException)
 {
-    public NamiSchemaMismatchException() : this("The database schema does not match the Nami schema.", null) { }
     public NamiSchemaMismatchException(string? message) : this(message, null) { }
 }
 

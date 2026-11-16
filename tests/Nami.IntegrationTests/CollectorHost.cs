@@ -8,7 +8,6 @@ using Grpc.Net.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Nami.Collector.Ingestion;
 using Nami.Collector.Ingestion.Configuration;
 using Nami.Collector.Storage;
@@ -102,17 +101,11 @@ internal sealed class CollectorHost : IAsyncDisposable
             [CollectorConfigurationKeys.ProjectKeys] = projectKeys
         });
         if (settings is not null) builder.Configuration.AddInMemoryCollection(settings);
-        // The core registration keeps a clock that is already registered.
+        // The core registration keeps a clock that is already registered, and the storage registration builds its
+        // store on the registered clock.
         if (clock is not null) builder.Services.AddSingleton(clock);
         builder.Services.AddNamiCollectorCore(builder.Configuration);
         builder.Services.AddNamiCollectorStorage(builder.Configuration);
-        // The storage registration builds its store on the system clock; the last registration is the one resolved.
-        if (clock is not null)
-        {
-            builder.Services.AddSingleton<INamiStore>(services => new DuckDbStore(dataPath,
-                loggerFactory: services.GetRequiredService<ILoggerFactory>(), timeProvider: clock));
-        }
-
         builder.Services.AddNamiCollectorAuth(builder.Configuration, builder.Environment);
         builder.Services.ConfigureNamiCollectorKestrel();
         builder.Services.AddSingleton<SelfTelemetryCredential>();
