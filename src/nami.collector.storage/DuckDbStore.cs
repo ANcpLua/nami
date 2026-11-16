@@ -402,6 +402,7 @@ internal sealed partial class DuckDbStore : INamiStore
         await ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
+            using var rollbackUninterrupted = WriterInterrupt.EndBeforeTheTransactionDoes();
             InsertRowsStaged(con, tx, knownTimes, s_logStage, token);
             RecordIngestion(con, tx, "logs",
                 knownTimes.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName, row.ResourceJson,
@@ -627,7 +628,7 @@ internal sealed partial class DuckDbStore : INamiStore
                 {
                     await job.ExecuteAsync(Connection, _beforeWrite, _cts.Token).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not WriterConnectionUnusableException)
                 {
                     job.OnAborted(ex);
                 }
@@ -699,6 +700,7 @@ internal sealed partial class DuckDbStore : INamiStore
             return;
 
         await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
+        using var rollbackUninterrupted = WriterInterrupt.EndBeforeTheTransactionDoes();
 
         InsertRowsStaged(con, tx, batch.Spans, s_spanStage, ct);
         RecordIngestion(con, tx, "traces",
@@ -1183,9 +1185,11 @@ internal sealed partial class DuckDbStore : INamiStore
                 ? CancellationTokenSource.CreateLinkedTokenSource(ct, cancellationToken)
                 : null;
             var token = linkedCancellation?.Token ?? ct;
+            WriterConnectionUnusableException? unusable = null;
             try
             {
-                var interrupt = token.Register(con.NativeConnection.Interrupt);
+                var delivery = WriterInterrupt.Begin(con);
+                var interrupt = token.Register(delivery.Deliver);
                 try
                 {
                     token.ThrowIfCancellationRequested();
@@ -1197,13 +1201,24 @@ internal sealed partial class DuckDbStore : INamiStore
                 }
                 finally
                 {
-                    // Disposing the registration waits for an interrupt that is being delivered. One that landed on
-                    // the ROLLBACK of the action's own transaction left that transaction open and aborted, and the
-                    // next statement on this connection, a later write or the shutdown CHECKPOINT, would fail.
+                    // An action ends its interrupts before its transaction ends (WriterInterrupt), so none should
+                    // land on the ROLLBACK. If one did, DuckDB's transaction is still open and aborted: this ends it
+                    // for DuckDB, so that the shutdown CHECKPOINT runs. It does not repair DuckDB.NET, whose
+                    // connection still counts the transaction as its own and refuses the next BeginTransaction; that
+                    // refusal stops the writer (below).
                     await interrupt.DisposeAsync().ConfigureAwait(false);
+                    WriterInterrupt.End();
                     if (token.IsCancellationRequested)
                         RollBackLeftTransaction(con);
                 }
+            }
+            catch (InvalidOperationException ex) when (ex.Message == "Already in a transaction.")
+            {
+                // DuckDB.NET's refusal of BeginTransaction on a connection that an interrupted ROLLBACK left with a
+                // transaction it can no longer end. No later write can succeed on this connection, so this is not
+                // one failed job: the writer stops, as it does when its loop fails.
+                unusable = new WriterConnectionUnusableException(ex);
+                _tcs.TrySetException(WriterStopped(unusable));
             }
             catch (Exception) when (token.IsCancellationRequested)
             {
@@ -1221,6 +1236,9 @@ internal sealed partial class DuckDbStore : INamiStore
             {
                 await _cancellationRegistration.DisposeAsync().ConfigureAwait(false);
             }
+
+            if (unusable is not null)
+                throw unusable;
         }
 
         public override void OnAborted(Exception error)
@@ -1236,6 +1254,49 @@ internal sealed partial class DuckDbStore : INamiStore
         {
             if (Interlocked.CompareExchange(ref _state, 2, 0) is 0)
                 _tcs.TrySetCanceled(cancellationToken);
+        }
+    }
+
+    /// <summary>The writer's connection refuses a new transaction; the writer loop ends with this failure.</summary>
+    private sealed class WriterConnectionUnusableException(Exception inner) : InvalidOperationException(
+        "The writer's connection was left in a transaction that it cannot end; the writer stops.", inner);
+
+    /// <summary>
+    ///     The interrupt of the job that runs on the writer. A job's cancellation interrupts the statement in
+    ///     flight; it must not interrupt the ROLLBACK that ends the job's transaction, because DuckDB.NET then keeps
+    ///     a transaction it can neither end nor replace. An action declares
+    ///     <see cref="EndBeforeTheTransactionDoes" /> right after its transaction, so that it is disposed first: from
+    ///     then on no interrupt is delivered, and one that is being delivered has returned. DuckDB forgets an
+    ///     interrupt when the next statement starts.
+    /// </summary>
+    private sealed class WriterInterrupt(DuckDBConnection con)
+    {
+        private static readonly AsyncLocal<WriterInterrupt?> s_current = new();
+        private readonly Lock _gate = new();
+        private bool _ended;
+
+        internal static WriterInterrupt Begin(DuckDBConnection con) => s_current.Value = new WriterInterrupt(con);
+
+        internal static void End() => s_current.Value = null;
+
+        internal static Ending EndBeforeTheTransactionDoes() => new(s_current.Value);
+
+        internal void Deliver()
+        {
+            lock (_gate)
+            {
+                if (!_ended) con.NativeConnection.Interrupt();
+            }
+        }
+
+        private void EndDelivery()
+        {
+            lock (_gate) _ended = true;
+        }
+
+        internal readonly struct Ending(WriterInterrupt? interrupt) : IDisposable
+        {
+            public void Dispose() => interrupt?.EndDelivery();
         }
     }
 

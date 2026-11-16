@@ -95,6 +95,7 @@ internal sealed partial class DuckDbStore
         ExecuteMaintenanceWriteAsync(async (con, token) =>
         {
             await using var transaction = await con.BeginTransactionAsync(token).ConfigureAwait(false);
+            using var rollbackUninterrupted = WriterInterrupt.EndBeforeTheTransactionDoes();
             await using var command = con.CreateCommand();
             command.Transaction = transaction;
             // Keep one pre-window resource per service: changes in the retained window need their predecessor.
@@ -153,6 +154,7 @@ internal sealed partial class DuckDbStore
         CancellationToken ct)
     {
         await using var transaction = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
+        using var rollbackUninterrupted = WriterInterrupt.EndBeforeTheTransactionDoes();
         await using var command = con.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
@@ -194,6 +196,7 @@ internal sealed partial class DuckDbStore
         CancellationToken ct)
     {
         await using var transaction = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
+        using var rollbackUninterrupted = WriterInterrupt.EndBeforeTheTransactionDoes();
         await using var command = con.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """

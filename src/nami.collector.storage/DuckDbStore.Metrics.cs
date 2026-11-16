@@ -27,6 +27,7 @@ internal sealed partial class DuckDbStore
         await ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
+            using var rollbackUninterrupted = WriterInterrupt.EndBeforeTheTransactionDoes();
             // Series first: a point is only reachable through its series row, so writing the
             // point first would expose an unjoinable sample to a concurrent reader.
             InsertRowsStaged(con, tx, series, s_metricSeriesStage, token);
@@ -57,6 +58,7 @@ internal sealed partial class DuckDbStore
         return ExecuteMaintenanceWriteAsync(async (con, token) =>
         {
             await using var transaction = await con.BeginTransactionAsync(token).ConfigureAwait(false);
+            using var rollbackUninterrupted = WriterInterrupt.EndBeforeTheTransactionDoes();
 
             var deletedPoints = 0;
             var affected = new HashSet<MetricObservationKey>();

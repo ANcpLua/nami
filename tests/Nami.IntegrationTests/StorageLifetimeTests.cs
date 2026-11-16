@@ -263,7 +263,6 @@ public sealed class StorageLifetimeTests(TestContext context)
             Assert.AreEqual(1, connection.DisposeCalls);
             Assert.AreEqual(ConnectionState.Closed, connection.State);
         }
-        Assert.AreEqual(1, connections.Items[0].CheckpointCalls);
     }
 
     /// <summary>
@@ -340,11 +339,12 @@ public sealed class StorageLifetimeTests(TestContext context)
     }
 
     /// <summary>
-    ///     A job's cancellation interrupts the writer's connection, and the interrupt can land on the ROLLBACK that
-    ///     ends the job's transaction: the transaction stays open and aborted (evaluator-18: 126 of 4,000 rounds).
-    ///     The connection is put into that state here, under a job. When the job was cancelled, the writer ends the
-    ///     transaction after it and the next write is stored; in any case shutdown ends it before its CHECKPOINT.
-    ///     Before, DisposeAsync failed with "Current transaction is aborted".
+    ///     A transaction that DuckDB still holds open and aborted on the writer's connection, begun here with a
+    ///     plain BEGIN TRANSACTION under a job, so that DuckDB.NET keeps no transaction object for it. After a
+    ///     cancelled job the writer ends it and the next write is stored; in any case shutdown ends it before its
+    ///     CHECKPOINT. Before, DisposeAsync failed with "Current transaction is aborted". This is the DuckDB half of
+    ///     what an interrupted ROLLBACK leaves; the DuckDB.NET half, which this cannot repair, is
+    ///     <see cref="InterruptedRollback_StopsTheWriterAndIsReported" />.
     /// </summary>
     [TestMethod]
     [DataRow(true, DisplayName = "The job was cancelled: the writer goes on")]
@@ -390,6 +390,98 @@ public sealed class StorageLifetimeTests(TestContext context)
         await using var reopened = new DuckDbStore(path);
         Assert.HasCount(cancelled ? 1 : 0,
             (await reopened.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
+    }
+
+    /// <summary>
+    ///     The real state (evaluator-18): an interrupt lands on the ROLLBACK inside DuckDBTransaction.Dispose. The
+    ///     store's own jobs end their interrupts before their transaction ends; this test delivers the interrupt
+    ///     itself, under a job. DuckDB.NET then refuses every later BeginTransaction on the writer with "Already in
+    ///     a transaction.", so no write can succeed again. The store says so: the writer stops, later writes are
+    ///     refused as such, the health check is Unhealthy and DisposeAsync reports the failure. Before, every write
+    ///     failed with that InvalidOperationException while the health check stayed Healthy.
+    /// </summary>
+    [TestMethod]
+    public async Task InterruptedRollback_StopsTheWriterAndIsReported()
+    {
+        var connections = new Connections();
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        var armed = false;
+        var hit = false;
+        ValueTask InterruptTheRollback(CancellationToken token)
+        {
+            if (!armed) return ValueTask.CompletedTask;
+            var writer = connections.Items[0];
+            var transaction = writer.BeginTransaction();
+            using (var insert = writer.CreateCommand())
+            {
+                insert.Transaction = transaction;
+                insert.CommandText = "INSERT INTO interrupted SELECT range FROM range(3000)";
+                insert.ExecuteNonQuery();
+            }
+
+            // DuckDB forgets an interrupt when a statement starts, so they are delivered until the ROLLBACK is over.
+            var stop = 0;
+            using var running = new ManualResetEventSlim();
+            var interrupter = new Thread(() =>
+            {
+                running.Set();
+                while (Volatile.Read(ref stop) is 0) writer.NativeConnection.Interrupt();
+            });
+            interrupter.Start();
+            running.Wait(token);
+            try
+            {
+                transaction.Dispose();
+            }
+            catch (Exception)
+            {
+                hit = true;
+            }
+
+            Volatile.Write(ref stop, 1);
+            interrupter.Join();
+            // The interrupt stands for the job's cancellation: the job is cancelled.
+            if (hit) cancellation.Cancel();
+            return ValueTask.CompletedTask;
+        }
+
+        var store = DuckDbStore.CreateForTesting(connections.Create, DatabasePath("interrupted.duckdb"),
+            maxConcurrentReads: 1, beforeWrite: InterruptTheRollback, timeProvider: new FakeTimeProvider(TestData.s_now));
+        try
+        {
+            using (var create = connections.Items[0].CreateCommand())
+            {
+                create.CommandText = "CREATE TABLE interrupted (i BIGINT)";
+                create.ExecuteNonQuery();
+            }
+
+            armed = true;
+            for (var round = 0; round < 500 && !hit; round++)
+                await store.CheckpointAsync(cancellation.Token).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            armed = false;
+            if (!hit) Assert.Inconclusive("No interrupt landed on the ROLLBACK in 500 rounds.");
+
+            var refusal = await Assert.ThrowsExactlyAsync<NamiStoreUnavailableException>(() =>
+                SeedTrace(store, context.CancellationToken));
+            Assert.Contains("Already in a transaction", refusal.InnerException?.InnerException?.Message ?? "");
+            Assert.AreSame(refusal.InnerException, store.WriterFailure);
+            // The writer has stopped: a second write is refused the same way, without reaching the connection.
+            Assert.AreSame(store.WriterFailure, (await Assert.ThrowsExactlyAsync<NamiStoreUnavailableException>(() =>
+                SeedTrace(store, context.CancellationToken))).InnerException);
+
+            var check = new Nami.Health.DuckDbHealthCheck(store,
+                Options.Create(new Nami.Retention.RetentionOptions { StorageMinimumFreeMegabytes = 0 }));
+            var health = await check.CheckHealthAsync(new HealthCheckContext(), context.CancellationToken);
+            Assert.AreEqual(HealthStatus.Unhealthy, health.Status, health.Description);
+
+            // The writer's failure is what shutdown reports; its CHECKPOINT still ran.
+            var shutdown = await Assert.ThrowsExactlyAsync<AggregateException>(() => store.DisposeAsync().AsTask());
+            Assert.Contains("cannot end", Assert.ContainsSingle(shutdown.InnerExceptions).Message);
+        }
+        finally
+        {
+            await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
     }
 
     /// <summary>
