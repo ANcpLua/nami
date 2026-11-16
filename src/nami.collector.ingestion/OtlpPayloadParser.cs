@@ -112,20 +112,24 @@ internal static class OtlpPayloadParser
         IngestLimits limits)
         where T : IMessage<T>
     {
-        _ = OtlpValueBounds.BoundProtobuf(payload, descriptor, limits, out var counted);
+        var bounded = OtlpValueBounds.BoundProtobuf(payload, descriptor, limits, out var counted);
         RefuseTooMany(counted, limits);
         // Unknown fields are not kept: Google.Protobuf would hold every one of them as an object, and the bounds
         // count what nami reads. The converter reads known fields only.
         var known = parser.WithDiscardUnknownFields(true);
+        T message;
         try
         {
-            return known.ParseFrom(payload);
+            message = known.ParseFrom(payload);
         }
         catch (InvalidProtocolBufferException) when (OtlpUtf8Replacement.TryReplaceInvalidUtf8(payload, descriptor,
                                                          out var replaced))
         {
-            return known.ParseFrom(replaced);
+            message = known.ParseFrom(replaced);
         }
+
+        CountReplaced(bounded);
+        return message;
     }
 
     /// <summary>
@@ -162,7 +166,7 @@ internal static class OtlpPayloadParser
 
         // The value bounds first, on the bytes, so that a structure over the cap is never built.
         var utf8Json = payload.GetBuffer().AsSpan(0, (int)payload.Length);
-        _ = OtlpValueBounds.BoundJson(utf8Json, limits, out var counted);
+        var bounded = OtlpValueBounds.BoundJson(utf8Json, limits, out var counted);
         RefuseTooMany(counted, limits);
 
         // The OTLP spec mandates hex for trace and span ids in JSON, but protojson decodes
@@ -171,7 +175,9 @@ internal static class OtlpPayloadParser
         var json = OtlpJsonIdNormalizer.NormalizeIdsToProtoJsonUtf8(utf8Json);
         using var reader = new StreamReader(new MemoryStream(json.Array!, json.Offset, json.Count, false), Encoding.UTF8,
             false);
-        return s_otlpJsonParser.Parse<T>(reader);
+        var message = s_otlpJsonParser.Parse<T>(reader);
+        CountReplaced(bounded);
+        return message;
     }
 
     // The parser builds one object per message and the store one row per record, so a request of more than either
@@ -182,6 +188,15 @@ internal static class OtlpPayloadParser
             throw OtlpPayloadTooLargeException.TooManyMessages(limits.MaxRequestMessages);
         if (counted.Records > limits.MaxRequestRecords)
             throw OtlpPayloadTooLargeException.TooManyRecords(limits.MaxRequestRecords);
+    }
+
+    // A value nested deeper than the bound was replaced by an empty value before the parse. Its attribute stays, so
+    // this is no dropped attribute: it is counted in nami's own telemetry, with the reason "depth", once the
+    // request has been parsed, so a refused request counts nothing. The converter counts the same way where it
+    // empties such a value itself; it cannot see the ones replaced here.
+    private static void CountReplaced(OtlpValueBoundsResult bounded)
+    {
+        if (bounded.TooDeep > 0) NamiCollectorMetrics.ValueReplaced(bounded.TooDeep, "depth");
     }
 
     /// <summary>

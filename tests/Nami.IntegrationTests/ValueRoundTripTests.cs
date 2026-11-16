@@ -192,8 +192,8 @@ public sealed class ValueRoundTripTests(TestContext context)
 
     /// <summary>
     ///     OTLP/JSON: a decoder ignores fields it does not know and takes a 64-bit integer as a number or as a string.
-    ///     The second row is red at this commit: a JSON number above 2^53 loses its last bit in the protobuf JSON
-    ///     parser (9007199254740993 arrives as 9007199254740992). The parser belongs to ingress/bounded-parse.
+    ///     A JSON number above 2^53 used to lose its last bit in the protobuf JSON parser (9007199254740993 arrived as
+    ///     9007199254740992); ingress/bounded-parse (E4d) passes such integer literals on exactly.
     /// </summary>
     [TestMethod]
     [Timeout(60000, CooperativeCancellation = true)]

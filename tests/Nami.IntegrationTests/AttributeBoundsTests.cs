@@ -546,6 +546,26 @@ public sealed class AttributeBoundsTests
     }
 
     /// <summary>
+    ///     The judge of a structure over the value cap is the only bound that says no here: an array of 60,000 empty
+    ///     strings is 240,004 bytes as sent and 180,001 bytes as stored JSON, within the cap of one value and the
+    ///     budget of the record, so a converter whose judge never says "over" stores it. The request is converted as
+    ///     parsed, with no bounded parse in front, so no sentinel stands in for the judge either.
+    /// </summary>
+    [TestMethod]
+    public void Judge_AnArrayOnlyTheJudgeRefuses_IsDroppedAndCounted()
+    {
+        var value = new AnyValue { ArrayValue = new ArrayValue() };
+        for (var i = 0; i < 60_000; i++) value.ArrayValue.Values.Add(new AnyValue { StringValue = "" });
+        Assert.IsLessThan(new IngestLimits().MaxValueUtf8Bytes, value.CalculateSize(), "Within the cap as sent.");
+
+        var stored = Convert(new KeyValue { Key = "acme.judged", Value = value }, Text("acme.small", "fits"));
+
+        Assert.IsFalse(stored.Attributes.ContainsKey("acme.judged"), "Only the judge refuses this value.");
+        Assert.AreEqual("fits", stored.Attributes["acme.small"].AsString());
+        Assert.AreEqual(1U, stored.DroppedAttributesCount);
+    }
+
+    /// <summary>
     ///     A value ingest replaces while it keeps the attribute is no dropped attribute, but it is a loss. The counter
     ///     <c>nami.collector.values.replaced</c> counts it once per replaced value, by reason: <c>depth</c> for a
     ///     structure at the nesting bound that became an empty value, <c>invalid_utf16</c> for a lone surrogate that
