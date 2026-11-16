@@ -104,7 +104,7 @@ public sealed class RequestMessageBoundTests(TestContext context)
         {
             ResourceSpans = { new ResourceSpans { ScopeSpans = { new ScopeSpans { Spans = { new Span(), new Span
             {
-                Name = "span", Status = new Status(), Events = { new Span.Types.Event { Name = "event" } },
+                Name = "span", Status = new OpenTelemetry.Proto.Trace.V1.Status(), Events = { new Span.Types.Event { Name = "event" } },
                 Links = { new Span.Types.Link() },
                 Attributes =
                 {
