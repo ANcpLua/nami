@@ -9,8 +9,7 @@ internal static class TestData
     internal static readonly DateTimeOffset s_now =
         DateTimeOffset.Parse("2026-10-24T12:00:00Z", CultureInfo.InvariantCulture);
 
-    internal static string HostBinary => Path.Combine(ProcessRunner.RepositoryRoot, "artifacts", "publish",
-        OperatingSystem.IsWindows() ? "nami.exe" : "nami");
+    internal static string HostBinary => Path.Combine(ProcessRunner.RepositoryRoot, "artifacts", "publish", "nami");
 
     internal static ExportTraceServiceRequest ParseTraces(string json)
     {

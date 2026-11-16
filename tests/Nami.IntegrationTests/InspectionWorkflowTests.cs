@@ -371,11 +371,8 @@ internal sealed class InspectionFixture(string root, TestContext context)
                                              """, context.CancellationToken);
         var jb = Path.Combine(root, "jb");
         await File.WriteAllTextAsync(jb, "#!/bin/sh\ntouch global-jb-called\nexit 99\n", context.CancellationToken);
-        if (!OperatingSystem.IsWindows())
-        {
-            File.SetUnixFileMode(dotnet, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-            File.SetUnixFileMode(jb, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        }
+        File.SetUnixFileMode(dotnet, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        File.SetUnixFileMode(jb, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
 
         foreach (var args in new[]
                  {

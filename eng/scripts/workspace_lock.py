@@ -1,5 +1,6 @@
 """Serialize repository verification; nested build/test commands share the owner's lease."""
 
+import fcntl
 import json
 import os
 import signal
@@ -8,11 +9,6 @@ import sys
 import uuid
 from pathlib import Path
 from diagnostics import begin, clean_workspace, state_root
-
-if os.name == "nt":
-    import msvcrt
-else:
-    import fcntl
 
 
 def main():
@@ -30,18 +26,14 @@ def main():
         except (ValueError, OSError):
             owner = {}
         inherited = owner.get("token") == os.environ.get("NAMI_VERIFICATION_TOKEN") and owner.get("root") == root
-        if inherited and os.name != "nt":
+        if inherited:
             try:
                 os.kill(owner["pid"], 0)
             except (OSError, KeyError):
                 inherited = False
         if not inherited:
             try:
-                if os.name == "nt":
-                    lease.seek(0)
-                    msvcrt.locking(lease.fileno(), msvcrt.LK_NBLCK, 1)
-                else:
-                    fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except OSError:
                 print(f"VERIFICATION BUSY: {owner.get('entry', 'another command')} (pid {owner.get('pid', '?')}). Retry after it finishes.", file=sys.stderr)
                 return 2
@@ -57,14 +49,14 @@ def main():
                 begin(root, "build")
                 from inspect_code import sources
                 environment["NAMI_DIAGNOSTIC_SOURCE"] = sources(Path(root))
-        command = ["bash", entry.replace("\\", "/"), *arguments] if entry.endswith(".sh") else [entry, *arguments]
+        command = ["bash", entry, *arguments] if entry.endswith(".sh") else [entry, *arguments]
         with subprocess.Popen(command, cwd=root, env=environment,
-                              start_new_session=not inherited and os.name != "nt") as process:
+                              start_new_session=not inherited) as process:
             try:
                 code = process.wait()
                 return code if code >= 0 else 128 - code
             except KeyboardInterrupt:
-                if not inherited and os.name != "nt":
+                if not inherited:
                     os.killpg(process.pid, signal.SIGTERM)
                 else:
                     process.terminate()

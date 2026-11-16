@@ -47,7 +47,6 @@ export DOTNET_NOLOGO=1
 
 echo "Microsoft (R) .NET SDK version $("$DOTNET_EXE" --version)"
 
-# Dash-form switches: Git Bash on the Windows release legs rewrites an argument that starts with / as a path.
 mkdir -p "$NAMI_DIAGNOSTICS_ROOT/build/current"
 "$DOTNET_EXE" build "$BUILD_PROJECT_FILE" "-maxcpucount:$NAMI_BUILD_WORKERS" -nodeReuse:false -p:UseSharedCompilation=false -nologo -clp:NoSummary --verbosity quiet "-bl:$NAMI_DIAGNOSTICS_ROOT/build/current/bootstrap-{}.binlog"
 "$DOTNET_EXE" run --project "$BUILD_PROJECT_FILE" --no-build -- "$@"

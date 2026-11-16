@@ -12,7 +12,7 @@ The [workspace handover and cleanup register](workspace-handoff.md) records the 
 | --- | --- |
 | In-memory project definition, deferred materialization and package feeds | `Nami.Tests/FixtureProjectDefinition.cs`, `FixtureProject.cs`, `PackageFeedFixture.cs` |
 | Per-invocation attribute fixtures and cleanup | `Nami.Tests/ProjectFixture.cs`; `CaptureFixtureTests`, `InvocationContractTests` |
-| Process group/job ownership and captured diagnostics | `Nami.Tests/ChildProcess.cs`, `OwnedProcess.cs`, `Fixtures/ProcessHost` |
+| Process group ownership and captured diagnostics | `Nami.Tests/ChildProcess.cs`, `OwnedProcess.cs`, `Fixtures/ProcessHost` |
 | Compiler and binary inspection | `Nami.Tests/Compilation`, `Metadata`; integration compiler/PE tests |
 | Raw OTLP evidence, isolated receiver and telemetry assertions | `Nami.Tests/Capture`, `OtlpDecode`, `OtlpReceiver`, `TraceEvidence`; Unit/Integration receiver tests |
 | Policy outcomes, missing evidence and original test failures | `Nami.Tests/Policies`; `TelemetryPolicyTests` and generated invocation probes |
