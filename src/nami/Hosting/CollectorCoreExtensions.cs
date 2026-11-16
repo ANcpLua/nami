@@ -51,20 +51,23 @@ internal static class CollectorCoreExtensions
         // marshaller decodes an invalid UTF-8 sequence as U+FFFD (OTLP 1.11.1). AddGrpc's binder
         // stays registered, because every other gRPC service in the process gets its methods from
         // it; for these three it finds OtlpExportService's empty bind method and adds nothing.
-        services.AddSingleton<IServiceMethodProvider<TraceServiceImpl>>(
+        services.AddSingleton<IServiceMethodProvider<TraceServiceImpl>>(static provider =>
             new OtlpExportMethodProvider<TraceServiceImpl, ExportTraceServiceRequest, ExportTraceServiceResponse>(
                 TraceServiceReflection.Descriptor.Services[0],
                 ExportTraceServiceRequest.Parser,
-                static (service, request, context) => service.Export(request, context)));
-        services.AddSingleton<IServiceMethodProvider<LogsServiceImpl>>(
+                static (service, request, context) => service.Export(request, context),
+                provider.GetRequiredService<IOptions<IngestLimits>>().Value));
+        services.AddSingleton<IServiceMethodProvider<LogsServiceImpl>>(static provider =>
             new OtlpExportMethodProvider<LogsServiceImpl, ExportLogsServiceRequest, ExportLogsServiceResponse>(
                 LogsServiceReflection.Descriptor.Services[0],
                 ExportLogsServiceRequest.Parser,
-                static (service, request, context) => service.Export(request, context)));
-        services.AddSingleton<IServiceMethodProvider<MetricsServiceImpl>>(
+                static (service, request, context) => service.Export(request, context),
+                provider.GetRequiredService<IOptions<IngestLimits>>().Value));
+        services.AddSingleton<IServiceMethodProvider<MetricsServiceImpl>>(static provider =>
             new OtlpExportMethodProvider<MetricsServiceImpl, ExportMetricsServiceRequest, ExportMetricsServiceResponse>(
                 MetricsServiceReflection.Descriptor.Services[0],
                 ExportMetricsServiceRequest.Parser,
-                static (service, request, context) => service.Export(request, context)));
+                static (service, request, context) => service.Export(request, context),
+                provider.GetRequiredService<IOptions<IngestLimits>>().Value));
     }
 }
