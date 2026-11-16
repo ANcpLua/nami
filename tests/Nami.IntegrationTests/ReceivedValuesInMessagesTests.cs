@@ -261,6 +261,59 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
         static void ThirdMember() => throw new ArgumentException("third holds " + Received);
     }
 
+    /// <summary>
+    ///     Ledger N93. A failed tool call in nami's own telemetry: the span event and the log line hold the type
+    ///     and the frames of the exception and of what is inside it, and no message. A message can repeat received
+    ///     text, and nami's own telemetry is stored and read like any other.
+    /// </summary>
+    [TestMethod]
+    public void AFailedToolCall_IsRecordedByTypeAndFrames_NeverByItsMessage()
+    {
+        using var logs = new Captured();
+        using var activity = new System.Diagnostics.Activity("tools/call");
+        activity.Start();
+        var thrown = Thrown(Outer);
+
+        Nami.Telemetry.NamiTelemetry.RecordException(thrown, logs.CreateLogger("nami"));
+
+        var recorded = activity.Events.Single();
+        var tags = recorded.Tags.ToDictionary(static tag => tag.Key, static tag => tag.Value?.ToString() ?? "");
+        var logged = string.Join('\n', logs.Lines);
+        context.WriteLine(string.Join('\n', tags.Select(static tag => tag.Key + " = " + tag.Value)));
+        context.WriteLine(logged);
+        Assert.AreEqual("exception", recorded.Name);
+        Assert.AreEqual("System.InvalidOperationException", tags["exception.type"]);
+        Assert.AreEqual("exception.stacktrace|exception.type", string.Join('|', tags.Keys.Order(StringComparer.Ordinal)), "No exception.message.");
+        foreach (var text in new[] { tags["exception.stacktrace"], logged })
+        {
+            Assert.Contains("System.InvalidOperationException", text);
+            Assert.Contains(" ---> System.FormatException", text);
+            Assert.Contains(nameof(Outer), text, "The frames of the exception.");
+            Assert.Contains(nameof(Inner), text, "The frames of the exception inside it.");
+        }
+
+        Assert.Contains("[Error] nami: Nami tool failed: ", logged);
+        foreach (var text in tags.Values.Append(logged))
+        {
+            Assert.DoesNotContain("ZQE900X000ZZZZZZ", text);
+            Assert.DoesNotContain("holds", text);
+        }
+
+        static void Inner() => throw new FormatException("inner holds " + Received);
+
+        static void Outer()
+        {
+            try
+            {
+                Inner();
+            }
+            catch (FormatException inner)
+            {
+                throw new InvalidOperationException("outer holds " + Received, inner);
+            }
+        }
+    }
+
     private static Exception Thrown(Action fails)
     {
         try
