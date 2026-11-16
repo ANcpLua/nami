@@ -272,12 +272,7 @@ public sealed class StorageSchemaTests(TestContext context)
 
     private static DuckDBConnection Open(string path)
     {
-        // The builder quotes a path that holds a separator of the connection string, such as ';' or '='.
-        var connection = new DuckDBConnection(new DuckDBConnectionStringBuilder
-        {
-            DataSource = path,
-            ["vacuum_rebuild_indexes"] = ulong.MaxValue.ToString(CultureInfo.InvariantCulture)
-        }.ConnectionString);
+        var connection = new DuckDBConnection($"DataSource={path};vacuum_rebuild_indexes={ulong.MaxValue}");
         try
         {
             connection.Open();
