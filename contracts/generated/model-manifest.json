@@ -4139,6 +4139,12 @@
         "nullable": false
       },
       {
+        "code": "readyFile",
+        "json": "readyFile",
+        "optional": true,
+        "nullable": false
+      },
+      {
         "code": "otlpPort",
         "json": "otlpPort",
         "optional": true,

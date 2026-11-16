@@ -28,7 +28,13 @@ internal sealed class McpHarness : IAsyncDisposable
 
     internal McpClient Client => _client ?? throw new InvalidOperationException("MCP startup has not completed.");
     internal HttpClient Http { get; } = new();
-    internal int HttpPort { get; }
+    internal int HttpPort { get; private set; }
+
+    /// <summary>The ready manifest the host wrote; only a harness started with <c>readyManifest</c> has one.</summary>
+    internal JsonElement ReadyManifest { get; private set; }
+
+    /// <summary>Where the host writes its ready manifest; null unless the harness was started with <c>readyManifest</c>.</summary>
+    internal string? ReadyFile { get; private set; }
 
     /// <summary>The Bun host's process id; only the HTTP harness owns the host process.</summary>
     internal int HostProcessId =>
@@ -53,8 +59,8 @@ internal sealed class McpHarness : IAsyncDisposable
             return false;
         }
     }
-    internal int OtlpPort { get; }
-    internal int GrpcPort { get; }
+    internal int OtlpPort { get; private set; }
+    internal int GrpcPort { get; private set; }
 
     public async ValueTask DisposeAsync()
     {
@@ -100,16 +106,20 @@ internal sealed class McpHarness : IAsyncDisposable
     }
 
     /// <param name="environment">Further engine settings, such as <c>NAMI_RETENTION_DAYS</c>; they override the defaults.</param>
+    /// <param name="readyManifest">
+    ///     All three listeners on port 0: the host is told to write its ready manifest, and the harness takes the
+    ///     ports from that file instead of probing for free ones. HTTP only.
+    /// </param>
     internal static async Task<McpHarness> StartAsync(string binary, bool stdio, string directory,
         CancellationToken cancellationToken, string? keys = null, string? readKey = null,
-        IReadOnlyDictionary<string, string?>? environment = null)
+        IReadOnlyDictionary<string, string?>? environment = null, bool readyManifest = false)
     {
         Directory.CreateDirectory(directory);
-        var httpPort = FreePort();
-        var otlpPort = FreePort();
-        var grpcPort = FreePort();
-        while (otlpPort == httpPort) otlpPort = FreePort();
-        while (grpcPort == httpPort || grpcPort == otlpPort) grpcPort = FreePort();
+        var httpPort = readyManifest ? 0 : FreePort();
+        var otlpPort = readyManifest ? 0 : FreePort();
+        var grpcPort = readyManifest ? 0 : FreePort();
+        while (!readyManifest && otlpPort == httpPort) otlpPort = FreePort();
+        while (!readyManifest && (grpcPort == httpPort || grpcPort == otlpPort)) grpcPort = FreePort();
         var env = new Dictionary<string, string?>
         {
             ["NAMI_PORT"] = httpPort.ToString(CultureInfo.InvariantCulture),
@@ -120,6 +130,7 @@ internal sealed class McpHarness : IAsyncDisposable
             ["NAMI_OTLP_PROJECT_KEYS"] = keys,
             ["DOTNET_ENVIRONMENT"] = "Development"
         };
+        if (readyManifest) env["NAMI_READY_FILE"] = Path.Combine(directory, "ready.json");
         foreach (var pair in environment ?? new Dictionary<string, string?>())
             env[pair.Key] = pair.Value;
         const string Command = "bun";
@@ -166,11 +177,12 @@ internal sealed class McpHarness : IAsyncDisposable
             host._process = await OwnedProcess.StartAsync(start, cancellationToken).ConfigureAwait(false);
             host._stderr = host._process.StandardError.ReadToEndAsync(CancellationToken.None);
             host._stdout = host._process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+            if (readyManifest) await host.ReadManifestAsync(env["NAMI_READY_FILE"]!, cancellationToken).ConfigureAwait(false);
             await host.WaitForHealthAsync(cancellationToken).ConfigureAwait(false);
             var headers = readKey is null ? null : new Dictionary<string, string> { ["x-otlp-api-key"] = readKey };
             var transport = new HttpClientTransport(new HttpClientTransportOptions
             {
-                Endpoint = new Uri($"http://127.0.0.1:{httpPort}/mcp"), AdditionalHeaders = headers
+                Endpoint = new Uri($"http://127.0.0.1:{host.HttpPort}/mcp"), AdditionalHeaders = headers
             });
             host._transport = transport;
             host._client = await McpClient.CreateAsync(transport, options, cancellationToken: cancellationToken)
@@ -182,6 +194,41 @@ internal sealed class McpHarness : IAsyncDisposable
             await host.DisposeAsync().ConfigureAwait(false);
             throw;
         }
+    }
+
+    /// <summary>Waits until the host has renamed its ready manifest into place, then takes the three ports from it.</summary>
+    private async Task ReadManifestAsync(string path, CancellationToken cancellationToken)
+    {
+        ReadyFile = path;
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30), TimeProvider.System);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
+        try
+        {
+            while (!File.Exists(path))
+            {
+                if (_process?.HasExited == true)
+                {
+                    var exitCode = _process.ExitCode;
+                    await _process.KillAsync(linked.Token).ConfigureAwait(false);
+                    var error = await _stderr!.WaitAsync(linked.Token).ConfigureAwait(false);
+                    throw new InvalidOperationException($"Nami exited ({exitCode}): {error}");
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(25), TimeProvider.System, linked.Token).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException error) when (timeout.IsCancellationRequested &&
+                                                       !cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException("Nami did not write its ready manifest.", error);
+        }
+
+        // The host renames the finished file into place, so the first read sees all of it.
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false));
+        ReadyManifest = document.RootElement.Clone();
+        HttpPort = new Uri(ReadyManifest.GetProperty("mcp").GetString()!).Port;
+        OtlpPort = new Uri(ReadyManifest.GetProperty("otlp_http").GetString()!).Port;
+        GrpcPort = new Uri(ReadyManifest.GetProperty("otlp_grpc").GetString()!).Port;
     }
 
     private async Task WaitForHealthAsync(CancellationToken cancellationToken)

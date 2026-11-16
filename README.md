@@ -78,6 +78,23 @@ Streamable HTTP. `/health` on the MCP port reports native-engine readiness. A no
 listener requires `NAMI_PUBLIC_URL`; on Railway its public domain is used automatically. The
 container runs the same two-process stack ([architecture](docs/architecture.yaml)).
 
+**Ports chosen by the operating system.** `NAMI_PORT` (MCP), `NAMI_OTLP_PORT` (OTLP/HTTP) and
+`NAMI_GRPC_PORT` (OTLP/gRPC) each accept `0`: the operating system then picks a free port, so
+several nami processes start side by side without anyone probing for ports. To learn the ports,
+name a ready manifest with `--ready-file <path>` or `NAMI_READY_FILE`:
+
+```json
+{"mcp":"http://127.0.0.1:40123/mcp","otlp_http":"http://127.0.0.1:40124","otlp_grpc":"http://127.0.0.1:40125","data_path":"/work/nami.duckdb"}
+```
+
+The file exists only while that nami is ready. A file left by an earlier run is removed before the
+engine starts; the new one is written under another name and renamed into place once the engine has
+reported the addresses it bound and the MCP listener is bound, so a reader sees no file or the whole
+file; nami removes it when it stops. The URLs are the bound ones; a wildcard address is written as
+loopback, and with `--stdio` `mcp` is `null`. The store stays where `NAMI_DATA_PATH` says;
+`data_path` reports it as an absolute path. With `NAMI_OTLP_PORT=0` nami does not export its own
+telemetry, because that exporter needs the port before the listener is bound.
+
 ## Send telemetry
 
 Any OpenTelemetry SDK exports to nami with its standard settings:

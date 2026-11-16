@@ -7,6 +7,7 @@ import { CONFIG, CONFIG_DEFAULTS, CONTRACT_REVISION } from "./contracts/generate
 import type { HealthReport, ProjectKeyDocument } from "./contracts/generated/json.js";
 import { Engine, EngineError } from "./engine.js";
 import { dnsRebindingResponse, isLoopbackBindHost } from "./http-security.js";
+import { removeReadyManifest, writeReadyManifest } from "./ready.js";
 import { createServer } from "./server.js";
 
 const args = process.argv.slice(2);
@@ -14,6 +15,13 @@ const engineIndex = args.indexOf("--engine");
 const enginePath = engineIndex >= 0 ? args[engineIndex + 1] : undefined;
 if (!enginePath) throw new Error("Pass --engine with the published NativeAOT engine path.");
 const stdio = args.includes("--stdio");
+// The ready manifest (ready.ts). One left behind by a nami that was killed is removed before the engine starts,
+// so whoever waits for the file never reads the addresses of an earlier run.
+const readyIndex = args.indexOf("--ready-file");
+const readyOption = readyIndex >= 0 ? args[readyIndex + 1] : process.env[CONFIG.ReadyFile];
+if (readyIndex >= 0 && !readyOption) throw new Error("Pass a file path after --ready-file.");
+const readyFile = readyOption ? resolve(readyOption) : undefined;
+if (readyFile) removeReadyManifest(readyFile);
 // The host answers /mcp before the engine sees a call, so it repeats two engine rules on purpose: the default mode
 // (CollectorAuthExtensions: Unsecured only in Development; WebApplication.CreateSlimBuilder adds DOTNET_ variables
 // after ASPNETCORE_ ones, so DOTNET_ENVIRONMENT wins as here) and the key match (OtlpApiKeyValidator.Resolve: every
@@ -65,13 +73,16 @@ async function health(signal: AbortSignal): Promise<Response> {
 
 // Ends the transport: at once, or (force false, HTTP only) after the requests being answered have their answers.
 let closeTransport: (force?: boolean) => Promise<void>;
+// The MCP URL of the ready manifest; stdio has none.
+let mcpUrl: string | null = null;
 if (stdio) {
   const handle = serveStdio(() => createServer(engine), { onerror: report });
   closeTransport = () => handle.close();
 } else {
   const hostname = process.env[CONFIG.BindAddress] ?? CONFIG_DEFAULTS.BindAddress;
   const port = Number(process.env[CONFIG.Port] ?? process.env[CONFIG.PlatformPort] ?? CONFIG_DEFAULTS.Port);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("NAMI_PORT is outside its supported range.");
+  // Port 0 lets the operating system choose; the ready manifest then names the port.
+  if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error("NAMI_PORT is outside its supported range.");
   const domain = process.env[CONFIG.RailwayPublicDomain];
   const publicUrl = process.env[CONFIG.PublicUrl] ?? (domain ? `https://${domain}` : undefined);
   const allowedHosts = new Set(["localhost", "127.0.0.1", "[::1]", hostname]);
@@ -112,11 +123,17 @@ if (stdio) {
     }
   });
   closeTransport = async (force = true) => { await server.stop(force); };
+  // A wildcard listener is reached over loopback.
+  const reachable = hostname === "0.0.0.0" ? "127.0.0.1" : hostname === "::" ? "::1" : hostname;
+  mcpUrl = `http://${reachable.includes(":") ? `[${reachable}]` : reachable}:${server.port}/mcp`;
 }
+// Ready: the engine has reported the addresses it bound, and the MCP listener (if any) is bound.
+if (readyFile) writeReadyManifest(readyFile, mcpUrl, await engine.listeners);
 let closing = false;
 async function close() {
   if (closing) return;
   closing = true;
+  if (readyFile) removeReadyManifest(readyFile);
   await closeTransport();
   await engine.close();
 }
@@ -138,6 +155,7 @@ void engine.failed.then(async (error) => {
     // The calls this failure rejected are being answered right now: they get their answer, within two seconds.
     await Promise.race([closeTransport(false), new Promise(resolve => setTimeout(resolve, 2000))]).catch(report);
   }
+  if (readyFile) removeReadyManifest(readyFile);
   process.exit(1);
 });
 if (stdio) {

@@ -51,6 +51,7 @@ export const CONFIG = {
   "PlatformPort": "PORT",
   "PublicUrl": "NAMI_PUBLIC_URL",
   "RailwayPublicDomain": "RAILWAY_PUBLIC_DOMAIN",
+  "ReadyFile": "NAMI_READY_FILE",
   "OtlpPort": "NAMI_OTLP_PORT",
   "GrpcPort": "NAMI_GRPC_PORT",
   "CorsAllowedOrigins": "NAMI_OTLP_CORS_ALLOWED_ORIGINS",

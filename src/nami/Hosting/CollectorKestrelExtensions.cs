@@ -11,8 +11,10 @@ internal static class CollectorKestrelExtensions
 
     public static void ConfigureNamiCollectorKestrel(this IServiceCollection services)
     {
+        services.AddSingleton<CollectorListeners>();
         services.AddOptions<KestrelServerOptions>()
-            .Configure<IOptions<CollectorPortOptions>, IOptions<IngestLimits>>(static (options, configured, limits) =>
+            .Configure<IOptions<CollectorPortOptions>, IOptions<IngestLimits>, CollectorListeners>(static (options,
+                configured, limits, listeners) =>
             {
                 // Kestrel's own request-body bound (30 MB unless set) stays as a backstop, but never below
                 // nami's: a request nami accepts must reach it. A gRPC message has a five-byte prefix.
@@ -22,14 +24,21 @@ internal static class CollectorKestrelExtensions
 
                 var ports = configured.Value;
                 var address = ports.ParseBindAddress();
-                if (ports.OtlpHttp > 0)
-                    options.Listen(address, ports.OtlpHttp, static lo => lo.Protocols = HttpProtocols.Http1);
-
-                if (ports.Grpc > 0)
-                    options.Listen(address, ports.Grpc, static lo => lo.Protocols = HttpProtocols.Http2);
+                // Port 0 lets the operating system choose; CollectorListeners then holds the bound endpoints.
+                options.Listen(address, ports.OtlpHttp, lo =>
+                {
+                    lo.Protocols = HttpProtocols.Http1;
+                    listeners.OtlpHttp = lo;
+                });
+                options.Listen(address, ports.Grpc, lo =>
+                {
+                    lo.Protocols = HttpProtocols.Http2;
+                    listeners.Grpc = lo;
+                });
 
                 // A process-local ingest listener remains reachable for self-telemetry when the
-                // public listener is bound to one particular NIC rather than a wildcard address.
+                // public listener is bound to one particular NIC rather than a wildcard address. With an
+                // operating-system-chosen port there is no self-telemetry export, so no second listener either.
                 if (ports.OtlpHttp <= 0 || IPAddress.IsLoopback(address) || address.Equals(IPAddress.Any) ||
                     address.Equals(IPAddress.IPv6Any)) return;
 
