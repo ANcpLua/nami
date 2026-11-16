@@ -81,7 +81,7 @@ internal static partial class OtlpConverter
     // What a bound before materialization (the ingress pre-scan, builder-ingress's part) can leave in place of a
     // value that could never fit the cap: the attribute that carries it is dropped and counted here, like any
     // attribute over the cap, so both drops reach the same dropped_attributes_count.
-    internal const string OversizedValueSentinel = "\0nami:value-over-the-cap";
+    internal const string OversizedValueSentinel = OtlpValueBounds.OversizedValueSentinel;
 
     // Kept first when a record is over a limit (observer's ruling, 16 Nov 2026, 02:25): the session, the token usage
     // and the cost, under the names of the GenAI conventions and under the names Claude Code sends them.
@@ -143,43 +143,9 @@ internal static partial class OtlpConverter
     }
 
     // The one judge of a structure over the value cap, asked for every top-level array and key-value list: true is
-    // treated exactly like the sentinel, drop and count. This is the converter's stand-in until it meets
-    // ingress/bounded-parse; there the body becomes OtlpValueBounds.IsOversizedStructure(value, Limits), the rule of
-    // the bound before materialization, so both sides drop the same structures.
-    private static bool IsOversizedStructure(ProtoAnyValue value)
-    {
-        long remaining = Limits.MaxValueUtf8Bytes;
-        return !Fits(value, ref remaining, 0);
-
-        static bool Fits(ProtoAnyValue? value, ref long remaining, int nesting)
-        {
-            // Every value counts five bytes at least, so a structure of empty values is bounded too.
-            remaining -= 5;
-            switch (value?.ValueCase)
-            {
-                case ProtoAnyValue.ValueOneofCase.StringValue:
-                    remaining -= Encoding.UTF8.GetByteCount(value.StringValue);
-                    break;
-                case ProtoAnyValue.ValueOneofCase.BytesValue:
-                    remaining -= value.BytesValue.Length;
-                    break;
-                case ProtoAnyValue.ValueOneofCase.ArrayValue when nesting < Limits.MaxValueNesting:
-                    foreach (var item in value.ArrayValue.Values)
-                        if (!Fits(item, ref remaining, nesting + 1)) return false;
-                    break;
-                case ProtoAnyValue.ValueOneofCase.KvlistValue when nesting < Limits.MaxValueNesting:
-                    foreach (var member in value.KvlistValue.Values)
-                    {
-                        remaining -= Encoding.UTF8.GetByteCount(member.Key);
-                        if (!Fits(member.Value, ref remaining, nesting + 1)) return false;
-                    }
-
-                    break;
-            }
-
-            return remaining >= 0;
-        }
-    }
+    // treated exactly like the sentinel, drop and count. It is the rule of the bound before materialization, so
+    // the ingress pre-scan and the converter drop the same structures.
+    private static bool IsOversizedStructure(ProtoAnyValue value) => OtlpValueBounds.IsOversizedStructure(value, Limits);
 
     // A lone surrogate is no character: UTF-8 cannot carry it, and the JSON writer would write U+FFFD in its place
     // without a word. Ingest replaces it here, before anything else reads the text, and counts the replacement.

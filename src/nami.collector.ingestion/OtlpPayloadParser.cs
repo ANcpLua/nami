@@ -112,8 +112,9 @@ internal static class OtlpPayloadParser
         IngestLimits limits)
         where T : IMessage<T>
     {
-        _ = OtlpValueBounds.BoundProtobuf(payload, descriptor, limits, out var counted);
+        var bounded = OtlpValueBounds.BoundProtobuf(payload, descriptor, limits, out var counted);
         RefuseTooMany(counted, limits);
+        CountReplaced(bounded);
         try
         {
             return parser.ParseFrom(payload);
@@ -159,8 +160,9 @@ internal static class OtlpPayloadParser
 
         // The value bounds first, on the bytes, so that a structure over the cap is never built.
         var utf8Json = payload.GetBuffer().AsSpan(0, (int)payload.Length);
-        _ = OtlpValueBounds.BoundJson(utf8Json, limits, out var counted);
+        var bounded = OtlpValueBounds.BoundJson(utf8Json, limits, out var counted);
         RefuseTooMany(counted, limits);
+        CountReplaced(bounded);
 
         // The OTLP spec mandates hex for trace and span ids in JSON, but protojson decodes
         // bytes fields as base64 — rewrite the id fields (validating them) before parsing.
@@ -176,6 +178,15 @@ internal static class OtlpPayloadParser
             throw OtlpPayloadTooLargeException.TooManyMessages(limits.MaxRequestMessages);
         if (counted.Records > limits.MaxRequestRecords)
             throw OtlpPayloadTooLargeException.TooManyRecords(limits.MaxRequestRecords);
+    }
+
+    // A value nested deeper than the bound was replaced by an empty value before the parse. Its attribute stays, so
+    // this is no dropped attribute: it is counted in nami's own telemetry, with the reason "depth". A refused request
+    // counts nothing. The converter counts the same way where it empties such a value itself; it cannot see the ones
+    // replaced here.
+    private static void CountReplaced(OtlpValueBoundsResult bounded)
+    {
+        if (bounded.TooDeep > 0) NamiCollectorMetrics.ValueReplaced(bounded.TooDeep, "depth");
     }
 
     /// <summary>
