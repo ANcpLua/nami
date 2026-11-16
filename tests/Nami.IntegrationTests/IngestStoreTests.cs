@@ -91,7 +91,7 @@ public sealed class IngestStoreTests(TestContext context)
 
     [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
     [TestMethod]
-    public async Task Ingest_DeprecatedKey_RewrittenToSuccessor()
+    public async Task Ingest_DeprecatedKey_StoredUnderTheNameItWasSent()
     {
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
@@ -100,21 +100,17 @@ public sealed class IngestStoreTests(TestContext context)
                 attributes: new JsonArray(OtlpData.Attribute("http.method", "POST"))), context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
         using var attrs = JsonDocument.Parse(Assert.ContainsSingle(snapshot.Spans).AttributesJson!);
-        Assert.AreEqual("POST", attrs.RootElement.GetProperty("http.request.method").GetString());
-        Assert.IsFalse(attrs.RootElement.TryGetProperty("http.method", out _));
-        var discovery = Assert.ContainsSingle(snapshot.AttributeDiscoveries
-            .Where(static d => d.OriginalKey == "http.method").ToArray());
-#pragma warning disable MSTESTEXP
-        using var assertions = Assert.Scope();
-#pragma warning restore MSTESTEXP
-        Assert.AreEqual("http.request.method", discovery.CanonicalKey);
-        Assert.AreEqual("http", discovery.Namespace);
-        Assert.AreEqual("default", discovery.ProjectId);
+        Assert.AreEqual("POST", attrs.RootElement.GetProperty("http.method").GetString());
+        Assert.IsFalse(attrs.RootElement.TryGetProperty("http.request.method", out _), "ingest writes no successor");
+        Assert.IsEmpty(snapshot.AttributeDiscoveries, "ingest renames nothing, so it records no rename");
+        var mark = Assert.ContainsSingle(snapshot.AttributeStabilities
+            .Where(static a => a.AttributeKey == "http.method").ToArray());
+        Assert.AreEqual("deprecated", mark.Stability, "the catalog says what the stored key is");
     }
 
     [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
     [TestMethod]
-    public async Task Discovery_RenamedAndDroppedKeys_SurvivesRestart()
+    public async Task Ingest_DeprecatedKeys_SurviveRestartAsSent()
     {
         var clock = new FakeTimeProvider(TestData.s_now);
         var path = Path.Combine(
@@ -133,21 +129,17 @@ public sealed class IngestStoreTests(TestContext context)
         await using (var store = new DuckDbStore(path, timeProvider: clock))
         {
             var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
-            var renamed = Assert.ContainsSingle(snapshot.AttributeDiscoveries
-                .Where(static d => d.OriginalKey == "http.method").ToArray());
-            var dropped = Assert.ContainsSingle(snapshot.AttributeDiscoveries
-                .Where(static d => d.OriginalKey == "exception.escaped").ToArray());
-            Assert.AreEqual("http.request.method", renamed.CanonicalKey);
-            Assert.IsNull(dropped.CanonicalKey);
-            Assert.AreEqual(TestData.Nanos(TestData.s_now), renamed.FirstSeenUnixNano);
+            Assert.IsEmpty(snapshot.AttributeDiscoveries);
             using var attrs = JsonDocument.Parse(Assert.ContainsSingle(snapshot.Spans).AttributesJson!);
-            Assert.IsFalse(attrs.RootElement.TryGetProperty("exception.escaped", out _));
+            Assert.AreEqual("POST", attrs.RootElement.GetProperty("http.method").GetString());
+            Assert.AreEqual("true", attrs.RootElement.GetProperty("exception.escaped").GetString(),
+                "a deprecated key without a successor is stored too");
         }
     }
 
     [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
     [TestMethod]
-    public async Task Ingest_DeprecatedTemplate_PreservesSuffixAndDiscovery()
+    public async Task Ingest_DeprecatedTemplate_StoredUnderTheNameItWasSent()
     {
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
@@ -163,12 +155,10 @@ public sealed class IngestStoreTests(TestContext context)
             OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), attributes: new JsonArray(metadata)),
             context.CancellationToken);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
-        var discovery = Assert.ContainsSingle(snapshot.AttributeDiscoveries
-            .Where(static d => d.OriginalKey == "rpc.grpc.request.metadata.x-request-id").ToArray());
-        Assert.AreEqual("rpc.request.header.x-request-id", discovery.CanonicalKey);
+        Assert.IsEmpty(snapshot.AttributeDiscoveries);
         using var attrs = JsonDocument.Parse(Assert.ContainsSingle(snapshot.Spans).AttributesJson!);
-        Assert.AreEqual("sample", attrs.RootElement.GetProperty("rpc.request.header.x-request-id")[0].GetString());
-        Assert.IsFalse(attrs.RootElement.TryGetProperty("rpc.grpc.request.metadata.x-request-id", out _));
+        Assert.AreEqual("sample", attrs.RootElement.GetProperty("rpc.grpc.request.metadata.x-request-id")[0].GetString());
+        Assert.IsFalse(attrs.RootElement.TryGetProperty("rpc.request.header.x-request-id", out _));
     }
 
     [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
@@ -186,54 +176,6 @@ public sealed class IngestStoreTests(TestContext context)
             .Where(static a => a.AttributeKey == "gen_ai.usage.input_tokens").ToArray());
         Assert.AreEqual("development", mark.Stability);
         Assert.Contains("42", Assert.ContainsSingle(snapshot.Spans).AttributesJson!);
-    }
-
-    [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
-    [TestMethod]
-    [DataRow(-1, DisplayName = "Below input limit")]
-    [DataRow(0, DisplayName = "At input limit")]
-    [DataRow(1, DisplayName = "Above input limit")]
-    public void Sanitizer_Boundaries_HoldAtPlusMinusOne(int offset)
-    {
-        var text = new string('x', 128 * 1024 + offset);
-        var actual = ExceptionTextSanitizer.Sanitize("exception.message", new AnyValue { StringValue = text });
-        if (offset > 0) Assert.AreEqual("[SANITIZATION_FAILED]", actual);
-        else
-        {
-            Assert.IsLessThanOrEqualTo(32 * 1024, Encoding.UTF8.GetByteCount(actual));
-            Assert.IsTrue(actual.StartsWith(new string('x', 100), StringComparison.Ordinal));
-        }
-    }
-
-    [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
-    [TestMethod]
-    [DataRow(-1, DisplayName = "Below UTF8 output limit")]
-    [DataRow(0, DisplayName = "At UTF8 output limit")]
-    [DataRow(1, DisplayName = "Above UTF8 output limit")]
-    public void Sanitizer_OutputUtf8Boundary_PreservesValidText(int offset)
-    {
-        var text = new string('x', 32 * 1024 + offset);
-        var value = ExceptionTextSanitizer.Sanitize("exception.message", new AnyValue { StringValue = text });
-        if (offset <= 0) Assert.AreEqual(text, value);
-        else
-        {
-            Assert.AreEqual(32 * 1024, Encoding.UTF8.GetByteCount(value));
-            Assert.IsTrue(value.EndsWith('…'));
-        }
-
-        var unicode =
-            ExceptionTextSanitizer.Sanitize("exception.message", new AnyValue { StringValue = new string('ü', 20000) });
-        Assert.IsLessThanOrEqualTo(32 * 1024, Encoding.UTF8.GetByteCount(unicode));
-        Assert.IsFalse(unicode.Contains('\uFFFD'));
-    }
-
-    [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]
-    [TestMethod]
-    public void Sanitizer_InvalidUtf16_FailsClosed()
-    {
-        Assert.AreEqual("[SANITIZATION_FAILED]",
-            ExceptionTextSanitizer.Sanitize("exception.stacktrace",
-                new AnyValue { StringValue = "invalid" + '\ud800' }));
     }
 
     [DependsOn(nameof(Catalog_EmbeddedConstants_MatchRegistrySnapshot))]

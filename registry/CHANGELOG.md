@@ -1,5 +1,36 @@
 # Registry changes
 
+## 0.5.0 — 2026-11-16
+
+- Core: `open-telemetry/semantic-conventions` tag `v1.45.0`, commit
+  `fb30ca17193b551473b1f43c315482918ab6987c` (unchanged, imported through GenAI).
+- GenAI: `open-telemetry/semantic-conventions-genai` commit
+  `e6658f14c9d9ea0760825f029cb82e7673f48fab` (unchanged).
+- Weaver: `0.28.0` (unchanged).
+- nami stores telemetry as it was sent (observer's decision, 16 Nov 2026); the credential stage
+  and the size bounds are the only things ingest does to a record. The registry therefore no
+  longer steers ingest. Removed: the annotations `nami.persisted`, `nami.token_exempt`,
+  `nami.producer`, `nami.instrumentation_scope`, `nami.wire_type`, `nami.wire_container` and
+  `nami.max_utf8_bytes`; their policy rules (`nami_persistence_required`,
+  `nami_token_exemption_requires_persistence`, `nami_wire_type_invalid`,
+  `nami_wire_type_redundant`, `nami_wire_container_invalid`, `nami_producer_scope_required`,
+  `nami_max_utf8_bytes_invalid`); `source/nami/persistence.yaml`; and the generated
+  `RegistryPolicy`, `ValueLimits`, `Producers`, `WireContainers` and the `IsPersisted`,
+  `IsTokenExempt` and `Producer` members of `AttributeDefinition`.
+- Removed `source/claude_code/`: 8 counters, 12 events, 5 spans and 103 attributes, with
+  `ClaudeCodeAttributes` and `docs/semconv/claude_code.md`. What Claude Code and the Claude API
+  send is recorded, without any nami policy, in `docs/telemetry/claude-code-anthropic-reference.md`.
+- Kept: nami's own `nami.*` attributes, the `nami.project` entity and the collector's counters.
+  A `nami.*` key still needs a brief and a stability. The briefs of
+  `nami.collector.attributes.dropped` and `nami.collector.attributes.sanitization_failed` now say
+  what the counters count since 16 Nov: attributes removed by a size bound, and strings the
+  credential stage could not process.
+- Added the counter `nami.collector.values.replaced` with the attribute
+  `nami.value.replacement.reason` (`depth`, `invalid_utf16`): values ingest replaced while it
+  kept their attribute. Until a record can say so in a field of its own, this counter is where
+  such a replacement shows.
+- Advanced the Nami registry schema to 0.5.0. This does not change the product version.
+
 ## 0.4.0 — 2026-11-15
 
 - Core: `open-telemetry/semantic-conventions` tag `v1.45.0`, commit

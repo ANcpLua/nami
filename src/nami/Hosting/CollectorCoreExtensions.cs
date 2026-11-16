@@ -23,6 +23,11 @@ internal static class CollectorCoreExtensions
             .Bind(config)
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<CollectorStorageOptions>, CollectorStorageOptionsValidator>();
+        // The size bounds of ingest: one instance for the request readers, the bounded parse and the converter.
+        services.AddOptions<IngestLimits>()
+            .Bind(config)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<IngestLimits>, IngestLimitsValidator>();
         services.TryAddSingleton(TimeProvider.System);
 
         services.AddGrpc(static options =>

@@ -73,7 +73,7 @@ internal static class ErrorsRecentTool
         {
             var time = log.EffectiveTimeUnixNano() ?? log.ReceivedTimeUnixNano ?? 0;
             if (!window.Matches(log.ServiceName) || !window.Contains(time, "logs") ||
-                log.EventName != "exception") continue;
+                ToolValues.EventName(log) != "exception") continue;
             var type = ToolValues.Attribute(log.AttributesJson, "exception.type") ??
                        ToolValues.Attribute(log.AttributesJson, "error.type") ?? "exception";
             var operation =
@@ -205,11 +205,14 @@ internal static class ChangesRecentTool
                 if (resource.ObservedUnixNano >= NamiTimeConversions.ToUnixNanoUnsigned(window.End)) continue;
                 var attributes = StoredAttributeJson.Attributes(resource.AttributesJson)
                     .ToDictionary(static a => a.Key, static a => a.Value, StringComparer.Ordinal);
-                foreach (var (key, kind) in Keys(attributes.Keys))
+                foreach (var (name, kind) in Keys(attributes.Keys))
                 {
-                    var value = ToolValues.Text(attributes.GetValueOrDefault(key));
-                    if (value is null) continue;
-                    prior.TryGetValue(key, out var previous);
+                    // Keys are stored as sent, so a sender's deprecated key (deployment.environment) is read where
+                    // its successor is asked for. source_key names the key the value was stored under.
+                    var key = ToolValues.StoredKey(attributes, name);
+                    var value = key is null ? null : ToolValues.Text(attributes[key]);
+                    if (key is null || value is null) continue;
+                    prior.TryGetValue(name, out var previous);
                     if (value != previous && window.Contains(resource.ObservedUnixNano))
                     {
                         changes.Add(ToolValues.Json(new Change
@@ -223,7 +226,7 @@ internal static class ChangesRecentTool
                         }));
                     }
 
-                    prior[key] = value;
+                    prior[name] = value;
                 }
             }
         }
@@ -292,9 +295,47 @@ internal static class ToolValues
         return JsonSerializer.SerializeToNode(value, ContractTypes.TypeInfo<T>())!.AsObject();
     }
 
+    // Derived at read time: telemetry is stored as it was sent, so a tool that needs one name reads the keys a sender
+    // may have used for it. The registry's successor table says which deprecated keys mean the same as a key.
+    private static readonly Dictionary<string, string[]> s_deprecatedKeysOf = Nami.SemanticConventions.AttributeCatalog.All
+        .Where(static definition => definition.Successor is not null &&
+                                    !definition.Type.StartsWith("template[", StringComparison.Ordinal))
+        .GroupBy(static definition => definition.Successor!, StringComparer.Ordinal)
+        .ToDictionary(static group => group.Key,
+            static group => group.Select(static definition => definition.Key).Order(StringComparer.Ordinal).ToArray(),
+            StringComparer.Ordinal);
+
+    /// <summary>
+    ///     The text of the attribute stored under <paramref name="key" />, or, when the record has none, under a
+    ///     deprecated key whose successor is <paramref name="key" />.
+    /// </summary>
     internal static string? Attribute(string? json, string key)
     {
-        return Text(StoredAttributeJson.Attribute(json, key));
+        if (Text(StoredAttributeJson.Attribute(json, key)) is { } value) return value;
+        if (json is null || !s_deprecatedKeysOf.TryGetValue(key, out var deprecated)) return null;
+        return deprecated.Where(name => json.Contains(name, StringComparison.Ordinal))
+            .Select(name => Text(StoredAttributeJson.Attribute(json, name))).FirstOrDefault(static text => text is not null);
+    }
+
+    /// <summary>The key a record stores <paramref name="key" /> under: the key itself or a deprecated key that means it.</summary>
+    internal static string? StoredKey(Dictionary<string, AttributeValue?> attributes, string key)
+    {
+        if (attributes.ContainsKey(key)) return key;
+        return s_deprecatedKeysOf.TryGetValue(key, out var deprecated)
+            ? deprecated.FirstOrDefault(attributes.ContainsKey)
+            : null;
+    }
+
+    /// <summary>
+    ///     The event name of a log record, derived at read time: the record's event-name field, or, for a sender that
+    ///     names its events in the deprecated <c>event.name</c> attribute only, that attribute as it was sent.
+    /// </summary>
+    internal static string? EventName(LogStorageRow log)
+    {
+        if (log.EventName is not null) return log.EventName;
+        return log.AttributesJson is { } json && json.Contains("\"event.name\"", StringComparison.Ordinal)
+            ? Text(StoredAttributeJson.Attribute(json, "event.name"))
+            : null;
     }
 
     internal static string Body(string? json)

@@ -8,10 +8,12 @@ or reparsing external definitions:
 weaver registry check --future --v2 -r registry -p registry/policies
 ```
 
-Authored definitions live in `registry/source/`. They define Nami's project/discovery
-attributes, collector counters, and persistence annotations, and import the pinned GenAI
-registry. `source/claude_code/` describes the telemetry nami ingests from Claude Code: its
-counters, events, spans and the keys they carry, under Claude Code's own names. GenAI imports OpenTelemetry core v1.45.0. Core is deliberately not a second
+Authored definitions live in `registry/source/`. They define nami's own `nami.*` attributes, its
+project entity and the collector's counters, and import the pinned GenAI registry. The registry
+names what nami itself emits and the conventions its tools read; it does not decide what is stored
+and describes no sender. What Claude Code and the Claude API send is recorded in
+[`docs/telemetry/claude-code-anthropic-reference.md`](../docs/telemetry/claude-code-anthropic-reference.md).
+GenAI imports OpenTelemetry core v1.45.0. Core is deliberately not a second
 direct dependency: Weaver 0.28.0 reports ambiguous GenAI attribute references when both
 registries are imported directly.
 
@@ -53,22 +55,14 @@ Source registries and their git objects are never edited. The generated publicat
 all effective definitions and provenance annotations; the source files retain the canonical
 upstream URLs and exact dependency pin.
 
-`source/nami/persistence.yaml` refines inherited attributes through a public attribute group;
-it does not redeclare upstream definitions. Unknown keys are not persisted. A deprecated key
-normalizes to its declared successor or is dropped. Exception text remains subject to the
-collector sanitizer. Captured header templates are known keys and retain their supplied values.
-
-A key nami defines for a sender carries `nami.producer` (Claude Code's keys: `claude_code`)
-and, like a `nami.*` key, a brief, a stability and `nami.persisted`. Its type is the type nami
-stores. Where the sender puts another primitive type on the wire, the signal's reference says
-so in `nami.wire_type`, and ingest converts; where it nests the key inside a JSON string
-attribute, the reference names that attribute in `nami.wire_container`, and ingest lifts the
-key out and drops the container. A key may declare `nami.max_utf8_bytes`, the longest value
-in UTF-8 bytes that ingest keeps of it (generated as `ValueLimits.MaxUtf8Bytes`; ingest
-enforces it). Claude Code's `error` text passes the exception-text sanitizer before its bound. A producer's signals name the instrumentation scope they
-arrive under (`nami.instrumentation_scope`); a producer's key means what the registry says
-only on records from those scopes. Weaver 0.28.0 replaces, rather than merges, a definition's
-annotations with those of a reference, so persistence is always read from the definition.
+Since 16 Nov 2026 the collector stores every key as it was sent, known or not, deprecated or not,
+in the type and container it was sent in. No annotation decides what is stored, converted or
+bounded: the annotations `nami.persisted`, `nami.token_exempt`, `nami.producer`,
+`nami.instrumentation_scope`, `nami.wire_type`, `nami.wire_container` and `nami.max_utf8_bytes`
+are gone with their policy rules and generated code (0.5.0). Every string passes the collector's
+credential stage before any bound, whatever its key (`CredentialRedaction`); the size bounds are
+the same for every key (`IngestLimits`). A `nami.*` key needs a brief and a stability; that is the
+whole policy.
 
 The embedded `internal/nami.semconv/Generated/registry-inventory.json` records exact pins and
 counts. The effective pinned inventory contains 125 stable nondeprecated attributes, 53 stable
@@ -85,5 +79,6 @@ The current GenAI pin is `e6658f14c9d9ea0760825f029cb82e7673f48fab`, the head of
 publication follows core v1.45.0 and adds GenAI realtime sessions, exception events for the
 client operations, the internal retrieval span and the `gen_ai.execute_tool` span type.
 Inspect the exact upstream comparison when reviewing a pin update, including refinements,
-descriptions, annotations, and external JSON-schema changes. The 0.4.0 publication keeps
-these pins and adds the Claude Code definitions; `CHANGELOG.md` lists them.
+descriptions, annotations, and external JSON-schema changes. The 0.4.0 publication kept
+these pins and added definitions of Claude Code's telemetry; 0.5.0 removes them again and with
+them every annotation that steered ingest. `CHANGELOG.md` lists both.

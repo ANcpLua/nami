@@ -2,8 +2,6 @@ namespace Nami.Collector.Storage;
 
 internal static class IngestionStorageMapper
 {
-    private const int MaxPersistedLogBodyUtf8Bytes = 64 * 1024;
-
     public static List<SpanStorageRow> ToSpanStorageRows(TraceIngestionBatch batch,
         string? authenticatedProjectId = null)
     {
@@ -54,7 +52,9 @@ internal static class IngestionStorageMapper
         // Omitted suffixes contribute only to the digest and are never stored.
         var storedBody = StoredRecordMapper.ToStored(log.Body);
         var originalBody = storedBody is null ? null : EncodeBody(storedBody);
-        var body = ToPersistedLogBody(storedBody, originalBody);
+        // Ingest has bounded the body like any value: a string is cut to the cap, a list or map within the cap is kept
+        // as sent, one over it is gone. Storage writes what it is given.
+        var body = originalBody;
         var attributesJson = PersistedAttributePolicy.SerializeAttributes(log.Attributes);
         var resourceJson = PersistedAttributePolicy.SerializeAttributes(log.ResourceAttributes);
         var resourceEntityRefsJson = StorageJsonSerializerContext.SerializeResourceEntityRefs(log.ResourceEntityRefs);
@@ -126,94 +126,8 @@ internal static class IngestionStorageMapper
     private static void AppendIdentityPart(StringBuilder builder, ulong? value) =>
         builder.AppendSegment(value?.ToString(CultureInfo.InvariantCulture), true);
 
-    /// <summary>
-    ///     The stored body is a persisted attribute value, so a reader decodes it as one. A string body
-    ///     is truncated before encoding; any other body that exceeds the limit is stored as its
-    ///     truncated canonical text, so the column always holds valid JSON.
-    /// </summary>
-    private static string? ToPersistedLogBody(StoredAttributeValue? body, string? original)
-    {
-        switch (body)
-        {
-            case null: return null;
-            case StoredAttributeValue.StringValue text:
-                {
-                    return Encoding.UTF8.GetByteCount(text.Value) <= MaxPersistedLogBodyUtf8Bytes
-                        ? original
-                        : EncodeBody(new StoredAttributeValue.StringValue(TruncateBodyText(text.Value)));
-                }
-            case StoredAttributeValue.ArrayValue or StoredAttributeValue.BoolValue or StoredAttributeValue.ObjectValue:
-                break;
-        }
-
-        var encoded = original ?? throw new InvalidDataException("Nonempty log bodies require canonical content.");
-        return FitsBodyBudget(encoded)
-            ? encoded
-            : EncodeBody(
-                new StoredAttributeValue.StringValue(TruncateBodyText(StoredAttributeValue.StableString(body))));
-    }
-
     private static string EncodeBody(StoredAttributeValue body) =>
         JsonSerializer.Serialize(body, StorageJsonSerializerContext.Default.StoredAttributeValue);
-
-    private static bool FitsBodyBudget(string encoded)
-    {
-        if (Encoding.UTF8.GetByteCount(encoded) <= MaxPersistedLogBodyUtf8Bytes) return true;
-        // Match the string-body budget: count decoded UTF-8 text, not JSON escape
-        // expansion. A surrogate-pair escape must not erase an otherwise bounded map.
-        // Structural bytes still count, so a large collection cannot bypass the cap.
-        using var document = JsonDocument.Parse(encoded);
-        var remaining = MaxPersistedLogBodyUtf8Bytes;
-        return FitsBodyBudget(document.RootElement, ref remaining);
-    }
-
-    private static bool FitsBodyBudget(JsonElement value, ref int remaining)
-    {
-        if (value.ValueKind is JsonValueKind.String)
-        {
-            var size = Encoding.UTF8.GetByteCount(value.GetString()!) + 2;
-            if (size > remaining) return false;
-            remaining -= size;
-            return true;
-        }
-
-        if (value.ValueKind is not (JsonValueKind.Array or JsonValueKind.Object))
-        {
-            var size = value.GetRawText().Length;
-            if (size > remaining) return false;
-            remaining -= size;
-            return true;
-        }
-
-        if (remaining < 2) return false;
-        remaining -= 2;
-        var separator = 0;
-        if (value.ValueKind is JsonValueKind.Array)
-        {
-            foreach (var item in value.EnumerateArray())
-            {
-                if (separator > remaining) return false;
-                remaining -= separator;
-                if (!FitsBodyBudget(item, ref remaining)) return false;
-                separator = 1;
-            }
-        }
-        else
-        {
-            foreach (var property in value.EnumerateObject())
-            {
-                var size = Encoding.UTF8.GetByteCount(property.Name) + 3 + separator;
-                if (size > remaining) return false;
-                remaining -= size;
-                if (!FitsBodyBudget(property.Value, ref remaining)) return false;
-                separator = 1;
-            }
-        }
-
-        return true;
-    }
-
-    private static string TruncateBodyText(string raw) => BoundedText.Truncate(raw, MaxPersistedLogBodyUtf8Bytes);
 
     private static string? GetResourceEntityRefsIdentity(
         IReadOnlyList<ResourceEntityRefIngestionRecord> entityRefs,

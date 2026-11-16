@@ -2,15 +2,14 @@ using System.Globalization;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Time.Testing;
 using Nami.Collector.Storage;
-using Nami.SemanticConventions;
 using Nami.Tests.Infrastructure;
 
 namespace Nami.IntegrationTests;
 
 /// <summary>
-///     Finish-line item 5: nami stores no prompt, response or tool content, even when a sender sends
-///     it. Each case ingests a span and a log record that carry one content key next to an ordinary
-///     key, and reads both back from the store.
+///     Content is stored as sent (observer's decision, 16 Nov 2026, which reverses finish-line item 5): what a
+///     sender captures is decided at the source, not by nami. Each case ingests a span and a log record that carry
+///     one content key next to an ordinary key, and reads both back from the store.
 /// </summary>
 [TestClass]
 [TestCategory("Integration")]
@@ -32,9 +31,8 @@ public sealed class ContentPersistenceTests(TestContext context)
     [DataRow("gen_ai.prompt.variable.city", DisplayName = "Prompt variable: gen_ai.prompt.variable.<key>")]
     [DataRow("http.request.body.content", DisplayName = "Request body: http.request.body.content")]
     [DataRow("http.response.body.content", DisplayName = "Response body: http.response.body.content")]
-    public async Task Ingest_ContentKey_IsNotStored(string key)
+    public async Task Ingest_ContentKey_IsStoredAsSent(string key)
     {
-        Assert.IsNotNull(AttributeCatalog.Find(key), key + " is a registry key, so the registry decides about it");
         var clock = new FakeTimeProvider(TestData.s_now);
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
         var time = TestData.Nanos(TestData.s_now.AddSeconds(-1));
@@ -49,10 +47,8 @@ public sealed class ContentPersistenceTests(TestContext context)
         var log = Assert.ContainsSingle(snapshot.Logs).AttributesJson!;
         Assert.Contains("\"" + OrdinaryKey + "\":\"POST\"", span, "the ordinary key is stored");
         Assert.Contains("\"" + OrdinaryKey + "\":\"POST\"", log, "the ordinary key is stored");
-        Assert.DoesNotContain(content, span);
-        Assert.DoesNotContain(content, log);
-        Assert.DoesNotContain(key, span);
-        Assert.DoesNotContain(key, log);
+        Assert.Contains("\"" + key + "\":\"" + content + "\"", span, "the content key is stored with its value");
+        Assert.Contains("\"" + key + "\":\"" + content + "\"", log, "the content key is stored with its value");
     }
 
     private static string Logs(ulong time, JsonArray attributes) => new JsonObject

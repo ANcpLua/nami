@@ -48,21 +48,3 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 {{ line }}
 {% endfor %}
 {% endif %}
-{% if ctx.signal_details %}
-
-## Signal attributes
-
-The attributes of each signal that nami describes for a producer. Type is the type nami
-stores; Wire is what the producer sends where that differs. Persisted says whether ingest
-keeps the key.
-{% for signal in ctx.signal_details %}
-
-### {{ signal.kind }} `{{ signal.name }}`
-
-| Key | Type | Wire | Requirement | Persisted |
-| --- | --- | --- | --- | --- |
-{% for line in signal.rows %}
-{{ line }}
-{% endfor %}
-{% endfor %}
-{% endif %}

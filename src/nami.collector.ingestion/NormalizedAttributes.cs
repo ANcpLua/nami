@@ -27,14 +27,6 @@ internal sealed partial record NormalizedAttributes : IReadOnlyDictionary<string
     public static implicit operator NormalizedAttributes(Dictionary<string, OtlpAttributeValue> values) =>
         new() { Values = values };
 
-    internal static void RecordRename(NormalizedAttributes attributes, string original, string canonical)
-    {
-        if (!string.Equals(original, canonical, StringComparison.Ordinal))
-            attributes.Renames.Add(new AttributeRename { OriginalKey = original, CanonicalKey = canonical });
-        else if (AttributeStability.Of(original) == Stability.Deprecated)
-            attributes.Renames.Add(new AttributeRename { OriginalKey = original, CanonicalKey = null });
-    }
-
     internal static IReadOnlyList<AttributeRename> Collect(IEnumerable<NormalizedAttributes> attributes) =>
         attributes.SelectMany(static values => values.Renames).Distinct()
             .OrderBy(static rename => rename.OriginalKey, StringComparer.Ordinal)
