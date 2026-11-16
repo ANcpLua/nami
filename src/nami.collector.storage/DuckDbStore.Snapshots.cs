@@ -17,7 +17,7 @@ internal sealed partial class DuckDbStore
                 await using var read = connection.CreateCommand();
                 read.Transaction = transaction;
                 read.CommandText =
-                    "SELECT payload FROM read_snapshots WHERE project_id = $1 AND snapshot_id = $2 AND expires_unix_nano > $3";
+                    "SELECT payload FROM read_snapshots WHERE project_id = $1 AND snapshot_id = $2 AND expires_unix_nano >= $3";
                 AddParameters(read, projectId, snapshotId, (decimal)now);
                 byte[] payload;
                 await using (var rows = read.ExecuteReader())
