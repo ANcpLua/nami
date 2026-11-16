@@ -56,7 +56,7 @@ solution entry. The project delegates compilation to the existing Bun `package.j
 script. Its restore target uses `bun install --frozen-lockfile`, invalidated by project/package/
 lockfile/toolchain changes or removal of `node_modules`. npm installation is disabled.
 The solution build now builds MCP directly. `eng/build/Build.cs` also exposes `Mcp` for a standalone
-adapter build; `Compile` does not invoke it separately. `PublishNative` includes `mcp/main.js`.
+adapter build; `Compile` does not invoke it separately. `PublishNative` includes `mcp/main.js` and `mcp/healthcheck.js`.
 The repository entry points resolve the pinned Bun executable. Direct MSBuild/IDE builds need Bun
 on PATH or an explicit `BunExecutable` property. C# version-source generation excludes `.esproj`.
 A `.slnf` is optional for IDE loading; suite selection does not require one.
@@ -480,6 +480,9 @@ also reject concurrent source or output mutations. Do not bypass a busy lock.
 
 Tests remain native MSTest/MTP. Fresh TRX is validated by the runner before it records the current
 summary. A zero-test, failed or skipped run cannot pass; filtered runs cannot replace the full gate.
+The one exception holds on a machine that is not Linux: a test skipped with a reason that ends in
+`Linux only` (it reads `/proc`, or needs `/dev/shm`) counts there as run, for the skip rule and for
+the suite floor. On Linux every skip fails the run.
 Build success, inspection findings and analysis validity are distinct facts in every summary.
 
 ## Agent control verification

@@ -89,7 +89,8 @@ default off: the engine then runs with the runtime's own gen0 budget.
 **Ports chosen by the operating system.** `NAMI_PORT` (MCP), `NAMI_OTLP_PORT` (OTLP/HTTP) and
 `NAMI_GRPC_PORT` (OTLP/gRPC) each accept `0`: the operating system then picks a free port, so
 several nami processes start side by side without anyone probing for ports. To learn the ports,
-name a ready manifest with `--ready-file <path>` or `NAMI_READY_FILE`:
+name a ready manifest with `--ready-file <path>` or `NAMI_READY_FILE`; with `NAMI_PORT=0` nami does
+not start without one, because nothing else names the MCP port:
 
 ```json
 {"mcp":"http://127.0.0.1:40123/mcp","otlp_http":"http://127.0.0.1:40124","otlp_grpc":"http://127.0.0.1:40125","data_path":"/work/nami.duckdb"}
@@ -103,11 +104,17 @@ loopback, and with `--stdio` `mcp` is `null`. The store stays where `NAMI_DATA_P
 `data_path` reports it as an absolute path. With `NAMI_OTLP_PORT=0` nami does not export its own
 telemetry, because that exporter needs the port before the listener is bound. Inside a
 container the manifest names the container's own ports; the ports on the host are what
-`docker port <container>` prints.
+`docker port <container>` prints. The image's health check asks `NAMI_PORT`; with `NAMI_PORT=0` it
+reads the MCP URL from the manifest named by `NAMI_READY_FILE`, so set the variable there, not the
+option.
 
 ## Run in a container
 
-The image (`src/nami/Dockerfile`) holds the same two processes. Inside the container nami listens
+The image (`src/nami/Dockerfile`) holds the same two processes. They run as the user `app` (1654);
+the program files in `/app` belong to root, so the process can write to `/data` but cannot change
+its own engine or bundle. The image holds no debug symbols; `docker build -f src/nami/Dockerfile
+--target symbols --output type=local,dest=symbols .` writes those of the same build into a folder.
+Inside the container nami listens
 on every interface, so two things that a loopback process on your machine does without are required:
 project keys, because the default mode outside Development is `ApiKey` and the container does not
 pass `--stdio`, and `NAMI_PUBLIC_URL`, the origin at which you reach MCP. Publish the ports on the
@@ -134,10 +141,18 @@ claude mcp add --transport http nami http://127.0.0.1:5100/mcp --header "x-otlp-
 - **`NAMI_PUBLIC_URL`.** An HTTPS origin, or a plain HTTP origin on `localhost`, `127.0.0.1` or
   `[::1]` for a port published on this machine. nami answers MCP and `/health` only when the
   request's `Host`, and its `Origin` if a browser sent one, name this machine or that origin; a page
-  of another site, or a name rebound to your machine, gets 403 before any key is looked at.
+  of another site, or a name rebound to your machine, gets 403 before any key is looked at. The
+  wildcard address nami binds inside the container (`0.0.0.0`) is not such a name: it is refused as
+  `Host`, as `Origin` and as `NAMI_PUBLIC_URL`. One request is answered under a foreign `Host`:
+  `GET /health` under `healthcheck.railway.app`, which is how Railway's deploy check asks; `/mcp`
+  under that name gets 403 like any other.
+- **`Host` and `Origin`.** `Host` is compared by name, without its port. An `Origin` on
+  `localhost`, `127.0.0.1` or `[::1]` passes on any port, over HTTP or HTTPS: it is a page of this
+  machine. Any other `Origin` has to be `NAMI_PUBLIC_URL` itself, in scheme, host and port: with
+  `https://nami.example`, a page at `http://nami.example` or at `https://nami.example:8443` gets 403.
 - **A host port chosen by Docker** (`-p 127.0.0.1::5100`, read it with `docker port nami 5100/tcp`)
-  works with the same setting: `Host` and `Origin` are compared by name, not by port, so
-  `NAMI_PUBLIC_URL=http://127.0.0.1:5100` stays right whatever port the host side gets.
+  works with the same setting: `NAMI_PUBLIC_URL=http://127.0.0.1:5100` names this machine, so it
+  stays right whatever port the host side gets.
 - Every connection reaches the container from Docker's bridge, never from 127.0.0.1, so nami cannot
   tell local clients from others there: the key, not the address, is what admits a request.
 
@@ -164,7 +179,8 @@ For several agents, connect them all to the one running nami. If an OpenTelemetr
 front, cap its batch as described under [Send telemetry](#send-telemetry)
 (`send_batch_max_size: 512`).
 
-**Stopping.** `NAMI_STOP_BUDGET_SECONDS` (default 8, from 1 to 3600) is how long a stop may take.
+**Stopping.** `NAMI_STOP_BUDGET_SECONDS` (default 8, from 1 to 3600, in decimal digits only) is how
+long a stop may take.
 On SIGTERM or SIGINT nami closes MCP and tells the engine to stop. During the first five eighths of
 the budget the engine still answers the exports it is working on; then it aborts what is left, lets
 the store finish the write it is in, and ends. At the end of the budget an engine that still runs

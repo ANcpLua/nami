@@ -492,8 +492,8 @@ public sealed class StorageLifetimeTests(TestContext context)
     public async Task FileMetrics_DataPathThroughALinkToAnotherVolume_ReportThatVolume()
     {
         const string Volume = "/dev/shm";
-        if (!OperatingSystem.IsLinux() || !Directory.Exists(Volume))
-            Assert.Inconclusive("Needs a second volume at a known place: /dev/shm on Linux.");
+        if (!OperatingSystem.IsLinux()) Assert.Inconclusive("needs /dev/shm as a second volume; Linux only");
+        if (!Directory.Exists(Volume)) Assert.Inconclusive("Needs a second volume at a known place: /dev/shm.");
         var target = Directory.CreateDirectory(Path.Combine(Volume, "nami-" + Guid.NewGuid().ToString("N")));
         try
         {

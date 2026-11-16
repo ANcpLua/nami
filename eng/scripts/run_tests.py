@@ -168,11 +168,39 @@ def selection(manifest, suite, lane=None, user_filter=None):
     return ("&".join(parts) or None), floor, timeout
 
 
+# How a test that needs Linux ends its skip reason (tests/Nami.EndToEndTests/LinuxProcess.cs reads /proc).
+LINUX_ONLY = "Linux only"
+
+
+def platform_minimum(minimum, on_linux):
+    """The test platform's own floor: it counts executed tests only, so it holds on Linux and nowhere else.
+
+    Off Linux the tests that need Linux are skipped, and the platform would refuse the run for them; there
+    verdict() alone applies the floor, from the report.
+    """
+    return ["--minimum-expected-tests", str(minimum)] if on_linux else []
+
+
+def verdict(counts, minimum, on_linux):
+    """The exit code of one suite whose test process ended with 0, and what to print with it.
+
+    Every test must run: a skipped one fails the run (2), and fewer executed tests than the suite's floor do too
+    (9). The one exception is a machine that is not Linux: there a test that skipped as Linux-only cannot run, so
+    it is not counted as a skip and counts towards the floor. On Linux nothing is excused.
+    """
+    excused = 0 if on_linux else counts["linuxOnly"]
+    if counts["passed"] + counts["failed"] + excused < minimum:
+        return 9, f"executed fewer than {minimum} tests"
+    if counts["failed"] or counts["skipped"] > excused:
+        return 2, None
+    return 0, None
+
+
 def read_results(directory):
     files = sorted(directory.glob("*.trx"))
     if not files:
         raise HarnessError(f"No fresh TRX report was produced in {directory}")
-    counts = {"total": 0, "passed": 0, "failed": 0, "skipped": 0}
+    counts = {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "linuxOnly": 0}
     names = []
     executions = set()
     namespace = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
@@ -192,6 +220,10 @@ def read_results(directory):
             outcome = result.get("outcome")
             counts["total"] += 1
             counts["passed" if outcome == "Passed" else "skipped" if outcome == "NotExecuted" else "failed"] += 1
+            if outcome == "NotExecuted":
+                reason = result.find("t:Output/t:ErrorInfo/t:Message", namespace)
+                if reason is not None and (reason.text or "").rstrip().endswith(LINUX_ONLY):
+                    counts["linuxOnly"] += 1
             names.append(result.get("testName"))
     return counts, names
 
@@ -291,7 +323,8 @@ def main():
                     return finish(summary, code)
                 mcp_output = root / "artifacts/publish/mcp"
                 mcp_output.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(mcp / "dist/main.js", mcp_output / "main.js")
+                for file in ("main.js", "healthcheck.js"):
+                    shutil.copy2(mcp / "dist" / file, mcp_output / file)
         module_files = []
         if args.test_modules:
             expression = args.test_modules if Path(args.test_modules).is_absolute() else str(root / args.test_modules)
@@ -327,7 +360,8 @@ def main():
             if not config.is_file():
                 raise HarnessError(f"MSTest configuration is missing: {config}")
             display = json.loads(config.read_text())["commandLineOptions"]
-            command += ["--max-parallel-test-modules", "1", "--minimum-expected-tests", str(minimum),
+            on_linux = sys.platform == "linux"
+            command += ["--max-parallel-test-modules", "1", *platform_minimum(minimum, on_linux),
                         "--output", settings["verbosity"], "--show-test-results", display["show-test-results"],
                         "--no-ansi", "--no-progress",
                         "--timeout", timeout, "--report-trx", "--results-directory", str(directory),
@@ -350,11 +384,13 @@ def main():
             print(f"TEST RESULT {name}: Passed: {counts['passed']}, Failed: {counts['failed']}, Skipped: {counts['skipped']}, Total: {counts['total']}, Exit: {code}", flush=True)
             if code:
                 return finish(summary, code)
-            if counts["passed"] + counts["failed"] < minimum:
-                print(f"TEST MINIMUM FAILED: {name} executed fewer than {minimum} tests", file=sys.stderr)
-                return finish(summary, 9)
-            if counts["failed"] or counts["skipped"]:
-                return finish(summary, 2)
+            if not on_linux and counts["linuxOnly"]:
+                print(f"TEST SKIPS {name}: {counts['linuxOnly']} of the skipped tests need Linux; this machine is not Linux, so they count as run.", flush=True)
+            code, reason = verdict(counts, minimum, on_linux)
+            if reason:
+                print(f"TEST MINIMUM FAILED: {name} {reason}", file=sys.stderr)
+            if code:
+                return finish(summary, code)
         print("TEST RUN PASSED: every requested suite executed and its fresh reports were verified.", flush=True)
         return finish(summary, 0)
     except (HarnessError, OSError, ValueError, KeyError) as error:

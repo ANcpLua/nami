@@ -78,8 +78,9 @@ missing product models. Neither count is a full instrumentation coverage claim.
       engine. The Dockerfile declares Bun and native runtime dependencies.
 - [x] Verify the distributable in a clean environment without installed .NET, including its
       native libraries (D6): the container workflow on linux/amd64 and linux/arm64 (batch m8a).
-- [ ] Verify channel separation: diagnostic output corrupts neither MCP stdout nor private
-      frames (D6).
+- [x] Verify channel separation: diagnostic output corrupts neither MCP stdout nor private
+      frames (D6): `ChannelSeparationTests` over stdio, with the private frames recorded on both
+      sides of the engine.
 
 `src/nami.mcp/nami.mcp.esproj` integrates the existing Bun/package.json build into `nami.slnx`.
 The JavaScript SDK is pinned, npm install is disabled and the standalone `Mcp` target delegates

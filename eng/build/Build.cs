@@ -45,7 +45,9 @@ sealed class Build : FalloutBuild, IHasConfiguration
             Run("dotnet", $"publish src/nami/nami.csproj -c {Configuration} -o artifacts/publish {CpuLimit} -nodeReuse:false -p:UseSharedCompilation=false {BinaryLog("publish")}");
             var output = (RootDirectory / "artifacts/publish/mcp").ToString();
             Directory.CreateDirectory(output);
-            File.Copy((RootDirectory / "src/nami.mcp/dist/main.js").ToString(), Path.Combine(output, "main.js"), true);
+            // The bundle and the container's health probe, as the image holds them.
+            foreach (var file in (string[])["main.js", "healthcheck.js"])
+                File.Copy(Path.Combine((RootDirectory / "src/nami.mcp/dist").ToString(), file), Path.Combine(output, file), true);
         });
     public Target Conformance => d => d.Description("Run the end-to-end proof against the published native binary")
         .DependsOn(Compile).DependsOn(PublishNative)

@@ -6,7 +6,8 @@ import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { CONFIG, CONFIG_DEFAULTS, CONTRACT_REVISION } from "./contracts/generated/manifest.js";
 import type { HealthReport, ProjectKeyDocument } from "./contracts/generated/json.js";
 import { Engine, EngineError } from "./engine.js";
-import { dnsRebindingResponse, isLoopbackBindHost } from "./http-security.js";
+import { dnsRebindingResponse, isLoopbackBindHost, isWildcardHost, requestNames } from "./http-security.js";
+import { configuredPort } from "./port.js";
 import { removeReadyManifest, writeReadyManifest } from "./ready.js";
 import { createServer } from "./server.js";
 
@@ -33,10 +34,12 @@ const mode = process.env[CONFIG.AuthMode] ?? (environment?.toLowerCase() === "de
 if (stdio && mode.toLowerCase() === "apikey")
   throw new Error(`--stdio cannot be used with ${CONFIG.AuthMode}=ApiKey: stdio carries no project key, so every tool call would be refused. `
     + `Serve Streamable HTTP and send a project's read key in x-otlp-api-key, or set ${CONFIG.AuthMode}=Unsecured for a local engine with the default project.`);
-// The engine reads the same variable and refuses the same values (CollectorStopOptions).
-const stopBudget = Number(process.env[CONFIG.StopBudgetSeconds] ?? CONFIG_DEFAULTS.StopBudgetSeconds);
+// The engine reads the same variable and refuses the same values (CollectorStopOptions.cs): one spelling for
+// both, decimal digits and nothing else. Number() alone also takes 0x10, 1e1 and 10.0, which the engine does not.
+const stopBudgetText = process.env[CONFIG.StopBudgetSeconds] ?? CONFIG_DEFAULTS.StopBudgetSeconds;
+const stopBudget = /^[0-9]+$/.test(stopBudgetText) ? Number(stopBudgetText) : Number.NaN;
 if (!Number.isInteger(stopBudget) || stopBudget < 1 || stopBudget > 3600)
-  throw new Error(`${CONFIG.StopBudgetSeconds} must be a whole number of seconds from 1 to 3600.`);
+  throw new Error(`${CONFIG.StopBudgetSeconds} must be a whole number of seconds from 1 to 3600. Write it in decimal digits only.`);
 const engine = new Engine(resolve(enginePath), stopBudget * 1000);
 await engine.ready;
 const keyDocument: unknown = JSON.parse(process.env[CONFIG.ProjectKeys] ?? "{}");
@@ -84,13 +87,15 @@ if (stdio) {
   closeTransport = () => handle.close();
 } else {
   const hostname = process.env[CONFIG.BindAddress] ?? CONFIG_DEFAULTS.BindAddress;
-  const port = Number(process.env[CONFIG.Port] ?? process.env[CONFIG.PlatformPort] ?? CONFIG_DEFAULTS.Port);
-  // Port 0 lets the operating system choose; the ready manifest then names the port.
-  if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error("NAMI_PORT is outside its supported range.");
+  // Port 0 lets the operating system choose; the ready manifest then names the port. Without a manifest nobody
+  // could find the listener, and the container's health probe (healthcheck.ts) would fail for good.
+  const port = configuredPort(process.env);
+  if (port === 0 && !readyFile)
+    throw new Error(`${CONFIG.Port}=0 leaves the port to the operating system; name a ready manifest with --ready-file or ${CONFIG.ReadyFile}, which is where the port is written.`);
   const domain = process.env[CONFIG.RailwayPublicDomain];
   const publicUrl = process.env[CONFIG.PublicUrl] ?? (domain ? `https://${domain}` : undefined);
   const localOrigins = ["localhost", "127.0.0.1", "[::1]"];
-  const allowedHosts = new Set([...localOrigins, hostname]);
+  let publicOrigin: URL | undefined;
   if (publicUrl) {
     const origin = new URL(publicUrl);
     // Plain HTTP is an origin only for this machine itself: a container whose MCP port is published on the host's
@@ -98,10 +103,13 @@ if (stdio) {
     const loopback = origin.protocol === "http:" && localOrigins.includes(origin.hostname);
     if ((origin.protocol !== "https:" && !loopback) || origin.username || origin.password || origin.search || origin.hash || origin.pathname !== "/")
       throw new Error("NAMI_PUBLIC_URL must be an HTTPS origin, or an HTTP origin on localhost, 127.0.0.1 or [::1], without credentials, query or path.");
-    allowedHosts.add(origin.hostname);
+    if (isWildcardHost(origin.hostname))
+      throw new Error("NAMI_PUBLIC_URL names a wildcard address; name the host at which clients reach MCP.");
+    publicOrigin = origin;
   }
   if (!isLoopbackBindHost(hostname) && !publicUrl)
     throw new Error("A non-loopback listener requires NAMI_PUBLIC_URL.");
+  const names = requestNames(hostname, publicOrigin);
   // A connection that stays silent is closed after the longest idle time Bun allows (its default of 10 seconds cut
   // every call that ran longer). A call being served is exempt, and for revision 2026-07-28 it has to be: the
   // SDK's per-request transport answers such a call with application/json once the result exists, so its client
@@ -121,7 +129,7 @@ if (stdio) {
       // Host and Origin are judged before the URL is read: with a malformed Host header the URL does not parse.
       let url: URL;
       try {
-        const refused = dnsRebindingResponse(request, [...allowedHosts], [...allowedHosts]);
+        const refused = dnsRebindingResponse(request, names);
         if (refused) return refused;
         url = new URL(request.url);
       } catch { return failure(400, -32600, "Invalid Host header or request target."); }
@@ -142,12 +150,17 @@ if (stdio) {
 // Ready: the engine has reported the addresses it bound, and the MCP listener (if any) is bound.
 if (readyFile) writeReadyManifest(readyFile, mcpUrl, await engine.listeners);
 let closing = false;
+// Removes the ready manifest when nami stops. A manifest that cannot be removed is reported on standard error
+// and left behind; it never stops the stop.
+function forgetReady(file: string) {
+  try { removeReadyManifest(file); } catch (error) { report(error); }
+}
 async function close() {
   if (closing) return;
   closing = true;
-  if (readyFile) removeReadyManifest(readyFile);
-  await closeTransport();
-  await engine.close();
+  if (readyFile) forgetReady(readyFile);
+  // The engine is told to stop whatever the transport does while it closes.
+  try { await closeTransport(); } finally { await engine.close(); }
 }
 // The first signal closes; a second one while that is under way ends the host at once. The handlers stay
 // registered, so the second signal still exits through the "exit" listener that takes the engine with it.
@@ -167,7 +180,7 @@ void engine.failed.then(async (error) => {
     // The calls this failure rejected are being answered right now: they get their answer, within two seconds.
     await Promise.race([closeTransport(false), new Promise(resolve => setTimeout(resolve, 2000))]).catch(report);
   }
-  if (readyFile) removeReadyManifest(readyFile);
+  if (readyFile) forgetReady(readyFile);
   process.exit(1);
 });
 if (stdio) {

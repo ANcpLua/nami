@@ -29,7 +29,7 @@ work=$(mktemp -d)
 step() { printf '\n== %s\n' "$*"; }
 fail() { printf 'SMOKE FAILED: %s\n' "$*" >&2; docker logs "$id" 2>&1 | tail -40 >&2 || true; exit 1; }
 cleanup() {
-    docker rm -f "$id" "$id-second" >/dev/null 2>&1 || true
+    docker rm -f "$id" "$id-second" "$id-files" >/dev/null 2>&1 || true
     docker volume rm "$id" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
@@ -53,6 +53,32 @@ mcp_headers=(-H 'content-type: application/json' -H 'accept: application/json, t
 step "image"
 docker image inspect "$image" --format 'id {{.Id}}  {{.Os}}/{{.Architecture}}  user {{.Config.User}}  {{.Size}} bytes'
 expect "image user" "$(docker image inspect "$image" --format '{{.Config.User}}')" app
+
+step "image files: /app belongs to root, the image's user can change nothing in it, and no debug symbols"
+# The image has no shell and no ls: its files are listed from an export of a container that never ran.
+docker create --name "$id-files" "$image" >/dev/null
+docker export "$id-files" | tar -tv --numeric-owner > "$work/files.txt"
+docker rm "$id-files" >/dev/null
+# tar -tv: mode, uid/gid, size, date, time, name
+awk '$6 == "app/" || $6 ~ /^app\//' "$work/files.txt" > "$work/app.txt"
+grep -q ' app/nami$' "$work/app.txt" && grep -q ' app/mcp/main.js$' "$work/app.txt" || fail "the listing of /app lacks the engine or the bundle"
+problems=$(awk '$2 != "0/0" || substr($1, 6, 1) == "w" || substr($1, 9, 1) == "w"' "$work/app.txt")
+[[ -z $problems ]] || { printf '%s\n' "$problems" >&2; fail "not owned by root, or writable by group or others (above)"; }
+echo "ok  $(wc -l < "$work/app.txt") entries under /app, each owned by 0/0 and writable by its owner only"
+symbols=$(awk '$6 ~ /\.(dbg|pdb)$/ { print $6 }' "$work/files.txt")
+[[ -z $symbols ]] || fail "debug symbols in the image: $(echo $symbols)"
+echo "ok  no .dbg and no .pdb file among the $(wc -l < "$work/files.txt") entries of the image"
+# And the attempt itself, as the user the image runs as, with the Bun the image already holds.
+attempt='const fs = require("node:fs"); const done = [];
+for (const [what, act] of [
+  ["write a new file into /app", () => fs.writeFileSync("/app/planted", "")],
+  ["rename the engine", () => fs.renameSync("/app/nami", "/app/nami.old")],
+  ["overwrite the engine", () => fs.writeFileSync("/app/nami", "")],
+  ["overwrite the bundle", () => fs.writeFileSync("/app/mcp/main.js", "")],
+  ["remove the bundle", () => fs.rmSync("/app/mcp/main.js")],
+  ["remove the health probe", () => fs.rmSync("/app/mcp/healthcheck.js")]]) { try { act(); done.push(what); } catch {} }
+console.log(`uid ${process.getuid()} could: ${done.join(", ") || "nothing"}`);'
+expect "changing /app as the image's user" "$(docker run --rm --entrypoint /usr/local/bin/bun "$image" -e "$attempt")" "uid 1654 could: nothing"
 
 step "start: three ports on host ports of Docker's choice, a fresh named volume, a stop budget of 25 s in a grace period of 30 s"
 docker volume create "$id" >/dev/null

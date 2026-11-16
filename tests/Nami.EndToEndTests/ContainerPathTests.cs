@@ -104,12 +104,12 @@ public sealed class ContainerPathTests(TestContext context)
     ///     the public URL a user gives for <c>-p 127.0.0.1:5100:5100</c>. The listeners take ports of the system's
     ///     choice, so the port a client reaches is not the 5100 of the public URL, as with a dynamic host port.
     /// </summary>
-    private Task<McpHarness> StartAsTheImageDoesAsync(string publicUrl)
+    private Task<McpHarness> StartAsTheImageDoesAsync(string publicUrl, string bindAddress = "0.0.0.0")
     {
         return McpHarness.StartAsync(TestData.HostBinary, false, Directory, context.CancellationToken, Keys, ReadKey,
             new Dictionary<string, string?>
             {
-                ["NAMI_BIND_ADDRESS"] = "0.0.0.0", ["NAMI_PUBLIC_URL"] = publicUrl,
+                ["NAMI_BIND_ADDRESS"] = bindAddress, ["NAMI_PUBLIC_URL"] = publicUrl,
                 ["NAMI_OTLP_AUTH_MODE"] = null, ["DOTNET_ENVIRONMENT"] = "Production", ["NODE_ENV"] = "production"
             }, true);
     }
@@ -125,6 +125,96 @@ public sealed class ContainerPathTests(TestContext context)
         if (hostHeader is not null) request.Headers.Host = hostHeader;
         using var response = await host.Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, context.CancellationToken);
         return response.StatusCode;
+    }
+
+    private async Task<HttpStatusCode> GetHealthAsync(McpHarness host, string? origin = null, string? hostHeader = null)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{host.HttpPort}/health");
+        if (origin is not null) request.Headers.Add("Origin", origin);
+        if (hostHeader is not null) request.Headers.Host = hostHeader;
+        using var response = await host.Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, context.CancellationToken);
+        return response.StatusCode;
+    }
+
+    [TestMethod]
+    [Timeout(90000, CooperativeCancellation = true)]
+    [DataRow("0.0.0.0", DisplayName = "Every interface, as the image binds")]
+    [DataRow("0", DisplayName = "Every interface, written short")]
+    public async Task WildcardBindAddress_IsNoHostAndNoOrigin(string bindAddress)
+    {
+        // A wildcard says where nami listens; it is not a name of this machine. A request that names it, as
+        // Host or as the Origin of a browser page, is refused like any other foreign name.
+        const string asHost = "0.0.0.0";
+        await using var host = await StartAsTheImageDoesAsync("http://127.0.0.1:5100", bindAddress);
+        Assert.AreEqual(HttpStatusCode.OK, await PostMcpAsync(host, ReadKey), "Precondition: the listener answers.");
+        Assert.AreEqual(HttpStatusCode.Forbidden, await PostMcpAsync(host, ReadKey, hostHeader: $"{asHost}:{host.HttpPort}"));
+        Assert.AreEqual(HttpStatusCode.Forbidden, await PostMcpAsync(host, ReadKey, hostHeader: asHost));
+        Assert.AreEqual(HttpStatusCode.Forbidden, await PostMcpAsync(host, ReadKey, $"http://{asHost}:5100"));
+        Assert.AreEqual(HttpStatusCode.Forbidden, await PostMcpAsync(host, ReadKey, $"http://{asHost}:{host.HttpPort}"));
+        Assert.AreEqual(HttpStatusCode.Forbidden, await GetHealthAsync(host, hostHeader: $"{asHost}:{host.HttpPort}"));
+        Assert.AreEqual(HttpStatusCode.Forbidden, await GetHealthAsync(host, $"http://{asHost}:{host.HttpPort}"));
+        // The names of this machine still pass, as Host and as Origin.
+        Assert.AreEqual(HttpStatusCode.OK, await PostMcpAsync(host, ReadKey, $"http://127.0.0.1:{host.HttpPort}", $"127.0.0.1:{host.HttpPort}"));
+        Assert.AreEqual(HttpStatusCode.OK, await GetHealthAsync(host));
+    }
+
+    [TestMethod]
+    [Timeout(90000, CooperativeCancellation = true)]
+    public async Task Health_UnderRailwaysProbeHost_IsAnsweredAndNothingElseIs()
+    {
+        // Railway's deploy check asks GET /health with the Host healthcheck.railway.app, not with the service's
+        // own name (https://docs.railway.com/deployments/healthchecks).
+        const string Probe = "healthcheck.railway.app";
+        await using var host = await StartAsTheImageDoesAsync("https://nami.example");
+        Assert.AreEqual(HttpStatusCode.OK, await GetHealthAsync(host, hostHeader: Probe));
+        Assert.AreEqual(HttpStatusCode.OK, await GetHealthAsync(host, hostHeader: $"{Probe}:{host.HttpPort}"));
+
+        // Only that Host, only /health, only GET; the Origin is still judged.
+        Assert.AreEqual(HttpStatusCode.Forbidden, await PostMcpAsync(host, ReadKey, hostHeader: Probe));
+        Assert.AreEqual(HttpStatusCode.Forbidden, await GetHealthAsync(host, hostHeader: "evil.example"));
+        Assert.AreEqual(HttpStatusCode.Forbidden, await GetHealthAsync(host, hostHeader: $"{Probe}.evil.example"));
+        Assert.AreEqual(HttpStatusCode.Forbidden, await GetHealthAsync(host, "https://evil.example", Probe));
+        foreach (var (method, path) in ((HttpMethod, string)[])[(HttpMethod.Post, "/health"), (HttpMethod.Get, "/mcp"),
+                     (HttpMethod.Get, "/health/"), (HttpMethod.Get, "/")])
+        {
+            using var request = new HttpRequestMessage(method, $"http://127.0.0.1:{host.HttpPort}{path}");
+            request.Headers.Host = Probe;
+            request.Headers.Add("x-otlp-api-key", ReadKey);
+            using var response = await host.Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, context.CancellationToken);
+            Assert.AreEqual(HttpStatusCode.Forbidden, response.StatusCode, $"{method} {path} under the probe's Host.");
+        }
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    [DataRow("https://0.0.0.0")]
+    [DataRow("https://[::]:8443")]
+    public async Task PublicUrl_WildcardAddress_RefusedAtStart(string publicUrl)
+    {
+        var failure = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+        {
+            await using var host = await StartAsTheImageDoesAsync(publicUrl);
+        });
+        Assert.Contains("NAMI_PUBLIC_URL names a wildcard address", failure.Message);
+    }
+
+    [TestMethod]
+    [Timeout(90000, CooperativeCancellation = true)]
+    [DataRow("https://nami.example", "https://nami.example", true, DisplayName = "The public origin itself")]
+    [DataRow("https://nami.example", "https://nami.example:443", true, DisplayName = "The public origin with its default port written out")]
+    [DataRow("https://nami.example", "http://nami.example", false, DisplayName = "The public host over plain HTTP")]
+    [DataRow("https://nami.example", "https://nami.example:8443", false, DisplayName = "The public host on another port")]
+    [DataRow("https://nami.example", "http://nami.example:443", false, DisplayName = "The public host and port over plain HTTP")]
+    [DataRow("https://nami.example:8443", "https://nami.example:8443", true, DisplayName = "A public origin with a port")]
+    [DataRow("https://nami.example:8443", "https://nami.example", false, DisplayName = "A public origin with a port, asked without it")]
+    [DataRow("https://nami.example", "http://localhost:9999", true, DisplayName = "A page of this machine, on any port")]
+    public async Task Origin_IsComparedBySchemeHostAndPort(string publicUrl, string origin, bool allowed)
+    {
+        await using var host = await StartAsTheImageDoesAsync(publicUrl);
+        Assert.AreEqual(allowed ? HttpStatusCode.OK : HttpStatusCode.Forbidden, await PostMcpAsync(host, ReadKey, origin));
+        Assert.AreEqual(allowed ? HttpStatusCode.OK : HttpStatusCode.Forbidden, await GetHealthAsync(host, origin));
+        // The Host header stays a name without a port: a proxy in front may listen on any port.
+        Assert.AreEqual(HttpStatusCode.OK, await PostMcpAsync(host, ReadKey, hostHeader: "nami.example"));
     }
 
     [TestMethod]
@@ -174,6 +264,73 @@ public sealed class ContainerPathTests(TestContext context)
         Assert.Contains("NAMI_PUBLIC_URL must be an HTTPS origin, or an HTTP origin on localhost, 127.0.0.1 or [::1]", failure.Message);
     }
 
+    /// <summary>The container's health probe as Docker runs it: the bundled file under Bun, in the container's environment.</summary>
+    private Task<ProcessResult> RunHealthProbeAsync(IReadOnlyDictionary<string, string?> environment)
+    {
+        return ProcessRunner.RunAsync("bun",
+            [Path.Combine(ProcessRunner.RepositoryRoot, "artifacts", "publish", "mcp", "healthcheck.js")], Directory,
+            context.CancellationToken, environment);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    [DataRow("0")]
+    [DataRow("00", DisplayName = "Zero written with two digits")]
+    public async Task HealthProbe_PortOfTheSystemsChoice_IsReadFromTheReadyManifest(string port)
+    {
+        // The probe has the container's environment, so it sees the port as the host does: a system-chosen one,
+        // however the zero is written, is in the ready manifest and nowhere else.
+        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory, context.CancellationToken,
+            environment: new Dictionary<string, string?> { ["NAMI_PORT"] = port }, readyManifest: true);
+        var probe = await RunHealthProbeAsync(new Dictionary<string, string?>
+        {
+            ["NAMI_PORT"] = port, ["PORT"] = null, ["NAMI_BIND_ADDRESS"] = null, ["NAMI_READY_FILE"] = host.ReadyFile
+        });
+        Assert.AreEqual(0, probe.ExitCode, probe.Error);
+
+        // A probe that cannot know the port says so instead of asking a port nobody listens on.
+        var blind = await RunHealthProbeAsync(new Dictionary<string, string?>
+        {
+            ["NAMI_PORT"] = port, ["PORT"] = null, ["NAMI_BIND_ADDRESS"] = null, ["NAMI_READY_FILE"] = null
+        });
+        Assert.AreEqual(1, blind.ExitCode);
+        Assert.Contains("NAMI_READY_FILE", blind.Error);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public async Task HealthProbe_ConfiguredPort_AsksThatPortAndFailsWhenNothingListens()
+    {
+        Dictionary<string, string?> environment;
+        await using (var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory, context.CancellationToken))
+        {
+            environment = new Dictionary<string, string?>
+            {
+                ["NAMI_PORT"] = host.HttpPort.ToString(CultureInfo.InvariantCulture), ["PORT"] = null,
+                ["NAMI_BIND_ADDRESS"] = null, ["NAMI_READY_FILE"] = null
+            };
+            var probe = await RunHealthProbeAsync(environment);
+            Assert.AreEqual(0, probe.ExitCode, probe.Error);
+        }
+
+        var stopped = await RunHealthProbeAsync(environment);
+        Assert.AreEqual(1, stopped.ExitCode);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(stopped.Error), "A failed probe says why.");
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public async Task Start_PortOfTheSystemsChoiceWithoutAReadyManifest_Refused()
+    {
+        // Nobody could find such a listener, and the container's health probe would fail for as long as it ran.
+        var failure = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+        {
+            await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory,
+                context.CancellationToken, environment: new Dictionary<string, string?> { ["NAMI_PORT"] = "0" });
+        });
+        Assert.Contains("NAMI_PORT=0 leaves the port to the operating system; name a ready manifest", failure.Message);
+    }
+
     private static Dictionary<string, string?> StopBudget(string seconds)
     {
         return new Dictionary<string, string?> { ["NAMI_STOP_BUDGET_SECONDS"] = seconds };
@@ -209,9 +366,34 @@ public sealed class ContainerPathTests(TestContext context)
 
     [TestMethod]
     [Timeout(60000, CooperativeCancellation = true)]
+    public async Task Stop_ReadyManifestThatCannotBeRemoved_StillStopsTheEngine()
+    {
+        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory,
+            context.CancellationToken, readyManifest: true);
+        var owner = LinuxProcess.ParentOf(host.HostProcessId);
+        // A directory where the manifest was: removing it as a file fails, also for root.
+        File.Delete(host.ReadyFile!);
+        System.IO.Directory.CreateDirectory(Path.Combine(host.ReadyFile!, "kept"));
+        await LinuxProcess.SignalAsync(host.HostProcessId, "TERM", context.CancellationToken);
+
+        // One signal is enough: the host goes on to stop its engine, and both end well inside the stop budget.
+        Assert.IsTrue(await host.WaitForHostExitAsync(TimeSpan.FromSeconds(6), context.CancellationToken),
+            "The host did not end after SIGTERM: a manifest it could not remove kept it from stopping its engine.");
+        Assert.AreEqual(0, host.HostExitCode, "The stop itself was clean; the manifest is reported on standard error.");
+        await LinuxProcess.AssertNothingLeftInAsync(Directory, owner, TimeSpan.FromSeconds(5), context.CancellationToken);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
     [DataRow("0")]
     [DataRow("3601")]
     [DataRow("2.5")]
+    [DataRow("0x10", DisplayName = "Hexadecimal, which only the host used to take")]
+    [DataRow("1e1", DisplayName = "An exponent, which only the host used to take")]
+    [DataRow("10.0", DisplayName = "A decimal point, which only the host used to take")]
+    [DataRow("+10", DisplayName = "A sign, which both used to take")]
+    [DataRow(" 10", DisplayName = "White space, which both used to take")]
+    [DataRow("")]
     public async Task StopBudget_OutsideItsRange_RefusedAtStart(string budget)
     {
         var failure = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
@@ -220,6 +402,44 @@ public sealed class ContainerPathTests(TestContext context)
                 context.CancellationToken, environment: StopBudget(budget));
         });
         Assert.Contains("NAMI_STOP_BUDGET_SECONDS must be a whole number of seconds from 1 to 3600.", failure.Message);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    [DataRow("0", "must be between 1 and 3600")]
+    [DataRow("3601", "must be between 1 and 3600")]
+    [DataRow("0x10", "NAMI_STOP_BUDGET_SECONDS")]
+    [DataRow("1e1", "NAMI_STOP_BUDGET_SECONDS")]
+    [DataRow("10.0", "NAMI_STOP_BUDGET_SECONDS")]
+    [DataRow("+10", "in decimal digits")]
+    [DataRow(" 10", "in decimal digits")]
+    [DataRow("", "in decimal digits")]
+    public async Task StopBudget_EngineAlone_RefusesWhatTheHostRefuses(string budget, string reason)
+    {
+        // The engine without its host: the host refuses these values before it starts an engine, so only this
+        // reaches the engine's own check. An engine that accepts the value starts, sees its input end and exits 0.
+        System.IO.Directory.CreateDirectory(Directory);
+        var engine = await ProcessRunner.RunAsync(TestData.HostBinary, ["--engine"], Directory, context.CancellationToken,
+            new Dictionary<string, string?>
+            {
+                ["NAMI_STOP_BUDGET_SECONDS"] = budget, ["NAMI_DATA_PATH"] = Path.Combine(Directory, "nami.duckdb"),
+                ["NAMI_OTLP_PORT"] = "0", ["NAMI_GRPC_PORT"] = "0", ["NAMI_OTLP_AUTH_MODE"] = "Unsecured",
+                ["DOTNET_ENVIRONMENT"] = "Development"
+            });
+        Assert.AreNotEqual(0, engine.ExitCode, "The engine started with a stop budget the host refuses.");
+        Assert.Contains(reason, engine.Error);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    [DataRow("0025", 25)]
+    [DataRow("3600", 3600)]
+    public async Task StopBudget_DecimalDigits_AcceptedByHostAndEngine(string budget, int seconds)
+    {
+        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory,
+            context.CancellationToken, environment: StopBudget(budget));
+        using var health = await host.Http.GetAsync($"http://127.0.0.1:{host.HttpPort}/health", context.CancellationToken);
+        Assert.AreEqual(HttpStatusCode.OK, health.StatusCode, $"A stop budget of {seconds} seconds.");
     }
 
     [TestMethod]
