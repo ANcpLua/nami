@@ -70,7 +70,7 @@ internal static partial class OtlpConverter
                         if (string.IsNullOrWhiteSpace(metric.Name))
                             throw new InvalidDataException("OTLP metric name must not be empty.");
                         stream = new MetricStreamMetadata(projectId, Kept(metric.Name), KeptOrNull(metric.Unit),
-                            KeptOrNull(metric.Description), serviceName,
+                            (metric.Description.Length == 0 ? null : metric.Description), serviceName,
                             scopeSchema ?? resourceSchema,
                             resource.Attributes, resource.EntityRefs, resourceSchema,
                             (resourceMetrics.Resource?.DroppedAttributesCount ?? 0) + resourceDropped,
