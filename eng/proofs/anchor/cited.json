@@ -216,7 +216,7 @@
  },
  "src/nami.mcp/src/engine.ts|encode|throw|1": {
   "memberHash": "a593ad2c3c674748",
-  "line": 164,
+  "line": 167,
   "model": "Host.request (fits = false: Err.invalidArgument)"
  },
  "src/nami.mcp/src/engine.ts|fail|failed|1": {

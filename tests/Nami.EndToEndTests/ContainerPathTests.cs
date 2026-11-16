@@ -318,17 +318,20 @@ public sealed class ContainerPathTests(TestContext context)
 
     [TestMethod]
     [Timeout(60000, CooperativeCancellation = true)]
-    [DataRow(null, "0x1000000", DisplayName = "The host's default gen0 budget")]
-    [DataRow("0x800000", "0x800000", DisplayName = "A gen0 budget from the host's own environment")]
-    public async Task Engine_Gen0Budget_IsTheHostsDefaultUnlessTheEnvironmentNamesOne(string? configured, string expected)
+    [DataRow(null, null, "DOTNET_GCgen0size=0x1000000", DisplayName = "The host's default gen0 budget")]
+    [DataRow("0x800000", null, "DOTNET_GCgen0size=0x800000", DisplayName = "A gen0 budget from the host's own environment")]
+    [DataRow(null, "0x800000", "COMPlus_GCgen0size=0x800000", DisplayName = "A gen0 budget in the older COMPlus_ spelling")]
+    [DataRow("", null, "DOTNET_GCgen0size=", DisplayName = "An empty gen0 budget: the runtime's own, without the host's default")]
+    public async Task Engine_Gen0Budget_IsTheHostsDefaultUnlessTheEnvironmentNamesOne(string? dotnet, string? complus,
+        string expected)
     {
-        // The .NET runtime reads DOTNET_GCgen0size from the environment only, so what the engine process was
-        // started with is what its garbage collector uses.
+        // The .NET runtime reads the setting from the environment only, and DOTNET_ before COMPlus_: what the
+        // engine process was started with is what its garbage collector uses.
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory, context.CancellationToken,
-            environment: new Dictionary<string, string?> { ["DOTNET_GCgen0size"] = configured });
+            environment: new Dictionary<string, string?> { ["DOTNET_GCgen0size"] = dotnet, ["COMPlus_GCgen0size"] = complus });
         var engine = LinuxProcess.ChildOf(host.HostProcessId, TestData.HostBinary);
         var variables = (await File.ReadAllTextAsync($"/proc/{engine}/environ", context.CancellationToken)).Split('\0');
-        Assert.AreSequenceEqual((string[])[$"DOTNET_GCgen0size={expected}"],
-            variables.Where(static variable => variable.StartsWith("DOTNET_GCgen0size=", StringComparison.Ordinal)).ToArray());
+        Assert.AreSequenceEqual((string[])[expected],
+            variables.Where(static variable => variable.Contains("_GCgen0size=", StringComparison.Ordinal)).ToArray());
     }
 }

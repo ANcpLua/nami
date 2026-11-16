@@ -6,9 +6,21 @@ namespace Nami.EndToEndTests;
 /// <summary>Process facts from <c>/proc</c>, for tests that watch the host's engine child.</summary>
 internal static class LinuxProcess
 {
+    private static readonly bool s_available = Directory.Exists("/proc/self");
+
+    /// <summary>
+    ///     Every fact here comes from <c>/proc</c>. On a machine without it (macOS) a test that asks for one is
+    ///     skipped with this reason instead of failing on a missing directory.
+    /// </summary>
+    private static void Require()
+    {
+        if (!s_available) Assert.Inconclusive("reads /proc; Linux only");
+    }
+
     /// <summary>The single running child of <paramref name="parent" /> whose executable is <paramref name="executable" />.</summary>
     internal static int ChildOf(int parent, string executable)
     {
+        Require();
         var target = Path.GetFullPath(executable);
         var matches = new List<int>();
         foreach (var directory in Directory.EnumerateDirectories("/proc"))
@@ -33,6 +45,7 @@ internal static class LinuxProcess
 
     internal static int ParentOf(int pid)
     {
+        Require();
         // The command name in field 2 may contain spaces; the fields after its closing parenthesis do not.
         var stat = File.ReadAllText($"/proc/{pid}/stat");
         var fields = stat[(stat.LastIndexOf(')') + 2)..].Split(' ');
@@ -46,6 +59,7 @@ internal static class LinuxProcess
     /// </summary>
     internal static int[] RunningIn(string directory, int owner)
     {
+        Require();
         var target = Path.GetFullPath(directory);
         var found = new List<int>();
         foreach (var entry in Directory.EnumerateDirectories("/proc"))

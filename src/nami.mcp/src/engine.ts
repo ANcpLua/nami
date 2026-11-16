@@ -150,12 +150,15 @@ export class Engine {
 
 /**
  * The engine's environment: the host's, plus a gen0 budget of 16 MiB for the .NET garbage collector unless the
- * host's environment already names one. Without it the collector leaves the garbage of one request lying until
- * the next ones, which under load was most of the engine's memory growth (three clients at both bounds: about
- * +147 MiB without, about +100 MiB with). The runtime reads this setting from the environment only.
+ * host's environment already names one, in either spelling the runtime reads (DOTNET_ wins over COMPlus_ there,
+ * so adding the first would override an operator's second). Without the budget the collector leaves the garbage
+ * of one request lying until the next ones, which under load was most of the engine's memory growth (three
+ * clients at both bounds: about +147 MiB without, about +100 MiB with). The runtime reads this setting from the
+ * environment only.
  */
 export function engineEnvironment(host: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  return { ...host, DOTNET_GCgen0size: host.DOTNET_GCgen0size ?? "0x1000000" };
+  return host.DOTNET_GCgen0size !== undefined || host.COMPlus_GCgen0size !== undefined
+    ? host : { ...host, DOTNET_GCgen0size: "0x1000000" };
 }
 
 function encode(request: EngineCommand): string {

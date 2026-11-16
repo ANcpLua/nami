@@ -80,7 +80,9 @@ container runs the same two-process stack ([architecture](docs/architecture.yaml
 
 nami starts its engine with `DOTNET_GCgen0size=0x1000000`, a 16 MiB budget for the .NET garbage
 collector's youngest generation, which keeps the engine's memory under load lower; to choose
-another value, set `DOTNET_GCgen0size` yourself (hexadecimal bytes) and nami passes yours on.
+another value, set `DOTNET_GCgen0size` yourself (hexadecimal bytes) and nami passes yours on; the
+older spelling `COMPlus_GCgen0size` counts the same. An empty `DOTNET_GCgen0size=` turns nami's
+default off: the engine then runs with the runtime's own gen0 budget.
 
 **Ports chosen by the operating system.** `NAMI_PORT` (MCP), `NAMI_OTLP_PORT` (OTLP/HTTP) and
 `NAMI_GRPC_PORT` (OTLP/gRPC) each accept `0`: the operating system then picks a free port, so
