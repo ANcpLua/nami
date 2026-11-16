@@ -20,16 +20,27 @@ public sealed class StorageBatchWriteTests(TestContext context)
     ///     an operator's limit replaces it.
     /// </summary>
     [TestMethod]
-    [DataRow(null, "244.1 MiB", DisplayName = "No limit configured: the default of 256MB")]
-    [DataRow("512MB", "488.2 MiB", DisplayName = "A configured limit replaces the default")]
+    [DataRow(null, "512.0 MiB", DisplayName = "No limit configured: the default of 512 MiB")]
+    [DataRow("256MB", "244.1 MiB", DisplayName = "A configured limit replaces the default")]
     public async Task Open_MemoryLimit_IsTheConfiguredOneOrTheDefault(string? configured, string expected)
     {
+        if (GC.GetGCMemoryInfo().TotalAvailableMemoryBytes < 2 * DuckDbStore.DefaultMemoryLimitBytes)
+            Assert.Inconclusive("On a machine this small DuckDB's own default may be the smaller one, and it stays.");
         var path = DatabasePath("limit.duckdb");
         await using var store = new DuckDbStore(path, memoryLimit: configured);
 
         // A connection to the same file shares the store's native instance, and its settings.
         Assert.AreEqual(expected, Scalar(path, "SELECT current_setting('memory_limit')"));
     }
+
+    /// <summary>The default never raises what DuckDB would take by itself, 80 % of the memory there is.</summary>
+    [TestMethod]
+    [DataRow(8L * 1024 * 1024 * 1024, "512MiB", DisplayName = "8 GiB: the default")]
+    [DataRow(1024L * 1024 * 1024, "512MiB", DisplayName = "1 GiB: the default")]
+    [DataRow(640L * 1024 * 1024, null, DisplayName = "640 MiB: DuckDB's 512 MiB stays")]
+    [DataRow(512L * 1024 * 1024, null, DisplayName = "512 MiB: DuckDB's 410 MiB stays")]
+    public void DefaultMemoryLimit_IsTheSmallerOfNamisAndDuckDbs(long availableBytes, string? expected) =>
+        Assert.AreEqual(expected, DuckDbStore.DefaultMemoryLimit(availableBytes));
 
     /// <summary>
     ///     A batch that holds one span twice applies both, in order, as two batches would: the later one is what

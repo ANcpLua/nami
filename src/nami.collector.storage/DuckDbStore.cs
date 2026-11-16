@@ -7,14 +7,22 @@ namespace Nami.Collector.Storage;
 internal sealed partial class DuckDbStore : INamiStore
 {
     /// <summary>
-    ///     DuckDB's memory limit when the operator sets none (<c>NAMI_DB_MEMORY_LIMIT</c>). DuckDB's own default is 80 %
-    ///     of the machine's memory, which lets the blocks it caches for reads grow with the store. Measured on 16 Nov
-    ///     2026 (ledger N48): one export at both ingest bounds needs 37 to 55 MiB of it while it is written, the same
-    ///     after 300,000 stored spans, so this leaves that request more than four times its need and refuses none.
+    ///     The most memory DuckDB gets when the operator sets no limit (<c>NAMI_DB_MEMORY_LIMIT</c>). DuckDB's own
+    ///     default is 80 % of the machine's memory, which lets the blocks it caches for reads grow with the store.
+    ///     Measured on 16 Nov 2026 (ledger N48): one export at the record and message bounds needs 37 to 64 MiB of
+    ///     it while it is written, the same after 300,000 stored spans; one of 16 MiB, the byte bound, 176 to 212
+    ///     MiB; reading 500,000 spans fits. So this is more than twice the largest need and refuses none.
     ///     It applies to a store in a file, whose blocks DuckDB can drop and read again. An in-memory store has only
-    ///     its memory: with this limit, reading 500,000 spans from one was refused, so it keeps DuckDB's default.
+    ///     its memory: under a limit of 256MB, reading 500,000 spans from one was refused, so it keeps DuckDB's
+    ///     default. On a machine or container where DuckDB's default is the smaller number, that one stays.
     /// </summary>
-    internal const string DefaultMemoryLimit = "256MB";
+    internal const long DefaultMemoryLimitBytes = 512L * 1024 * 1024;
+
+    /// <summary>The default as DuckDB takes it; null where DuckDB's own default, 80 % of the memory, is smaller.</summary>
+    internal static string? DefaultMemoryLimit(long availableMemoryBytes) =>
+        availableMemoryBytes / 10 * 8 <= DefaultMemoryLimitBytes
+            ? null
+            : (DefaultMemoryLimitBytes / (1024 * 1024)).ToString(CultureInfo.InvariantCulture) + "MiB";
 
     private static readonly StagedInsert<SpanStorageRow> s_spanStage = new(SpanStorageRow.StageTableName,
         SpanStorageRow.CreateStageSql, SpanStorageRow.StageKeyOccurrencesSql, SpanStorageRow.MergeStageSql,
@@ -160,8 +168,9 @@ internal sealed partial class DuckDbStore : INamiStore
         {
             Connection = OpenConnection();
             ConfigureDatabase(Connection,
-                string.IsNullOrWhiteSpace(memoryLimit) && !_isInMemory ? DefaultMemoryLimit : memoryLimit, threads,
-                tempDirectory);
+                string.IsNullOrWhiteSpace(memoryLimit) && !_isInMemory
+                    ? DefaultMemoryLimit(GC.GetGCMemoryInfo().TotalAvailableMemoryBytes)
+                    : memoryLimit, threads, tempDirectory);
             var resetDerived = InitializeSchema(Connection);
             if (resetDerived || MetricProjectionsNeedRebuild(Connection))
                 RebuildMetricProjections(Connection);
@@ -695,7 +704,7 @@ internal sealed partial class DuckDbStore : INamiStore
         // bookkeeping that keeps physical row order — telemetry never needs it — which cuts ingest
         // memory and lifts bulk-write throughput. memory_limit / threads / temp_directory are
         // operator-supplied (trusted config); when unset, DuckDB's own defaults apply to threads and
-        // temp_directory, and the caller passes DefaultMemoryLimit for a store in a file.
+        // temp_directory, and the caller passes DefaultMemoryLimit(...) for a store in a file.
         ExecutePragma(con, "SET preserve_insertion_order = false");
 
         if (!string.IsNullOrWhiteSpace(memoryLimit))
