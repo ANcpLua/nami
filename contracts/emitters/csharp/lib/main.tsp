@@ -17,15 +17,18 @@ auto dec csharpNamespace(
 auto dec csharpBrand(target: Scalar);
 auto dec csharpPolymorphic(target: Union, discriminator?: valueof string);
 
-model OutputOptions {
+// `internal`: these three models only shape the `#{…}` argument of a decorator below. A contract passes the object
+// value and can never name the model: a reference from outside this package is the compiler error `invalid-ref`.
+// `internal` belongs to the name; emitters cannot see it, and it does not make anything `internal` in C#.
+internal model OutputOptions {
   directory: string; `namespace`: string; file: string;
   json?: boolean; context?: string; typescript?: boolean; schema?: boolean; mutable?: boolean; strictJson?: boolean;
 }
-model TableOptions {
+internal model TableOptions {
   name: string; indexes?: string; uniqueIndexes?: string; conflict?: "ignore" | "update";
   parameterSets?: string; derived?: boolean; bootstrap?: boolean; appenderEligible?: boolean; arrowEligible?: boolean;
 }
-model ColumnOptions {
+internal model ColumnOptions {
   order: int32; sqlType?: string; primaryKeyOrdinal?: int32;
   defaultSql?: string; excludeFromInsert?: boolean; privateInit?: boolean;
   sequenceName?: string;
