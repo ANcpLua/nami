@@ -7,11 +7,19 @@ namespace Nami.Hosting;
 
 internal static class CollectorKestrelExtensions
 {
+    private const long GrpcMessagePrefixBytes = 5;
+
     public static void ConfigureNamiCollectorKestrel(this IServiceCollection services)
     {
         services.AddOptions<KestrelServerOptions>()
-            .Configure<IOptions<CollectorPortOptions>>(static (options, configured) =>
+            .Configure<IOptions<CollectorPortOptions>, IOptions<IngestLimits>>(static (options, configured, limits) =>
             {
+                // Kestrel's own request-body bound (30 MB unless set) stays as a backstop, but never below
+                // nami's: a request nami accepts must reach it. A gRPC message has a five-byte prefix.
+                var largestRequest = limits.Value.MaxRequestWireBytes + GrpcMessagePrefixBytes;
+                if (options.Limits.MaxRequestBodySize < largestRequest)
+                    options.Limits.MaxRequestBodySize = largestRequest;
+
                 var ports = configured.Value;
                 var address = ports.ParseBindAddress();
                 if (ports.OtlpHttp > 0)

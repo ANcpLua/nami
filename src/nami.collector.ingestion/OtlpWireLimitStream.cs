@@ -34,7 +34,7 @@ internal sealed class OtlpWireLimitStream(Stream inner, int limit) : Stream
     private int Count(int count)
     {
         _read += count;
-        return _read > limit ? throw new OtlpPayloadTooLargeException() : count;
+        return _read > limit ? throw OtlpPayloadTooLargeException.OnTheWire(limit) : count;
     }
 
     // Kestrel owns the underlying request body; disposing this wrapper must leave it open.

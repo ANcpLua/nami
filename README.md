@@ -124,6 +124,44 @@ All three land in the same rows. What the tools can answer comes from the resour
   such shape is not found, so it lowers the risk and is no guarantee. It runs at ingest, so
   `logs_search` cannot find text it removed.
 
+### What one export request may hold
+
+nami stores telemetry as it was sent. What it bounds is what one request may cost it (nami receiver policy; compare
+the SDK limits in the OpenTelemetry Common Specification). A request over a bound of the first table is refused
+whole and nothing of it is stored: OTLP/HTTP answers `413` with an OTLP `Status` that names the bound, OTLP/gRPC
+answers `RESOURCE_EXHAUSTED` without `RetryInfo`. By OTLP an exporter does not send such a request again. Protobuf that no OTLP exporter writes (a group,
+a tag or length of more than five bytes or more than 32 bits) is refused with `400` or `INVALID_ARGUMENT`, and fields OTLP does not
+define are read past and not kept.
+
+| Bound of one request | Default | Setting |
+| --- | --- | --- |
+| Bytes on the wire, compressed or not | 16 MiB | `NAMI_INGEST_MAX_REQUEST_BYTES` |
+| Bytes after decompression | 16 MiB | `NAMI_INGEST_MAX_DECOMPRESSED_BYTES` |
+| Protobuf messages of every type: containers, records, attributes and their values | 50,000 | `NAMI_INGEST_MAX_REQUEST_MESSAGES` |
+| Records, the messages stored as rows of their own: spans, log records, metric data points, exemplars | 3,000 | `NAMI_INGEST_MAX_REQUEST_RECORDS` |
+| Scalar elements: over protobuf the elements of repeated scalar fields such as histogram bucket counts and every string or bytes field, over JSON every member name, string, number, boolean and null | 1,000,000 | `NAMI_INGEST_MAX_REQUEST_ELEMENTS` |
+
+nami ingests one request at a time (`NAMI_INGEST_MAX_CONCURRENT_REQUESTS`, default 1). A request waits for its
+turn before its body is read, five seconds at most (`NAMI_INGEST_MAX_WAIT_SECONDS`); then it is turned away with
+an answer an exporter retries: `503` with `Retry-After`, or gRPC `UNAVAILABLE`. One request at the record bound
+costs nami about 100 MiB of memory while it is stored, so the slots times that is what ingest may take.
+
+An OpenTelemetry SDK's default batch of 512 records is inside the bounds: Claude Code's exports of 15 Nov 2026
+hold about 56 messages per span, 57 per log record and 34 per metric data point, so 512 records are about 30,000
+messages. An OpenTelemetry Collector in front of nami batches 8,192 records by default, which is over both
+bounds, and nami does not split a request. Cap the Collector's batch: `send_batch_max_size: 512` in its batch
+processor (or `sending_queue.batch.max_size` of the exporter) keeps every request inside the defaults; with a
+larger batch, raise `NAMI_INGEST_MAX_REQUEST_RECORDS` and `NAMI_INGEST_MAX_REQUEST_MESSAGES` for the memory you
+give nami.
+
+Inside an accepted request, an attribute value or log body is bounded on its own, and what a bound removes is
+counted, not hidden:
+
+| Bound of one value | Default | Setting | Over the bound |
+| --- | --- | --- | --- |
+| Encoded size of an array or key-value list, and five bytes for each value it holds at any level | 256 KiB | `NAMI_INGEST_MAX_VALUE_BYTES` | the attribute is dropped whole and counted in the record's `dropped_attributes_count` |
+| Nesting of arrays and key-value lists | 16 | `NAMI_INGEST_MAX_VALUE_NESTING` | the value below the bound becomes an empty value; the attribute stays |
+
 With `NAMI_OTLP_AUTH_MODE=ApiKey`, every
 OTLP request carries a project key in the `x-otlp-api-key` header; `NAMI_OTLP_PROJECT_KEYS` maps
 projects to keys, and a resource whose `nami.project.id` names another project is refused.

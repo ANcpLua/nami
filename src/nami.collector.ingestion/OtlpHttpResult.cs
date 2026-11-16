@@ -65,11 +65,53 @@ internal sealed class OtlpUnsupportedContentEncodingException(string? contentEnc
 }
 
 /// <summary>
-///     The OTLP/HTTP body exceeded the decompressed size bound. OTLP 1.11 (request size limits)
-///     requires 413 Content Too Large, which the endpoint handlers answer for this exception.
+///     An OTLP export exceeded a bound of <see cref="IngestLimits" />: the bytes of its body on the wire or
+///     decompressed, or the number of messages or records it holds. The endpoint handlers answer it with
+///     <see cref="HttpStatus" /> and its message as the OTLP status message; OTLP 1.11 (request size limits) makes a
+///     body over the size limit a 413 Content Too Large, and no status other than 429, 502, 503 and 504 is retried.
 /// </summary>
-internal sealed class OtlpPayloadTooLargeException(string? message, Exception? innerException)
+internal sealed class OtlpPayloadTooLargeException(string? message, Exception? innerException,
+    int httpStatus = StatusCodes.Status413PayloadTooLarge)
     : IOException(message, innerException)
 {
-    public OtlpPayloadTooLargeException() : this(OtlpPayloadParser.PayloadTooLargeMessage, null) { }
+    /// <summary>
+    ///     The HTTP status of a request of too many messages or records, in this one place. Over gRPC the answer
+    ///     is RESOURCE_EXHAUSTED without RetryInfo.
+    /// </summary>
+    internal const int TooManyMessagesHttpStatus = StatusCodes.Status413PayloadTooLarge;
+
+    /// <summary>The HTTP status the refusal is answered with.</summary>
+    public int HttpStatus { get; } = httpStatus;
+
+    /// <summary>The body holds more bytes than a request may hold on the wire.</summary>
+    public static OtlpPayloadTooLargeException OnTheWire(int limit) =>
+        new(string.Create(CultureInfo.InvariantCulture, $"OTLP payload exceeds the {limit}-byte wire limit."), null);
+
+    /// <summary>The request holds more messages than a request may hold.</summary>
+    public static OtlpPayloadTooLargeException TooManyMessages(int limit) =>
+        new(string.Create(CultureInfo.InvariantCulture, $"OTLP request holds more than {limit} messages."), null,
+            TooManyMessagesHttpStatus);
+
+    /// <summary>The request holds more records (spans, log records, data points, exemplars) than a request may hold.</summary>
+    public static OtlpPayloadTooLargeException TooManyRecords(int limit) =>
+        new(string.Create(CultureInfo.InvariantCulture, $"OTLP request holds more than {limit} records."), null,
+            TooManyMessagesHttpStatus);
+
+    /// <summary>The request holds more scalar elements (repeated scalars; over JSON every scalar value) than a request may hold.</summary>
+    public static OtlpPayloadTooLargeException TooManyElements(int limit) =>
+        new(string.Create(CultureInfo.InvariantCulture, $"OTLP request holds more than {limit} scalar elements."), null,
+            TooManyMessagesHttpStatus);
+
+    /// <summary>The body holds, once decompressed, more bytes than a request may hold.</summary>
+    public static OtlpPayloadTooLargeException Decompressed(int limit) =>
+        new(string.Create(CultureInfo.InvariantCulture, $"OTLP payload exceeds the {limit}-byte decompressed limit."),
+            null);
 }
+
+/// <summary>
+///     The protobuf bytes of an export are not what an OTLP exporter writes: a field that cannot be read, a group
+///     (OTLP defines none), or a tag or length written longer than it needs to be. Google.Protobuf reads some of
+///     these differently than the bounds of <see cref="OtlpValueBounds" /> can count them, so such a request is
+///     refused before it is parsed: 400 over HTTP, INVALID_ARGUMENT over gRPC.
+/// </summary>
+internal sealed class OtlpMalformedPayloadException(string message) : FormatException(message);

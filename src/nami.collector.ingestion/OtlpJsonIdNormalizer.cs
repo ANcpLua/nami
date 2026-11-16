@@ -12,6 +12,10 @@ namespace Nami.Collector.Ingestion;
 ///     non-hex or wrong-length id throws <see cref="InvalidDataException" />, which the ingest
 ///     endpoints surface as a 400, never a mangled row.
 ///     <para>
+///         The same pass keeps 64-bit integers exact: an integer sent as a JSON number too long for a
+///         double is passed on in its string form, which protojson reads without a double in between.
+///     </para>
+///     <para>
 ///         Strings are read the way OTLP 1.11.1 asks a decoder to: an invalid UTF-8 sequence and an
 ///         escape of an unpaired surrogate become U+FFFD, where <see cref="Utf8JsonReader.GetString" />
 ///         would refuse the whole payload.
@@ -23,7 +27,8 @@ internal static class OtlpJsonIdNormalizer
     private const int SpanIdBytes = 8;
     private const int ReplacementCharacter = 0xFFFD;
 
-    public static string NormalizeIdsToProtoJson(ReadOnlySpan<byte> utf8Json)
+    /// <summary>The payload as protojson, in UTF-8: read through a reader, with no string of the whole document.</summary>
+    public static ArraySegment<byte> NormalizeIdsToProtoJsonUtf8(ReadOnlySpan<byte> utf8Json)
     {
         // Accept an optional UTF-8 BOM before protojson parsing.
         ReadOnlySpan<byte> utf8Bom = [0xEF, 0xBB, 0xBF];
@@ -35,7 +40,11 @@ internal static class OtlpJsonIdNormalizer
 
         var reader = new Utf8JsonReader(utf8Json, new JsonReaderOptions { MaxDepth = 128 });
         var buffer = new ArrayBufferWriter<byte>(utf8Json.Length);
-        using var writer = new Utf8JsonWriter(buffer);
+        // Only Google.Protobuf's JSON parser reads the output, so nothing is escaped that JSON does not require: the
+        // default encoder writes <, >, &, ', + and every character outside ASCII as six bytes each. This holds for
+        // names and for the strings that go through a string (escaped or invalid UTF-8 in the request).
+        using var writer = new Utf8JsonWriter(buffer,
+            new JsonWriterOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
 
         // Protojson must ignore unknown fields, including future objects that happen to contain
         // properties named traceId or spanId. Track the containing OTLP message path so
@@ -55,18 +64,30 @@ internal static class OtlpJsonIdNormalizer
                     continue;
 
                 case JsonTokenType.String:
-                    var value = ReadString(ref reader);
                     var expectedBytes = pendingProperty is not null
                         ? ExpectedIdByteLength(path, pendingProperty)
                         : 0;
                     if (expectedBytes > 0)
-                        WriteIdAsBase64(writer, value, expectedBytes, pendingProperty!);
+                        WriteIdAsBase64(writer, ReadString(ref reader), expectedBytes, pendingProperty!);
+                    else if (!reader.ValueIsEscaped && System.Text.Unicode.Utf8.IsValid(reader.ValueSpan))
+                        // Most strings: valid and without escapes. The token is copied as it stands, quotes
+                        // included, with no string in between and past the encoder, which would still write a
+                        // character outside the Basic Multilingual Plane (four bytes) as twelve.
+                        writer.WriteRawValue(utf8Json.Slice((int)reader.TokenStartIndex, reader.ValueSpan.Length + 2), true);
+                    else if (!reader.ValueIsEscaped)
+                        WriteWithInvalidUtf8Replaced(writer, reader.ValueSpan);
                     else
-                        writer.WriteStringValue(value);
+                        writer.WriteStringValue(ReadString(ref reader));
                     break;
 
                 case JsonTokenType.Number:
-                    writer.WriteRawValue(reader.ValueSpan, true);
+                    // OTLP/JSON lets a 64-bit integer arrive as a number or as a string. Protojson reads a
+                    // number through a double, which holds 53 bits: 9007199254740993 would arrive as ...992.
+                    // Its string form is read exactly, so an integer too long for a double is passed on as one.
+                    if (IsIntegerBeyondDoublePrecision(reader.ValueSpan))
+                        writer.WriteStringValue(reader.ValueSpan);
+                    else
+                        writer.WriteRawValue(reader.ValueSpan, true);
                     break;
 
                 case JsonTokenType.True:
@@ -110,7 +131,72 @@ internal static class OtlpJsonIdNormalizer
         }
 
         writer.Flush();
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+        return System.Runtime.InteropServices.MemoryMarshal.TryGetArray(buffer.WrittenMemory, out var written)
+            ? written
+            : buffer.WrittenSpan.ToArray();
+    }
+
+    // An integer literal (digits, with a sign at most: no fraction, no exponent) of sixteen digits or more. Every
+    // integer of fewer digits is below 2^53 and exact as a double. In a field that is no 64-bit integer the string
+    // form reads as the number did: a double field parses it to the same double, and no enum or 32-bit field holds
+    // a value this long in either form.
+    private static bool IsIntegerBeyondDoublePrecision(ReadOnlySpan<byte> number)
+    {
+        const int DigitsOfTwoToThe53 = 16;
+        var digits = number.Length > 0 && number[0] is (byte)'-' ? number[1..] : number;
+        return digits.Length >= DigitsOfTwoToThe53 && digits.IndexOfAnyExceptInRange((byte)'0', (byte)'9') < 0;
+    }
+
+    // A string without escapes that is not UTF-8: every maximal invalid subsequence becomes U+FFFD, three bytes
+    // where one may have stood. Nothing in it needs an escape (the reader refused quotes, backslashes and control
+    // characters), so the replaced text is written as it stands, with no string in between.
+    private static void WriteWithInvalidUtf8Replaced(Utf8JsonWriter writer, ReadOnlySpan<byte> invalid)
+    {
+        var token = new byte[ReplacedLength(invalid) + 2];
+        token[0] = token[^1] = (byte)'"';
+        ReplaceInvalidUtf8(invalid, token.AsSpan(1));
+        writer.WriteRawValue(token, true);
+    }
+
+    private static int ReplacedLength(ReadOnlySpan<byte> utf8)
+    {
+        var length = 0;
+        while (!utf8.IsEmpty)
+        {
+            var valid = Rune.DecodeFromUtf8(utf8, out _, out var consumed) is System.Buffers.OperationStatus.Done;
+            length += valid ? consumed : 3;
+            utf8 = utf8[consumed..];
+        }
+
+        return length;
+    }
+
+    // Encoding.UTF8 replaces the same sequences, and allocates some forty bytes for each one it replaces.
+    private static void ReplaceInvalidUtf8(ReadOnlySpan<byte> utf8, Span<byte> replaced)
+    {
+        while (!utf8.IsEmpty)
+        {
+            if (Rune.DecodeFromUtf8(utf8, out _, out var consumed) is System.Buffers.OperationStatus.Done)
+            {
+                utf8[..consumed].CopyTo(replaced);
+                replaced = replaced[consumed..];
+            }
+            else
+            {
+                "\uFFFD"u8.CopyTo(replaced);
+                replaced = replaced[3..];
+            }
+
+            utf8 = utf8[consumed..];
+        }
+    }
+
+    private static string DecodeUtf8(ReadOnlySpan<byte> utf8)
+    {
+        if (System.Text.Unicode.Utf8.IsValid(utf8)) return Encoding.UTF8.GetString(utf8);
+        var replaced = new byte[ReplacedLength(utf8)];
+        ReplaceInvalidUtf8(utf8, replaced);
+        return Encoding.UTF8.GetString(replaced);
     }
 
     // The reader runs over one span, so the token's bytes are always in ValueSpan. Encoding.UTF8
@@ -118,7 +204,7 @@ internal static class OtlpJsonIdNormalizer
     private static string ReadString(ref Utf8JsonReader reader) =>
         reader.ValueIsEscaped
             ? Unescape(reader.ValueSpan)
-            : Encoding.UTF8.GetString(reader.ValueSpan);
+            : DecodeUtf8(reader.ValueSpan);
 
     private static string Unescape(ReadOnlySpan<byte> escaped)
     {
@@ -178,7 +264,7 @@ internal static class OtlpJsonIdNormalizer
             }
         }
 
-        return Encoding.UTF8.GetString(unescaped[..written]);
+        return DecodeUtf8(unescaped[..written]);
     }
 
     private static int ReadHex(ReadOnlySpan<byte> utf8Hex) =>
