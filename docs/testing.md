@@ -85,7 +85,7 @@ The compilers the product is built with, and where each version is set. `mise.to
 Bun 1.4.4, Node.js 24.22.3 and Weaver 0.28.0 for the repository commands, and Node.js is pinned
 there only. Bun and Weaver are pinned in more places, which move together with `mise.toml`:
 
-- Bun: the image of the container's MCP build stage (`oven/bun:1.4.4`, `src/nami/Dockerfile:1`),
+- Bun: the image of the container's MCP build stage (`oven/bun:1.4.4`, `src/nami/Dockerfile:3`),
   and its type definitions (`@types/bun` in `src/nami.mcp/package.json`).
 - Weaver: `WEAVER_VERSION` in `registry/generate.py`, which refuses any other `weaver --version`;
   the `weaver` entry of `registry/source-pins.json`; and the installed-tool path in
@@ -93,7 +93,7 @@ there only. Bun and Weaver are pinned in more places, which move together with `
 
 | Item | Version | Set in |
 | --- | --- | --- |
-| .NET SDK | 11.0.100 | `global.json` (`rollForward: disable`) and `mise.toml`, which must agree; the container builds with `mcr.microsoft.com/dotnet/sdk:11.0.100` and runs on `runtime-deps:11.0.0`, the runtime of `DotNetRuntimeVersion` in `Version.props` (`src/nami/Dockerfile:8` and `:14`) |
+| .NET SDK | 11.0.100 | `global.json` (`rollForward: disable`) and `mise.toml`, which must agree; the container builds with `mcr.microsoft.com/dotnet/sdk:11.0.100` and runs on `runtime-deps:11.0.0-resolute-chiseled`, the chiseled Ubuntu 26.04 image of the runtime of `DotNetRuntimeVersion` in `Version.props` (`src/nami/Dockerfile:10` and `:20`); every base image is pinned by the digest of its multi-architecture index, which `test_toolchain_pins_agree` requires |
 | C# language version | 15.0, the SDK's default for `net11.0`; the `netstandard2.0` DuckDB generator sets `latest`, because its target framework would otherwise default to 7.3 | no `LangVersion` in `Directory.Build.props`; `internal/nami.collector.storage.generators/nami.collector.storage.generators.csproj:5` |
 | Roslyn inside the SDK | 5.12.0-1.26529.118 | ships with SDK 11.0.100 (`csc -version`); it compiles every project and runs the DuckDB generator |
 | Roslyn the DuckDB generator compiles against | 5.9.0 | `RoslynVersion` in `Version.props`, the `Microsoft.CodeAnalysis.CSharp` reference of `internal/nami.collector.storage.generators` |

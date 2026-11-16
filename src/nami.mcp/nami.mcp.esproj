@@ -19,7 +19,7 @@
 
   <Target Name="NamiTrackBundle" AfterTargets="CoreCompile">
     <ItemGroup>
-      <FileWrites Include="$(MSBuildProjectDirectory)/dist/main.js"/>
+      <FileWrites Include="$(MSBuildProjectDirectory)/dist/main.js;$(MSBuildProjectDirectory)/dist/healthcheck.js"/>
     </ItemGroup>
   </Target>
 </Project>
