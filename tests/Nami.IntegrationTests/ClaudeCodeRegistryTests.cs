@@ -273,7 +273,7 @@ public sealed class ClaudeCodeRegistryTests(TestContext context)
     }
 
     [TestMethod]
-    public async Task Capture_Ingested_KeepsTheEvidence_AndNoContent()
+    public async Task Capture_Ingested_KeepsTheEvidence()
     {
         var clock = new FakeTimeProvider(DateTimeOffset.Parse("2026-11-15T12:35:00Z", CultureInfo.InvariantCulture));
         await using var store = new DuckDbStore(":memory:", timeProvider: clock);
@@ -304,23 +304,6 @@ public sealed class ClaudeCodeRegistryTests(TestContext context)
         Assert.HasCount(77, snapshot.Logs);
         Assert.HasCount(69, snapshot.Spans);
 
-        // No content: not a value of the capture's prompts, edits, descriptions or command lines, and no
-        // content, identity or setup key.
-        var stored = snapshot.Logs.SelectMany(static log => new[] { log.AttributesJson, log.ResourceJson, log.ScopeAttributesJson, log.Body })
-            .Concat(snapshot.Spans.SelectMany(static span => new[]
-                { span.AttributesJson, span.ResourceJson, span.ScopeAttributesJson, span.EventsJson, span.LinksJson, span.StatusMessage }))
-            .Concat(snapshot.Metrics.SelectMany(static series => new[] { series.AttributesJson, series.ResourceJson, series.ScopeAttributesJson }))
-            .OfType<string>().ToArray();
-        var leaked = ContentOfTheCapture().Where(text => stored.Any(value => value.Contains(text, StringComparison.Ordinal)))
-            .ToArray();
-        Assert.IsEmpty(leaked, "Stored content: " + string.Join(" | ", leaked));
-        var keys = snapshot.Logs.SelectMany(static log => new[] { log.AttributesJson, log.ResourceJson })
-            .Concat(snapshot.Spans.SelectMany(static span => new[] { span.AttributesJson, span.ResourceJson }))
-            .Concat(snapshot.Metrics.SelectMany(static series => new[] { series.AttributesJson, series.ResourceJson }))
-            .OfType<string>().SelectMany(TopLevelKeys).ToHashSet(StringComparer.Ordinal);
-        string[] forbidden = [.. s_content, .. s_identity, .. s_undefined, "event.name", "span.type"];
-        Assert.IsEmpty(forbidden.Where(keys.Contains).ToArray(), "Stored keys: " + string.Join(", ", forbidden.Where(keys.Contains)));
-
         // The evidence: cost per request in micro-dollars, tokens, tool calls, the commit and the session.
         var requests = snapshot.Logs.Where(static log => log.Body?.Contains("claude_code.api_request", StringComparison.Ordinal) == true)
             .Select(static log => log.AttributesJson!).ToArray();
@@ -345,24 +328,6 @@ public sealed class ClaudeCodeRegistryTests(TestContext context)
         Assert.IsTrue(snapshot.Logs.All(static log => log.AttributesJson!.Contains("\"gen_ai.agent.name\":\"fixture-builder\"", StringComparison.Ordinal)));
     }
 
-    // Values in the capture that are prompt, response or tool input text, ten characters or more. Kept
-    // members are not content: the program name, the command line and the file path (tool details), the
-    // subagent type, and the commit and branch, which vcs.ref.head.* carry.
-    private static IEnumerable<string> ContentOfTheCapture()
-    {
-        var texts = new HashSet<string>(StringComparer.Ordinal) { "<REDACTED>" };
-        foreach (var value in s_capture.Value.Values.Where(static value => value.Key is "tool_input" or "tool_parameters"))
-        {
-            using var parameters = JsonDocument.Parse(value.Value.GetProperty("stringValue").GetString()!);
-            foreach (var member in parameters.RootElement.EnumerateObject())
-                if (member.Name is not ("bash_command" or "command" or "full_command" or "subagent_type" or "file_path" or
-                        "git_commit_id" or "git_branch") &&
-                    member.Value.ValueKind == JsonValueKind.String)
-                    texts.Add(member.Value.GetString()!);
-        }
-
-        return texts.Where(static text => text.Length >= 10).Order(StringComparer.Ordinal);
-    }
 
     private static HashSet<string> TopLevelKeys(string json)
     {

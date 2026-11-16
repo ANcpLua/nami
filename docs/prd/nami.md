@@ -123,8 +123,8 @@ dependencies:
 
 **Regeln.**
 
-- Stable-Keys werden typisierte Spalten; Development-Keys werden persistiert und tragen ihre Stabilität im Katalog, damit ein Tool-Ergebnis sagen kann, welcher Key sich noch umbenennen darf.
-- Deprecated Keys werden beim Ingest auf ihren Nachfolger normalisiert (`DeprecatedAttributeNormalizer`); die Tabelle dafür kommt aus der Registry, nie aus Code.
+- Stable-Keys werden typisierte Spalten; Development-Keys werden persistiert und tragen ihre Stabilität im Katalog, damit ein Tool-Ergebnis sagen kann, welcher Key sich noch umbenennen darf. Ein Key, den die Registry nicht kennt, wird ebenfalls gespeichert und steht im Katalog als `unknown`.
+- Deprecated Keys werden gespeichert, wie sie gesendet wurden; der Ingest normalisiert nicht. Die Nachfolger-Tabelle kommt weiter aus der Registry, nie aus Code, und dient dem Lesen: Ein Tool, das den Nachfolger braucht, leitet ihn beim Lesen ab.
 - `weaver registry diff --baseline-registry <alter Pin>` läuft bei jedem Pin-Wechsel und schreibt sein Markdown ins Änderungsprotokoll der Registry.
 - Templates: `templates/registry/csharp/*.j2` (Konstanten, Policy, Katalog), `templates/registry/markdown/*.j2` (Dokumentation). Weaver liefert keine C#-Templates mit; nami schreibt eigene, wie GenAI seine.
 
@@ -153,7 +153,7 @@ Diese Invarianten brauchen den laufenden Collector mit In-Memory-DuckDB; Eingabe
 | R1 | OTLP/HTTP (protobuf und JSON) und OTLP/gRPC landen in denselben Zeilen; Transport ist nie an einer Zeile ablesbar. | Drei Sendewege, ein Snapshot, `Assert.AreEquivalent` |
 | R2 | `watermark` pro Projekt und Signal ist monoton: ein Record mit älterem Zeitstempel hebt sie nicht, senkt sie nicht. | Rückdatierter Record → Wasserlinie unverändert |
 | R3 | `last_seen` pro Signal entspricht dem jüngsten **Empfangs**zeitpunkt, nicht dem Record-Zeitstempel; Stille ist damit vom Clock-Skew des Senders unabhängig. | Record mit Zukunfts-Zeitstempel → `last_seen` = jetzt |
-| R4 | Deprecated Keys werden beim Ingest auf den Nachfolger umgeschrieben; der Originalname bleibt nur in `nami.attribute.key` für Discovery. | `exception.escaped` → nicht gespeichert; `db.query.parameter.*` → Nachfolger |
+| R4 | Keys werden unter dem Namen gespeichert, unter dem sie gesendet wurden: Der Ingest benennt keinen deprecated Key auf seinen Nachfolger um und verwirft weder unbekannte noch deprecated Keys, `baggage.*` oder die Keys eines anderen Senders. Der Katalog nennt die Stabilität jedes gespeicherten Keys (`deprecated`, `unknown`); den Nachfolger leitet ein Tool beim Lesen ab und kennzeichnet ihn als abgeleitet. | `http.method` → als `http.method` gespeichert, kein `http.request.method`; `exception.escaped` gespeichert; keine Umbenennung protokolliert |
 | R5 | Stable-Keys landen in typisierten Spalten, Development-Keys im Attribut-Store mit Stabilitätsmarke; beide sind abfragbar. | `gen_ai.usage.input_tokens` abfragbar und als development markiert |
 | R6 | Sanitizer-Grenzen: `exception.message` und `exception.stacktrace` über 128 Ki UTF-16 → `[SANITIZATION_FAILED]`, Ausgabe auf 32 KiB UTF-8 gekürzt. | Grenzwerte ±1 |
 | R7 | Exceptions werden aus **beiden** Quellen erkannt: Log-Record mit `event_name == exception` (stabil) und Span-Event `exception`; `errors_recent` gruppiert sie gleich. | Zwei Sendewege, eine Gruppe |
@@ -285,7 +285,7 @@ Namensschema `Subjekt_Bedingung_ErwartetesErgebnis`; eine Klasse pro Invarianten
 | `Ingest_ThreeTransports_SameRows` | R1 | `[CombinatorialData]` protobuf/JSON/gRPC, ein Snapshot |
 | `Watermark_BackdatedRecord_DoesNotMove` | R2 | Wasserlinie vorher == nachher |
 | `LastSeen_FutureTimestamp_UsesReceiptTime` | R3 | `last_seen` ≈ jetzt, nicht 2030 |
-| `Ingest_DeprecatedKey_RewrittenToSuccessor` | R4 | Nachfolger gespeichert, Original nur in `nami.attribute.key` |
+| `Ingest_DeprecatedKey_StoredUnderTheNameItWasSent` | R4 | Original gespeichert, kein Nachfolger geschrieben, Katalog nennt `deprecated` |
 | `Ingest_DevelopmentKey_StoredWithStabilityMark` | R5 | `gen_ai.usage.input_tokens` abfragbar, `stability == development` |
 | `Sanitizer_Boundaries_HoldAtPlusMinusOne` | R6 | 128 Ki ± 1, 32 KiB ± 1 |
 | `Exception_LogEventAndSpanEvent_GroupTogether` | R7 | Eine Gruppe, `count == 2` |
@@ -403,6 +403,7 @@ Die beobachtbare Zusage lautet: **Dieser veröffentlichte Stack beobachtet diese
 
 | Datum | Änderung |
 | --- | --- |
+| 2026-11-16 | R4 geändert (Beobachter-Entscheidung 16.11.: Telemetrie wird gespeichert wie gesendet; Credential-Stufe und Größengrenzen sind die einzigen Eingriffe beim Ingest): Keys werden unter ihrem gesendeten Namen gespeichert. Die Umbenennung von deprecated Keys beim Ingest und die Allowlist für unbekannte Keys, deprecated Keys, `baggage.*` und Sender-eigene Keys entfallen; `DeprecatedAttributeNormalizer` ist gelöscht, `attribute_discovery` wird nicht mehr beschrieben. Die Regeln in Abschnitt „Regeln" (deprecated Keys, unbekannte Keys) sind angepasst. |
 | 2026-11-15 | Hinweis ohne Änderung des genehmigten Textes: Die Nutzerentscheidungen vom 10.11.2026 ([0001 bis 0003](../decisions/README.md)) haben Vorrang vor jeder Nennung von OpenAI in dieser Fassung (Abschnitte 1, 3, 4.1 und 4.2, Zeile D1, Entscheidung 5 und Quellen). nami erreicht Claude als Remote-Connector; ein OpenAI-Plugin gehört nicht zu nami. D1 gilt damit für den Claude-Connector und die lokale MCP-Anbindung. Der Nachweis mit den Claude-Clients steht aus. |
 | 2026-10-24 | Nutzerkorrektur: TypeScript-MCP und C#-Engine mit privatem Stream-Vertrag; TypeSpec einschließlich TS-Ausgabe bleibt; Claude.ai/OpenAI als Agentenoberflächen; tomo ist ein Entwicklerbeispiel. Compile-Time-Instrumentierung, Beobachtungslebenszeit und I1–I18/D1–D6 mit Nachweisen aufgenommen; frühere Single-Binary-/C#-MCP-Festlegung ersetzt. |
 | 2026-10-24 | Historisch, durch die obige Nutzerkorrektur ersetzt: Die drei offenen Entscheidungen getroffen: TypeSpec bleibt, .NET 11 RC2 jetzt, kein Metriken-Tool. Regel aufgenommen: Entscheidungen trifft der bauende Agent, Einspruch per Kommentar. Abschnitte 3 und S angepasst. |

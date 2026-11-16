@@ -60,7 +60,7 @@ public sealed class ClaudeCodeConverterTests
         });
 
         Assert.AreEqual("checkout.completed", log.EventName);
-        Assert.IsFalse(log.Attributes.ContainsKey("event.name"), "the deprecated key itself is never stored");
+        Assert.AreEqual("tool_result", log.Attributes["event.name"].AsString(), "the deprecated key is stored as sent");
     }
 
     [TestMethod]
@@ -107,60 +107,6 @@ public sealed class ClaudeCodeConverterTests
         Assert.AreEqual(OtlpAttributeValueKind.Empty, map.Body.Kind, "a map in a producer's body is not kept");
         Assert.AreEqual(OtlpAttributeValueKind.Empty, unnamed.Body.Kind, "without an event name there is nothing to equal");
         Assert.AreEqual("order 17 failed", foreign.Body.AsString(), "another sender's body is its log message");
-    }
-
-    /// <summary>
-    ///     A producer key (<c>model</c>, <c>success</c>, <c>source</c>: unprefixed names any sender may use) is kept on
-    ///     a record under the producer's scope, and nowhere else: not under another scope, and not in resource or
-    ///     scope attributes, which belong to no record.
-    /// </summary>
-    [TestMethod]
-    public void ProducerKeys_AreKeptOnlyOnRecordsUnderTheProducersScopes()
-    {
-        Assert.AreEqual(Producer, RegistryPolicy.ProducerOf("model"));
-        Assert.IsNull(RegistryPolicy.ProducerOf(Ordinary));
-        KeyValue[] sent = [Text("model", "claude-haiku-5-5"), Text("source", "config"), Text(Ordinary, "builder")];
-        string[] both = [Ordinary, "model", "source"];
-        var ordinaryOnly = s_ordinaryOnly;
-
-        Assert.AreSequenceEqual(both, Keys(ConvertLog(EventsScope, new LogRecord { Attributes = { sent } }).Attributes));
-        Assert.AreSequenceEqual(ordinaryOnly, Keys(ConvertLog(ForeignScope, new LogRecord { Attributes = { sent } }).Attributes));
-
-        var ours = ConvertSpan(TracingScope, NewSpan(sent, sent, sent));
-        var theirs = ConvertSpan(ForeignScope, NewSpan(sent, sent, sent));
-        Assert.AreSequenceEqual(both, Keys(ours.Attributes).Where(static key => key != "service.name"));
-        Assert.AreSequenceEqual(both, Keys(Assert.ContainsSingle(ours.Events).Attributes));
-        Assert.AreSequenceEqual(both, Keys(Assert.ContainsSingle(ours.Links).Attributes));
-        Assert.AreSequenceEqual(ordinaryOnly, Keys(theirs.Attributes).Where(static key => key != "service.name"));
-        Assert.AreSequenceEqual(ordinaryOnly, Keys(Assert.ContainsSingle(theirs.Events).Attributes));
-        Assert.AreSequenceEqual(ordinaryOnly, Keys(Assert.ContainsSingle(theirs.Links).Attributes));
-
-        Assert.AreSequenceEqual(both, Keys(ConvertPoint(MeterScope, sent).Attributes));
-        Assert.AreSequenceEqual(ordinaryOnly, Keys(ConvertPoint(ForeignScope, sent).Attributes));
-
-        // Resource and scope attributes under Claude Code's own scope: the producer keys go, the ordinary key stays.
-        var request = new ExportLogsServiceRequest
-        {
-            ResourceLogs =
-            {
-                new ResourceLogs
-                {
-                    Resource = new Resource { Attributes = { sent } },
-                    ScopeLogs =
-                    {
-                        new ScopeLogs
-                        {
-                            Scope = new InstrumentationScope { Name = EventsScope, Attributes = { sent } },
-                            LogRecords = { new LogRecord { TimeUnixNano = 1, Attributes = { sent } } }
-                        }
-                    }
-                }
-            }
-        };
-        var log = Assert.ContainsSingle(OtlpConverter.ConvertLogs(request, TimeProvider.System).Logs);
-        Assert.AreSequenceEqual(ordinaryOnly, Keys(log.ResourceAttributes));
-        Assert.AreSequenceEqual(ordinaryOnly, Keys(log.ScopeAttributes));
-        Assert.AreSequenceEqual(both, Keys(log.Attributes));
     }
 
     /// <summary>
@@ -388,7 +334,7 @@ public sealed class ClaudeCodeConverterTests
     /// <summary>
     ///     Claude Code's <c>error</c> attribute is persisted since registry 849dd8b, as error text: through the
     ///     sanitizer of <c>exception.message</c> first and up to <c>ValueLimits.MaxUtf8Bytes</c> (1024) after it, on
-    ///     the events and the spans that carry it. Under another scope it is another sender's unknown key.
+    ///     the events and the spans that carry it, under every scope.
     /// </summary>
     [TestMethod]
     public void Error_OnAProducersScope_LosesItsCredentials_AndIsKeptUpToTheRegistrysBound()
@@ -421,8 +367,9 @@ public sealed class ClaudeCodeConverterTests
         });
         Assert.AreEqual("[SANITIZATION_FAILED]", number.Attributes["error"].AsString());
 
+        // A key is stored on every scope (keys as sent); error text loses its credentials there too.
         var foreign = ConvertLog(ForeignScope, new LogRecord { Attributes = { Text("error", leaking), Text(Ordinary, "builder") } });
-        Assert.AreSequenceEqual(s_ordinaryOnly, Keys(foreign.Attributes));
+        Assert.AreEqual(sanitized, foreign.Attributes["error"].AsString());
     }
 
     private static string[] Keys(NormalizedAttributes attributes) =>

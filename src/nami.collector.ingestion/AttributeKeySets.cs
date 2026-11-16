@@ -4,19 +4,12 @@ internal static class AttributeKeySets
 {
     internal static string[] ProjectIdResourceKeyPrecedence => [CollectorSemanticAttributeCatalog.NamiProjectId];
 
-    // The allowlist by key alone: a key the registry defines, persists and has not deprecated. Storage applies it
-    // again to every attribute it writes.
-    internal static bool IsPersistable(string key) => !key.StartsWith("baggage.", StringComparison.OrdinalIgnoreCase) &&
-                                                      AttributeStability.Of(key) != Stability.Deprecated &&
-                                                      RegistryPolicy.IsPersisted(key);
-
-    // The allowlist at ingest. A key the registry defines for a producer (Claude Code's model, type, success, source)
-    // means what the registry says only on records from that producer's instrumentation scopes; from any other
-    // sender, and in resource and scope attributes, it is an unknown key. producer is the producer of the record's
-    // scope, or null.
-    internal static bool IsPersistable(string key, string? producer) =>
-        IsPersistable(key) && (RegistryPolicy.ProducerOf(key) is not { } owner ||
-                               string.Equals(owner, producer, StringComparison.Ordinal));
+    // Keys are stored as they were sent (observer's decision, 16 Nov 2026): a key the registry does not know, a
+    // deprecated key, a baggage key and a sender's own key are all kept under their own name, on every scope. What
+    // is left of the allowlist is the registry's explicit refusal, nami.persisted: false on a key that is not
+    // deprecated, which names content and identity keys. Storage applies it again to every attribute it writes.
+    internal static bool IsPersistable(string key) =>
+        AttributeCatalog.Find(key) is not { IsPersisted: false, Stability: not Stability.Deprecated };
 }
 
 internal static class AttributeLookupExtensions

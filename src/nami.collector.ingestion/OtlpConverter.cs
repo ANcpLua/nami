@@ -35,16 +35,6 @@ internal static partial class OtlpConverter
         return 0;
     }
 
-    private static void SetNormalizedAttribute(
-        NormalizedAttributes attributes,
-        string key,
-        OtlpAttributeValue value,
-        bool renamed)
-    {
-        if (renamed) attributes.Values.TryAdd(key, value);
-        else attributes[key] = value;
-    }
-
     private static string? NullIfEmpty(string? value) =>
         string.IsNullOrEmpty(value) ? null : value;
 
@@ -179,18 +169,15 @@ internal static partial class OtlpConverter
         foreach (var attr in resource.Attributes)
         {
             if (IsUnresolvedProfilingKey(attr)) continue;
-            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            NormalizedAttributes.RecordRename(attrs, attr.Key, key);
-            // A resource belongs to no instrumentation scope, so no producer's keys are kept on it.
-            if (ConvertAttribute(key, attr.Value, null) is not { } value)
+            // Stored under the key it was sent under: ingest renames nothing.
+            if (ConvertAttribute(attr.Key, attr.Value, null) is not { } value)
             {
-                NamiCollectorMetrics.AttributeDropped(key);
+                NamiCollectorMetrics.AttributeDropped(attr.Key);
                 continue;
             }
 
-            SetNormalizedAttribute(attrs, key, value, renamed);
-
-            projectedKeys[attr.Key] = new ResourceAttributeProjectionKey(key);
+            attrs[attr.Key] = value;
+            projectedKeys[attr.Key] = new ResourceAttributeProjectionKey(attr.Key);
         }
 
         return new ResourceProjection(attrs, ExtractResourceEntityRefs(resource, projectedKeys, attrs));
@@ -305,15 +292,13 @@ internal static partial class OtlpConverter
         foreach (var attr in LiftWireContainers(protoAttributes, producer))
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
-            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            NormalizedAttributes.RecordRename(attributes, attr.Key, key);
-            if (ConvertAttribute(key, attr.Value, producer) is not { } value)
+            if (ConvertAttribute(attr.Key, attr.Value, producer) is not { } value)
             {
-                NamiCollectorMetrics.AttributeDropped(key);
+                NamiCollectorMetrics.AttributeDropped(attr.Key);
                 continue;
             }
 
-            SetNormalizedAttribute(attributes, key, value, renamed);
+            attributes[attr.Key] = value;
         }
     }
 
@@ -359,17 +344,13 @@ internal static partial class OtlpConverter
         foreach (var attribute in attributes)
         {
             if (IsUnresolvedProfilingKey(attribute)) continue;
-            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attribute.Key, out var key);
-            NormalizedAttributes.RecordRename(result, attribute.Key, key);
-            // Scope attributes and metric metadata describe the instrumentation, not a record of it: no producer's
-            // keys are kept there.
-            if (ConvertAttribute(key, attribute.Value, null) is not { } value)
+            if (ConvertAttribute(attribute.Key, attribute.Value, null) is not { } value)
             {
-                NamiCollectorMetrics.AttributeDropped(key);
+                NamiCollectorMetrics.AttributeDropped(attribute.Key);
                 continue;
             }
 
-            SetNormalizedAttribute(result, key, value, renamed);
+            result[attribute.Key] = value;
         }
 
         return result;

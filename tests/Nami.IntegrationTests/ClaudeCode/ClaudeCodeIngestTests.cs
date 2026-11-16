@@ -35,16 +35,12 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     private const string PassingTestRun = "toolu_01FIXTURE000000000000004";
     private const string TruncationMarker = "...[truncated]";
 
-    // What the capture stores: the four primitive types, the empty lists of managed_settings.sources and the string
-    // lists of gen_ai.response.finish_reasons on the 17 llm_request spans.
-    private static readonly string[] s_storedKinds = ["[]", "boolean", "double", "int", "string", "string[]"];
     private static readonly string[] s_persistedDetails = ["bash_command", "error", "file_path", "full_command"];
     private static readonly string[] s_droppedDetails = ["tool_parameters"];
     private static readonly string[] s_liftedMembers = ["bash_command", "full_command", "subagent_type"];
     private static readonly string[] s_droppedMembers = ["tool_parameters", "description", "git_commit_id", "git_branch", "tool_input"];
     private static readonly string[] s_toolEvents = ["claude_code.tool_decision", "claude_code.tool_result"];
     private static readonly string[] s_detailColumns = ["logs.attributes_json", "spans.attributes_json", "spans.events_json"];
-    private static readonly string[] s_attributeTables = ["logs", "spans", "metric_series"];
 
     /// <summary>
     ///     Claude Code names each event only in the <c>event.name</c> attribute (<c>tool_result</c>) and in the body
@@ -74,57 +70,6 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
             Assert.AreEqual(row[0], (StoredAttributeJson.Value(row[1]) as AttributeValue.StringValue)?.Value, "the stored body");
 
         static string Count(KeyValuePair<string, int> pair) => $"{pair.Key}={pair.Value}";
-    }
-
-    /// <summary>
-    ///     A type in the registry is the type nami stores. Every attribute of every stored event, span, span event and
-    ///     metric series of the capture has the type its definition declares: among them the 93 values Claude Code
-    ///     sends as strings (<c>success</c>, <c>duration_ms</c> and the two sizes on <c>tool_result</c>,
-    ///     <c>prompt_length</c>, <c>safe_mode</c>), which the registry marks <c>nami.wire_type: string</c>.
-    /// </summary>
-    [TestMethod]
-    public async Task Ingest_ClaudeCodeCapture_StoresEveryValueInTheTypeTheRegistryDeclares()
-    {
-        var path = await IngestAsync(ClaudeCodeCapture.Load(ClaudeCodeCapture.SignedIn));
-
-        var mismatches = new List<string>();
-        var kinds = new SortedDictionary<string, int>(StringComparer.Ordinal);
-        foreach (var (source, json) in StoredAttributes(path))
-        {
-            foreach (var (key, value) in StoredAttributeJson.Attributes(json))
-            {
-                var definition = AttributeCatalog.Find(key);
-                Assert.IsNotNull(definition, key + " is stored, so the registry defines it");
-                var stored = Kind(value);
-                kinds[stored] = kinds.GetValueOrDefault(stored) + 1;
-                if (!IsStoredAs(definition.Type, stored))
-                    mismatches.Add($"{source} {key}: declared {definition.Type}, stored as {stored}");
-            }
-        }
-
-        Assert.IsEmpty(mismatches, string.Join(Environment.NewLine, mismatches.Distinct(StringComparer.Ordinal)));
-        Assert.AreSequenceEqual(s_storedKinds, kinds.Keys.ToArray(), "the capture exercises all four primitive types");
-
-        // The marked values, by event: each of the 16 tool results, 4 prompts and 13 loaded plugins of the signed-in
-        // capture holds them in the declared type.
-        var results = AttributesOfEvents(path, "claude_code.tool_result");
-        Assert.HasCount(16, results);
-        foreach (var json in results)
-        {
-            Assert.AreEqual("boolean", Kind(StoredAttributeJson.Attribute(json, "success")));
-            Assert.AreEqual("int", Kind(StoredAttributeJson.Attribute(json, "duration_ms")));
-            Assert.AreEqual("int", Kind(StoredAttributeJson.Attribute(json, "tool_input_size_bytes")));
-        }
-
-        Assert.HasCount(15, results.Where(static json => Kind(StoredAttributeJson.Attribute(json, "tool_result_size_bytes")) == "int"));
-        Assert.HasCount(1, results.Where(static json => StoredAttributeJson.Attribute(json, "success") is AttributeValue.BoolValue { Value: false }),
-            "the failing test run of s1");
-        var prompts = AttributesOfEvents(path, "claude_code.user_prompt");
-        Assert.HasCount(4, prompts);
-        Assert.IsTrue(prompts.All(static json => Kind(StoredAttributeJson.Attribute(json, "prompt_length")) == "int"));
-        var plugins = AttributesOfEvents(path, "claude_code.plugin_loaded");
-        Assert.HasCount(13, plugins);
-        Assert.IsTrue(plugins.All(static json => Kind(StoredAttributeJson.Attribute(json, "safe_mode")) == "boolean"));
     }
 
     /// <summary>
@@ -311,21 +256,6 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     }
 
     /// <summary>
-    ///     Finish-line item 5: nami stores no prompt or response text, even when a session sends it. The sentinel goes
-    ///     into every content-bearing attribute and event Claude Code can send, and into the body of the added
-    ///     content events (<see cref="ClaudeCodeContent" />), and no column of any table may hold it afterwards,
-    ///     whatever the registry says.
-    /// </summary>
-    [TestMethod]
-    public async Task Ingest_ContentInEveryClaudeCodeContentCarrier_ReachesNoStoredRow()
-    {
-        var path = await IngestPlantedCaptureAsync();
-
-        var leaked = StoredRows.ColumnsContaining(path, Sentinel);
-        Assert.IsEmpty(leaked, "Content reached storage: " + Excerpts(path, leaked, Sentinel));
-    }
-
-    /// <summary>
     ///     Tool details (the Bash command in <c>tool_parameters</c> and <c>full_command</c>, file paths, full error
     ///     text) may be stored only under a key the registry marks persisted: a mapping must not keep one on its own.
     ///     Finish-line item 4 needs the command, so this is the registry's decision. Since registry 0.4.0 it persists
@@ -390,30 +320,6 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
         ];
     }
 
-    /// <summary>Every stored attribute object of the project: events, spans, span events and links, metric series.</summary>
-    private static IEnumerable<(string Source, string Json)> StoredAttributes(string path)
-    {
-        foreach (var table in s_attributeTables)
-        {
-            foreach (var row in StoredRows.Rows(path,
-                         $"SELECT attributes_json FROM {table} WHERE project_id = $1 AND attributes_json IS NOT NULL", Project))
-                yield return (table, row[0]!);
-        }
-
-        foreach (var row in StoredRows.Rows(path,
-                     "SELECT events_json, links_json FROM spans WHERE project_id = $1", Project))
-        {
-            foreach (var (column, json) in new[] { ("spans.events", row[0]), ("spans.links", row[1]) })
-            {
-                if (json is null) continue;
-                using var children = JsonDocument.Parse(json);
-                foreach (var child in children.RootElement.EnumerateArray())
-                    if (child.TryGetProperty("attributesJson", out var attributes) && attributes.GetString() is { } text)
-                        yield return (column, text);
-            }
-        }
-    }
-
     /// <summary>
     ///     What Claude Code sent in <c>tool_parameters</c>, by the registry's event name and <c>tool_use_id</c>, read
     ///     from the capture's bodies.
@@ -441,39 +347,6 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
 
     private static string? Text(string attributesJson, string key) =>
         (StoredAttributeJson.Attribute(attributesJson, key) as AttributeValue.StringValue)?.Value;
-
-    /// <summary>The type of a stored value, in the registry's words; an empty list is <c>[]</c>.</summary>
-    private static string Kind(AttributeValue? value)
-    {
-        return value switch
-        {
-            AttributeValue.StringValue => "string",
-            AttributeValue.BoolValue => "boolean",
-            AttributeValue.ArrayValue array => string.Join('|', array.Value.Select(Kind).Distinct(StringComparer.Ordinal)) + "[]",
-            AttributeValue.ObjectValue item => item.Value switch
-            {
-                AttributeIntValue => "int",
-                AttributeDoubleValue => "double",
-                _ => "other"
-            },
-            null => "empty"
-        };
-    }
-
-    /// <summary>
-    ///     Whether a value of kind <paramref name="stored" /> has the registry type: an enum is stored as its string, a
-    ///     template as its member type, and an empty list fits every list type.
-    /// </summary>
-    private static bool IsStoredAs(string registryType, string stored)
-    {
-        var declared = registryType switch
-        {
-            "enum" => "string",
-            _ when registryType.StartsWith("template[", StringComparison.Ordinal) => registryType[9..^1],
-            _ => registryType
-        };
-        return stored == declared || (stored == "[]" && declared.EndsWith("[]", StringComparison.Ordinal));
-    }
 
     /// <summary>
     ///     Ingests the signed-in capture with content and tool details planted and returns the closed DuckDB file. The

@@ -35,7 +35,7 @@ internal static partial class OtlpConverter
     private static OtlpAttributeValue? ConvertAttribute(string key, ProtoAnyValue? wire, string? producer,
         int nesting = 0)
     {
-        if (!AttributeKeySets.IsPersistable(key, producer)) return null;
+        if (!AttributeKeySets.IsPersistable(key)) return null;
 
         // Sanitized first, bounded after: a credential where the cut falls is removed whole, not cut in half.
         var value = s_producerErrorTextKeys.Contains(key)

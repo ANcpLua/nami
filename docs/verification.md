@@ -31,7 +31,7 @@ bounded details. A changed source/output fingerprint requires fresh validation.
 | R1 | `Ingest_ThreeTransports_SameRows` (traces/logs/metrics × JSON/protobuf/gRPC); `EveryTool_ThreeOtlpTransports_ReturnsTypedEvidence` (generated six-tool × three-transport cases); `Ingest_ThreeTransports_ProduceEquivalentRows` (one export per signal, the whole store compared across the three transports) |
 | R2 | `Watermark_BackdatedRecord_DoesNotRegress`; `Watermark_ClockStepsBack_DoesNotRegress` |
 | R3 | `LastSeen_FutureTimestamp_UsesReceiptTime` |
-| R4 | `Ingest_DeprecatedKey_RewrittenToSuccessor`; `Discovery_RenamedAndDroppedKeys_SurvivesRestart`; `Ingest_DeprecatedTemplate_PreservesSuffixAndDiscovery`; `Catalog_EachDefinition_CarriesResolvedStabilityAndSuccessor` (the successor ingest rewrites to, for every key) |
+| R4 | `Keys_UnknownDeprecatedBaggageAndAnotherSendersKeys_AreStoredUnderTheNameTheyWereSent` (span, resource, scope and event attributes); `Ingest_DeprecatedKey_StoredUnderTheNameItWasSent`; `Ingest_DeprecatedKeys_SurviveRestartAsSent`; `Ingest_DeprecatedTemplate_StoredUnderTheNameItWasSent`; `Catalog_EachDefinition_CarriesResolvedStabilityAndSuccessor` (the successor a reader derives, for every key) |
 | R5 | `Ingest_DevelopmentKey_StoredWithStabilityMark`; `Catalog_EachDefinition_CarriesResolvedStabilityAndSuccessor` (the stability ingest marks, for every key) |
 | R6 | `Sanitizer_Boundaries_HoldAtPlusMinusOne`; `Sanitizer_OutputUtf8Boundary_PreservesValidText`; `Sanitizer_InvalidUtf16_FailsClosed`; `Ingest_ExceptionText_IsSanitizedOnEveryTransport` (log record and span event over JSON, protobuf and gRPC) |
 | R7 | `Exception_LogEventAndSpanEvent_GroupTogether`; `ErrorsRecent_FiveHundredThousandSpans_UnderMaxBytes` |
