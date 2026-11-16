@@ -4,7 +4,6 @@ using System.Text.Json;
 using Google.Protobuf;
 using Nami.Api.Contracts.Common;
 using Nami.Collector.Storage;
-using Nami.SemanticConventions;
 using Nami.Tests.Wire.OpenTelemetry.Proto.Collector.Logs.V1;
 using Nami.Tests.Wire.OpenTelemetry.Proto.Collector.Trace.V1;
 using WireCapture = Nami.Tests.Infrastructure.ClaudeCodeCapture;
@@ -31,180 +30,10 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     private const string Detail = "nami-detail-6a1f3e92";
     private const string Control = "nami-control-93d4a2f6";
 
-    // The passing test run of session s1, a Bash call with tool_parameters on its two events and full_command on its span.
-    private const string PassingTestRun = "toolu_01FIXTURE000000000000004";
-    private const string TruncationMarker = "...[truncated]";
+    private const string TruncationMarker = "…[truncated]";
 
-    // What the capture stores: the four primitive types, the empty lists of managed_settings.sources and the string
-    // lists of gen_ai.response.finish_reasons on the 17 llm_request spans.
-    private static readonly string[] s_storedKinds = ["[]", "boolean", "double", "int", "string", "string[]"];
-    private static readonly string[] s_persistedDetails = ["bash_command", "error", "file_path", "full_command"];
-    private static readonly string[] s_droppedDetails = ["tool_parameters"];
-    private static readonly string[] s_liftedMembers = ["bash_command", "full_command", "subagent_type"];
-    private static readonly string[] s_droppedMembers = ["tool_parameters", "description", "git_commit_id", "git_branch", "tool_input"];
-    private static readonly string[] s_toolEvents = ["claude_code.tool_decision", "claude_code.tool_result"];
-    private static readonly string[] s_detailColumns = ["logs.attributes_json", "spans.attributes_json", "spans.events_json"];
-    private static readonly string[] s_attributeTables = ["logs", "spans", "metric_series"];
+    private static readonly string[] s_contentColumns = ["logs.attributes_json", "logs.body", "spans.attributes_json", "spans.events_json"];
 
-    /// <summary>
-    ///     Claude Code names each event only in the <c>event.name</c> attribute (<c>tool_result</c>) and in the body
-    ///     (<c>claude_code.tool_result</c>); the OTLP <c>event_name</c> field is empty on all 95 records of both captures.
-    ///     nami stores every one of them (77 and 18: <c>event.sequence</c> and <c>plugin.name</c> are persisted, so the
-    ///     <c>plugin_loaded</c> events of one millisecond no longer share a row) under the name the registry defines,
-    ///     <c>claude_code.{name}</c>, and the stored body is that name.
-    /// </summary>
-    [TestMethod]
-    [DataRow(ClaudeCodeCapture.SignedIn, 77)]
-    [DataRow(ClaudeCodeCapture.NotSignedIn, 18)]
-    public async Task Ingest_ClaudeCodeCapture_StoresEveryEventWithItsName(string capture, int events)
-    {
-        var path = await IngestAsync(ClaudeCodeCapture.Load(capture));
-
-        var stored = StoredRows.EventNames(path, Project);
-
-        var expected = ExpectedEvents(capture);
-        Assert.AreEqual(events, expected.Values.Sum());
-        Assert.AreSequenceEqual(expected.OrderBy(static pair => pair.Key, StringComparer.Ordinal).Select(Count).ToArray(),
-            stored.Select(static pair => Count(KeyValuePair.Create(pair.Key, (int)pair.Value))).ToArray(), Describe(stored));
-        var defined = Events.All.Select(static definition => definition.Name).ToHashSet(StringComparer.Ordinal);
-        Assert.IsEmpty(stored.Keys.Where(name => !defined.Contains(name)).ToArray(), "every stored name is a registry event");
-        var bodies = StoredRows.Rows(path, "SELECT event_name, body FROM logs WHERE project_id = $1", Project);
-        Assert.HasCount(events, bodies);
-        foreach (var row in bodies)
-            Assert.AreEqual(row[0], (StoredAttributeJson.Value(row[1]) as AttributeValue.StringValue)?.Value, "the stored body");
-
-        static string Count(KeyValuePair<string, int> pair) => $"{pair.Key}={pair.Value}";
-    }
-
-    /// <summary>
-    ///     A type in the registry is the type nami stores. Every attribute of every stored event, span, span event and
-    ///     metric series of the capture has the type its definition declares: among them the 93 values Claude Code
-    ///     sends as strings (<c>success</c>, <c>duration_ms</c> and the two sizes on <c>tool_result</c>,
-    ///     <c>prompt_length</c>, <c>safe_mode</c>), which the registry marks <c>nami.wire_type: string</c>.
-    /// </summary>
-    [TestMethod]
-    public async Task Ingest_ClaudeCodeCapture_StoresEveryValueInTheTypeTheRegistryDeclares()
-    {
-        var path = await IngestAsync(ClaudeCodeCapture.Load(ClaudeCodeCapture.SignedIn));
-
-        var mismatches = new List<string>();
-        var kinds = new SortedDictionary<string, int>(StringComparer.Ordinal);
-        foreach (var (source, json) in StoredAttributes(path))
-        {
-            foreach (var (key, value) in StoredAttributeJson.Attributes(json))
-            {
-                var definition = AttributeCatalog.Find(key);
-                Assert.IsNotNull(definition, key + " is stored, so the registry defines it");
-                var stored = Kind(value);
-                kinds[stored] = kinds.GetValueOrDefault(stored) + 1;
-                if (!IsStoredAs(definition.Type, stored))
-                    mismatches.Add($"{source} {key}: declared {definition.Type}, stored as {stored}");
-            }
-        }
-
-        Assert.IsEmpty(mismatches, string.Join(Environment.NewLine, mismatches.Distinct(StringComparer.Ordinal)));
-        Assert.AreSequenceEqual(s_storedKinds, kinds.Keys.ToArray(), "the capture exercises all four primitive types");
-
-        // The marked values, by event: each of the 16 tool results, 4 prompts and 13 loaded plugins of the signed-in
-        // capture holds them in the declared type.
-        var results = AttributesOfEvents(path, "claude_code.tool_result");
-        Assert.HasCount(16, results);
-        foreach (var json in results)
-        {
-            Assert.AreEqual("boolean", Kind(StoredAttributeJson.Attribute(json, "success")));
-            Assert.AreEqual("int", Kind(StoredAttributeJson.Attribute(json, "duration_ms")));
-            Assert.AreEqual("int", Kind(StoredAttributeJson.Attribute(json, "tool_input_size_bytes")));
-        }
-
-        Assert.HasCount(15, results.Where(static json => Kind(StoredAttributeJson.Attribute(json, "tool_result_size_bytes")) == "int"));
-        Assert.HasCount(1, results.Where(static json => StoredAttributeJson.Attribute(json, "success") is AttributeValue.BoolValue { Value: false }),
-            "the failing test run of s1");
-        var prompts = AttributesOfEvents(path, "claude_code.user_prompt");
-        Assert.HasCount(4, prompts);
-        Assert.IsTrue(prompts.All(static json => Kind(StoredAttributeJson.Attribute(json, "prompt_length")) == "int"));
-        var plugins = AttributesOfEvents(path, "claude_code.plugin_loaded");
-        Assert.HasCount(13, plugins);
-        Assert.IsTrue(plugins.All(static json => Kind(StoredAttributeJson.Attribute(json, "safe_mode")) == "boolean"));
-    }
-
-    /// <summary>
-    ///     Claude Code nests <c>bash_command</c>, <c>full_command</c> and <c>subagent_type</c> in the
-    ///     <c>tool_parameters</c> JSON of <c>tool_decision</c> and <c>tool_result</c>. Each stored event carries them as
-    ///     its own attributes, with the capture's values, and neither the container nor any other member of it.
-    /// </summary>
-    [TestMethod]
-    public async Task Ingest_ClaudeCodeCapture_LiftsTheNamedMembersOutOfToolParameters()
-    {
-        var path = await IngestAsync(ClaudeCodeCapture.Load(ClaudeCodeCapture.SignedIn));
-
-        var sent = SentToolParameters();
-        Assert.HasCount(14, sent, "7 tool_decision and 7 tool_result events of the capture carry tool_parameters");
-        foreach (var name in s_toolEvents)
-        {
-            var stored = AttributesOfEvents(path, name);
-            Assert.HasCount(16, stored, name);
-            Assert.IsEmpty(stored.SelectMany(Keys).Where(s_droppedMembers.Contains).Distinct().ToArray(), name);
-            foreach (var json in stored)
-            {
-                var call = Text(json, "tool_use_id") ?? throw new InvalidDataException("A tool event without tool_use_id.");
-                foreach (var key in s_liftedMembers)
-                {
-                    var expected = sent.TryGetValue((name, call), out var members) && members.TryGetProperty(key, out var member)
-                        ? member.GetString()
-                        : null;
-                    Assert.AreEqual(expected, Text(json, key), $"{name} {call} {key}");
-                }
-            }
-
-            Assert.HasCount(6, stored.Where(static json => Text(json, "full_command") is not null), name);
-            Assert.HasCount(6, stored.Where(static json => Text(json, "bash_command") is not null), name);
-            Assert.HasCount(1, stored.Where(static json => Text(json, "subagent_type") == "general-purpose"), name);
-        }
-
-        var spans = StoredRows.Rows(path,
-            "SELECT attributes_json FROM spans WHERE project_id = $1 AND name = 'claude_code.tool'", Project);
-        Assert.HasCount(16, spans);
-        Assert.HasCount(6, spans.Where(static row => Text(row[0]!, "full_command") is not null),
-            "the six Bash calls keep their command line on the tool span");
-    }
-
-    /// <summary>
-    ///     <c>full_command</c> is persisted and bounded (observer's ruling, 15 Nov): a command line longer than the
-    ///     registry's bound of 4096 UTF-8 bytes is stored cut to it, with the marker log bodies use, on both events and
-    ///     on the span, and what was cut off reaches no column of any table.
-    /// </summary>
-    [TestMethod]
-    public async Task Ingest_FullCommandBeyondTheRegistrysBound_IsStoredCutToIt()
-    {
-        var bound = ValueLimits.MaxUtf8Bytes["full_command"];
-        const string start = "./eng/test.sh --suite Unit # ";
-        const string tail = "nami-tail-4d7e19c3";
-        var command = start + new string('é', bound) + tail;
-        var changed = WireCapture.WithCommand(WireCapture.SignedIn(), PassingTestRun, command);
-
-        var path = await IngestAsync([.. changed.Select(static body => new ClaudeCodeExport(body.Signal, body.Payload))]);
-
-        var events = StoredRows.Rows(path,
-            "SELECT attributes_json FROM logs WHERE project_id = $1 AND contains(attributes_json, $2)", Project, PassingTestRun);
-        var spans = StoredRows.Rows(path,
-            "SELECT attributes_json FROM spans WHERE project_id = $1 AND name = 'claude_code.tool' AND contains(attributes_json, $2)",
-            Project, PassingTestRun);
-        Assert.HasCount(2, events, "the tool_decision and the tool_result of the run");
-        Assert.HasCount(1, spans);
-        var expected = start + new string('é', (bound - Encoding.UTF8.GetByteCount(start) - TruncationMarker.Length) / 2) +
-                       TruncationMarker;
-        foreach (var row in events.Concat(spans))
-        {
-            var stored = Text(row[0]!, "full_command");
-            Assert.AreEqual(expected, stored);
-            Assert.IsLessThanOrEqualTo(bound, Encoding.UTF8.GetByteCount(stored!));
-        }
-
-        Assert.IsEmpty(StoredRows.ColumnsContaining(path, tail), "the part beyond the bound is stored nowhere");
-        Assert.HasCount(12, StoredRows.Rows(path,
-                "SELECT 1 FROM logs WHERE project_id = $1 AND contains(attributes_json, '\"full_command\"')", Project),
-            "all twelve events of the six Bash calls keep a command line");
-    }
 
     /// <summary>
     ///     Claude Code copies the text of its <c>error</c> attribute into the status message of a failed span: "Shell
@@ -295,185 +124,150 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
 
         var failedSpan = Assert.ContainsSingle(StoredRows.Rows(path,
             "SELECT status_message, attributes_json FROM spans WHERE project_id = $1 AND status_message IS NOT NULL", Project));
-        var failedResult = Assert.ContainsSingle(AttributesOfEvents(path, "claude_code.tool_result")
+        var failedResult = Assert.ContainsSingle(AttributesOfEvents(path, "tool_result")
             .Where(static json => Text(json, "error") is not null));
         Assert.IsEmpty(StoredRows.ColumnsContaining(path, secret), "no credential is stored");
-        Assert.IsEmpty(StoredRows.ColumnsContaining(path, tail), "the part beyond 1024 bytes is stored nowhere");
+        Assert.IsFalse(StoredRows.ColumnsContaining(path, tail).ContainsKey("spans.status_message"),
+            "the part of the status message beyond 1024 bytes is not stored");
         foreach (var stored in new[] { failedSpan[0], Text(failedSpan[1]!, "error"), Text(failedResult, "error") })
         {
             Assert.IsNotNull(stored);
             Assert.StartsWith("Shell command failed: could not push\nAuthorization: Bearer [REDACTED]\n", stored);
-            Assert.Contains("remote https://git.example.test/nami.git rejected the push\n", stored);
+            Assert.Contains("remote https://[REDACTED]@git.example.test/nami.git?[REDACTED] rejected the push\n", stored);
             Assert.Contains("password=[REDACTED];retry in 5 s\n", stored);
-            Assert.EndsWith(TruncationMarker, stored);
-            Assert.IsLessThanOrEqualTo(1024, Encoding.UTF8.GetByteCount(stored));
         }
+
+        // The status message keeps its own 1024 bytes; the error attribute is far below the cap of every value.
+        Assert.EndsWith(TruncationMarker, failedSpan[0]!);
+        Assert.IsLessThanOrEqualTo(1024, Encoding.UTF8.GetByteCount(failedSpan[0]!));
+        Assert.EndsWith(tail, Text(failedResult, "error")!);
     }
 
     /// <summary>
-    ///     Finish-line item 5: nami stores no prompt or response text, even when a session sends it. The sentinel goes
-    ///     into every content-bearing attribute and event Claude Code can send, and into the body of the added
-    ///     content events (<see cref="ClaudeCodeContent" />), and no column of any table may hold it afterwards,
-    ///     whatever the registry says.
+    ///     Content is stored as sent (observer's decision, 16 Nov 2026, which reverses finish-line item 5). The
+    ///     sentinel goes into every content-bearing attribute and event Claude Code can send, and into the body of the
+    ///     added content events (<see cref="ClaudeCodeContent" />); afterwards the store holds it on the events, the
+    ///     spans and the span events it was planted on.
     /// </summary>
     [TestMethod]
-    public async Task Ingest_ContentInEveryClaudeCodeContentCarrier_ReachesNoStoredRow()
+    public async Task Ingest_ContentInEveryClaudeCodeContentCarrier_IsStored()
     {
         var path = await IngestPlantedCaptureAsync();
 
-        var leaked = StoredRows.ColumnsContaining(path, Sentinel);
-        Assert.IsEmpty(leaked, "Content reached storage: " + Excerpts(path, leaked, Sentinel));
+        var stored = StoredRows.ColumnsContaining(path, Sentinel);
+        foreach (var column in s_contentColumns)
+            Assert.IsGreaterThan(0L, stored.GetValueOrDefault(column), column + ": " + Describe(stored));
     }
 
     /// <summary>
-    ///     Tool details (the Bash command in <c>tool_parameters</c> and <c>full_command</c>, file paths, full error
-    ///     text) may be stored only under a key the registry marks persisted: a mapping must not keep one on its own.
-    ///     Finish-line item 4 needs the command, so this is the registry's decision. Since registry 0.4.0 it persists
-    ///     <c>bash_command</c>, <c>file_path</c>, <c>full_command</c> and the <c>error</c> text, and not
-    ///     <c>tool_parameters</c> as a whole: the first four are stored where they were planted, in the attributes of
-    ///     events, spans and span events and in no other column, and the container reaches no stored row.
+    ///     The whole capture, record by record: every event and every span is stored with the attributes Claude Code
+    ///     sent, under the keys and in the types it sent them, with the event-name field, the body and the span name
+    ///     it sent. Nothing is renamed, converted, lifted, added or dropped. (The one addition is
+    ///     <c>service.name</c>, which ingest copies from the resource onto every span.)
     /// </summary>
     [TestMethod]
-    public async Task Ingest_ClaudeCodeToolDetails_ReachNoStoredRowUnlessTheRegistryPersistsTheKey()
+    [DataRow(ClaudeCodeCapture.SignedIn, 77)]
+    [DataRow(ClaudeCodeCapture.NotSignedIn, 18)]
+    public async Task Ingest_ClaudeCodeCapture_StoresEveryEventAndSpanAsItWasSent(string capture, int events)
     {
-        var path = await IngestPlantedCaptureAsync();
+        var exports = ClaudeCodeCapture.Load(capture);
+        var sentEvents = exports.Where(static export => export.Signal == Signals.Logs)
+            .SelectMany(static export => ExportLogsServiceRequest.Parser.ParseFrom(export.Payload).ResourceLogs)
+            .SelectMany(static resource => resource.ScopeLogs).SelectMany(static scope => scope.LogRecords)
+            .Select(static record => (record.EventName.Length == 0 ? "(no event name)" : record.EventName) + "\n" +
+                                     Sent(record.Body) + "\n" + Sent(record.Attributes))
+            .Order(StringComparer.Ordinal).ToArray();
+        var sentSpans = exports.Where(static export => export.Signal == Signals.Traces)
+            .SelectMany(static export => ExportTraceServiceRequest.Parser.ParseFrom(export.Payload).ResourceSpans)
+            .SelectMany(static resource => resource.ScopeSpans).SelectMany(static scope => scope.Spans)
+            .Select(static span => span.Name + "\n" + Sent(span.Attributes))
+            .Order(StringComparer.Ordinal).ToArray();
+        Assert.HasCount(events, sentEvents);
+        Assert.IsNotEmpty(sentSpans);
 
-        Assert.AreSequenceEqual(s_persistedDetails, ClaudeCodeContent.DetailKeys.Where(RegistryPolicy.IsPersisted).ToArray());
-        Assert.AreSequenceEqual(s_droppedDetails,
-            ClaudeCodeContent.DetailKeys.Where(static key => !RegistryPolicy.IsPersisted(key)).ToArray());
-        foreach (var key in ClaudeCodeContent.DetailKeys)
-        {
-            var marker = Detail + ":" + key;
-            var stored = StoredRows.ColumnsContaining(path, marker);
-            if (RegistryPolicy.IsPersisted(key))
-            {
-                Assert.IsNotEmpty(stored, key + " is persisted, so its planted value is stored");
-                Assert.IsEmpty(stored.Keys.Except(s_detailColumns).ToArray(),
-                    $"{key} is stored outside the attributes it was sent in: " + Excerpts(path, stored, marker));
-            }
-            else
-            {
-                Assert.IsEmpty(stored,
-                    $"{key} reached storage although the registry does not persist it: " + Excerpts(path, stored, marker));
-            }
-        }
+        var path = await IngestAsync(exports);
+
+        var storedEvents = StoredRows.Rows(path, "SELECT event_name, body, attributes_json FROM logs WHERE project_id = $1", Project)
+            .Select(static row => (row[0] ?? "(no event name)") + "\n" + Stored(StoredAttributeJson.Value(row[1])) + "\n" +
+                                  Stored(row[2], null))
+            .Order(StringComparer.Ordinal).ToArray();
+        var storedSpans = StoredRows.Rows(path, "SELECT name, attributes_json FROM spans WHERE project_id = $1", Project)
+            .Select(static row => row[0] + "\n" + Stored(row[1], "service.name"))
+            .Order(StringComparer.Ordinal).ToArray();
+        Assert.AreSequenceEqual(sentEvents, storedEvents);
+        Assert.AreSequenceEqual(sentSpans, storedSpans);
     }
 
-    /// <summary>The capture's log records per event, under the registry's names.</summary>
-    private static Dictionary<string, int> ExpectedEvents(string capture)
+    /// <summary>One line per attribute as Claude Code sent it: key, type and value, in key order.</summary>
+    private static string Sent(IEnumerable<Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.KeyValue> attributes) =>
+        string.Join('\n', attributes.OrderBy(static attribute => attribute.Key, StringComparer.Ordinal)
+            .Select(static attribute => attribute.Key + "=" + Sent(attribute.Value)));
+
+    private static string Sent(Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue? value)
     {
-        return capture switch
+        return value?.ValueCase switch
         {
-            ClaudeCodeCapture.SignedIn => new Dictionary<string, int>
-            {
-                ["claude_code.api_request"] = 17, ["claude_code.assistant_response"] = 7,
-                ["claude_code.managed_settings_resolved"] = 3, ["claude_code.plugin_loaded"] = 13,
-                ["claude_code.subagent_completed"] = 1, ["claude_code.tool_decision"] = 16,
-                ["claude_code.tool_result"] = 16, ["claude_code.user_prompt"] = 4
-            },
-            ClaudeCodeCapture.NotSignedIn => new Dictionary<string, int>
-            {
-                ["claude_code.api_error"] = 3, ["claude_code.managed_settings_resolved"] = 2,
-                ["claude_code.plugin_loaded"] = 11, ["claude_code.user_prompt"] = 2
-            },
-            _ => throw new ArgumentOutOfRangeException(nameof(capture), capture, "Unknown capture.")
+            Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue.ValueOneofCase.StringValue => "string:" + value.StringValue,
+            Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue.ValueOneofCase.BoolValue => "bool:" + value.BoolValue,
+            Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue.ValueOneofCase.IntValue =>
+                "int:" + value.IntValue.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue.ValueOneofCase.DoubleValue =>
+                "double:" + value.DoubleValue.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+            Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue.ValueOneofCase.BytesValue =>
+                "bytes:" + value.BytesValue.ToBase64(),
+            Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue.ValueOneofCase.ArrayValue =>
+                "[" + string.Join(",", value.ArrayValue.Values.Select(Sent)) + "]",
+            Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue.ValueOneofCase.KvlistValue =>
+                "{" + Sent(value.KvlistValue.Values).Replace('\n', ',') + "}",
+            _ => "empty"
         };
     }
 
-    /// <summary>The stored attributes of the events named <paramref name="eventName" />, one JSON object each.</summary>
+    /// <summary>The same lines for a stored attribute column; <paramref name="added" /> names a key ingest adds.</summary>
+    private static string Stored(string? attributesJson, string? added) =>
+        string.Join('\n', StoredAttributeJson.Attributes(attributesJson).Where(attribute => attribute.Key != added)
+            .Select(static attribute => attribute.Key + "=" + Stored(attribute.Value)));
+
+    private static string Stored(AttributeValue? value)
+    {
+        return value switch
+        {
+            null => "empty",
+            AttributeValue.StringValue text => "string:" + text.Value,
+            AttributeValue.BoolValue flag => "bool:" + flag.Value,
+            AttributeValue.ArrayValue list => "[" + string.Join(",", list.Value.Select(Stored)) + "]",
+            AttributeValue.ObjectValue item => item.Value switch
+            {
+                AttributeIntValue number => "int:" + number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                AttributeDoubleValue number =>
+                    "double:" + number.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+                AttributeBytesValue bytes => "bytes:" + Convert.ToBase64String(bytes.Base64.Span),
+                AttributeKeyValueListValue map => "{" + string.Join(",", map.Values
+                    .OrderBy(static member => member.Key, StringComparer.Ordinal)
+                    .Select(static member => member.Key + "=" + Stored(member.Value))) + "}",
+                _ => "other"
+            }
+        };
+    }
+
+    /// <summary>
+    ///     The stored attributes of the events Claude Code names <paramref name="eventName" /> in their
+    ///     <c>event.name</c> attribute, one JSON object each. The native event-name column holds what the record's
+    ///     field held, which Claude Code leaves empty.
+    /// </summary>
     private static string[] AttributesOfEvents(string path, string eventName)
     {
         return
         [
-            .. StoredRows.Rows(path, "SELECT attributes_json FROM logs WHERE project_id = $1 AND event_name = $2", Project,
-                eventName).Select(static row => row[0] ?? throw new InvalidDataException("An event without attributes."))
+            .. StoredRows.Rows(path,
+                    "SELECT attributes_json FROM logs WHERE project_id = $1 AND contains(attributes_json, $2)", Project,
+                    "\"event.name\":\"" + eventName + "\"")
+                .Select(static row => row[0] ?? throw new InvalidDataException("An event without attributes."))
         ];
     }
 
-    /// <summary>Every stored attribute object of the project: events, spans, span events and links, metric series.</summary>
-    private static IEnumerable<(string Source, string Json)> StoredAttributes(string path)
-    {
-        foreach (var table in s_attributeTables)
-        {
-            foreach (var row in StoredRows.Rows(path,
-                         $"SELECT attributes_json FROM {table} WHERE project_id = $1 AND attributes_json IS NOT NULL", Project))
-                yield return (table, row[0]!);
-        }
-
-        foreach (var row in StoredRows.Rows(path,
-                     "SELECT events_json, links_json FROM spans WHERE project_id = $1", Project))
-        {
-            foreach (var (column, json) in new[] { ("spans.events", row[0]), ("spans.links", row[1]) })
-            {
-                if (json is null) continue;
-                using var children = JsonDocument.Parse(json);
-                foreach (var child in children.RootElement.EnumerateArray())
-                    if (child.TryGetProperty("attributesJson", out var attributes) && attributes.GetString() is { } text)
-                        yield return (column, text);
-            }
-        }
-    }
-
-    /// <summary>
-    ///     What Claude Code sent in <c>tool_parameters</c>, by the registry's event name and <c>tool_use_id</c>, read
-    ///     from the capture's bodies.
-    /// </summary>
-    private static Dictionary<(string Event, string ToolUseId), JsonElement> SentToolParameters()
-    {
-        var sent = new Dictionary<(string, string), JsonElement>();
-        foreach (var export in ClaudeCodeCapture.Load(ClaudeCodeCapture.SignedIn).Where(static e => e.Signal == Signals.Logs))
-        {
-            foreach (var record in ExportLogsServiceRequest.Parser.ParseFrom(export.Payload).ResourceLogs
-                         .SelectMany(static resource => resource.ScopeLogs).SelectMany(static scope => scope.LogRecords))
-            {
-                if (WireCapture.Text(record.Attributes, "tool_parameters") is not { } parameters) continue;
-                using var document = JsonDocument.Parse(parameters);
-                sent.Add(("claude_code." + WireCapture.Text(record.Attributes, "event.name"),
-                    WireCapture.Text(record.Attributes, "tool_use_id")!), document.RootElement.Clone());
-            }
-        }
-
-        return sent;
-    }
-
-    private static IEnumerable<string> Keys(string attributesJson) =>
-        StoredAttributeJson.Attributes(attributesJson).Select(static attribute => attribute.Key);
-
     private static string? Text(string attributesJson, string key) =>
         (StoredAttributeJson.Attribute(attributesJson, key) as AttributeValue.StringValue)?.Value;
-
-    /// <summary>The type of a stored value, in the registry's words; an empty list is <c>[]</c>.</summary>
-    private static string Kind(AttributeValue? value)
-    {
-        return value switch
-        {
-            AttributeValue.StringValue => "string",
-            AttributeValue.BoolValue => "boolean",
-            AttributeValue.ArrayValue array => string.Join('|', array.Value.Select(Kind).Distinct(StringComparer.Ordinal)) + "[]",
-            AttributeValue.ObjectValue item => item.Value switch
-            {
-                AttributeIntValue => "int",
-                AttributeDoubleValue => "double",
-                _ => "other"
-            },
-            null => "empty"
-        };
-    }
-
-    /// <summary>
-    ///     Whether a value of kind <paramref name="stored" /> has the registry type: an enum is stored as its string, a
-    ///     template as its member type, and an empty list fits every list type.
-    /// </summary>
-    private static bool IsStoredAs(string registryType, string stored)
-    {
-        var declared = registryType switch
-        {
-            "enum" => "string",
-            _ when registryType.StartsWith("template[", StringComparison.Ordinal) => registryType[9..^1],
-            _ => registryType
-        };
-        return stored == declared || (stored == "[]" && declared.EndsWith("[]", StringComparison.Ordinal));
-    }
 
     /// <summary>
     ///     Ingests the signed-in capture with content and tool details planted and returns the closed DuckDB file. The
@@ -491,12 +285,6 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
         Assert.AreEqual((long)planted.Spans, kept.GetValueOrDefault("spans.attributes_json"), Describe(kept));
         Assert.AreEqual((long)planted.ToolOutputs, kept.GetValueOrDefault("spans.events_json"), Describe(kept));
         return path;
-    }
-
-    private static string Excerpts(string path, IReadOnlyDictionary<string, long> columns, string marker)
-    {
-        return string.Join("; ", columns.Select(column =>
-            $"{column.Key} in {column.Value} rows, for example {string.Join(" | ", StoredRows.Excerpts(path, column.Key, marker))}"));
     }
 
     /// <summary>Posts every body to a fresh collector, stops it, and returns its closed DuckDB file.</summary>

@@ -4,9 +4,6 @@ using Nami.Collector.Ingestion.Primitives;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
-using ProtoArrayValue = OpenTelemetry.Proto.Common.V1.ArrayValue;
-using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
-using ProtoKeyValueList = OpenTelemetry.Proto.Common.V1.KeyValueList;
 using ProtoLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
 using ProtoResource = OpenTelemetry.Proto.Resource.V1.Resource;
 using ProtoSeverityNumber = OpenTelemetry.Proto.Logs.V1.SeverityNumber;
@@ -35,20 +32,11 @@ internal static partial class OtlpConverter
         return 0;
     }
 
-    private static void SetNormalizedAttribute(
-        NormalizedAttributes attributes,
-        string key,
-        OtlpAttributeValue value,
-        bool renamed)
-    {
-        if (renamed) attributes.Values.TryAdd(key, value);
-        else attributes[key] = value;
-    }
-
-    private static string? NullIfEmpty(string? value) =>
-        string.IsNullOrEmpty(value) ? null : value;
-
     #region OTLP Trace Conversion
+
+    /// <summary>Converts with the bounds given; without any, with the defaults of <see cref="IngestLimits" />.</summary>
+    public static TraceIngestionBatch ConvertTraceRequest(ExportTraceServiceRequest request, IngestLimits? limits) =>
+        WithLimits(limits, () => ConvertTraceRequest(request));
 
     public static TraceIngestionBatch ConvertTraceRequest(ExportTraceServiceRequest request)
     {
@@ -59,7 +47,8 @@ internal static partial class OtlpConverter
         foreach (var resourceSpan in request.ResourceSpans)
         {
             ResourceProjection resource;
-            try { resource = ExtractResourceProjection(resourceSpan.Resource); }
+            uint resourceDropped;
+            try { resource = ExtractResourceProjection(resourceSpan.Resource, out resourceDropped); }
             catch (InvalidDataException error)
             {
                 Reject(resourceSpan.ScopeSpans.Sum(static scope => scope.Spans.Count), error);
@@ -68,18 +57,25 @@ internal static partial class OtlpConverter
 
             var serviceName = ExtractServiceNameFromProto(resourceSpan.Resource);
             var project = ExtractProjectIdHintFromProto(resourceSpan.Resource);
-            var resourceSchema = NullIfEmpty(resourceSpan.SchemaUrl);
+            var resourceSchema = KeptOrNull(resourceSpan.SchemaUrl);
             foreach (var scope in resourceSpan.ScopeSpans)
             {
                 NormalizedAttributes scopeAttributes;
-                try { scopeAttributes = ConvertMetadataAttributes(scope.Scope?.Attributes ?? []); }
+                uint scopeDropped;
+                try
+                {
+                    scopeAttributes = ConvertAttributes(scope.Scope?.Attributes ?? [], new RecordBudget(), true,
+                        out scopeDropped);
+                }
                 catch (InvalidDataException error)
                 {
                     Reject(scope.Spans.Count, error);
                     continue;
                 }
 
-                var producer = ProducerOfScope(scope.Scope?.Name);
+                var scopeSchema = KeptOrNull(scope.SchemaUrl);
+                var scopeName = KeptOrNull(scope.Scope?.Name);
+                var scopeVersion = KeptOrNull(scope.Scope?.Version);
                 foreach (var span in scope.Spans)
                 {
                     try
@@ -90,16 +86,15 @@ internal static partial class OtlpConverter
                             span is { StartTimeUnixNano: 0, EndTimeUnixNano: 0 })
                             throw new InvalidDataException("OTLP span requires start and end times with end >= start.");
                         spans.Add(CreateSpanRecordFromProto(span, project, serviceName,
-                                ExtractAttributesFromProto(span.Attributes, serviceName, producer),
                                 resource.Attributes, resource.EntityRefs,
-                                NullIfEmpty(scope.SchemaUrl) ?? resourceSchema, NullIfEmpty(scope.Scope?.Name),
-                                NullIfEmpty(scope.Scope?.Version), producer, reasons) with
+                                scopeSchema ?? resourceSchema, scopeName, scopeVersion, reasons) with
                         {
-                            ScopeSchemaUrl = NullIfEmpty(scope.SchemaUrl),
+                            ScopeSchemaUrl = scopeSchema,
                             ScopeAttributes = scopeAttributes,
-                            ScopeDroppedAttributesCount = scope.Scope?.DroppedAttributesCount ?? 0,
+                            ScopeDroppedAttributesCount = (scope.Scope?.DroppedAttributesCount ?? 0) + scopeDropped,
                             ResourceSchemaUrl = resourceSchema,
-                            ResourceDroppedAttributesCount = resourceSpan.Resource?.DroppedAttributesCount ?? 0
+                            ResourceDroppedAttributesCount =
+                                (resourceSpan.Resource?.DroppedAttributesCount ?? 0) + resourceDropped
                         });
                     }
                     catch (InvalidDataException error) { Reject(1, error); }
@@ -136,7 +131,7 @@ internal static partial class OtlpConverter
                     Value.ValueCase: ProtoAnyValue.ValueOneofCase.StringValue
                 })
                 continue;
-            if (!string.IsNullOrWhiteSpace(attr.Value.StringValue)) return attr.Value.StringValue;
+            if (!string.IsNullOrWhiteSpace(attr.Value.StringValue)) return Kept(attr.Value.StringValue);
             break;
         }
 
@@ -161,38 +156,23 @@ internal static partial class OtlpConverter
                     continue;
                 }
 
-                return attr.Value.StringValue;
+                return Kept(attr.Value.StringValue);
             }
         }
 
         return null;
     }
 
-    private static ResourceProjection ExtractResourceProjection(ProtoResource? resource)
+    private static ResourceProjection ExtractResourceProjection(ProtoResource? resource, out uint dropped)
     {
-        var attrs = new NormalizedAttributes();
-        if (resource is null) return new ResourceProjection(attrs, []);
+        dropped = 0;
+        if (resource is null) return new ResourceProjection(new NormalizedAttributes(), []);
 
-        ValidateAttributeKeys(resource.Attributes);
-        var projectedKeys = new Dictionary<string, ResourceAttributeProjectionKey>(StringComparer.Ordinal);
-
-        foreach (var attr in resource.Attributes)
-        {
-            if (IsUnresolvedProfilingKey(attr)) continue;
-            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            NormalizedAttributes.RecordRename(attrs, attr.Key, key);
-            // A resource belongs to no instrumentation scope, so no producer's keys are kept on it.
-            if (ConvertAttribute(key, attr.Value, null) is not { } value)
-            {
-                NamiCollectorMetrics.AttributeDropped(key);
-                continue;
-            }
-
-            SetNormalizedAttribute(attrs, key, value, renamed);
-
-            projectedKeys[attr.Key] = new ResourceAttributeProjectionKey(key);
-        }
-
+        // A resource is exempt from the count of attributes, not from the bytes: it is copied into every row.
+        var keys = new Dictionary<string, string>(StringComparer.Ordinal);
+        var attrs = ConvertAttributes(resource.Attributes, new RecordBudget(), false, out dropped, keys: keys);
+        var projectedKeys = keys.ToDictionary(static pair => pair.Key,
+            static pair => new ResourceAttributeProjectionKey(pair.Value), StringComparer.Ordinal);
         return new ResourceProjection(attrs, ExtractResourceEntityRefs(resource, projectedKeys, attrs));
     }
 
@@ -219,8 +199,8 @@ internal static partial class OtlpConverter
                 projectedKeys,
                 "description_key");
             var value = new ResourceEntityRefIngestionRecord(
-                NullIfEmpty(entityRef.SchemaUrl),
-                entityRef.Type,
+                KeptOrNull(entityRef.SchemaUrl),
+                Kept(entityRef.Type),
                 idKeys,
                 descriptionKeys);
             var identity = GetEntityReferenceIdentity(value, projectedAttributes);
@@ -280,222 +260,78 @@ internal static partial class OtlpConverter
 
     private readonly record struct ResourceAttributeProjectionKey(string PersistedKey);
 
-    private static NormalizedAttributes ExtractAttributesFromProto(
-        RepeatedField<ProtoKeyValue> protoAttributes,
-        string serviceName,
-        string? producer)
-    {
-        var attributes = new NormalizedAttributes
-        {
-            [CollectorSemanticAttributeCatalog.ServiceName] = OtlpAttributeValue.FromString(serviceName)
-        };
-
-        CaptureRecordAttributes(attributes, protoAttributes, producer);
-        return attributes;
-    }
-
-    // The attributes of one record (span, span event, span link, log record, metric point, exemplar) under the
-    // instrumentation scope of producer, or of no producer.
-    private static void CaptureRecordAttributes(
-        NormalizedAttributes attributes,
-        RepeatedField<ProtoKeyValue> protoAttributes,
-        string? producer)
-    {
-        ValidateAttributeKeys(protoAttributes);
-        foreach (var attr in LiftWireContainers(protoAttributes, producer))
-        {
-            if (string.IsNullOrEmpty(attr.Key)) continue;
-            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attr.Key, out var key);
-            NormalizedAttributes.RecordRename(attributes, attr.Key, key);
-            if (ConvertAttribute(key, attr.Value, producer) is not { } value)
-            {
-                NamiCollectorMetrics.AttributeDropped(key);
-                continue;
-            }
-
-            SetNormalizedAttribute(attributes, key, value, renamed);
-        }
-    }
-
-    private static NormalizedAttributes ConvertRecordAttributes(
-        RepeatedField<ProtoKeyValue> protoAttributes,
-        string? producer)
-    {
-        var attributes = new NormalizedAttributes();
-        CaptureRecordAttributes(attributes, protoAttributes, producer);
-        return attributes;
-    }
-
-    private static void ValidateAttributeKeys(RepeatedField<ProtoKeyValue> attributes)
-    {
-        var values = new Dictionary<string, ProtoAnyValue?>(StringComparer.Ordinal);
-        foreach (var attribute in attributes)
-        {
-            if (IsUnresolvedProfilingKey(attribute)) continue;
-            if (string.IsNullOrWhiteSpace(attribute.Key))
-                throw new InvalidDataException("OTLP attributes require nonempty, unique keys.");
-            if (values.TryAdd(attribute.Key, attribute.Value)) continue;
-
-            // The SDK exporter flattens ILogger state and scopes, which can repeat the same
-            // typed value (for example TraceId). Coalesce identical entries, never distinct values.
-            // https://github.com/open-telemetry/opentelemetry-specification/blob/v1.61.0/specification/common/README.md#mapstring-anyvalue
-            if (!Equals(values[attribute.Key], attribute.Value))
-                throw new InvalidDataException("OTLP attributes require unique keys; duplicate values conflict.");
-            NamiCollectorMetrics.AttributeCoalesced(attribute.Key);
-        }
-    }
-
-    // A profiling string-table key has no meaning in these signals. OTLP requires its
-    // presence to be non-fatal; do not mistake it for a malformed ordinary empty key.
-    // https://github.com/open-telemetry/opentelemetry-proto/blob/v1.11.1/opentelemetry/proto/common/v1/common.proto
-    private static bool IsUnresolvedProfilingKey(ProtoKeyValue attribute) =>
-        attribute.Key.Length is 0 && attribute.KeyStrindex is not 0;
-
-    private static NormalizedAttributes ConvertMetadataAttributes(
-        RepeatedField<ProtoKeyValue> attributes)
-    {
-        ValidateAttributeKeys(attributes);
-        var result = new NormalizedAttributes();
-        foreach (var attribute in attributes)
-        {
-            if (IsUnresolvedProfilingKey(attribute)) continue;
-            var renamed = DeprecatedAttributeNormalizer.TryNormalize(attribute.Key, out var key);
-            NormalizedAttributes.RecordRename(result, attribute.Key, key);
-            // Scope attributes and metric metadata describe the instrumentation, not a record of it: no producer's
-            // keys are kept there.
-            if (ConvertAttribute(key, attribute.Value, null) is not { } value)
-            {
-                NamiCollectorMetrics.AttributeDropped(key);
-                continue;
-            }
-
-            SetNormalizedAttribute(result, key, value, renamed);
-        }
-
-        return result;
-    }
-
-    private static List<SpanEventIngest> BuildSpanEvents(ProtoSpan span, string? producer)
+    private static List<SpanEventIngest> BuildSpanEvents(ProtoSpan span, RecordBudget budget)
     {
         if (span.Events.Count is 0) return [];
 
-        return span.Events.Select(e => new SpanEventIngest(e.Name ?? "", e.TimeUnixNano,
-            ConvertRecordAttributes(e.Attributes, producer), e.DroppedAttributesCount)).ToList();
+        var events = new List<SpanEventIngest>(span.Events.Count);
+        foreach (var e in span.Events)
+        {
+            var attributes = ConvertAttributes(e.Attributes, budget, true, out var dropped);
+            events.Add(new SpanEventIngest(Kept(e.Name ?? ""), e.TimeUnixNano, attributes,
+                e.DroppedAttributesCount + dropped));
+        }
+
+        return events;
     }
 
-    private static List<SpanLinkIngest> BuildSpanLinks(ProtoSpan span, string? producer)
+    private static List<SpanLinkIngest> BuildSpanLinks(ProtoSpan span, RecordBudget budget)
     {
         if (span.Links.Count is 0) return [];
 
-        return span.Links.Select(l => new SpanLinkIngest(
+        var links = new List<SpanLinkIngest>(span.Links.Count);
+        foreach (var l in span.Links)
+        {
+            var attributes = ConvertAttributes(l.Attributes, budget, true, out var dropped);
+            links.Add(new SpanLinkIngest(
                 RequireId(l.TraceId, 16, "link.trace_id"),
                 RequireId(l.SpanId, 8, "link.span_id"),
-                ConvertRecordAttributes(l.Attributes, producer), NullIfEmpty(l.TraceState), l.Flags,
-                l.DroppedAttributesCount)).ToList();
-    }
-
-    // OTLP sets no bound on how deeply arrays and key-value lists nest. Protobuf's recursion limit admits 31 key-value
-    // lists in a span attribute, more than the stored JSON and the tools' results carry: at 29 traces_get could not
-    // render the trace, at 31 the store refused the whole export with a retryable 503. Past this bound the value
-    // refuses its own record through partial success, and the export's other records are kept.
-    private const int MaxValueNesting = 16;
-
-    private static OtlpAttributeValue ConvertProtoAnyValue(ProtoAnyValue? value, string? attributeKey = null,
-        string? producer = null, int nesting = 0)
-    {
-        // All keyed carriers, including nested maps and metric metadata, converge here.
-        // A key exemption never bypasses this value policy before original data is journaled.
-        if (attributeKey is not null
-            && CollectorSemanticAttributeCatalog.ExceptionTextKeys.TryGetValue(attributeKey, out var canonicalKey))
-            return OtlpAttributeValue.FromString(ExceptionTextSanitizer.Sanitize(canonicalKey, value));
-        if (value is null) return OtlpAttributeValue.Empty;
-
-        return value.ValueCase switch
-        {
-            ProtoAnyValue.ValueOneofCase.StringValue => OtlpAttributeValue.FromString(value.StringValue),
-            ProtoAnyValue.ValueOneofCase.IntValue => OtlpAttributeValue.FromInt(value.IntValue),
-            ProtoAnyValue.ValueOneofCase.DoubleValue => OtlpAttributeValue.FromDouble(value.DoubleValue),
-            ProtoAnyValue.ValueOneofCase.BoolValue => OtlpAttributeValue.FromBool(value.BoolValue),
-            ProtoAnyValue.ValueOneofCase.BytesValue => OtlpAttributeValue.FromBytes(CopyBytes(value.BytesValue)),
-            ProtoAnyValue.ValueOneofCase.ArrayValue => ConvertProtoArrayValue(value.ArrayValue, producer, nesting + 1),
-            ProtoAnyValue.ValueOneofCase.KvlistValue =>
-                ConvertProtoKeyValueList(value.KvlistValue, producer, nesting + 1),
-            ProtoAnyValue.ValueOneofCase.None => OtlpAttributeValue.Empty,
-            // Alpha, profiles-only (opentelemetry-proto 1.10+): an index into a string table no other
-            // signal carries. The proto asks non-profiling receivers to treat it as absent, which is what
-            // it was while the field was unknown.
-            ProtoAnyValue.ValueOneofCase.StringValueStrindex => OtlpAttributeValue.Empty,
-            _ => throw new InvalidDataException("OTLP AnyValue contains an unknown value kind.")
-        };
-    }
-
-    private static OtlpAttributeValue ConvertProtoArrayValue(ProtoArrayValue value, string? producer, int nesting)
-    {
-        RequireNesting(nesting);
-        return OtlpAttributeValue.FromArray(
-            value.Values.Select(item => ConvertProtoAnyValue(item, null, producer, nesting)).ToList());
-    }
-
-    private static OtlpAttributeValue ConvertProtoKeyValueList(ProtoKeyValueList value, string? producer, int nesting)
-    {
-        RequireNesting(nesting);
-        ValidateAttributeKeys(value.Values);
-        var items = new NormalizedAttributes();
-        foreach (var item in value.Values)
-        {
-            if (IsUnresolvedProfilingKey(item)) continue;
-            if (ConvertAttribute(item.Key, item.Value, producer, nesting) is not { } member)
-            {
-                NamiCollectorMetrics.AttributeDropped(item.Key);
-                continue;
-            }
-
-            items[item.Key] = member;
+                attributes, KeptOrNull(l.TraceState), l.Flags,
+                l.DroppedAttributesCount + dropped));
         }
 
-        return OtlpAttributeValue.FromKeyValueList(items);
+        return links;
     }
 
-    private static void RequireNesting(int nesting)
-    {
-        if (nesting > MaxValueNesting)
-        {
-            throw new InvalidDataException(
-                $"OTLP attribute values nest arrays and key-value lists at most {MaxValueNesting} deep.");
-        }
-    }
-
+    // One span is one record: its attributes, its events and its links share the record's 1 MiB of attributes.
     private static SpanIngestionRecord CreateSpanRecordFromProto(
         ProtoSpan span,
         string? projectIdHint,
         string serviceName,
-        NormalizedAttributes attributes,
         NormalizedAttributes resourceAttributes,
         IReadOnlyList<ResourceEntityRefIngestionRecord> resourceEntityRefs,
         string? schemaUrl,
         string? scopeName,
         string? scopeVersion,
-        string? producer,
-        ISet<string> warnings) =>
-        new()
+        ISet<string> warnings)
+    {
+        var budget = new RecordBudget();
+        // The one attribute ingest adds: the resource's service name, on every span.
+        budget.Store(StoredString(CollectorSemanticAttributeCatalog.ServiceName) + 2 + StoredString(serviceName));
+        var attributes = new NormalizedAttributes
+        {
+            [CollectorSemanticAttributeCatalog.ServiceName] = OtlpAttributeValue.FromString(serviceName)
+        };
+        ConvertAttributes(span.Attributes, budget, true, out var dropped, attributes);
+        return new SpanIngestionRecord
         {
             ProjectIdHint = projectIdHint,
             SpanId = RequireId(span.SpanId, 8, "span_id"),
             TraceId = RequireId(span.TraceId, 16, "trace_id"),
             ParentSpanId = RequireIdOrAbsent(span.ParentSpanId, 8, "parent_span_id"),
-            TraceState = NullIfEmpty(span.TraceState),
+            TraceState = KeptOrNull(span.TraceState),
             Flags = span.Flags,
-            DroppedAttributesCount = span.DroppedAttributesCount,
+            DroppedAttributesCount = span.DroppedAttributesCount + dropped,
             DroppedEventsCount = span.DroppedEventsCount,
             DroppedLinksCount = span.DroppedLinksCount,
-            Name = span.Name ?? "unknown",
+            Name = Kept(span.Name ?? "unknown"),
             Kind = DefinedOrZero((int)span.Kind, (int)ProtoSpan.Types.SpanKind.Consumer, SpanKindWarning, warnings),
             StartTimeUnixNano = span.StartTimeUnixNano,
             EndTimeUnixNano = span.EndTimeUnixNano,
             StatusCode = span.Status is not null
                 ? DefinedOrZero((int)span.Status.Code, (int)ProtoStatusCode.Error, StatusCodeWarning, warnings)
                 : null,
-            StatusMessage = StatusMessageOf(span.Status, producer),
+            StatusMessage = StatusMessageOf(span.Status),
             ServiceName = serviceName,
             Attributes = attributes,
             ResourceAttributes = resourceAttributes,
@@ -503,9 +339,10 @@ internal static partial class OtlpConverter
             SchemaUrl = schemaUrl,
             ScopeName = scopeName,
             ScopeVersion = scopeVersion,
-            Events = BuildSpanEvents(span, producer),
-            Links = BuildSpanLinks(span, producer)
+            Events = BuildSpanEvents(span, budget),
+            Links = BuildSpanLinks(span, budget)
         };
+    }
 
     #endregion
 
@@ -539,6 +376,10 @@ internal static partial class OtlpConverter
 
     #region Logs Conversion
 
+    /// <inheritdoc cref="ConvertTraceRequest(ExportTraceServiceRequest, IngestLimits?)" />
+    public static LogIngestionBatch ConvertLogs(ExportLogsServiceRequest otlp, TimeProvider timeProvider,
+        IngestLimits? limits) => WithLimits(limits, () => ConvertLogs(otlp, timeProvider));
+
     public static LogIngestionBatch ConvertLogs(ExportLogsServiceRequest otlp, TimeProvider timeProvider)
     {
         var logs = new List<LogIngestionRecord>();
@@ -552,7 +393,8 @@ internal static partial class OtlpConverter
         foreach (var resourceLogs in otlp.ResourceLogs)
         {
             ResourceProjection resource;
-            try { resource = ExtractResourceProjection(resourceLogs.Resource); }
+            uint resourceDropped;
+            try { resource = ExtractResourceProjection(resourceLogs.Resource, out resourceDropped); }
             catch (InvalidDataException error)
             {
                 var count = resourceLogs.ScopeLogs.Sum(static scope => scope.LogRecords.Count);
@@ -563,10 +405,16 @@ internal static partial class OtlpConverter
 
             var serviceName = ExtractServiceNameFromProto(resourceLogs.Resource);
             var project = ExtractProjectIdHintFromProto(resourceLogs.Resource);
+            var resourceSchema = KeptOrNull(resourceLogs.SchemaUrl);
             foreach (var scope in resourceLogs.ScopeLogs)
             {
                 NormalizedAttributes scopeAttributes;
-                try { scopeAttributes = ConvertMetadataAttributes(scope.Scope?.Attributes ?? []); }
+                uint scopeDropped;
+                try
+                {
+                    scopeAttributes = ConvertAttributes(scope.Scope?.Attributes ?? [], new RecordBudget(), true,
+                        out scopeDropped);
+                }
                 catch (InvalidDataException error)
                 {
                     Reject(scope.LogRecords.Count, error);
@@ -574,7 +422,9 @@ internal static partial class OtlpConverter
                     continue;
                 }
 
-                var producer = ProducerOfScope(scope.Scope?.Name);
+                var scopeName = KeptOrNull(scope.Scope?.Name);
+                var scopeVersion = KeptOrNull(scope.Scope?.Version);
+                var scopeSchema = KeptOrNull(scope.SchemaUrl);
                 foreach (var log in scope.LogRecords)
                 {
                     var requestOrdinal = ordinal++;
@@ -582,17 +432,18 @@ internal static partial class OtlpConverter
                     {
                         logs.Add(
                             CreateLogRecord(log, project, serviceName, resource.Attributes, resource.EntityRefs,
-                                    observedTime, producer, reasons) with
+                                    observedTime, reasons) with
                             {
                                 UntimedRequestOrdinal =
                                     log is { TimeUnixNano: 0, ObservedTimeUnixNano: 0 } ? requestOrdinal : null,
-                                ScopeName = NullIfEmpty(scope.Scope?.Name),
-                                ScopeVersion = NullIfEmpty(scope.Scope?.Version),
-                                ScopeSchemaUrl = NullIfEmpty(scope.SchemaUrl),
+                                ScopeName = scopeName,
+                                ScopeVersion = scopeVersion,
+                                ScopeSchemaUrl = scopeSchema,
                                 ScopeAttributes = scopeAttributes,
-                                ScopeDroppedAttributesCount = scope.Scope?.DroppedAttributesCount ?? 0,
-                                ResourceSchemaUrl = NullIfEmpty(resourceLogs.SchemaUrl),
-                                ResourceDroppedAttributesCount = resourceLogs.Resource?.DroppedAttributesCount ?? 0
+                                ScopeDroppedAttributesCount = (scope.Scope?.DroppedAttributesCount ?? 0) + scopeDropped,
+                                ResourceSchemaUrl = resourceSchema,
+                                ResourceDroppedAttributesCount =
+                                    (resourceLogs.Resource?.DroppedAttributesCount ?? 0) + resourceDropped
                             });
                     }
                     catch (InvalidDataException error) { Reject(1, error); }
@@ -620,11 +471,26 @@ internal static partial class OtlpConverter
         NormalizedAttributes resourceAttributes,
         IReadOnlyList<ResourceEntityRefIngestionRecord> resourceEntityRefs,
         ulong observedTime,
-        string? producer,
         ISet<string> warnings)
     {
-        var attributes = ConvertRecordAttributes(log.Attributes, producer);
-        var eventName = EventNameOf(log, producer);
+        // One log record is one record: its body and its attributes share the record's 1 MiB. The body is read
+        // first and bounded like any value: a string is cut to the cap, a list or map within the cap is kept as
+        // sent, with its structure. A body over the cap as a structure, or one that does not fit the record, is
+        // dropped whole: it is stored as an empty value and counted in the record's dropped_attributes_count, the
+        // only count a log record has.
+        var budget = new RecordBudget();
+        var body = ConvertValue(log.Body, null, budget, 0);
+        var bodyDropped = 0U;
+        if (budget.Exhausted)
+        {
+            (body, budget.Remaining) = (OtlpAttributeValue.Empty, Limits.MaxRecordAttributeBytes);
+            NamiCollectorMetrics.AttributeDropped();
+            bodyDropped = 1;
+        }
+
+        budget.Value = Limits.MaxValueUtf8Bytes;
+        var attributes = ConvertAttributes(log.Attributes, budget, true, out var dropped);
+        dropped += bodyDropped;
 
         var severityNumber = DefinedOrZero((int)log.SeverityNumber, (int)ProtoSeverityNumber.Fatal4,
             SeverityNumberWarning, warnings);
@@ -634,9 +500,12 @@ internal static partial class OtlpConverter
             ProjectIdHint = projectIdHint,
             TraceId = RequireIdOrAbsent(log.TraceId, 16, "trace_id"),
             SpanId = RequireIdOrAbsent(log.SpanId, 8, "span_id"),
-            EventName = eventName,
+            // The event-name field, the body and the event.name attribute are stored as they arrive. A sender that
+            // names its events only in the attribute (Claude Code 2.1.325) leaves this field empty; a reader that
+            // needs one name derives it from both when it reads.
+            EventName = KeptOrNull(log.EventName),
             Flags = log.Flags,
-            DroppedAttributesCount = log.DroppedAttributesCount,
+            DroppedAttributesCount = log.DroppedAttributesCount + dropped,
             TimeOrigin =
                 new LogTimeOrigin
                 {
@@ -645,34 +514,13 @@ internal static partial class OtlpConverter
                     CollectorReceivedTime = observedTime
                 },
             SeverityNumber = severityNumber,
-            SeverityText = log.SeverityText,
-            Body = ProducerBody(ConvertProtoAnyValue(log.Body), eventName, producer),
+            SeverityText = Kept(log.SeverityText),
+            Body = body,
             ServiceName = serviceName,
             Attributes = attributes,
             ResourceAttributes = resourceAttributes,
             ResourceEntityRefs = resourceEntityRefs
         };
-    }
-
-    // Semantic conventions v1.45.0 deprecate the event.name attribute: "The value of this attribute MUST now be set as
-    // the value of the EventName field on the LogRecord". A producer that still sends only the attribute gets that done
-    // here, at ingest: Claude Code 2.1.325 names each of its events this way and leaves the field empty. The allowlist
-    // drops the deprecated key itself, so without this read the name would be lost. The field wins when both are set
-    // (EventNameOf).
-    // https://github.com/open-telemetry/semantic-conventions/blob/v1.45.0/model/event/deprecated/registry-deprecated.yaml
-    private static string? DeprecatedEventNameAttribute(RepeatedField<ProtoKeyValue> attributes)
-    {
-        foreach (var attribute in attributes)
-        {
-#pragma warning disable CS0618 // A compatibility read of the deprecated key, for producers that predate the field; see above.
-            if (!string.Equals(attribute.Key, EventAttributes.Name, StringComparison.Ordinal)) continue;
-#pragma warning restore CS0618
-            return attribute.Value is { ValueCase: ProtoAnyValue.ValueOneofCase.StringValue } value
-                ? NullIfEmpty(value.StringValue)
-                : null;
-        }
-
-        return null;
     }
 
     #endregion

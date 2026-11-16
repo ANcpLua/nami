@@ -15,44 +15,31 @@ using LogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
 namespace Nami.IntegrationTests.ClaudeCode;
 
 /// <summary>
-///     What the registry declares for a producer, at the converter: on records under one of Claude Code's
-///     instrumentation scopes (<c>Producers.Scopes</c>) the event name is the registry's, the body is kept only when
-///     it is that name, string values become the stored type, the named members of <c>tool_parameters</c> become
-///     attributes and the container goes, <c>full_command</c> is cut at the registry's bound, and a span status
-///     message loses its credentials and is cut at 1024 bytes. On any other scope the same keys are another sender's
-///     unknown keys. Each rule is shown on both sides, so a rule that fired everywhere, or nowhere, fails.
+///     Claude Code's records at the converter: stored as sent, whatever instrumentation scope they arrive under.
+///     The event name field and the deprecated <c>event.name</c> attribute are both kept, values keep their type,
+///     <c>tool_parameters</c> stays whole, and no key has a bound of its own. A span status message loses its
+///     credentials and is cut at 1024 bytes. Each case runs under one of Claude Code's scopes and under another
+///     sender's, and must come out the same.
 /// </summary>
 [TestClass]
 [TestCategory("Integration")]
 public sealed class ClaudeCodeConverterTests
 {
-    private const string Producer = "claude_code";
     private const string EventsScope = "com.anthropic.claude_code.events";
     private const string TracingScope = "com.anthropic.claude_code.tracing";
     private const string MeterScope = "com.anthropic.claude_code";
     private const string ForeignScope = "com.example.checkout";
-    private const string Marker = "...[truncated]";
+    private const string Marker = "…[truncated]";
+    private const int MarkerBytes = 14;
 
-    // A key the registry persists for every sender, next to each producer key: it shows the record was converted.
+    // An ordinary key next to each of Claude Code's: it shows the record was converted.
     private const string Ordinary = "gen_ai.agent.name";
 
-    private static readonly string[] s_scopes = [MeterScope, EventsScope, TracingScope];
-    private static readonly string[] s_ordinaryOnly = [Ordinary];
-    private static readonly string[] s_toolNameOnly = ["tool_name"];
-    private static readonly string[] s_members = ["bash_command", "full_command", "subagent_type"];
-    private static readonly string[] s_membersAndToolName = ["bash_command", "full_command", "subagent_type", "tool_name"];
-
-    [TestMethod]
-    public void Scopes_AreTheThreeTheRegistryNamesForClaudeCode()
-    {
-        Assert.AreSequenceEqual(s_scopes, Producers.Scopes[Producer].Order(StringComparer.Ordinal).ToArray());
-    }
-
-    /// <summary>The evaluator's nit on step 2: the record's own EventName field wins over the deprecated attribute.</summary>
+    /// <summary>The record's own EventName field is stored as sent, and so is the deprecated attribute next to it.</summary>
     [TestMethod]
     [DataRow(EventsScope, DisplayName = "On Claude Code's events scope")]
     [DataRow(ForeignScope, DisplayName = "On another scope")]
-    public void EventName_TheFieldWinsOverTheDeprecatedAttribute(string scope)
+    public void EventName_TheFieldAndTheDeprecatedAttribute_AreBothStoredAsSent(string scope)
     {
         var log = ConvertLog(scope, new LogRecord
         {
@@ -60,146 +47,7 @@ public sealed class ClaudeCodeConverterTests
         });
 
         Assert.AreEqual("checkout.completed", log.EventName);
-        Assert.IsFalse(log.Attributes.ContainsKey("event.name"), "the deprecated key itself is never stored");
-    }
-
-    [TestMethod]
-    [DataRow(EventsScope, "tool_result", "claude_code.tool_result", DisplayName = "Claude Code's unqualified name gets the registry's namespace")]
-    [DataRow(EventsScope, "claude_code.tool_result", "claude_code.tool_result", DisplayName = "A name that has the namespace keeps it once")]
-    [DataRow(EventsScope, "hook_execution", "claude_code.hook_execution", DisplayName = "An event the registry does not define yet is named the same way")]
-    [DataRow(ForeignScope, "tool_result", "tool_result", DisplayName = "Another sender's name stays as sent")]
-    public void EventName_FromTheDeprecatedAttribute_IsTheRegistrysNameOnAProducersScope(string scope, string sent,
-        string expected)
-    {
-        var log = ConvertLog(scope, new LogRecord { Attributes = { Text("event.name", sent) } });
-
-        Assert.AreEqual(expected, log.EventName);
-        if (sent == "tool_result" && scope == EventsScope)
-            Assert.Contains(expected, Events.All.Select(static definition => definition.Name));
-    }
-
-    [TestMethod]
-    public void Body_OnAProducersScope_IsKeptOnlyWhenItIsTheEventName()
-    {
-        var named = ConvertLog(EventsScope, new LogRecord
-        {
-            Body = new AnyValue { StringValue = "claude_code.tool_result" }, Attributes = { Text("event.name", "tool_result") }
-        });
-        var text = ConvertLog(EventsScope, new LogRecord
-        {
-            Body = new AnyValue { StringValue = "the prompt, a response or a file" },
-            Attributes = { Text("event.name", "tool_result") }
-        });
-        var map = ConvertLog(EventsScope, new LogRecord
-        {
-            Body = new AnyValue { KvlistValue = new KeyValueList { Values = { Text(Ordinary, "inside a map body") } } },
-            Attributes = { Text("event.name", "tool_result") }
-        });
-        var unnamed = ConvertLog(EventsScope, new LogRecord { Body = new AnyValue { StringValue = "claude_code.tool_result" } });
-        var foreign = ConvertLog(ForeignScope, new LogRecord
-        {
-            Body = new AnyValue { StringValue = "order 17 failed" }, Attributes = { Text("event.name", "tool_result") }
-        });
-
-        Assert.AreEqual("claude_code.tool_result", named.Body.AsString());
-        Assert.AreEqual(OtlpAttributeValueKind.Empty, text.Body.Kind, "free text in a producer's body is not kept");
-        Assert.AreEqual("claude_code.tool_result", text.EventName, "the event itself is kept, with its name");
-        Assert.AreEqual(OtlpAttributeValueKind.Empty, map.Body.Kind, "a map in a producer's body is not kept");
-        Assert.AreEqual(OtlpAttributeValueKind.Empty, unnamed.Body.Kind, "without an event name there is nothing to equal");
-        Assert.AreEqual("order 17 failed", foreign.Body.AsString(), "another sender's body is its log message");
-    }
-
-    /// <summary>
-    ///     A producer key (<c>model</c>, <c>success</c>, <c>source</c>: unprefixed names any sender may use) is kept on
-    ///     a record under the producer's scope, and nowhere else: not under another scope, and not in resource or
-    ///     scope attributes, which belong to no record.
-    /// </summary>
-    [TestMethod]
-    public void ProducerKeys_AreKeptOnlyOnRecordsUnderTheProducersScopes()
-    {
-        Assert.AreEqual(Producer, RegistryPolicy.ProducerOf("model"));
-        Assert.IsNull(RegistryPolicy.ProducerOf(Ordinary));
-        KeyValue[] sent = [Text("model", "claude-haiku-5-5"), Text("source", "config"), Text(Ordinary, "builder")];
-        string[] both = [Ordinary, "model", "source"];
-        var ordinaryOnly = s_ordinaryOnly;
-
-        Assert.AreSequenceEqual(both, Keys(ConvertLog(EventsScope, new LogRecord { Attributes = { sent } }).Attributes));
-        Assert.AreSequenceEqual(ordinaryOnly, Keys(ConvertLog(ForeignScope, new LogRecord { Attributes = { sent } }).Attributes));
-
-        var ours = ConvertSpan(TracingScope, NewSpan(sent, sent, sent));
-        var theirs = ConvertSpan(ForeignScope, NewSpan(sent, sent, sent));
-        Assert.AreSequenceEqual(both, Keys(ours.Attributes).Where(static key => key != "service.name"));
-        Assert.AreSequenceEqual(both, Keys(Assert.ContainsSingle(ours.Events).Attributes));
-        Assert.AreSequenceEqual(both, Keys(Assert.ContainsSingle(ours.Links).Attributes));
-        Assert.AreSequenceEqual(ordinaryOnly, Keys(theirs.Attributes).Where(static key => key != "service.name"));
-        Assert.AreSequenceEqual(ordinaryOnly, Keys(Assert.ContainsSingle(theirs.Events).Attributes));
-        Assert.AreSequenceEqual(ordinaryOnly, Keys(Assert.ContainsSingle(theirs.Links).Attributes));
-
-        Assert.AreSequenceEqual(both, Keys(ConvertPoint(MeterScope, sent).Attributes));
-        Assert.AreSequenceEqual(ordinaryOnly, Keys(ConvertPoint(ForeignScope, sent).Attributes));
-
-        // Resource and scope attributes under Claude Code's own scope: the producer keys go, the ordinary key stays.
-        var request = new ExportLogsServiceRequest
-        {
-            ResourceLogs =
-            {
-                new ResourceLogs
-                {
-                    Resource = new Resource { Attributes = { sent } },
-                    ScopeLogs =
-                    {
-                        new ScopeLogs
-                        {
-                            Scope = new InstrumentationScope { Name = EventsScope, Attributes = { sent } },
-                            LogRecords = { new LogRecord { TimeUnixNano = 1, Attributes = { sent } } }
-                        }
-                    }
-                }
-            }
-        };
-        var log = Assert.ContainsSingle(OtlpConverter.ConvertLogs(request, TimeProvider.System).Logs);
-        Assert.AreSequenceEqual(ordinaryOnly, Keys(log.ResourceAttributes));
-        Assert.AreSequenceEqual(ordinaryOnly, Keys(log.ScopeAttributes));
-        Assert.AreSequenceEqual(both, Keys(log.Attributes));
-    }
-
-    /// <summary>
-    ///     Every persisted Claude Code key whose stored type is int, double or boolean takes that type when Claude
-    ///     Code sends the value as a string (<c>nami.wire_type: string</c>): the six marked keys and any key a later
-    ///     version sends the same way.
-    /// </summary>
-    [TestMethod]
-    public void StringValues_OfProducerKeys_BecomeTheTypeTheRegistryDeclares()
-    {
-        var typed = AttributeCatalog.All.Where(static definition =>
-                definition is { Producer: Producer, IsPersisted: true, Type: "int" or "double" or "boolean" })
-            .ToArray();
-        foreach (var key in new[]
-                     { "success", "duration_ms", "tool_input_size_bytes", "tool_result_size_bytes", "prompt_length", "safe_mode" })
-            Assert.Contains(key, typed.Select(static definition => definition.Key), key + " is one of the marked keys");
-
-        var log = ConvertLog(EventsScope, new LogRecord
-        {
-            Attributes =
-            {
-                typed.Select(static definition => Text(definition.Key, definition.Type switch
-                {
-                    "int" => "-1234", "double" => "0.00332877", _ => "false"
-                }))
-            }
-        });
-
-        Assert.HasCount(typed.Length, log.Attributes);
-        foreach (var definition in typed)
-        {
-            var value = log.Attributes[definition.Key];
-            switch (definition.Type)
-            {
-                case "int": Assert.AreEqual(-1234L, value.AsInt64(), definition.Key); break;
-                case "double": Assert.AreEqual(0.00332877, value.AsDouble(), definition.Key); break;
-                default: Assert.AreEqual(false, value.AsBool(), definition.Key); break;
-            }
-        }
+        Assert.AreEqual("tool_result", log.Attributes["event.name"].AsString(), "the deprecated key is stored as sent");
     }
 
     [TestMethod]
@@ -212,7 +60,10 @@ public sealed class ClaudeCodeConverterTests
     [DataRow("cost_usd", "NaN", DisplayName = "A double that is not a number")]
     [DataRow("cost_usd", "1,5", DisplayName = "A double with a comma")]
     [DataRow("model", "123", DisplayName = "A string key that looks like a number")]
-    public void StringValues_ThatDoNotReadAsTheDeclaredType_StayAsSent(string key, string sent)
+    [DataRow("duration_ms", "4011", DisplayName = "An int sent as a string")]
+    [DataRow("success", "true", DisplayName = "A boolean sent as a string")]
+    [DataRow("cost_usd", "0.00332877", DisplayName = "A double sent as a string")]
+    public void StringValues_OfProducerKeys_StayTheStringsThatWereSent(string key, string sent)
     {
         var log = ConvertLog(EventsScope, new LogRecord { Attributes = { Text(key, sent) } });
 
@@ -237,60 +88,17 @@ public sealed class ClaudeCodeConverterTests
         Assert.AreEqual(0.5, log.Attributes["cost_usd"].AsDouble());
     }
 
+    /// <summary>
+    ///     <c>tool_parameters</c> is stored as the text it is, whatever that text is: ingest reads no member out of
+    ///     it, and a record that carries it is kept.
+    /// </summary>
     [TestMethod]
-    public void ToolParameters_NamedMembersBecomeAttributes_AndTheContainerIsDropped()
-    {
-        const string parameters = """
-            {"bash_command":"python3","full_command":"python3 -m unittest -q","description":"Runs the unit tests",
-             "subagent_type":"general-purpose","git_commit_id":"c0ffee0000000000000000000000000000000001",
-             "timeout":120000,"dangerouslyDisableSandbox":false}
-            """;
-        var lifted = s_members;
-        Assert.AreSequenceEqual(lifted, WireContainers.Members["tool_parameters"]);
-
-        var log = ConvertLog(EventsScope, new LogRecord
-        {
-            Attributes = { Text("tool_parameters", parameters), Text("tool_name", "Bash") }
-        });
-        var span = ConvertSpan(TracingScope, NewSpan([Text("tool_parameters", parameters)]));
-        var foreign = ConvertLog(ForeignScope, new LogRecord
-        {
-            Attributes = { Text("tool_parameters", parameters), Text(Ordinary, "builder") }
-        });
-
-        Assert.AreSequenceEqual(s_membersAndToolName, Keys(log.Attributes));
-        Assert.AreEqual("python3", log.Attributes["bash_command"].AsString());
-        Assert.AreEqual("python3 -m unittest -q", log.Attributes["full_command"].AsString());
-        Assert.AreEqual("general-purpose", log.Attributes["subagent_type"].AsString());
-        Assert.AreSequenceEqual(lifted, Keys(span.Attributes).Where(static key => key != "service.name"));
-        Assert.AreSequenceEqual(s_ordinaryOnly, Keys(foreign.Attributes),
-            "under another scope tool_parameters is an unknown key and nothing is read out of it");
-    }
-
-    [TestMethod]
-    public void ToolParameters_AnAttributeOfTheRecordWinsOverAMemberOfTheSameName()
-    {
-        var log = ConvertLog(EventsScope, new LogRecord
-        {
-            Attributes =
-            {
-                Text("tool_parameters", """{"full_command":"from the container","bash_command":"git"}"""),
-                Text("full_command", "from the record")
-            }
-        });
-
-        Assert.AreEqual("from the record", log.Attributes["full_command"].AsString());
-        Assert.AreEqual("git", log.Attributes["bash_command"].AsString());
-    }
-
-    [TestMethod]
+    [DataRow("""{"bash_command":"python3","full_command":"python3 -m unittest -q","timeout":120000}""", DisplayName = "A JSON object")]
     [DataRow("not json at all", DisplayName = "Text that is not JSON")]
     [DataRow("""["full_command","python3"]""", DisplayName = "A JSON array")]
-    [DataRow("\"full_command\"", DisplayName = "A JSON string")]
-    [DataRow("""{"full_command":{"nested":"python3"},"bash_command":["python3"],"subagent_type":null}""", DisplayName = "Members that are not values")]
     [DataRow("""{"full_command":"\ud800"}""", DisplayName = "A member with an unpaired surrogate escape")]
     [DataRow("""{"full_command":"python3" """, DisplayName = "A truncated object")]
-    public void ToolParameters_ThatHoldNoReadableMember_YieldNothing_AndTheRecordIsKept(string parameters)
+    public void ToolParameters_AreStoredAsTheTextTheyAre(string parameters)
     {
         var request = Logs(EventsScope, new LogRecord
         {
@@ -300,82 +108,57 @@ public sealed class ClaudeCodeConverterTests
         var batch = OtlpConverter.ConvertLogs(request, TimeProvider.System);
 
         Assert.AreEqual(0L, batch.RejectedLogRecords, batch.RejectionMessage);
-        Assert.AreSequenceEqual(s_toolNameOnly, Keys(Assert.ContainsSingle(batch.Logs).Attributes));
+        var log = Assert.ContainsSingle(batch.Logs);
+        string[] keys = ["tool_name", "tool_parameters"];
+        Assert.AreSequenceEqual(keys, Keys(log.Attributes));
+        Assert.AreEqual(parameters, log.Attributes["tool_parameters"].AsString());
     }
 
-    /// <summary>
-    ///     <c>full_command</c> is persisted and bounded (observer's ruling, 15 Nov): at most
-    ///     <c>ValueLimits.MaxUtf8Bytes</c> bytes of UTF-8, the marker that log bodies use included, cut between
-    ///     characters. It is bounded wherever it arrives: on the tool span and inside <c>tool_parameters</c>.
-    /// </summary>
+    /// <summary>A bounded key is cut when it holds a string. A value of another type is kept in the type it was sent in.</summary>
     [TestMethod]
-    public void FullCommand_IsKeptUpToTheRegistrysBound_WithTheTruncationMarker()
-    {
-        var bound = ValueLimits.MaxUtf8Bytes["full_command"];
-        Assert.AreEqual(4096, bound);
-        var atTheBound = new string('a', bound);
-        var onePast = new string('a', bound + 1);
-        var twoByteCharacters = new string('é', bound);
-        var heredoc = "git commit -m \"$(cat <<'EOF'\n" + new string('x', 3 * bound) + "\nEOF\n)\"";
-
-        Assert.AreEqual(atTheBound, SpanCommand(atTheBound), "a command of exactly the bound is kept whole");
-        Assert.AreEqual(new string('a', bound - Marker.Length) + Marker, SpanCommand(onePast));
-        var cut = SpanCommand(twoByteCharacters)!;
-        Assert.AreEqual(new string('é', (bound - Marker.Length) / 2) + Marker, cut, "cut between characters, never inside one");
-        Assert.IsLessThanOrEqualTo(bound, Encoding.UTF8.GetByteCount(cut));
-
-        var lifted = ConvertLog(EventsScope, new LogRecord
-        {
-            Attributes = { Text("tool_parameters", new System.Text.Json.Nodes.JsonObject { ["full_command"] = heredoc }.ToJsonString()) }
-        }).Attributes["full_command"].AsString()!;
-        Assert.AreEqual(bound, Encoding.UTF8.GetByteCount(lifted));
-        Assert.StartsWith("git commit -m", lifted);
-        Assert.EndsWith(Marker, lifted);
-
-        static string? SpanCommand(string command) =>
-            ConvertSpan(TracingScope, NewSpan([Text("full_command", command)])).Attributes["full_command"].AsString();
-    }
-
-    /// <summary>A bounded key holds a string. A list of strings would pass the bound unmeasured, so it is not kept.</summary>
-    [TestMethod]
-    public void FullCommand_ThatIsNotAString_IsNotKept()
+    public void FullCommand_ThatIsNotAString_IsKeptAsSent()
     {
         var list = new AnyValue
         {
-            ArrayValue = new ArrayValue { Values = { new AnyValue { StringValue = new string('a', 10_000) } } }
+            ArrayValue = new ArrayValue { Values = { new AnyValue { StringValue = "python3" }, new AnyValue { IntValue = 3 } } }
         };
 
         var span = ConvertSpan(TracingScope, NewSpan([new KeyValue { Key = "full_command", Value = list }, Text("tool_name", "Bash")]));
 
-        Assert.AreSequenceEqual(s_toolNameOnly, Keys(span.Attributes).Where(static key => key != "service.name"));
+        Assert.AreEqual(OtlpAttributeValueKind.Array, span.Attributes["full_command"].Kind);
     }
 
     /// <summary>
-    ///     A span status message is free text outside the allowlist, and Claude Code copies the text of its
-    ///     <c>error</c> attribute into it. A producer's is kept as error text is kept elsewhere (observer's ruling, 15
-    ///     Nov): through the sanitizer exception text gets, then up to 1024 UTF-8 bytes with the marker. Another
-    ///     sender's is stored as sent.
+    ///     A span status message is free text that no key names, and Claude Code copies the text of its
+    ///     <c>error</c> attribute into it. Every sender's passes the credential stage (observer's rule, 16 Nov) and
+    ///     is then cut at 1024 UTF-8 bytes with the marker (observer's ruling, 15 Nov, for every sender).
     /// </summary>
     [TestMethod]
-    public void SpanStatusMessage_OnAProducersScope_LosesItsCredentials_AndIsKeptUpTo1024Bytes()
+    [DataRow(TracingScope, DisplayName = "On Claude Code's tracing scope")]
+    [DataRow(ForeignScope, DisplayName = "On another scope")]
+    public void SpanStatusMessage_OfEverySender_LosesItsCredentials_AndIsKeptUpTo1024Bytes(string scope)
     {
         const string failure = "Shell command failed";
         const string leaking = "Request failed with 401\nAuthorization: Bearer sk-live-0123456789abcdef\n" +
                                "connection password=hunter2-and-more;retry in 5 s";
         var text = new string('é', 2000);
 
-        var ours = ConvertSpan(TracingScope, WithStatus(leaking));
-        Assert.AreEqual("Request failed with 401\nAuthorization: Bearer [REDACTED]\nconnection password=[REDACTED];retry in 5 s",
-            ours.StatusMessage);
-        Assert.AreEqual((int)Status.Types.StatusCode.Error, ours.StatusCode.GetValueOrDefault());
-        Assert.AreEqual(failure, ConvertSpan(TracingScope, WithStatus(failure)).StatusMessage, "text without credentials is kept");
-        var cut = ConvertSpan(TracingScope, WithStatus(text)).StatusMessage!;
-        Assert.AreEqual(new string('é', (1024 - Marker.Length) / 2) + Marker, cut);
+        const string redacted =
+            "Request failed with 401\nAuthorization: Bearer [REDACTED]\nconnection password=[REDACTED];retry in 5 s";
+        var span = ConvertSpan(scope, WithStatus(leaking));
+        Assert.AreEqual(redacted, span.StatusMessage);
+        Assert.AreEqual((int)Status.Types.StatusCode.Error, span.StatusCode.GetValueOrDefault());
+        Assert.AreEqual(failure, ConvertSpan(scope, WithStatus(failure)).StatusMessage, "text without credentials is kept");
+        var cut = ConvertSpan(scope, WithStatus(text)).StatusMessage!;
+        Assert.AreEqual(new string('é', (1024 - MarkerBytes) / 2) + Marker, cut);
         Assert.IsLessThanOrEqualTo(1024, Encoding.UTF8.GetByteCount(cut));
+        var atTheBound = new string('a', 1024);
+        Assert.AreEqual(atTheBound, ConvertSpan(scope, WithStatus(atTheBound)).StatusMessage, "exactly 1024 bytes are kept whole");
 
-        Assert.AreEqual(leaking, ConvertSpan(ForeignScope, WithStatus(leaking)).StatusMessage,
-            "no general rule yet: another sender's status message is stored as sent");
-        Assert.AreEqual(text, ConvertSpan(ForeignScope, WithStatus(text)).StatusMessage);
+        // The credential sits where the cut falls: it is removed before the text is cut, not cut in half.
+        var straddling = ConvertSpan(scope, WithStatus(new string('a', 1000) + " password=hunter2-and-more-secret-text")).StatusMessage!;
+        Assert.DoesNotContain("hunter2", straddling);
+        Assert.IsLessThanOrEqualTo(1024, Encoding.UTF8.GetByteCount(straddling));
 
         static Span WithStatus(string message)
         {
@@ -386,15 +169,12 @@ public sealed class ClaudeCodeConverterTests
     }
 
     /// <summary>
-    ///     Claude Code's <c>error</c> attribute is persisted since registry 849dd8b, as error text: through the
-    ///     sanitizer of <c>exception.message</c> first and up to <c>ValueLimits.MaxUtf8Bytes</c> (1024) after it, on
-    ///     the events and the spans that carry it. Under another scope it is another sender's unknown key.
+    ///     Claude Code's <c>error</c> attribute passes the credential stage as every string does, under every scope,
+    ///     and has no bound of its own: the one cap of every value holds for it (<c>AttributeBoundsTests</c>).
     /// </summary>
     [TestMethod]
-    public void Error_OnAProducersScope_LosesItsCredentials_AndIsKeptUpToTheRegistrysBound()
+    public void Error_UnderEveryScope_LosesItsCredentials_AndKeepsTheRest()
     {
-        var bound = ValueLimits.MaxUtf8Bytes["error"];
-        Assert.AreEqual(1024, bound);
         const string leaking = "Request failed with 401\nAuthorization: Bearer sk-live-0123456789abcdef\n" +
                                "connection password=hunter2-and-more;retry in 5 s";
         const string sanitized = "Request failed with 401\nAuthorization: Bearer [REDACTED]\nconnection password=[REDACTED];retry in 5 s";
@@ -403,26 +183,19 @@ public sealed class ClaudeCodeConverterTests
         Assert.AreEqual(sanitized, ConvertLog(EventsScope, new LogRecord { Attributes = { Text("error", leaking) } })
             .Attributes["error"].AsString());
         Assert.AreEqual(sanitized, ConvertSpan(TracingScope, NewSpan([Text("error", leaking)])).Attributes["error"].AsString());
+        Assert.AreEqual(sanitized, ConvertLog(ForeignScope, new LogRecord { Attributes = { Text("error", leaking) } })
+            .Attributes["error"].AsString());
         Assert.AreEqual("Shell command failed", ConvertLog(EventsScope,
             new LogRecord { Attributes = { Text("error", "Shell command failed") } }).Attributes["error"].AsString());
-        var cut = ConvertLog(EventsScope, new LogRecord { Attributes = { Text("error", text) } }).Attributes["error"].AsString()!;
-        Assert.AreEqual(new string('é', (bound - Marker.Length) / 2) + Marker, cut);
+        Assert.AreEqual(text, ConvertLog(EventsScope, new LogRecord { Attributes = { Text("error", text) } }).Attributes["error"].AsString(),
+            "2000 characters are far below the cap of every value");
 
-        // The credential sits where the cut falls: it is removed before the text is cut, not cut in half.
-        var straddling = new string('a', bound - 30) + " password=hunter2-and-more-secret-text";
-        var kept = ConvertLog(EventsScope, new LogRecord { Attributes = { Text("error", straddling) } }).Attributes["error"].AsString()!;
-        Assert.DoesNotContain("hunter2", kept);
-        Assert.IsLessThanOrEqualTo(bound, Encoding.UTF8.GetByteCount(kept));
-
-        // Error text is a string; any other value fails closed, as it does for exception.message.
+        // Error text is a string; a value of another type stays as it was sent.
         var number = ConvertLog(EventsScope, new LogRecord
         {
             Attributes = { new KeyValue { Key = "error", Value = new AnyValue { IntValue = 500 } } }
         });
-        Assert.AreEqual("[SANITIZATION_FAILED]", number.Attributes["error"].AsString());
-
-        var foreign = ConvertLog(ForeignScope, new LogRecord { Attributes = { Text("error", leaking), Text(Ordinary, "builder") } });
-        Assert.AreSequenceEqual(s_ordinaryOnly, Keys(foreign.Attributes));
+        Assert.AreEqual(500L, number.Attributes["error"].AsInt64());
     }
 
     private static string[] Keys(NormalizedAttributes attributes) =>

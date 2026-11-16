@@ -1,6 +1,6 @@
 # Nami semantic conventions
 
-Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schemas/0.4.0`).
+Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schemas/0.5.0`).
 
 | Namespace | Attributes | Stable attributes | Metrics | Stable metrics | Events | Spans |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -15,7 +15,6 @@ Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schem
 | [`browser`](browser.md) | 11 | 0 | 0 | 0 | 1 | 0 |
 | [`cassandra`](cassandra.md) | 6 | 0 | 0 | 0 | 0 | 0 |
 | [`cicd`](cicd.md) | 16 | 0 | 5 | 0 | 0 | 2 |
-| [`claude_code`](claude_code.md) | 103 | 0 | 8 | 0 | 12 | 5 |
 | [`cli`](cli.md) | 0 | 0 | 0 | 0 | 0 | 2 |
 | [`client`](client.md) | 8 | 2 | 0 | 0 | 0 | 0 |
 | [`cloud`](cloud.md) | 6 | 0 | 0 | 0 | 0 | 0 |
@@ -60,7 +59,7 @@ Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schem
 | [`mcp`](mcp.md) | 4 | 0 | 4 | 0 | 0 | 2 |
 | [`message`](message.md) | 4 | 0 | 0 | 0 | 0 | 0 |
 | [`messaging`](messaging.md) | 49 | 0 | 10 | 0 | 5 | 8 |
-| [`nami`](nami.md) | 4 | 0 | 3 | 0 | 0 | 0 |
+| [`nami`](nami.md) | 5 | 0 | 4 | 0 | 0 | 0 |
 | [`net`](net.md) | 15 | 0 | 0 | 0 | 0 | 0 |
 | [`network`](network.md) | 25 | 8 | 0 | 0 | 0 | 0 |
 | [`nfs`](nfs.md) | 2 | 0 | 16 | 0 | 0 | 0 |
@@ -102,6 +101,6 @@ Generated from the pinned Weaver registry (`https://ancplua.github.io/nami/schem
 | [`vcs`](vcs.md) | 21 | 0 | 10 | 0 | 0 | 0 |
 | [`webengine`](webengine.md) | 3 | 0 | 0 | 0 | 0 | 0 |
 
-Total attributes: 1140; stable and not deprecated: 125.
-Total metrics: 593; stable and not deprecated: 53.
-Total events: 47; spans: 50.
+Total attributes: 1038; stable and not deprecated: 125.
+Total metrics: 586; stable and not deprecated: 53.
+Total events: 35; spans: 45.

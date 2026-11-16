@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Nami.Collector.Storage;
@@ -8,8 +7,9 @@ using Nami.Tests.Infrastructure;
 namespace Nami.IntegrationTests;
 
 /// <summary>
-///     The exception-text policy where telemetry enters: real OTLP exports over each transport, read back from the
-///     store. The boundaries of the sanitizer function itself are in IngestStoreTests (Sanitizer_*).
+///     Exception text where telemetry enters: real OTLP exports over each transport, read back from the store. It
+///     passes the credential stage like every string and has no limit of its own; the bounds are in
+///     AttributeBoundsTests.
 /// </summary>
 [TestClass]
 [TestCategory("Integration")]
@@ -17,8 +17,6 @@ namespace Nami.IntegrationTests;
 public sealed class IngestSanitizerTests(TestContext context)
 {
     private const int InputLimit = 128 * 1024;
-    private const int StoredLimit = 32 * 1024;
-    private const string Failed = "[SANITIZATION_FAILED]";
     // Not hexadecimal, so no identifier the store generates can contain it by chance.
     private const string Token = "s3cr3t-b34r3r-t0k3n";
     private const string Credential = "Authorization: Bearer " + Token;
@@ -62,25 +60,19 @@ public sealed class IngestSanitizerTests(TestContext context)
 
         Assert.HasCount(2, storedSpans);
         var first = EventAttributes(storedSpans.Single(static span => span.SpanId.EndsWith('1')));
-        Assert.AreEqual(Failed, first.GetProperty("exception.message").GetString());
+        Assert.AreEqual(tooLong, first.GetProperty("exception.message").GetString(), "below the cap of every value: stored as sent");
         Assert.AreEqual("at Checkout.Pay() " + Redacted, first.GetProperty("exception.stacktrace").GetString());
         var second = EventAttributes(storedSpans.Single(static span => span.SpanId.EndsWith('2')));
-        var bounded = second.GetProperty("exception.message").GetString()!;
-        Assert.IsLessThanOrEqualTo(StoredLimit, Encoding.UTF8.GetByteCount(bounded));
-        Assert.StartsWith(new string('y', 1024), bounded);
+        Assert.AreEqual(longest, second.GetProperty("exception.message").GetString());
         Assert.AreEqual("at Checkout.Pay()", second.GetProperty("exception.stacktrace").GetString());
         using var logAttributes = JsonDocument.Parse(storedLog.AttributesJson!);
         Assert.AreEqual("declined " + Redacted, logAttributes.RootElement.GetProperty("exception.message").GetString());
-        Assert.AreEqual(Failed, logAttributes.RootElement.GetProperty("exception.stacktrace").GetString());
+        Assert.AreEqual(tooLong, logAttributes.RootElement.GetProperty("exception.stacktrace").GetString());
 
-        // Nothing the store holds, in any table, still carries the token, the refused text or more than the bound.
+        // Nothing the store holds, in any table, still carries the token.
         var rows = StoreDump.Read(path).SelectMany(static table => table.Value).ToArray();
         Assert.IsNotEmpty(rows);
         Assert.IsFalse(rows.Any(static row => row.Contains(Token, StringComparison.Ordinal)), "The token was stored.");
-        Assert.IsFalse(rows.Any(static row => row.Contains(new string('x', 64), StringComparison.Ordinal)),
-            "Text over the input limit was stored.");
-        Assert.IsFalse(rows.Any(static row => row.Contains(new string('y', StoredLimit + 1), StringComparison.Ordinal)),
-            "Text at the input limit was stored beyond the persisted bound.");
     }
 
     private static JsonArray ExceptionAttributes(string message, string stacktrace)

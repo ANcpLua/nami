@@ -1,7 +1,7 @@
 file_format: definition/2
 metrics:
   - name: nami.collector.attributes.dropped
-    brief: Attributes excluded by the persistence policy.
+    brief: Attributes removed by a size bound of ingest.
     stability: development
     requirement_level: recommended
     instrument: counter
@@ -13,11 +13,20 @@ metrics:
     instrument: counter
     unit: "{attribute}"
   - name: nami.collector.attributes.sanitization_failed
-    brief: Exception attributes whose text could not be sanitized.
+    brief: Strings the credential stage could not process.
     stability: development
     requirement_level: recommended
     instrument: counter
     unit: "{attribute}"
+  - name: nami.collector.values.replaced
+    brief: Values ingest replaced while keeping their attribute.
+    stability: development
+    requirement_level: recommended
+    instrument: counter
+    unit: "{value}"
+    attributes:
+      - ref: nami.value.replacement.reason
+        requirement_level: required
   - name: resource.missing_service_name
     brief: Received resources without the required service name.
     stability: development

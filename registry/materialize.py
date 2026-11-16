@@ -23,11 +23,6 @@ def materialize(raw):
   for rank,k,v,src in sorted(all,key=lambda x:(x[0],x[1])):
    if k not in seen:seen[k]=(copy.deepcopy(v),src)
   return [seen[k] for k in sorted(seen)]
- # Preserve per-reference policy annotations in the materialized catalog.
- policies={}
- for v,src in merge('attribute_groups','id'):
-  if v['id']=='nami.persistence':
-   policies={a['key']:a.get('annotations',{}) for a in v.get('attributes',[])}
  cat=[]; cat_idx={}
  attr_keys={'key','type','examples','brief','note','stability','deprecated','annotations'}
  def origin(v,src):
@@ -36,7 +31,6 @@ def materialize(raw):
   return v
  def intern(a,src):
   a=origin({k:v for k,v in a.items() if k in attr_keys or k=='provenance'},src)
-  a.setdefault('annotations',{}).update(policies.get(a['key'],{}))
   s=json.dumps(a,sort_keys=True,separators=(',',':'))
   if s not in cat_idx:cat_idx[s]=len(cat);cat.append(a)
   return cat_idx[s]
