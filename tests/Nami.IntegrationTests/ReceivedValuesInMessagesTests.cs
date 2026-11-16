@@ -215,6 +215,66 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
         Assert.DoesNotContain("holds", logged);
     }
 
+    /// <summary>
+    ///     Ledger N126. An <see cref="AggregateException" /> holds several exceptions, and InnerException is only the
+    ///     first of them: each member is logged with its type and frames, and what is inside a member too. Still no
+    ///     message.
+    /// </summary>
+    [TestMethod]
+    public void TheLoggedFailure_HasEveryMemberOfAnAggregateException_AndNoMessage()
+    {
+        var thrown = new AggregateException("several hold " + Received,
+            Thrown(FirstMember), Thrown(SecondMember), new AggregateException(Thrown(ThirdMember)));
+
+        var logged = Nami.Hosting.OtlpFailureLog.Describe(thrown);
+
+        context.WriteLine(logged);
+        var types = logged.Split('\n').Where(static line => !line.StartsWith("   at ", StringComparison.Ordinal))
+            .Select(static line => line.Trim()).ToArray();
+        Assert.AreEqual(
+            "System.AggregateException|---> System.FormatException|---> System.IO.InvalidDataException|" +
+            "---> System.TimeoutException|---> System.AggregateException|---> System.ArgumentException",
+            string.Join('|', types), "Every member, in the order held, and what is inside it.");
+        Assert.Contains(nameof(FirstMember), logged, "The frames of every member.");
+        Assert.Contains(nameof(SecondMember), logged);
+        Assert.Contains(nameof(InsideSecond), logged);
+        Assert.Contains(nameof(ThirdMember), logged);
+        Assert.DoesNotContain("ZQE900X000ZZZZZZ", logged);
+        Assert.DoesNotContain("hold", logged);
+
+        static void FirstMember() => throw new FormatException("first holds " + Received);
+
+        static void InsideSecond() => throw new TimeoutException("inside holds " + Received);
+
+        static void SecondMember()
+        {
+            try
+            {
+                InsideSecond();
+            }
+            catch (TimeoutException inside)
+            {
+                throw new InvalidDataException("second holds " + Received, inside);
+            }
+        }
+
+        static void ThirdMember() => throw new ArgumentException("third holds " + Received);
+    }
+
+    private static Exception Thrown(Action fails)
+    {
+        try
+        {
+            fails();
+        }
+        catch (Exception thrown)
+        {
+            return thrown;
+        }
+
+        throw new InvalidOperationException("Nothing was thrown.");
+    }
+
     // Every line that reaches nami's log, under every category: the level, the category, the formatted message
     // and, when one is logged, the whole exception.
     private sealed class Captured : ILoggerProvider
