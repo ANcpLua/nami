@@ -169,14 +169,8 @@ internal static partial class OtlpConverter
         foreach (var attr in resource.Attributes)
         {
             if (IsUnresolvedProfilingKey(attr)) continue;
-            // Stored under the key it was sent under: ingest renames nothing.
-            if (ConvertAttribute(attr.Key, attr.Value, null) is not { } value)
-            {
-                NamiCollectorMetrics.AttributeDropped(attr.Key);
-                continue;
-            }
-
-            attrs[attr.Key] = value;
+            // Stored under the key it was sent under: ingest renames nothing and drops no key.
+            attrs[attr.Key] = ConvertAttribute(attr.Key, attr.Value, null);
             projectedKeys[attr.Key] = new ResourceAttributeProjectionKey(attr.Key);
         }
 
@@ -294,13 +288,7 @@ internal static partial class OtlpConverter
         foreach (var attr in protoAttributes)
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
-            if (ConvertAttribute(attr.Key, attr.Value, producer) is not { } value)
-            {
-                NamiCollectorMetrics.AttributeDropped(attr.Key);
-                continue;
-            }
-
-            attributes[attr.Key] = value;
+            attributes[attr.Key] = ConvertAttribute(attr.Key, attr.Value, producer);
         }
     }
 
@@ -346,13 +334,7 @@ internal static partial class OtlpConverter
         foreach (var attribute in attributes)
         {
             if (IsUnresolvedProfilingKey(attribute)) continue;
-            if (ConvertAttribute(attribute.Key, attribute.Value, null) is not { } value)
-            {
-                NamiCollectorMetrics.AttributeDropped(attribute.Key);
-                continue;
-            }
-
-            result[attribute.Key] = value;
+            result[attribute.Key] = ConvertAttribute(attribute.Key, attribute.Value, null);
         }
 
         return result;
@@ -428,13 +410,7 @@ internal static partial class OtlpConverter
         foreach (var item in value.Values)
         {
             if (IsUnresolvedProfilingKey(item)) continue;
-            if (ConvertAttribute(item.Key, item.Value, producer, nesting) is not { } member)
-            {
-                NamiCollectorMetrics.AttributeDropped(item.Key);
-                continue;
-            }
-
-            items[item.Key] = member;
+            items[item.Key] = ConvertAttribute(item.Key, item.Value, producer, nesting);
         }
 
         return OtlpAttributeValue.FromKeyValueList(items);

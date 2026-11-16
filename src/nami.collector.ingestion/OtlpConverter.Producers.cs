@@ -26,14 +26,13 @@ internal static partial class OtlpConverter
     private static string? ProducerOfScope(string? scopeName) =>
         scopeName is not null && s_producerByScope.TryGetValue(scopeName, out var producer) ? producer : null;
 
-    // The value nami keeps of an attribute, or null when it keeps none. One path for every carrier: resource, scope,
-    // span, span event, span link, log record, metric point, exemplar and the members of a map value. A map member
-    // passes its list's nesting on, so MaxValueNesting bounds a value however deep its maps go.
-    private static OtlpAttributeValue? ConvertAttribute(string key, ProtoAnyValue? wire, string? producer,
+    // The value nami keeps of an attribute. Every key is kept (observer's decision, 16 Nov 2026: telemetry is stored
+    // as sent; what a sender captures is decided at the source). One path for every carrier: resource, scope, span,
+    // span event, span link, log record, metric point, exemplar and the members of a map value. A map member passes
+    // its list's nesting on, so MaxValueNesting bounds a value however deep its maps go.
+    private static OtlpAttributeValue ConvertAttribute(string key, ProtoAnyValue? wire, string? producer,
         int nesting = 0)
     {
-        if (!AttributeKeySets.IsPersistable(key)) return null;
-
         // Sanitized first, bounded after: a credential where the cut falls is removed whole, not cut in half. Error
         // text is text: a value of another type is no error text and stays as it was sent.
         var value = s_producerErrorTextKeys.Contains(key) && wire?.ValueCase is ProtoAnyValue.ValueOneofCase.StringValue

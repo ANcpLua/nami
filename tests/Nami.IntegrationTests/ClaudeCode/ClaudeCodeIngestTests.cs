@@ -32,6 +32,8 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
 
     private const string TruncationMarker = "...[truncated]";
 
+    private static readonly string[] s_contentColumns = ["logs.attributes_json", "logs.body", "spans.attributes_json", "spans.events_json"];
+
 
     /// <summary>
     ///     Claude Code copies the text of its <c>error</c> attribute into the status message of a failed span: "Shell
@@ -138,18 +140,110 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     }
 
     /// <summary>
-    ///     Finish-line item 5: nami stores no prompt or response text, even when a session sends it. The sentinel goes
-    ///     into every content-bearing attribute and event Claude Code can send, and into the body of the added
-    ///     content events (<see cref="ClaudeCodeContent" />), and no column of any table may hold it afterwards,
-    ///     whatever the registry says.
+    ///     Content is stored as sent (observer's decision, 16 Nov 2026, which reverses finish-line item 5). The
+    ///     sentinel goes into every content-bearing attribute and event Claude Code can send, and into the body of the
+    ///     added content events (<see cref="ClaudeCodeContent" />); afterwards the store holds it on the events, the
+    ///     spans and the span events it was planted on.
     /// </summary>
     [TestMethod]
-    public async Task Ingest_ContentInEveryClaudeCodeContentCarrier_ReachesNoStoredRow()
+    public async Task Ingest_ContentInEveryClaudeCodeContentCarrier_IsStored()
     {
         var path = await IngestPlantedCaptureAsync();
 
-        var leaked = StoredRows.ColumnsContaining(path, Sentinel);
-        Assert.IsEmpty(leaked, "Content reached storage: " + Excerpts(path, leaked, Sentinel));
+        var stored = StoredRows.ColumnsContaining(path, Sentinel);
+        foreach (var column in s_contentColumns)
+            Assert.IsGreaterThan(0L, stored.GetValueOrDefault(column), column + ": " + Describe(stored));
+    }
+
+    /// <summary>
+    ///     The whole capture, record by record: every event and every span is stored with the attributes Claude Code
+    ///     sent, under the keys and in the types it sent them, with the event-name field, the body and the span name
+    ///     it sent. Nothing is renamed, converted, lifted, added or dropped. (The one addition is
+    ///     <c>service.name</c>, which ingest copies from the resource onto every span.)
+    /// </summary>
+    [TestMethod]
+    [DataRow(ClaudeCodeCapture.SignedIn, 77)]
+    [DataRow(ClaudeCodeCapture.NotSignedIn, 18)]
+    public async Task Ingest_ClaudeCodeCapture_StoresEveryEventAndSpanAsItWasSent(string capture, int events)
+    {
+        var exports = ClaudeCodeCapture.Load(capture);
+        var sentEvents = exports.Where(static export => export.Signal == Signals.Logs)
+            .SelectMany(static export => ExportLogsServiceRequest.Parser.ParseFrom(export.Payload).ResourceLogs)
+            .SelectMany(static resource => resource.ScopeLogs).SelectMany(static scope => scope.LogRecords)
+            .Select(static record => (record.EventName.Length == 0 ? "(no event name)" : record.EventName) + "\n" +
+                                     Sent(record.Body) + "\n" + Sent(record.Attributes))
+            .Order(StringComparer.Ordinal).ToArray();
+        var sentSpans = exports.Where(static export => export.Signal == Signals.Traces)
+            .SelectMany(static export => ExportTraceServiceRequest.Parser.ParseFrom(export.Payload).ResourceSpans)
+            .SelectMany(static resource => resource.ScopeSpans).SelectMany(static scope => scope.Spans)
+            .Select(static span => span.Name + "\n" + Sent(span.Attributes))
+            .Order(StringComparer.Ordinal).ToArray();
+        Assert.HasCount(events, sentEvents);
+        Assert.IsNotEmpty(sentSpans);
+
+        var path = await IngestAsync(exports);
+
+        var storedEvents = StoredRows.Rows(path, "SELECT event_name, body, attributes_json FROM logs WHERE project_id = $1", Project)
+            .Select(static row => (row[0] ?? "(no event name)") + "\n" + Stored(StoredAttributeJson.Value(row[1])) + "\n" +
+                                  Stored(row[2], null))
+            .Order(StringComparer.Ordinal).ToArray();
+        var storedSpans = StoredRows.Rows(path, "SELECT name, attributes_json FROM spans WHERE project_id = $1", Project)
+            .Select(static row => row[0] + "\n" + Stored(row[1], "service.name"))
+            .Order(StringComparer.Ordinal).ToArray();
+        Assert.AreSequenceEqual(sentEvents, storedEvents);
+        Assert.AreSequenceEqual(sentSpans, storedSpans);
+    }
+
+    /// <summary>One line per attribute as Claude Code sent it: key, type and value, in key order.</summary>
+    private static string Sent(IEnumerable<Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.KeyValue> attributes) =>
+        string.Join('\n', attributes.OrderBy(static attribute => attribute.Key, StringComparer.Ordinal)
+            .Select(static attribute => attribute.Key + "=" + Sent(attribute.Value)));
+
+    private static string Sent(Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue? value)
+    {
+        return value?.ValueCase switch
+        {
+            Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue.ValueOneofCase.StringValue => "string:" + value.StringValue,
+            Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue.ValueOneofCase.BoolValue => "bool:" + value.BoolValue,
+            Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue.ValueOneofCase.IntValue =>
+                "int:" + value.IntValue.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue.ValueOneofCase.DoubleValue =>
+                "double:" + value.DoubleValue.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+            Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue.ValueOneofCase.BytesValue =>
+                "bytes:" + value.BytesValue.ToBase64(),
+            Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue.ValueOneofCase.ArrayValue =>
+                "[" + string.Join(",", value.ArrayValue.Values.Select(Sent)) + "]",
+            Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.AnyValue.ValueOneofCase.KvlistValue =>
+                "{" + Sent(value.KvlistValue.Values).Replace('\n', ',') + "}",
+            _ => "empty"
+        };
+    }
+
+    /// <summary>The same lines for a stored attribute column; <paramref name="added" /> names a key ingest adds.</summary>
+    private static string Stored(string? attributesJson, string? added) =>
+        string.Join('\n', StoredAttributeJson.Attributes(attributesJson).Where(attribute => attribute.Key != added)
+            .Select(static attribute => attribute.Key + "=" + Stored(attribute.Value)));
+
+    private static string Stored(AttributeValue? value)
+    {
+        return value switch
+        {
+            null => "empty",
+            AttributeValue.StringValue text => "string:" + text.Value,
+            AttributeValue.BoolValue flag => "bool:" + flag.Value,
+            AttributeValue.ArrayValue list => "[" + string.Join(",", list.Value.Select(Stored)) + "]",
+            AttributeValue.ObjectValue item => item.Value switch
+            {
+                AttributeIntValue number => "int:" + number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                AttributeDoubleValue number =>
+                    "double:" + number.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+                AttributeBytesValue bytes => "bytes:" + Convert.ToBase64String(bytes.Base64.Span),
+                AttributeKeyValueListValue map => "{" + string.Join(",", map.Values
+                    .OrderBy(static member => member.Key, StringComparer.Ordinal)
+                    .Select(static member => member.Key + "=" + Stored(member.Value))) + "}",
+                _ => "other"
+            }
+        };
     }
 
     /// <summary>
@@ -187,12 +281,6 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
         Assert.AreEqual((long)planted.Spans, kept.GetValueOrDefault("spans.attributes_json"), Describe(kept));
         Assert.AreEqual((long)planted.ToolOutputs, kept.GetValueOrDefault("spans.events_json"), Describe(kept));
         return path;
-    }
-
-    private static string Excerpts(string path, IReadOnlyDictionary<string, long> columns, string marker)
-    {
-        return string.Join("; ", columns.Select(column =>
-            $"{column.Key} in {column.Value} rows, for example {string.Join(" | ", StoredRows.Excerpts(path, column.Key, marker))}"));
     }
 
     /// <summary>Posts every body to a fresh collector, stops it, and returns its closed DuckDB file.</summary>

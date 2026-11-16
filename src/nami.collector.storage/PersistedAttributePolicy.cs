@@ -2,21 +2,17 @@ namespace Nami.Collector.Storage;
 
 internal static class PersistedAttributePolicy
 {
-    // Instrumentation metadata is still producer-controlled: it follows the same privacy
-    // denials as signal and resource attributes, including the exact exception exemptions.
+    // Every attribute is written under the key and in the type it was sent in, on every signal and carrier. Storage
+    // drops no key: what a sender captures is decided at the source, and ingest has bounded and redacted the values.
     internal static string? SerializeScopeAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
-        Serialize(attributes, AttributeKeySets.IsPersistable);
+        Serialize(attributes);
 
-    // Application attributes retain their native names and types on every signal.
     internal static string? SerializeAttributes(IReadOnlyDictionary<string, OtlpAttributeValue> attributes) =>
-        Serialize(attributes, AttributeKeySets.IsPersistable);
+        Serialize(attributes);
 
-    private static string? Serialize(
-        IReadOnlyDictionary<string, OtlpAttributeValue> attributes,
-        Func<string, bool> shouldPersist)
+    private static string? Serialize(IReadOnlyDictionary<string, OtlpAttributeValue> attributes)
     {
         var persisted = attributes
-            .Where(item => shouldPersist(item.Key))
             .OrderBy(static item => item.Key, StringComparer.Ordinal)
             .ToArray();
 

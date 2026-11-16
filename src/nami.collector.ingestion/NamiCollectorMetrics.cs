@@ -6,9 +6,6 @@ internal static class NamiCollectorMetrics
 {
     private static readonly Meter s_meter = new(CollectorSemanticAttributeCatalog.InstrumentationScope);
 
-    private static readonly Counter<long> s_dropped =
-        s_meter.CreateCounter<long>(CollectorSemanticAttributeCatalog.AttributesDroppedMetric, "{attribute}");
-
     private static readonly Counter<long> s_coalesced =
         s_meter.CreateCounter<long>(CollectorSemanticAttributeCatalog.AttributesCoalescedMetric, "{attribute}");
 
@@ -17,9 +14,6 @@ internal static class NamiCollectorMetrics
 
     private static readonly Counter<long> s_missingService =
         s_meter.CreateCounter<long>(CollectorSemanticAttributeCatalog.MissingServiceNameMetric, "{resource}");
-
-    internal static void AttributeDropped(string key) => s_dropped.Add(1,
-        new KeyValuePair<string, object?>(CollectorSemanticAttributeCatalog.NamiAttributeNamespace, Namespace(key)));
 
     internal static void AttributeCoalesced(string key) => s_coalesced.Add(1,
         new KeyValuePair<string, object?>(CollectorSemanticAttributeCatalog.NamiAttributeNamespace, Namespace(key)));

@@ -154,6 +154,31 @@ public sealed class StoredAsSentTests
         Assert.AreEqual("claude_code.tool_result", (StoredAttributeJson.Value(both.Body) as AttributeValue.StringValue)?.Value);
     }
 
+    /// <summary>
+    ///     F5. Content is stored as sent: prompts, responses, tool input and output, request and response bodies,
+    ///     and the identity and URL keys the registry used to refuse. What a sender captures is decided at the
+    ///     source (Claude Code's OTEL_LOG_* switches), not by nami.
+    /// </summary>
+    [TestMethod]
+    [DataRow(ClaudeCodeEvents, DisplayName = "On Claude Code's events scope")]
+    [DataRow(Foreign, DisplayName = "On another scope")]
+    public void Content_PromptsBodiesAndIdentityKeys_AreStoredAsSent(string scope)
+    {
+        KeyValue[] sent =
+        [
+            Text("prompt", "Summarise the quarterly report"), Text("response", "Here is the summary."),
+            Text("tool_input", """{"file_path":"/src/report.md"}"""), Text("output", "42 lines"),
+            Text("gen_ai.input.messages", """[{"role":"user","parts":[{"type":"text","content":"hello"}]}]"""),
+            Text("http.request.body.content", "{\"order\":17}"), Text("url.full", "https://shop.example.test/orders/17"),
+            Text("user.email", "builder@example.test"), Text("db.query.text", "SELECT 1")
+        ];
+
+        var stored = Stored(StoreLog(scope, new LogRecord { Attributes = { sent } }).AttributesJson);
+
+        foreach (var attribute in sent)
+            Assert.AreEqual(attribute.Value.StringValue, stored.GetValueOrDefault(attribute.Key), attribute.Key);
+    }
+
     private const ulong Time = 1_794_745_800_000_000_000;
 
     private static KeyValue Text(string key, string value) =>
