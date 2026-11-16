@@ -11,6 +11,7 @@ using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using Nami.Api.Contracts;
+using Nami.Api.Contracts.Engine;
 using Nami.Collector.Storage;
 using Nami.Tests.Infrastructure;
 using OpenTelemetry.Proto.Collector.Logs.V1;
@@ -508,24 +509,33 @@ public sealed class HostTransportTests(TestContext context)
     [Timeout(90000, CooperativeCancellation = true)]
     public async Task Host_RealEngineKilledMidCall_FailsPendingCallsExitsNonZeroAndLeavesNoOrphan()
     {
-        // P04 (eng/proofs: Spec.HostExitsNonZeroWhenEngineDies, refuted). The engine is stopped so the
-        // call cannot finish, then killed: the call must end typed, the host must exit non-zero, and no
+        // P04 (eng/proofs: Spec.HostExitsNonZeroWhenEngineDies, refuted). The engine is stopped so that
+        // no call can finish, then killed: every call must end typed, the host must exit non-zero, and no
         // engine may be left behind.
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
             context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
             context.CancellationToken);
         var engine = LinuxProcess.ChildOf(host.HostProcessId, TestData.HostBinary);
         await LinuxProcess.SignalAsync(engine, "STOP", context.CancellationToken);
-        var written = LinuxProcess.BytesWritten(host.HostProcessId);
-        var call = host.CallAsync("sources_status", "{}", context.CancellationToken).AsTask();
-        // The host has written the call's frame to the stopped engine's input.
-        await LinuxProcess.UntilAsync(() => LinuxProcess.BytesWritten(host.HostProcessId) > written,
-            TimeSpan.FromSeconds(15), context.CancellationToken);
+        // One call more than the host lets wait on its engine (engine.ts, ENGINE_LIMITS.max_pending). The host
+        // refuses a call only while that many wait, and it writes a call's frame in the step in which the call
+        // starts to wait. So the first answer says that the other calls are pending in the host and that their
+        // frames are written to the stopped engine. Nothing else shows it: in this protocol revision the host
+        // sends its client no byte before a call has its result, and Bun writes a frame with send(2) on a socket
+        // pair, which no counter in /proc/<pid>/io sees.
+        var calls = Enumerable.Range(0, EngineLimits.MaxPendingDefault + 1)
+            .Select(_ => host.CallAsync("sources_status", "{}", context.CancellationToken).AsTask()).ToArray();
+        await Task.WhenAny(calls).WaitAsync(TimeSpan.FromSeconds(15), context.CancellationToken);
+        Assert.AreEqual(1, calls.Count(static call => call.IsCompleted),
+            "Only the call beyond the limit may have an answer while the engine is stopped.");
         await LinuxProcess.SignalAsync(engine, "KILL", context.CancellationToken);
-        var result = await call.WaitAsync(TimeSpan.FromSeconds(15), context.CancellationToken);
-        Assert.IsTrue(result.IsError);
-        Assert.AreEqual("collector_unavailable", Content(result).GetProperty("code").GetString());
-        Assert.IsTrue(Content(result).GetProperty("retryable").GetBoolean());
+        foreach (var result in await Task.WhenAll(calls).WaitAsync(TimeSpan.FromSeconds(15), context.CancellationToken))
+        {
+            Assert.IsTrue(result.IsError);
+            Assert.AreEqual("collector_unavailable", Content(result).GetProperty("code").GetString());
+            Assert.IsTrue(Content(result).GetProperty("retryable").GetBoolean());
+        }
+
         Assert.IsTrue(await host.WaitForHostExitAsync(TimeSpan.FromSeconds(15), context.CancellationToken),
             "The host must exit when its engine dies; it was still running 15 seconds later.");
         Assert.AreNotEqual(0, host.HostExitCode, "The host must exit non-zero when its engine dies.");
