@@ -1,4 +1,4 @@
-import { hostHeaderValidationResponse, originValidationResponse } from "@modelcontextprotocol/server";
+import { hostHeaderValidationResponse } from "@modelcontextprotocol/server";
 
 /** The names this machine has for itself, as a Host header and a URL carry them. */
 const LOOPBACK_NAMES: readonly string[] = ["localhost", "127.0.0.1", "[::1]"];
@@ -9,6 +9,8 @@ const WILDCARD_NAMES: readonly string[] = ["0.0.0.0", "[::]", "[::ffff:0:0]"];
 export interface RequestNames {
   /** Host names, compared without a port: a proxy or a published container port may use any. */
   readonly hosts: readonly string[];
+  /** The one origin outside this machine: scheme, host and port of NAMI_PUBLIC_URL. */
+  readonly publicOrigin: string | undefined;
 }
 
 /** The host name of an address or URL host as a URL writes it (`0` is `0.0.0.0`, `::1` is `[::1]`), or undefined. */
@@ -36,13 +38,30 @@ export function requestNames(bindAddress: string, publicUrl: URL | undefined): R
   const bound = urlHostName(bindAddress);
   if (bound !== undefined && !WILDCARD_NAMES.includes(bound)) hosts.add(bound);
   if (publicUrl) hosts.add(publicUrl.hostname);
-  return { hosts: [...hosts] };
+  return { hosts: [...hosts], publicOrigin: publicUrl?.origin };
+}
+
+function refusedOrigin(request: Request, publicOrigin: string | undefined): Response | undefined {
+  // No Origin: not a browser's cross-origin request. Other clients do not send one.
+  const header = request.headers.get("origin");
+  if (header === null || header === "") return undefined;
+  let origin: URL | undefined;
+  try { origin = new URL(header); } catch { /* "null" and anything else that is no URL is refused below */ }
+  // A page of this machine has no fixed port (a local MCP client, a container port published on a port of
+  // Docker's choice), so every HTTP(S) origin on a loopback name passes. Any other origin has to be the public
+  // one in scheme, host and port: https://nami.example admits neither http://nami.example nor
+  // https://nami.example:8443.
+  const local = origin !== undefined && (origin.protocol === "http:" || origin.protocol === "https:")
+    && LOOPBACK_NAMES.includes(origin.hostname);
+  if (local || (origin !== undefined && publicOrigin !== undefined && origin.origin === publicOrigin)) return undefined;
+  return Response.json({ jsonrpc: "2.0", error: { code: -32000, message: "Invalid Origin." }, id: null }, { status: 403 });
 }
 
 /**
  * DNS-rebinding protection in front of the MCP handler, which validates neither header itself: 403 unless the
- * Host, and the host of the Origin if there is one, is one of the listener's names.
+ * Host is one of the listener's names and the Origin, if there is one, is an origin of this machine or the
+ * public one.
  */
 export function dnsRebindingResponse(request: Request, names: RequestNames): Response | undefined {
-  return hostHeaderValidationResponse(request, [...names.hosts]) ?? originValidationResponse(request, [...names.hosts]);
+  return hostHeaderValidationResponse(request, [...names.hosts]) ?? refusedOrigin(request, names.publicOrigin);
 }

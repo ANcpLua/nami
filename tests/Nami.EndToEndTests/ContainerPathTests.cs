@@ -171,6 +171,72 @@ public sealed class ContainerPathTests(TestContext context)
         Assert.Contains("NAMI_PUBLIC_URL names a wildcard address", failure.Message);
     }
 
+    [TestMethod]
+    [Timeout(90000, CooperativeCancellation = true)]
+    [DataRow("https://nami.example", "https://nami.example", true, DisplayName = "The public origin itself")]
+    [DataRow("https://nami.example", "https://nami.example:443", true, DisplayName = "The public origin with its default port written out")]
+    [DataRow("https://nami.example", "http://nami.example", false, DisplayName = "The public host over plain HTTP")]
+    [DataRow("https://nami.example", "https://nami.example:8443", false, DisplayName = "The public host on another port")]
+    [DataRow("https://nami.example", "http://nami.example:443", false, DisplayName = "The public host and port over plain HTTP")]
+    [DataRow("https://nami.example:8443", "https://nami.example:8443", true, DisplayName = "A public origin with a port")]
+    [DataRow("https://nami.example:8443", "https://nami.example", false, DisplayName = "A public origin with a port, asked without it")]
+    [DataRow("https://nami.example", "http://localhost:9999", true, DisplayName = "A page of this machine, on any port")]
+    public async Task Origin_IsComparedBySchemeHostAndPort(string publicUrl, string origin, bool allowed)
+    {
+        await using var host = await StartAsTheImageDoesAsync(publicUrl);
+        Assert.AreEqual(allowed ? HttpStatusCode.OK : HttpStatusCode.Forbidden, await PostMcpAsync(host, ReadKey, origin));
+        Assert.AreEqual(allowed ? HttpStatusCode.OK : HttpStatusCode.Forbidden, await GetHealthAsync(host, origin));
+        // The Host header stays a name without a port: a proxy in front may listen on any port.
+        Assert.AreEqual(HttpStatusCode.OK, await PostMcpAsync(host, ReadKey, hostHeader: "nami.example"));
+    }
+
+    [TestMethod]
+    [Timeout(90000, CooperativeCancellation = true)]
+    public async Task LocalContainer_PublishedOnLoopback_KeyHostAndOriginDecideEveryRequest()
+    {
+        await using var host = await StartAsTheImageDoesAsync("http://127.0.0.1:5100");
+        Assert.AreNotEqual(5100, host.HttpPort, "Precondition: the client's port is not the one in NAMI_PUBLIC_URL.");
+
+        // The key decides: OTLP needs the ingest key, MCP the read key, and neither accepts the other's.
+        var span = OtlpData.Traces(TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2)), project: "demo");
+        using (var refused = await host.SendJsonAsync("traces", span, context.CancellationToken))
+            Assert.AreEqual(HttpStatusCode.Unauthorized, refused.StatusCode);
+        using (var accepted = await host.SendJsonAsync("traces", span, context.CancellationToken, IngestKey))
+            Assert.AreEqual(HttpStatusCode.OK, accepted.StatusCode);
+        Assert.AreEqual(HttpStatusCode.Unauthorized, await PostMcpAsync(host, null));
+        Assert.AreEqual(HttpStatusCode.Forbidden, await PostMcpAsync(host, IngestKey));
+        Assert.AreEqual(HttpStatusCode.OK, await PostMcpAsync(host, ReadKey));
+        var traces = Content(await host.CallAsync("traces_slowest", "{}", context.CancellationToken));
+        Assert.HasCount(1, traces.GetProperty("traces").EnumerateArray().ToArray());
+
+        // Origin (MCP, Streamable HTTP: a server validates it against DNS rebinding). A page of another site is
+        // refused even with the right key; this machine's own origins pass on any port; no Origin is no browser.
+        Assert.AreEqual(HttpStatusCode.Forbidden, await PostMcpAsync(host, ReadKey, "https://evil.example"));
+        Assert.AreEqual(HttpStatusCode.Forbidden, await PostMcpAsync(host, ReadKey, "http://0.0.0.0:5100.evil.example"));
+        Assert.AreEqual(HttpStatusCode.Forbidden, await PostMcpAsync(host, ReadKey, "null"));
+        Assert.AreEqual(HttpStatusCode.OK, await PostMcpAsync(host, ReadKey, "http://127.0.0.1:5100"));
+        Assert.AreEqual(HttpStatusCode.OK, await PostMcpAsync(host, ReadKey, $"http://localhost:{host.HttpPort}"));
+
+        // Host: a name that was rebound to this machine is refused, whatever its port.
+        Assert.AreEqual(HttpStatusCode.Forbidden, await PostMcpAsync(host, ReadKey, hostHeader: $"evil.example:{host.HttpPort}"));
+        Assert.AreEqual(HttpStatusCode.OK, await PostMcpAsync(host, ReadKey, hostHeader: "localhost:5100"));
+        // The checks come before the key: a refused origin learns nothing about keys.
+        Assert.AreEqual(HttpStatusCode.Forbidden, await PostMcpAsync(host, null, "https://evil.example"));
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    [DataRow("http://nami.example", DisplayName = "Plain HTTP off this machine")]
+    [DataRow("http://127.0.0.1.nami.example:5100", DisplayName = "A name that only starts like loopback")]
+    public async Task PublicUrl_PlainHttpThatIsNotLoopback_RefusedAtStart(string publicUrl)
+    {
+        var failure = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+        {
+            await using var host = await StartAsTheImageDoesAsync(publicUrl);
+        });
+        Assert.Contains("NAMI_PUBLIC_URL must be an HTTPS origin, or an HTTP origin on localhost, 127.0.0.1 or [::1]", failure.Message);
+    }
+
     private static Dictionary<string, string?> StopBudget(string seconds)
     {
         return new Dictionary<string, string?> { ["NAMI_STOP_BUDGET_SECONDS"] = seconds };

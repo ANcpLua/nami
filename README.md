@@ -137,9 +137,13 @@ claude mcp add --transport http nami http://127.0.0.1:5100/mcp --header "x-otlp-
   of another site, or a name rebound to your machine, gets 403 before any key is looked at. The
   wildcard address nami binds inside the container (`0.0.0.0`) is not such a name: it is refused as
   `Host`, as `Origin` and as `NAMI_PUBLIC_URL`.
+- **`Host` and `Origin`.** `Host` is compared by name, without its port. An `Origin` on
+  `localhost`, `127.0.0.1` or `[::1]` passes on any port, over HTTP or HTTPS: it is a page of this
+  machine. Any other `Origin` has to be `NAMI_PUBLIC_URL` itself, in scheme, host and port: with
+  `https://nami.example`, a page at `http://nami.example` or at `https://nami.example:8443` gets 403.
 - **A host port chosen by Docker** (`-p 127.0.0.1::5100`, read it with `docker port nami 5100/tcp`)
-  works with the same setting: `Host` and `Origin` are compared by name, not by port, so
-  `NAMI_PUBLIC_URL=http://127.0.0.1:5100` stays right whatever port the host side gets.
+  works with the same setting: `NAMI_PUBLIC_URL=http://127.0.0.1:5100` names this machine, so it
+  stays right whatever port the host side gets.
 - Every connection reaches the container from Docker's bridge, never from 127.0.0.1, so nami cannot
   tell local clients from others there: the key, not the address, is what admits a request.
 
