@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using DuckDB.NET.Data;
 using Microsoft.Extensions.Time.Testing;
 using Nami.Api.Contracts;
 using Nami.Collector.Storage;
@@ -270,20 +271,36 @@ public sealed class ToolEdgeTests(TestContext context)
     [TestMethod]
     public async Task Duration_SpanEndingBeforeItsStart_IsZeroAndRanksLast()
     {
-        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
-        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-10))),
-            context.CancellationToken);
-        var valid = Assert.ContainsSingle(
-            (await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
+        var clock = new FakeTimeProvider(TestData.s_now);
+        var path = Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("No test directory"),
+            "reversed-span.duckdb");
         var reversed = 2.ToString("x32", CultureInfo.InvariantCulture);
-        await store.EnqueueAsync(new SpanBatch([
-            valid with
-            {
-                TraceId = reversed, SpanId = 2.ToString("x16", CultureInfo.InvariantCulture),
-                EndTimeUnixNano = valid.StartTimeUnixNano - 19000000000UL
-            }
-        ]), context.CancellationToken);
+        SpanStorageRow valid;
+        await using (var earlier = new DuckDbStore(path, timeProvider: clock))
+        {
+            await StorageTestData.SeedTraces(earlier,
+                OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-10)), 2), context.CancellationToken);
+            valid = (await earlier.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans
+                .Single(span => span.TraceId != reversed);
+        }
+
+        // The store refuses such a span today, so the row is written the way only an earlier build's database
+        // holds it: under the store.
+        using (var connection = new DuckDBConnection(
+                   new DuckDBConnectionStringBuilder { DataSource = path }.ConnectionString))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                "UPDATE spans SET end_time_unix_nano = start_time_unix_nano - 19000000000 WHERE trace_id = $1";
+            command.Parameters.Add(new DuckDBParameter { Value = reversed });
+            Assert.AreEqual(1, command.ExecuteNonQuery());
+        }
+
+        await using var store = new DuckDbStore(path, timeProvider: clock);
         var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        var legacy = snapshot.Spans.Single(span => span.TraceId == reversed);
+        Assert.IsLessThan(legacy.StartTimeUnixNano, legacy.EndTimeUnixNano);
 
         var trace = Run(snapshot, "traces_get", new JsonObject { ["trace_id"] = reversed }.ToJsonString());
         Assert.IsFalse(trace.IsError, trace.Content.GetRawText());

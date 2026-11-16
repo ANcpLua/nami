@@ -316,6 +316,14 @@ internal sealed partial class DuckDbStore : INamiStore
             return;
         }
 
+        // The store is the last place that holds this rule for every writer; a reader subtracts the unsigned bounds.
+        // The batch is refused whole, before it is queued, and the same way on every retry.
+        for (var i = 0; i < batch.Spans.Count; i++)
+        {
+            if (batch.Spans[i].EndTimeUnixNano < batch.Spans[i].StartTimeUnixNano)
+                throw new InvalidDataException("Span end time must not precede its start.");
+        }
+
         await ExecuteWriteAsync(
                 (con, token) => WriteBatchInternalAsync(con, batch, token),
                 ct)

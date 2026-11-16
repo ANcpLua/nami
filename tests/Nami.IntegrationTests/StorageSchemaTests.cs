@@ -160,6 +160,45 @@ public sealed class StorageSchemaTests(TestContext context)
         }
     }
 
+    /// <summary>
+    ///     The store refuses a span that ends before it starts, whoever built the row: the mapper of the OTLP path
+    ///     refuses it too, but EnqueueAsync takes storage rows from any caller. The batch is refused whole.
+    /// </summary>
+    [TestMethod]
+    public async Task Enqueue_SpanEndingBeforeItsStart_RefusesTheWholeBatch()
+    {
+        await using var store = new DuckDbStore(":memory:");
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-10))),
+            context.CancellationToken);
+        var stored = Assert.ContainsSingle(
+            (await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
+        var sound = stored with { TraceId = Id(2, 32), SpanId = Id(2, 16) };
+        var reversed = stored with
+        {
+            TraceId = Id(3, 32), SpanId = Id(3, 16), EndTimeUnixNano = stored.StartTimeUnixNano - 1
+        };
+
+        var failure = await Assert.ThrowsExactlyAsync<InvalidDataException>(async () =>
+            await store.EnqueueAsync(new SpanBatch([sound, reversed]), context.CancellationToken));
+
+        Assert.AreEqual("Span end time must not precede its start.", failure.Message);
+        var after = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        Assert.AreEqual(stored.TraceId, Assert.ContainsSingle(after.Spans).TraceId);
+
+        // A span of no length is not a reversed one.
+        var instant = stored with
+        {
+            TraceId = Id(4, 32), SpanId = Id(4, 16), EndTimeUnixNano = stored.StartTimeUnixNano, DurationNs = 0
+        };
+        await store.EnqueueAsync(new SpanBatch([sound, instant]), context.CancellationToken);
+        var accepted = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        Assert.AreSequenceEqual(new[] { stored.TraceId, sound.TraceId, instant.TraceId },
+            accepted.Spans.Select(static span => span.TraceId).Order(StringComparer.Ordinal).ToArray());
+
+        static string Id(int value, int digits) =>
+            value.ToString("x" + digits.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+    }
+
     [TestMethod]
     public async Task Open_DifferentAuthoritativeHashWithData_RejectsWithoutRewritingDatabase()
     {
