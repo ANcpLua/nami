@@ -58,10 +58,29 @@ function refusedOrigin(request: Request, publicOrigin: string | undefined): Resp
 }
 
 /**
+ * The Host under which a platform's deploy check asks GET /health. Railway's does not use the service's own
+ * name: "Railway uses the hostname healthcheck.railway.app when performing healthchecks", and a service that
+ * restricts hosts has to allow it (https://docs.railway.com/deployments/healthchecks).
+ */
+const HEALTH_PROBE_HOSTS: readonly string[] = ["healthcheck.railway.app"];
+
+/** True for GET /health under a platform's probe Host: the one request a foreign Host is answered. */
+function isPlatformHealthProbe(request: Request): boolean {
+  if (request.method !== "GET") return false;
+  try {
+    const host = new URL(`http://${request.headers.get("host") ?? ""}`).hostname;
+    return HEALTH_PROBE_HOSTS.includes(host) && new URL(request.url).pathname === "/health";
+  } catch { return false; }
+}
+
+/**
  * DNS-rebinding protection in front of the MCP handler, which validates neither header itself: 403 unless the
  * Host is one of the listener's names and the Origin, if there is one, is an origin of this machine or the
- * public one.
+ * public one. A platform's health probe is the exception for the Host, and for GET /health alone: under its
+ * Host /mcp and every other path stay refused, and its Origin is judged like any other.
  */
 export function dnsRebindingResponse(request: Request, names: RequestNames): Response | undefined {
-  return hostHeaderValidationResponse(request, [...names.hosts]) ?? refusedOrigin(request, names.publicOrigin);
+  const refusedHost = hostHeaderValidationResponse(request, [...names.hosts]);
+  if (refusedHost && !isPlatformHealthProbe(request)) return refusedHost;
+  return refusedOrigin(request, names.publicOrigin);
 }

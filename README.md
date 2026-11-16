@@ -143,7 +143,9 @@ claude mcp add --transport http nami http://127.0.0.1:5100/mcp --header "x-otlp-
   request's `Host`, and its `Origin` if a browser sent one, name this machine or that origin; a page
   of another site, or a name rebound to your machine, gets 403 before any key is looked at. The
   wildcard address nami binds inside the container (`0.0.0.0`) is not such a name: it is refused as
-  `Host`, as `Origin` and as `NAMI_PUBLIC_URL`.
+  `Host`, as `Origin` and as `NAMI_PUBLIC_URL`. One request is answered under a foreign `Host`:
+  `GET /health` under `healthcheck.railway.app`, which is how Railway's deploy check asks; `/mcp`
+  under that name gets 403 like any other.
 - **`Host` and `Origin`.** `Host` is compared by name, without its port. An `Origin` on
   `localhost`, `127.0.0.1` or `[::1]` passes on any port, over HTTP or HTTPS: it is a page of this
   machine. Any other `Origin` has to be `NAMI_PUBLIC_URL` itself, in scheme, host and port: with

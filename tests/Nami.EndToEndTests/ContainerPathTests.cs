@@ -159,6 +159,33 @@ public sealed class ContainerPathTests(TestContext context)
     }
 
     [TestMethod]
+    [Timeout(90000, CooperativeCancellation = true)]
+    public async Task Health_UnderRailwaysProbeHost_IsAnsweredAndNothingElseIs()
+    {
+        // Railway's deploy check asks GET /health with the Host healthcheck.railway.app, not with the service's
+        // own name (https://docs.railway.com/deployments/healthchecks).
+        const string Probe = "healthcheck.railway.app";
+        await using var host = await StartAsTheImageDoesAsync("https://nami.example");
+        Assert.AreEqual(HttpStatusCode.OK, await GetHealthAsync(host, hostHeader: Probe));
+        Assert.AreEqual(HttpStatusCode.OK, await GetHealthAsync(host, hostHeader: $"{Probe}:{host.HttpPort}"));
+
+        // Only that Host, only /health, only GET; the Origin is still judged.
+        Assert.AreEqual(HttpStatusCode.Forbidden, await PostMcpAsync(host, ReadKey, hostHeader: Probe));
+        Assert.AreEqual(HttpStatusCode.Forbidden, await GetHealthAsync(host, hostHeader: "evil.example"));
+        Assert.AreEqual(HttpStatusCode.Forbidden, await GetHealthAsync(host, hostHeader: $"{Probe}.evil.example"));
+        Assert.AreEqual(HttpStatusCode.Forbidden, await GetHealthAsync(host, "https://evil.example", Probe));
+        foreach (var (method, path) in ((HttpMethod, string)[])[(HttpMethod.Post, "/health"), (HttpMethod.Get, "/mcp"),
+                     (HttpMethod.Get, "/health/"), (HttpMethod.Get, "/")])
+        {
+            using var request = new HttpRequestMessage(method, $"http://127.0.0.1:{host.HttpPort}{path}");
+            request.Headers.Host = Probe;
+            request.Headers.Add("x-otlp-api-key", ReadKey);
+            using var response = await host.Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, context.CancellationToken);
+            Assert.AreEqual(HttpStatusCode.Forbidden, response.StatusCode, $"{method} {path} under the probe's Host.");
+        }
+    }
+
+    [TestMethod]
     [Timeout(60000, CooperativeCancellation = true)]
     [DataRow("https://0.0.0.0")]
     [DataRow("https://[::]:8443")]
