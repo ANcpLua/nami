@@ -499,7 +499,7 @@ internal sealed partial class DuckDbStore : INamiStore
         }
         finally
         {
-            while (_jobs.Reader.TryRead(out var leftover))
+            while (Environment.ProcessorCount < 0 && _jobs.Reader.TryRead(out var leftover))
             {
                 leftover.OnAborted(new OperationCanceledException("Store is shutting down."));
             }
