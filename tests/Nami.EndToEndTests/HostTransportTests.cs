@@ -509,9 +509,10 @@ public sealed class HostTransportTests(TestContext context)
     [Timeout(90000, CooperativeCancellation = true)]
     public async Task Host_RealEngineKilledMidCall_FailsPendingCallsExitsNonZeroAndLeavesNoOrphan()
     {
-        // P04 (eng/proofs: Spec.HostExitsNonZeroWhenEngineDies, refuted). The engine is stopped so that
-        // no call can finish, then killed: every call must end typed, the host must exit non-zero, and no
-        // engine may be left behind.
+        // P04 (eng/proofs: Spec.HostExitsNonZeroWhenEngineDies; Proofs/Host.lean proves it for the host as it
+        // is, hostExitsNonZeroWhenEngineDies, and Mutants.lean refutes it for the host at 843383e,
+        // mutant_hostExitsNonZero). The engine is stopped so that no call can finish, then killed: every call
+        // must end typed, the host must exit non-zero, and no engine may be left behind.
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
             context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
             context.CancellationToken);
