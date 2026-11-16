@@ -131,6 +131,29 @@ claude mcp add --transport http nami http://127.0.0.1:5100/mcp --header "x-otlp-
 - Every connection reaches the container from Docker's bridge, never from 127.0.0.1, so nami cannot
   tell local clients from others there: the key, not the address, is what admits a request.
 
+**With Compose, and on Windows.** `compose.yaml` in the repository root is the same setup: the
+three ports on `127.0.0.1`, the named volume, a stop budget of 25 seconds inside a grace period of
+30. Put `NAMI_OTLP_PROJECT_KEYS=...` into a file `.env` beside it, then:
+
+```bash
+docker compose up -d --build
+```
+
+This is the way to run nami on Windows: with Docker Desktop (PowerShell or a WSL2 shell, same
+command), or with the Linux build inside WSL2. There is no native Windows build. Claude Code on
+Windows connects to `http://127.0.0.1:5100/mcp` with the read key, as above; the container never
+speaks stdio, so `--transport stdio` does not apply to it. Applications export to
+`http://127.0.0.1:4318` (OTLP/HTTP) or `127.0.0.1:4317` (OTLP/gRPC) with the ingest key.
+
+**One writer per store.** The store is one DuckDB file, and the engine holds it open with a file
+lock. A second nami on the same file, for example a second container on the same volume, does not
+start: its engine ends with "Could not set lock on file" and the first keeps running. Keep the store
+in a named volume, as above, and do not bind-mount a host folder for it: on Docker Desktop a shared
+Windows or macOS folder passes through a file-sharing layer that does not keep that lock reliably.
+For several agents, connect them all to the one running nami. If an OpenTelemetry Collector sits in
+front, cap its batch as described under [Send telemetry](#send-telemetry)
+(`send_batch_max_size: 512`).
+
 **Stopping.** `NAMI_STOP_BUDGET_SECONDS` (default 8, from 1 to 3600) is how long a stop may take.
 On SIGTERM or SIGINT nami closes MCP and tells the engine to stop. During the first five eighths of
 the budget the engine still answers the exports it is working on; then it aborts what is left, lets

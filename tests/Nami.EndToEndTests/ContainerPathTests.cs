@@ -292,4 +292,27 @@ public sealed class ContainerPathTests(TestContext context)
             Assert.AreEqual(0, missing, $"Export {index} was acknowledged, but {missing} of its {SpansEach} spans are not stored.");
         }
     }
+
+    [TestMethod]
+    [Timeout(90000, CooperativeCancellation = true)]
+    public async Task Store_SecondHostOnTheSameFile_DoesNotStartAndTheFirstKeepsServing()
+    {
+        // Two containers on one volume are two engines on one DuckDB file. The first holds the file's lock.
+        var first = Path.Combine(Directory, "first");
+        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, first, context.CancellationToken);
+        var failure = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+        {
+            await using var second = await McpHarness.StartAsync(TestData.HostBinary, false,
+                Path.Combine(Directory, "second"), context.CancellationToken,
+                environment: new Dictionary<string, string?> { ["NAMI_DATA_PATH"] = Path.Combine(first, "nami.duckdb") });
+        });
+        Assert.StartsWith("Nami exited (", failure.Message);
+        Assert.Contains("Could not set lock on file", failure.Message);
+
+        using var accepted = await host.SendJsonAsync("traces",
+            OtlpData.Traces(TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2))), context.CancellationToken);
+        Assert.AreEqual(HttpStatusCode.OK, accepted.StatusCode);
+        var traces = Content(await host.CallAsync("traces_slowest", "{}", context.CancellationToken));
+        Assert.HasCount(1, traces.GetProperty("traces").EnumerateArray().ToArray());
+    }
 }

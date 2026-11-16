@@ -49,6 +49,20 @@ Your telemetry stays in a file on your disk. Nothing leaves the machine.
 nami runs natively on macOS and Linux. On Windows, run it in WSL2 (the Linux build) or as
 the Linux container under Docker Desktop; there is no native Windows build.
 
+On Windows with Docker Desktop, in the repository folder, with your keys in `.env`
+(README, "Run in a container"):
+
+```bash
+docker compose up -d --build
+claude mcp add --transport http nami http://127.0.0.1:5100/mcp --header "x-otlp-api-key: <read key>"
+```
+
+The container does not speak stdio: Claude Code connects over Streamable HTTP with a read key, and
+applications send to `http://127.0.0.1:4318` with an ingest key. The data lives in the named
+volume `nami-data`; only one nami can have it open, so a second container on the same volume does
+not start. If an OpenTelemetry Collector forwards to nami, cap its batch at 512
+(`send_batch_max_size: 512`).
+
 *Before publishing:* true today for Claude Code. Check Cowork once, and replace the
 build paths with the install command when a packaged release exists.
 

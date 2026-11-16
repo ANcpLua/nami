@@ -24,7 +24,10 @@ COPY --from=mcp /usr/local/bin/bun /usr/local/bin/bun
 COPY --from=mcp /source/dist/main.js /source/dist/healthcheck.js ./mcp/
 # A fresh named volume mounted here takes this directory's owner, so the store is writable without root.
 COPY --from=build --chown=1654:1654 /data /data
-ENV NAMI_BIND_ADDRESS=0.0.0.0 NAMI_DATA_PATH=/data/nami.duckdb NODE_ENV=production BUN_RUNTIME_TRANSPILER_CACHE_PATH=0
+# ASPNETCORE_HTTP_PORTS: the base image sets 8080 for ASP.NET Core's default listener; the engine binds its own
+# two, and Kestrel warned at every start that it overrides the address.
+ENV NAMI_BIND_ADDRESS=0.0.0.0 NAMI_DATA_PATH=/data/nami.duckdb NODE_ENV=production BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 \
+    ASPNETCORE_HTTP_PORTS=
 EXPOSE 4318 4317 5100
 USER app
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --start-interval=2s --retries=3 \
