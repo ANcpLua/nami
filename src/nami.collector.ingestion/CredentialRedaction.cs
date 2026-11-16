@@ -418,7 +418,7 @@ internal static class CredentialRedaction
             if (changed) redacted = Encoding.UTF8.GetString(buffer.WrittenSpan);
             return true;
         }
-        catch (Exception error) when (error is JsonException or InvalidOperationException)
+        catch (Exception error) when (error is InvalidOperationException)
         {
             // No JSON after all, or a string with a broken escape: the text is redacted as plain text.
             return false;
