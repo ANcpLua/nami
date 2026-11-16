@@ -16,31 +16,53 @@ namespace Nami.IntegrationTests;
 public sealed class StorageBatchWriteTests(TestContext context)
 {
     /// <summary>
-    ///     DuckDB's own default is 80 % of the machine's memory. A store that was given no limit takes nami's, and
-    ///     an operator's limit replaces it.
+    ///     nami sets no memory limit of its own. A default of 512 MiB refused a metrics request of 2,000 data
+    ///     points, inside the ingest bounds, with "Out of Memory Error (511.7/512.0 MiB)" (evaluator-18). A store
+    ///     that was given no limit has the one DuckDB gives any database; an operator's limit replaces it.
     /// </summary>
     [TestMethod]
-    [DataRow(null, "512.0 MiB", DisplayName = "No limit configured: the default of 512 MiB")]
-    [DataRow("256MB", "244.1 MiB", DisplayName = "A configured limit replaces the default")]
-    public async Task Open_MemoryLimit_IsTheConfiguredOneOrTheDefault(string? configured, string expected)
+    [DataRow(null, DisplayName = "No limit configured: DuckDB's own default")]
+    [DataRow("256MB", DisplayName = "A configured limit is the limit")]
+    public async Task Open_MemoryLimit_IsTheConfiguredOneOrDuckDbsOwn(string? configured)
     {
-        if (GC.GetGCMemoryInfo().TotalAvailableMemoryBytes < 2 * DuckDbStore.DefaultMemoryLimitBytes)
-            Assert.Inconclusive("On a machine this small DuckDB's own default may be the smaller one, and it stays.");
         var path = DatabasePath("limit.duckdb");
         await using var store = new DuckDbStore(path, memoryLimit: configured);
 
         // A connection to the same file shares the store's native instance, and its settings.
-        Assert.AreEqual(expected, Scalar(path, "SELECT current_setting('memory_limit')"));
+        var inEffect = Scalar(path, "SELECT current_setting('memory_limit')");
+        var duckDbsOwn = Scalar(DatabasePath("plain.duckdb"), "SELECT current_setting('memory_limit')");
+        Assert.AreEqual(configured is null ? duckDbsOwn : "244.1 MiB", inEffect);
     }
 
-    /// <summary>The default never raises what DuckDB would take by itself, 80 % of the memory there is.</summary>
+    /// <summary>A logs request at the record bound is one batch too: every row is stored, numbered in its order.</summary>
     [TestMethod]
-    [DataRow(8L * 1024 * 1024 * 1024, "512MiB", DisplayName = "8 GiB: the default")]
-    [DataRow(1024L * 1024 * 1024, "512MiB", DisplayName = "1 GiB: the default")]
-    [DataRow(640L * 1024 * 1024, null, DisplayName = "640 MiB: DuckDB's 512 MiB stays")]
-    [DataRow(512L * 1024 * 1024, null, DisplayName = "512 MiB: DuckDB's 410 MiB stays")]
-    public void DefaultMemoryLimit_IsTheSmallerOfNamisAndDuckDbs(long availableBytes, string? expected) =>
-        Assert.AreEqual(expected, DuckDbStore.DefaultMemoryLimit(availableBytes));
+    public async Task InsertLogs_BatchAtTheRecordBound_StoresEveryRowInOrder()
+    {
+        var path = DatabasePath("logs.duckdb");
+        var scope = new OpenTelemetry.Proto.Logs.V1.ScopeLogs();
+        for (var i = 0; i < IngestLimits.DefaultMaxRequestRecords; i++)
+        {
+            scope.LogRecords.Add(new OpenTelemetry.Proto.Logs.V1.LogRecord
+            {
+                TimeUnixNano = 1_000_000_000UL + (ulong)i,
+                Body = new OpenTelemetry.Proto.Common.V1.AnyValue { StringValue = "record " + (uint)i }
+            });
+        }
+
+        var request = new OpenTelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest
+        {
+            ResourceLogs = { new OpenTelemetry.Proto.Logs.V1.ResourceLogs { ScopeLogs = { scope } } }
+        };
+        var rows = IngestionStorageMapper.ToLogStorageRows(OtlpConverter.ConvertLogs(request, TimeProvider.System));
+        await using (var store = new DuckDbStore(path))
+            await store.InsertLogsAsync(rows, context.CancellationToken);
+
+        Assert.AreEqual((long)rows.Count, Scalar(path, "SELECT count(*) FROM logs"));
+        // The sequence a row gets follows its place in the batch.
+        Assert.AreEqual(0L, Scalar(path,
+            "SELECT count(*) FROM (SELECT time_unix_nano, lag(time_unix_nano) OVER (ORDER BY ingest_sequence) AS " +
+            "previous FROM logs) WHERE previous IS NOT NULL AND time_unix_nano <> previous + 1"));
+    }
 
     /// <summary>
     ///     A batch that holds one span twice applies both, in order, as two batches would: the later one is what
