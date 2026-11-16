@@ -14489,7 +14489,7 @@
       "annotations": {
         "nami.source_schema": "https://ancplua.github.io/nami/schemas/0.5.0"
       },
-      "brief": "Why ingest replaced a value it kept the attribute of.\n",
+      "brief": "Why ingest replaced a value and kept what carries it.\n",
       "examples": [
         "depth",
         "invalid_utf16"
@@ -47290,7 +47290,7 @@
             "requirement_level": "required"
           }
         ],
-        "brief": "Values ingest replaced while keeping their attribute.",
+        "brief": "Values ingest replaced while keeping what carries them (an attribute key or value, a name, a status message).",
         "id": "nami.collector.values.replaced",
         "instrument": "counter",
         "name": "nami.collector.values.replaced",
@@ -80489,7 +80489,7 @@
             "requirement_level": "required"
           }
         ],
-        "brief": "Values ingest replaced while keeping their attribute.",
+        "brief": "Values ingest replaced while keeping what carries them (an attribute key or value, a name, a status message).",
         "instrument": "counter",
         "name": "nami.collector.values.replaced",
         "requirement_level": "recommended",

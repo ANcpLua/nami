@@ -19,7 +19,7 @@ metrics:
     instrument: counter
     unit: "{attribute}"
   - name: nami.collector.values.replaced
-    brief: Values ingest replaced while keeping their attribute.
+    brief: Values ingest replaced while keeping what carries them (an attribute key or value, a name, a status message).
     stability: development
     requirement_level: recommended
     instrument: counter
