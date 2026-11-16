@@ -315,4 +315,20 @@ public sealed class ContainerPathTests(TestContext context)
         var traces = Content(await host.CallAsync("traces_slowest", "{}", context.CancellationToken));
         Assert.HasCount(1, traces.GetProperty("traces").EnumerateArray().ToArray());
     }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    [DataRow(null, "0x1000000", DisplayName = "The host's default gen0 budget")]
+    [DataRow("0x800000", "0x800000", DisplayName = "A gen0 budget from the host's own environment")]
+    public async Task Engine_Gen0Budget_IsTheHostsDefaultUnlessTheEnvironmentNamesOne(string? configured, string expected)
+    {
+        // The .NET runtime reads DOTNET_GCgen0size from the environment only, so what the engine process was
+        // started with is what its garbage collector uses.
+        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory, context.CancellationToken,
+            environment: new Dictionary<string, string?> { ["DOTNET_GCgen0size"] = configured });
+        var engine = LinuxProcess.ChildOf(host.HostProcessId, TestData.HostBinary);
+        var variables = (await File.ReadAllTextAsync($"/proc/{engine}/environ", context.CancellationToken)).Split('\0');
+        Assert.AreSequenceEqual((string[])[$"DOTNET_GCgen0size={expected}"],
+            variables.Where(static variable => variable.StartsWith("DOTNET_GCgen0size=", StringComparison.Ordinal)).ToArray());
+    }
 }

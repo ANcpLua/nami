@@ -78,6 +78,10 @@ Streamable HTTP. `/health` on the MCP port reports native-engine readiness. A no
 listener requires `NAMI_PUBLIC_URL`; on Railway its public domain is used automatically. The
 container runs the same two-process stack ([architecture](docs/architecture.yaml)).
 
+nami starts its engine with `DOTNET_GCgen0size=0x1000000`, a 16 MiB budget for the .NET garbage
+collector's youngest generation, which keeps the engine's memory under load lower; to choose
+another value, set `DOTNET_GCgen0size` yourself (hexadecimal bytes) and nami passes yours on.
+
 **Ports chosen by the operating system.** `NAMI_PORT` (MCP), `NAMI_OTLP_PORT` (OTLP/HTTP) and
 `NAMI_GRPC_PORT` (OTLP/gRPC) each accept `0`: the operating system then picks a free port, so
 several nami processes start side by side without anyone probing for ports. To learn the ports,

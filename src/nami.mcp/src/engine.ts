@@ -36,7 +36,7 @@ export class Engine {
   constructor(path: string, private readonly stopBudgetMs = 8000) {
     this.child = spawn(path.endsWith(".dll") ? "dotnet" : path,
       [...(path.endsWith(".dll") ? [path] : []), "--engine", "--listeners-fd", "3"],
-      { stdio: ["pipe", "pipe", "inherit", "pipe"] }) as ChildProcessWithoutNullStreams;
+      { stdio: ["pipe", "pipe", "inherit", "pipe"], env: engineEnvironment(process.env) }) as ChildProcessWithoutNullStreams;
     this.listeners = readListeners(this.child.stdio[3] as NodeJS.ReadableStream);
     const stopChild = () => { this.child.kill("SIGKILL"); };
     process.once("exit", stopChild);
@@ -146,6 +146,16 @@ export class Engine {
     for (const request of this.pending.values()) { request.cleanup(); request.reject(error); }
     this.pending.clear();
   }
+}
+
+/**
+ * The engine's environment: the host's, plus a gen0 budget of 16 MiB for the .NET garbage collector unless the
+ * host's environment already names one. Without it the collector leaves the garbage of one request lying until
+ * the next ones, which under load was most of the engine's memory growth (three clients at both bounds: about
+ * +147 MiB without, about +100 MiB with). The runtime reads this setting from the environment only.
+ */
+export function engineEnvironment(host: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return { ...host, DOTNET_GCgen0size: host.DOTNET_GCgen0size ?? "0x1000000" };
 }
 
 function encode(request: EngineCommand): string {
