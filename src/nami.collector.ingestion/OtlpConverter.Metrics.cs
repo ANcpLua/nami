@@ -115,7 +115,7 @@ internal static partial class OtlpConverter
                         default:
                             Reject(CountMetricPoints(metric),
                                 new InvalidDataException(
-                                    $"OTLP metric '{stream.MetricName}' carries an unknown data point set."));
+                                    "An OTLP metric carries an unknown data point set."));
                             break;
                     }
 

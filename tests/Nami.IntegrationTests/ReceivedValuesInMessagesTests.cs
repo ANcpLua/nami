@@ -58,6 +58,7 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
     [DataRow("no time", DisplayName = "a data point without a time")]
     [DataRow("bucket counts", DisplayName = "a histogram with as many counts as bounds")]
     [DataRow("bounds", DisplayName = "a histogram whose bounds do not ascend")]
+    [DataRow("no data", DisplayName = "a metric without a data point set")]
     public void ARefusedMetric_IsNotNamedByTheNameThatWasSent(string shape)
     {
         var metric = new Metric { Name = Received };
@@ -65,6 +66,8 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
         {
             case "no time":
                 metric.Gauge = new Gauge { DataPoints = { new NumberDataPoint { AsInt = 1 } } };
+                break;
+            case "no data":
                 break;
             case "bucket counts":
                 metric.Histogram = new Histogram
