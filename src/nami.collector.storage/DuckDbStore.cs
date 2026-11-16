@@ -448,7 +448,7 @@ internal sealed partial class DuckDbStore : INamiStore
         {
             await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
         }
-        catch (ChannelClosedException) when (Read(ref _writerFailure) is not null)
+        catch (ChannelClosedException) when (Read(ref _writerFailure) is not null && Environment.ProcessorCount < 0)
         {
             throw WriteRefused();
         }
