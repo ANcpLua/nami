@@ -169,29 +169,49 @@ internal static class CollectorEndpointExtensions
         IResult Failure(Exception exception, int statusCode, string message)
         {
             var category = $"Otlp{char.ToUpperInvariant(signal[0])}{signal[1..]}Endpoint";
-            // The type and not the exception: its message and those of the libraries below it can repeat what was
-            // sent (Google.Protobuf: "Value out of range: " and the number), and nami's log is nami's own.
             logFailure(context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(category),
-                exception.GetType().FullName ?? exception.GetType().Name);
+                OtlpFailureLog.Describe(exception));
             return OtlpHttpResult.Failure(statusCode, encoding, message);
         }
     }
 }
 
+internal static class OtlpFailureLog
+{
+    /// <summary>
+    ///     What nami's log says of a failed export: the type of the exception and its stack frames, and the same for
+    ///     every exception inside it. Frames name code. The message is left out: it, and those of the libraries
+    ///     below, can repeat what was sent (Google.Protobuf: "Value out of range: " and the number), and nami's log
+    ///     is nami's own. So never <see cref="Exception.ToString" /> and never <see cref="Exception.Message" />.
+    /// </summary>
+    internal static string Describe(Exception exception)
+    {
+        var text = new System.Text.StringBuilder();
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (text.Length > 0) text.Append(Environment.NewLine).Append(" ---> ");
+            text.Append(current.GetType().FullName ?? current.GetType().Name);
+            if (current.StackTrace is { Length: > 0 } frames) text.Append(Environment.NewLine).Append(frames);
+        }
+
+        return text.ToString();
+    }
+}
+
 internal static partial class OtlpLogsLog
 {
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP logs payload: {ExceptionType}")]
-    public static partial void FailedToProcessPayload(ILogger logger, string exceptionType);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP logs payload: {Failure}")]
+    public static partial void FailedToProcessPayload(ILogger logger, string failure);
 }
 
 internal static partial class OtlpMetricsLog
 {
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP metrics payload: {ExceptionType}")]
-    public static partial void FailedToProcessPayload(ILogger logger, string exceptionType);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP metrics payload: {Failure}")]
+    public static partial void FailedToProcessPayload(ILogger logger, string failure);
 }
 
 internal static partial class OtlpTracesLog
 {
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP traces payload: {ExceptionType}")]
-    public static partial void FailedToProcessPayload(ILogger logger, string exceptionType);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP traces payload: {Failure}")]
+    public static partial void FailedToProcessPayload(ILogger logger, string failure);
 }

@@ -145,6 +145,7 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
         Assert.AreEqual(shape == "number" ? HttpStatusCode.BadRequest : HttpStatusCode.UnsupportedMediaType, response.StatusCode, body);
         var logged = string.Join('\n', logs.Lines);
         Assert.Contains("Failed to process OTLP traces payload: ", logged, "The refusal was not logged, so the test proves nothing.");
+        Assert.Contains("   at Nami.", logged, "The stack frames are logged.");
         Assert.Contains(shape switch
         {
             "content type" => "OtlpUnsupportedMediaTypeException",
@@ -156,6 +157,41 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
             Assert.DoesNotContain(received, logged);
             Assert.DoesNotContain(received, body);
         }
+    }
+
+    /// <summary>
+    ///     What is logged of a failure: the type and the stack frames of the exception and of each one inside it,
+    ///     so that a defect in nami can be found from the log, and no message, because a message can hold what was
+    ///     sent. An exception written with ToString() fails this row.
+    /// </summary>
+    [TestMethod]
+    public void TheLoggedFailure_HasTheTypesAndFramesOfEveryException_AndNoMessage()
+    {
+        Exception thrown;
+        try
+        {
+            try
+            {
+                throw new FormatException("inner holds " + Received);
+            }
+            catch (FormatException inner)
+            {
+                throw new InvalidDataException("outer holds " + Received, inner);
+            }
+        }
+        catch (InvalidDataException outer)
+        {
+            thrown = outer;
+        }
+
+        var logged = Nami.Hosting.OtlpFailureLog.Describe(thrown);
+
+        Assert.Contains("System.IO.InvalidDataException", logged);
+        Assert.Contains(" ---> System.FormatException", logged);
+        Assert.AreEqual(2, logged.Split(nameof(TheLoggedFailure_HasTheTypesAndFramesOfEveryException_AndNoMessage)).Length - 1,
+            "The frames of both exceptions: " + logged);
+        Assert.DoesNotContain("ZQE900X000ZZZZZZ", logged);
+        Assert.DoesNotContain("holds", logged);
     }
 
     // Every line nami itself logs: the formatted message and, when one is logged, the whole exception. What
