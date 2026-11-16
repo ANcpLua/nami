@@ -37,6 +37,26 @@ public sealed class StorageSchemaTests(TestContext context)
         Assert.AreEqual(0L, reader.GetInt64(1));
     }
 
+    /// <summary>
+    ///     The tests of this class open the store's file under the store. A path is a path there too, not a piece
+    ///     of a connection string: its separators and quotes must not end the path or start an option.
+    /// </summary>
+    [TestMethod]
+    public async Task Open_PathWithConnectionStringCharacters_IsReadUnderTheStore()
+    {
+        var directory = Path.Combine(
+            context.TestTempDirectory ?? throw new InvalidOperationException("No test directory"), "all;of='them'");
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "nami.duckdb");
+        await using (var store = new DuckDbStore(path))
+            await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now)), context.CancellationToken);
+
+        using var connection = Open(path);
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT count(*) FROM spans";
+        Assert.AreEqual(1L, command.ExecuteScalar());
+    }
+
     [TestMethod]
     public async Task Open_EmptyObsoleteMetadata_RecreatesTheGeneratedSchema()
     {
@@ -252,7 +272,12 @@ public sealed class StorageSchemaTests(TestContext context)
 
     private static DuckDBConnection Open(string path)
     {
-        var connection = new DuckDBConnection($"DataSource={path};vacuum_rebuild_indexes={ulong.MaxValue}");
+        // The builder quotes a path that holds a separator of the connection string, such as ';' or '='.
+        var connection = new DuckDBConnection(new DuckDBConnectionStringBuilder
+        {
+            DataSource = path,
+            ["vacuum_rebuild_indexes"] = ulong.MaxValue.ToString(CultureInfo.InvariantCulture)
+        }.ConnectionString);
         try
         {
             connection.Open();
