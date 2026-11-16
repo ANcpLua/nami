@@ -4,8 +4,16 @@ namespace Nami.Collector.Storage;
 
 internal sealed partial class DuckDbStore
 {
-    private const int MaxMetricSeriesPerBatch = 120;
-    private const int MaxMetricPointsPerBatch = 150;
+    private static readonly StagedInsert<MetricSeriesRow> s_metricSeriesStage = new(MetricSeriesRow.StageTableName,
+        MetricSeriesRow.CreateStageSql, MetricSeriesRow.StageKeyOccurrencesSql, MetricSeriesRow.MergeStageSql,
+        MetricSeriesRow.MergeStageOccurrenceSql, MetricSeriesRow.DropStageSql, MetricSeriesRow.AppendStageRow,
+        MetricSeriesRow.InsertSql, MetricSeriesRow.AddParameters);
+
+    private static readonly StagedInsert<MetricObservationRow> s_metricObservationStage = new(
+        MetricObservationRow.StageTableName, MetricObservationRow.CreateStageSql,
+        MetricObservationRow.StageKeyOccurrencesSql, MetricObservationRow.MergeStageSql,
+        MetricObservationRow.MergeStageOccurrenceSql, MetricObservationRow.DropStageSql,
+        MetricObservationRow.AppendStageRow, MetricObservationRow.InsertSql, MetricObservationRow.AddParameters);
 
     public async Task InsertMetricsAsync(
         IReadOnlyList<MetricSeriesRow> series,
@@ -21,10 +29,8 @@ internal sealed partial class DuckDbStore
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
             // Series first: a point is only reachable through its series row, so writing the
             // point first would expose an unjoinable sample to a concurrent reader.
-            await InsertRowsBatchedAsync(con, tx, series, MetricSeriesRow.AddParameters,
-                MetricSeriesRow.BuildMultiRowInsertSql, MaxMetricSeriesPerBatch, token);
-            await InsertRowsBatchedAsync(con, tx, observations, MetricObservationRow.AddParameters,
-                MetricObservationRow.BuildMultiRowInsertSql, MaxMetricPointsPerBatch, token);
+            InsertRowsStaged(con, tx, series, s_metricSeriesStage, token);
+            InsertRowsStaged(con, tx, observations, s_metricObservationStage, token);
             // An export's first observation of a timestamp is the one that arrived first.
             foreach (var arriving in observations.GroupBy(static row =>
                          new MetricObservationKey(row.ProjectId, row.SeriesId, row.TimeUnixNano)))

@@ -38,6 +38,7 @@ internal static class DuckDbEmitter
         EmitParameterSets(sb, table.ParameterSets.ToArray());
         EmitMapFromReader(sb, table, [.. table.Columns]);
         EmitBuildMultiRowInsertSql(sb, table);
+        EmitStagedInsert(sb, table, insertColumns);
 
         sb.EndBlock();
 
@@ -376,6 +377,90 @@ internal static class DuckDbEmitter
             "System.DateTimeOffset" or "DateTimeOffset" =>
                 $"DuckDbValueReader.Read<DateTimeOffset>(reader, {ordinal}) ?? {missing}",
             _ => $"reader.IsDBNull({ordinal}) ? {missing} : reader.GetValue({ordinal})"
+        };
+    }
+
+    // A batch of rows goes through DuckDB's appender into a temporary table of this connection and from there into
+    // the table in one statement. A multi-row VALUES statement of $n placeholders cost about 0.55 ms and 6.8 KiB of
+    // managed memory a row, and each statement about 1 MiB of transaction-local memory (ledger N48).
+    private static void EmitStagedInsert(IndentedStringBuilder sb, DuckDbTableInfo table, DuckDbColumnInfo[] insertColumns)
+    {
+        const string sequenceColumn = "stage_sequence";
+        const string occurrenceColumn = "stage_occurrence";
+        var stage = "temp.main." + SqlIdentifier.Quote(table.TableName + "_stage");
+        var columnList = string.Join(", ", insertColumns.Select(static column => SqlIdentifier.Quote(column.ColumnName)));
+        var keyList = string.Join(", ", table.Columns
+            .Where(static column => column.PrimaryKeyOrdinal >= 0)
+            .OrderBy(static column => column.PrimaryKeyOrdinal)
+            .Select(static column => SqlIdentifier.Quote(column.ColumnName)));
+        // The stage holds what the appender writes: the property's own type. The statement that moves the rows casts
+        // to the column's type, as a bound parameter was cast: a JSON column still refuses text that is not JSON.
+        var stageColumns = string.Join(", ", insertColumns.Select(static column =>
+            SqlIdentifier.Quote(column.ColumnName) + " " + ResolveStageSqlType(column)));
+        string Constant(string name, string sql) =>
+            $"public const string {name} = \"{SourceString.EscapeCSharpString(sql)}\"";
+
+        sb.AppendLine("/// <summary>The temporary table a batch is appended to before one statement moves it into the table.</summary>");
+        sb.AppendLine(Constant("StageTableName", table.TableName + "_stage") + ";");
+        sb.AppendLine(Constant("CreateStageSql",
+            $"CREATE OR REPLACE TEMP TABLE {SqlIdentifier.Quote(table.TableName + "_stage")} ({stageColumns}, {sequenceColumn} BIGINT)") + ";");
+        sb.AppendLine(Constant("DropStageSql", $"DROP TABLE IF EXISTS {stage}") + ";");
+        sb.AppendLine("/// <summary>How often the batch's most frequent key occurs; empty when the table has no primary key.</summary>");
+        sb.AppendLine(Constant("StageKeyOccurrencesSql", keyList.Length is 0
+            ? ""
+            : $"SELECT coalesce(max(occurrences), 0) FROM (SELECT count(*) AS occurrences FROM {stage} GROUP BY {keyList})") + ";");
+        var target = SqlIdentifier.Quote(table.TableName);
+        sb.AppendLine("/// <summary>Moves the whole batch, in the order it was appended.</summary>");
+        sb.AppendLine(Constant("MergeStageSql",
+            $"INSERT INTO {target} ({columnList}) SELECT {columnList} FROM {stage} ORDER BY {sequenceColumn}") +
+            " + InsertConflictSql;");
+        sb.AppendLine("/// <summary>Moves the $1-th occurrence of every key: a batch that repeats a key is applied one occurrence after the other.</summary>");
+        sb.AppendLine(keyList.Length is 0
+            ? Constant("MergeStageOccurrenceSql", "") + ";"
+            : Constant("MergeStageOccurrenceSql",
+                $"INSERT INTO {target} ({columnList}) SELECT {columnList} FROM (SELECT *, row_number() OVER (PARTITION BY {keyList} ORDER BY {sequenceColumn}) AS {occurrenceColumn} FROM {stage}) WHERE {occurrenceColumn} = $1 ORDER BY {sequenceColumn}") +
+              " + InsertConflictSql;");
+        sb.AppendLine();
+        sb.AppendLine("/// <summary>Appends one row to the stage in column order; <paramref name=\"sequence\" /> is its place in the batch.</summary>");
+        sb.AppendLine($"public static void AppendStageRow(IDuckDBAppenderRow appender, {table.TypeName} row, long sequence)");
+        sb.BeginBlock();
+        foreach (var column in insertColumns)
+            sb.AppendLine($"appender.AppendValue({BuildAppendValueExpr(column)});");
+        sb.AppendLine("appender.AppendValue((long?)sequence);");
+        sb.AppendLine("appender.EndRow();");
+        sb.EndBlock();
+        sb.AppendLine();
+    }
+
+    private static string ResolveStageSqlType(DuckDbColumnInfo column) => column.PropertyType.TrimEnd('?') switch
+    {
+        "string" or "System.String" => "VARCHAR",
+        "byte" or "System.Byte" => "UTINYINT",
+        "int" or "System.Int32" => "INTEGER",
+        "uint" or "System.UInt32" => "UINTEGER",
+        "long" or "System.Int64" => "BIGINT",
+        "ulong" or "System.UInt64" => "UBIGINT",
+        "double" or "System.Double" => "DOUBLE",
+        "byte[]" or "System.Byte[]" => "BLOB",
+        _ => throw new InvalidOperationException(
+            $"No DuckDB appender mapping for {column.PropertyType} on {column.PropertyName}.")
+    };
+
+    // The appender has one overload per nullable primitive; the cast names the one that matches the stage column.
+    private static string BuildAppendValueExpr(DuckDbColumnInfo column)
+    {
+        var value = $"row.{column.PropertyName}";
+        return column.PropertyType.TrimEnd('?') switch
+        {
+            "string" or "System.String" or "byte[]" or "System.Byte[]" => value,
+            "byte" or "System.Byte" => $"(byte?){value}",
+            "int" or "System.Int32" => $"(int?){value}",
+            "uint" or "System.UInt32" => $"(uint?){value}",
+            "long" or "System.Int64" => $"(long?){value}",
+            "ulong" or "System.UInt64" => $"(ulong?){value}",
+            "double" or "System.Double" => $"(double?){value}",
+            _ => throw new InvalidOperationException(
+                $"No DuckDB appender mapping for {column.PropertyType} on {column.PropertyName}.")
         };
     }
 

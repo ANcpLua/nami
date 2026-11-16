@@ -6,9 +6,23 @@ namespace Nami.Collector.Storage;
 
 internal sealed partial class DuckDbStore : INamiStore
 {
-    private const int MaxSpansPerBatch = 100;
+    /// <summary>
+    ///     DuckDB's memory limit when the operator sets none (<c>NAMI_DB_MEMORY_LIMIT</c>). DuckDB's own default is 80 %
+    ///     of the machine's memory, which lets the blocks it caches for reads grow with the store. Measured on 16 Nov
+    ///     2026 (ledger N48): one export at both ingest bounds needs 37 to 55 MiB of it while it is written, the same
+    ///     after 300,000 stored spans, so this leaves that request more than four times its need and refuses none.
+    /// </summary>
+    internal const string DefaultMemoryLimit = "256MB";
 
-    private const int MaxLogsPerBatch = 150;
+    private static readonly StagedInsert<SpanStorageRow> s_spanStage = new(SpanStorageRow.StageTableName,
+        SpanStorageRow.CreateStageSql, SpanStorageRow.StageKeyOccurrencesSql, SpanStorageRow.MergeStageSql,
+        SpanStorageRow.MergeStageOccurrenceSql, SpanStorageRow.DropStageSql, SpanStorageRow.AppendStageRow,
+        SpanStorageRow.InsertSql, SpanStorageRow.AddParameters);
+
+    private static readonly StagedInsert<LogStorageRow> s_logStage = new(LogStorageRow.StageTableName,
+        LogStorageRow.CreateStageSql, LogStorageRow.StageKeyOccurrencesSql, LogStorageRow.MergeStageSql,
+        LogStorageRow.MergeStageOccurrenceSql, LogStorageRow.DropStageSql, LogStorageRow.AppendStageRow,
+        LogStorageRow.InsertSql, LogStorageRow.AddParameters);
 
     private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(5);
     private readonly Func<CancellationToken, ValueTask>? _beforeWrite;
@@ -383,8 +397,7 @@ internal sealed partial class DuckDbStore : INamiStore
         await ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
-            await InsertRowsBatchedAsync(con, tx, knownTimes, LogStorageRow.AddParameters,
-                LogStorageRow.BuildMultiRowInsertSql, MaxLogsPerBatch, token);
+            InsertRowsStaged(con, tx, knownTimes, s_logStage, token);
             RecordIngestion(con, tx, "logs",
                 knownTimes.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName, row.ResourceJson,
                     row.AttributesJson, row.ScopeAttributesJson, row.AttributeRenames)), token);
@@ -473,23 +486,82 @@ internal sealed partial class DuckDbStore : INamiStore
         DuckDbStoreLog.ShutdownFailed(_logger, error);
     }
 
-    private static async Task InsertRowsBatchedAsync<T>(
-        DuckDBConnection con, DbTransaction tx, IReadOnlyList<T> rows,
-        Action<DuckDBCommand, T> addParams, Func<int, string> buildSql, int maxBatch, CancellationToken ct)
+    /// <summary>What the generated row type of one table gives a batch: its temporary table and the statements on it.</summary>
+    private readonly record struct StagedInsert<T>(
+        string StageTable,
+        string CreateSql,
+        string KeyOccurrencesSql,
+        string MergeSql,
+        string MergeOccurrenceSql,
+        string DropSql,
+        Action<IDuckDBAppenderRow, T, long> Append,
+        string InsertSql,
+        Action<DuckDBCommand, T> AddParameters);
+
+    /// <summary>
+    ///     Writes a batch in the caller's transaction: DuckDB's appender fills a temporary table of the writer's
+    ///     connection, and one statement moves the rows into the table, in the order of the batch and under the table's
+    ///     conflict rule. A batch that holds a key more than once is moved one occurrence after the other, so a later
+    ///     row meets the earlier one as it would in a later batch. When the transaction is rolled back, the temporary
+    ///     table goes with it. A batch of one row, what a sender without batching exports, is one INSERT of bound
+    ///     parameters: the temporary table costs a write of one row about 5 ms more than that statement.
+    /// </summary>
+    private static void InsertRowsStaged<T>(DuckDBConnection con, DbTransaction tx, IReadOnlyList<T> rows,
+        in StagedInsert<T> stage, CancellationToken ct)
     {
         if (rows.Count is 0) return;
-        var offset = 0;
-        while (offset < rows.Count)
+        using var command = con.CreateCommand();
+        command.Transaction = tx;
+        // CA2100: every statement below is a constant of the generated row type; the rows are bound parameters or go
+        // through the appender.
+        if (rows.Count is 1)
         {
-            var chunk = Math.Min(maxBatch, rows.Count - offset);
-            await using var cmd = con.CreateCommand();
-            cmd.Transaction = tx;
-            // CA2100: buildSql is a generated row type's multi-row INSERT of $n placeholders; the rows are parameters.
-            cmd.CommandText = buildSql(chunk);
-            for (var i = 0; i < chunk; i++) addParams(cmd, rows[offset + i]);
-            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-            offset += chunk;
+            command.CommandText = stage.InsertSql;
+            stage.AddParameters(command, rows[0]);
+            command.ExecuteNonQuery();
+            return;
         }
+
+        command.CommandText = stage.CreateSql;
+        command.ExecuteNonQuery();
+        using (var appender = con.CreateAppender("temp", "main", stage.StageTable))
+        {
+            for (var i = 0; i < rows.Count; i++)
+            {
+                if ((i & 0xFF) is 0) ct.ThrowIfCancellationRequested();
+                stage.Append(appender.CreateRow(), rows[i], i);
+            }
+        }
+
+        long occurrences = 1;
+        if (stage.KeyOccurrencesSql.Length > 0)
+        {
+            command.CommandText = stage.KeyOccurrencesSql;
+            occurrences = Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        }
+
+        if (occurrences <= 1)
+        {
+            command.CommandText = stage.MergeSql;
+            command.ExecuteNonQuery();
+        }
+        else
+        {
+            command.CommandText = stage.MergeOccurrenceSql;
+            var occurrence = new DuckDBParameter();
+            command.Parameters.Add(occurrence);
+            for (long current = 1; current <= occurrences; current++)
+            {
+                ct.ThrowIfCancellationRequested();
+                occurrence.Value = current;
+                command.ExecuteNonQuery();
+            }
+
+            command.Parameters.Clear();
+        }
+
+        command.CommandText = stage.DropSql;
+        command.ExecuteNonQuery();
     }
 
     private async Task WriterLoopAsync()
@@ -581,8 +653,7 @@ internal sealed partial class DuckDbStore : INamiStore
 
         await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
 
-        await InsertRowsBatchedAsync(con, tx, batch.Spans, SpanStorageRow.AddParameters,
-            SpanStorageRow.BuildMultiRowInsertSql, MaxSpansPerBatch, ct);
+        InsertRowsStaged(con, tx, batch.Spans, s_spanStage, ct);
         RecordIngestion(con, tx, "traces",
             batch.Spans.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName, row.ResourceJson,
                 row.AttributesJson, row.ScopeAttributesJson, row.AttributeRenames)), ct);
@@ -595,11 +666,12 @@ internal sealed partial class DuckDbStore : INamiStore
         // Tuning for a write-heavy embedded store. preserve_insertion_order=false drops the
         // bookkeeping that keeps physical row order — telemetry never needs it — which cuts ingest
         // memory and lifts bulk-write throughput. memory_limit / threads / temp_directory are
-        // operator-supplied (trusted config); when unset, DuckDB's own defaults apply.
+        // operator-supplied (trusted config); when unset, DuckDB's own defaults apply to threads and
+        // temp_directory, and DefaultMemoryLimit to memory_limit.
         ExecutePragma(con, "SET preserve_insertion_order = false");
 
-        if (!string.IsNullOrWhiteSpace(memoryLimit))
-            ExecutePragma(con, $"SET memory_limit = '{EscapeSqlLiteral(memoryLimit)}'");
+        ExecutePragma(con,
+            $"SET memory_limit = '{EscapeSqlLiteral(string.IsNullOrWhiteSpace(memoryLimit) ? DefaultMemoryLimit : memoryLimit)}'");
 
         if (threads is > 0)
             ExecutePragma(con, $"SET threads = {threads.Value.ToString(CultureInfo.InvariantCulture)}");
