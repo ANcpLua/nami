@@ -289,7 +289,9 @@ internal static partial class OtlpConverter
         string? producer)
     {
         ValidateAttributeKeys(protoAttributes);
-        foreach (var attr in LiftWireContainers(protoAttributes, producer))
+        // A container such as Claude Code's tool_parameters is stored as the JSON string it is; ingest lifts nothing
+        // out of it.
+        foreach (var attr in protoAttributes)
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
             if (ConvertAttribute(attr.Key, attr.Value, producer) is not { } value)

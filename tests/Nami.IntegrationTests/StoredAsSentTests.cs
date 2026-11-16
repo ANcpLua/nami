@@ -105,6 +105,27 @@ public sealed class StoredAsSentTests
         Assert.IsNotInstanceOfType<AttributeValue.StringValue>(stored["tool_result_size_bytes"], "a number sent as a number stays one");
     }
 
+    /// <summary>
+    ///     F3. A container is stored as the string it is. Claude Code's <c>tool_parameters</c> is JSON text; ingest
+    ///     keeps that text and writes no attribute of its own out of it.
+    /// </summary>
+    [TestMethod]
+    public void Containers_ToolParameters_IsStoredAsTheJsonStringItIs()
+    {
+        const string parameters =
+            """{"bash_command":"python3","full_command":"python3 -m unittest -q","description":"Runs the unit tests","timeout":120000}""";
+
+        var row = StoreLog(ClaudeCodeEvents, new LogRecord
+        {
+            Attributes = { Text("tool_parameters", parameters), Text("tool_name", "Bash") }
+        });
+
+        var stored = Stored(row.AttributesJson);
+        Assert.AreEqual(parameters, stored["tool_parameters"]);
+        string[] keys = ["tool_name", "tool_parameters"];
+        Assert.AreSequenceEqual(keys, stored.Keys.ToArray(), "no member is lifted into an attribute of its own");
+    }
+
     private const ulong Time = 1_794_745_800_000_000_000;
 
     private static KeyValue Text(string key, string value) =>

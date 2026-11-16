@@ -37,10 +37,6 @@ public sealed class ClaudeCodeConverterTests
     private const string Ordinary = "gen_ai.agent.name";
 
     private static readonly string[] s_scopes = [MeterScope, EventsScope, TracingScope];
-    private static readonly string[] s_ordinaryOnly = [Ordinary];
-    private static readonly string[] s_toolNameOnly = ["tool_name"];
-    private static readonly string[] s_members = ["bash_command", "full_command", "subagent_type"];
-    private static readonly string[] s_membersAndToolName = ["bash_command", "full_command", "subagent_type", "tool_name"];
 
     [TestMethod]
     public void Scopes_AreTheThreeTheRegistryNamesForClaudeCode()
@@ -147,60 +143,17 @@ public sealed class ClaudeCodeConverterTests
         Assert.AreEqual(0.5, log.Attributes["cost_usd"].AsDouble());
     }
 
+    /// <summary>
+    ///     <c>tool_parameters</c> is stored as the text it is, whatever that text is: ingest reads no member out of
+    ///     it, and a record that carries it is kept.
+    /// </summary>
     [TestMethod]
-    public void ToolParameters_NamedMembersBecomeAttributes_AndTheContainerIsDropped()
-    {
-        const string parameters = """
-            {"bash_command":"python3","full_command":"python3 -m unittest -q","description":"Runs the unit tests",
-             "subagent_type":"general-purpose","git_commit_id":"c0ffee0000000000000000000000000000000001",
-             "timeout":120000,"dangerouslyDisableSandbox":false}
-            """;
-        var lifted = s_members;
-        Assert.AreSequenceEqual(lifted, WireContainers.Members["tool_parameters"]);
-
-        var log = ConvertLog(EventsScope, new LogRecord
-        {
-            Attributes = { Text("tool_parameters", parameters), Text("tool_name", "Bash") }
-        });
-        var span = ConvertSpan(TracingScope, NewSpan([Text("tool_parameters", parameters)]));
-        var foreign = ConvertLog(ForeignScope, new LogRecord
-        {
-            Attributes = { Text("tool_parameters", parameters), Text(Ordinary, "builder") }
-        });
-
-        Assert.AreSequenceEqual(s_membersAndToolName, Keys(log.Attributes));
-        Assert.AreEqual("python3", log.Attributes["bash_command"].AsString());
-        Assert.AreEqual("python3 -m unittest -q", log.Attributes["full_command"].AsString());
-        Assert.AreEqual("general-purpose", log.Attributes["subagent_type"].AsString());
-        Assert.AreSequenceEqual(lifted, Keys(span.Attributes).Where(static key => key != "service.name"));
-        Assert.AreSequenceEqual(s_ordinaryOnly, Keys(foreign.Attributes),
-            "under another scope tool_parameters is an unknown key and nothing is read out of it");
-    }
-
-    [TestMethod]
-    public void ToolParameters_AnAttributeOfTheRecordWinsOverAMemberOfTheSameName()
-    {
-        var log = ConvertLog(EventsScope, new LogRecord
-        {
-            Attributes =
-            {
-                Text("tool_parameters", """{"full_command":"from the container","bash_command":"git"}"""),
-                Text("full_command", "from the record")
-            }
-        });
-
-        Assert.AreEqual("from the record", log.Attributes["full_command"].AsString());
-        Assert.AreEqual("git", log.Attributes["bash_command"].AsString());
-    }
-
-    [TestMethod]
+    [DataRow("""{"bash_command":"python3","full_command":"python3 -m unittest -q","timeout":120000}""", DisplayName = "A JSON object")]
     [DataRow("not json at all", DisplayName = "Text that is not JSON")]
     [DataRow("""["full_command","python3"]""", DisplayName = "A JSON array")]
-    [DataRow("\"full_command\"", DisplayName = "A JSON string")]
-    [DataRow("""{"full_command":{"nested":"python3"},"bash_command":["python3"],"subagent_type":null}""", DisplayName = "Members that are not values")]
     [DataRow("""{"full_command":"\ud800"}""", DisplayName = "A member with an unpaired surrogate escape")]
     [DataRow("""{"full_command":"python3" """, DisplayName = "A truncated object")]
-    public void ToolParameters_ThatHoldNoReadableMember_YieldNothing_AndTheRecordIsKept(string parameters)
+    public void ToolParameters_AreStoredAsTheTextTheyAre(string parameters)
     {
         var request = Logs(EventsScope, new LogRecord
         {
@@ -210,13 +163,17 @@ public sealed class ClaudeCodeConverterTests
         var batch = OtlpConverter.ConvertLogs(request, TimeProvider.System);
 
         Assert.AreEqual(0L, batch.RejectedLogRecords, batch.RejectionMessage);
-        Assert.AreSequenceEqual(s_toolNameOnly, Keys(Assert.ContainsSingle(batch.Logs).Attributes));
+        var log = Assert.ContainsSingle(batch.Logs);
+        string[] keys = ["tool_name", "tool_parameters"];
+        Assert.AreSequenceEqual(keys, Keys(log.Attributes));
+        Assert.AreEqual(parameters, log.Attributes["tool_parameters"].AsString());
     }
 
     /// <summary>
     ///     <c>full_command</c> is persisted and bounded (observer's ruling, 15 Nov): at most
     ///     <c>ValueLimits.MaxUtf8Bytes</c> bytes of UTF-8, the marker that log bodies use included, cut between
-    ///     characters. It is bounded wherever it arrives: on the tool span and inside <c>tool_parameters</c>.
+    ///     characters, where it arrives as an attribute of its own (the tool span). Inside <c>tool_parameters</c> it
+    ///     is part of that string.
     /// </summary>
     [TestMethod]
     public void FullCommand_IsKeptUpToTheRegistrysBound_WithTheTruncationMarker()
@@ -226,21 +183,12 @@ public sealed class ClaudeCodeConverterTests
         var atTheBound = new string('a', bound);
         var onePast = new string('a', bound + 1);
         var twoByteCharacters = new string('é', bound);
-        var heredoc = "git commit -m \"$(cat <<'EOF'\n" + new string('x', 3 * bound) + "\nEOF\n)\"";
 
         Assert.AreEqual(atTheBound, SpanCommand(atTheBound), "a command of exactly the bound is kept whole");
         Assert.AreEqual(new string('a', bound - Marker.Length) + Marker, SpanCommand(onePast));
         var cut = SpanCommand(twoByteCharacters)!;
         Assert.AreEqual(new string('é', (bound - Marker.Length) / 2) + Marker, cut, "cut between characters, never inside one");
         Assert.IsLessThanOrEqualTo(bound, Encoding.UTF8.GetByteCount(cut));
-
-        var lifted = ConvertLog(EventsScope, new LogRecord
-        {
-            Attributes = { Text("tool_parameters", new System.Text.Json.Nodes.JsonObject { ["full_command"] = heredoc }.ToJsonString()) }
-        }).Attributes["full_command"].AsString()!;
-        Assert.AreEqual(bound, Encoding.UTF8.GetByteCount(lifted));
-        Assert.StartsWith("git commit -m", lifted);
-        Assert.EndsWith(Marker, lifted);
 
         static string? SpanCommand(string command) =>
             ConvertSpan(TracingScope, NewSpan([Text("full_command", command)])).Attributes["full_command"].AsString();

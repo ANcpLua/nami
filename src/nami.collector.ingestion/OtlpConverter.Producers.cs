@@ -1,6 +1,4 @@
-using Google.Protobuf.Collections;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
-using ProtoKeyValue = OpenTelemetry.Proto.Common.V1.KeyValue;
 using ProtoLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
 using ProtoStatus = OpenTelemetry.Proto.Trace.V1.Status;
 
@@ -49,73 +47,6 @@ internal static partial class OtlpConverter
         return ValueLimits.MaxUtf8Bytes.TryGetValue(key, out var maxUtf8Bytes) && value.AsString() is { } text
             ? OtlpAttributeValue.FromString(BoundedText.Truncate(text, maxUtf8Bytes))
             : value;
-    }
-
-    // A producer nests some keys in a JSON string attribute (nami.wire_container; Claude Code's tool_parameters holds
-    // bash_command, full_command and subagent_type next to the model-written description). The members the registry
-    // names (WireContainers.Members) become attributes of the record itself, ahead of the allowlist, which then treats
-    // them like any other key; the container and every other member are dropped. An attribute the record carries
-    // itself wins over a member of the same name. A container that is not a JSON object yields nothing.
-    private static IReadOnlyList<ProtoKeyValue> LiftWireContainers(RepeatedField<ProtoKeyValue> attributes,
-        string? producer)
-    {
-        if (producer is null || !attributes.Any(attribute => IsWireContainer(attribute.Key, producer)))
-            return attributes;
-
-        var keys = attributes.Select(static attribute => attribute.Key).ToHashSet(StringComparer.Ordinal);
-        var lifted = new List<ProtoKeyValue>(attributes.Count);
-        foreach (var attribute in attributes)
-        {
-            if (!IsWireContainer(attribute.Key, producer))
-            {
-                lifted.Add(attribute);
-                continue;
-            }
-
-            NamiCollectorMetrics.AttributeDropped(attribute.Key);
-            lifted.AddRange(WireContainerMembers(attribute).Where(member => keys.Add(member.Key)));
-        }
-
-        return lifted;
-    }
-
-    private static bool IsWireContainer(string key, string producer) =>
-        WireContainers.Members.ContainsKey(key) &&
-        string.Equals(RegistryPolicy.ProducerOf(key), producer, StringComparison.Ordinal);
-
-    private static List<ProtoKeyValue> WireContainerMembers(ProtoKeyValue container)
-    {
-        var members = new List<ProtoKeyValue>();
-        if (container.Value is not { ValueCase: ProtoAnyValue.ValueOneofCase.StringValue } text) return members;
-
-        try
-        {
-            using var document = JsonDocument.Parse(text.StringValue);
-            if (document.RootElement.ValueKind is not JsonValueKind.Object) return members;
-            foreach (var name in WireContainers.Members[container.Key])
-            {
-                if (!document.RootElement.TryGetProperty(name, out var member)) continue;
-                var value = member.ValueKind switch
-                {
-                    JsonValueKind.String => new ProtoAnyValue { StringValue = member.GetString() },
-                    JsonValueKind.True or JsonValueKind.False => new ProtoAnyValue { BoolValue = member.GetBoolean() },
-                    JsonValueKind.Number when member.TryGetInt64(out var number) =>
-                        new ProtoAnyValue { IntValue = number },
-                    JsonValueKind.Number when member.TryGetDouble(out var number) && double.IsFinite(number) =>
-                        new ProtoAnyValue { DoubleValue = number },
-                    _ => null
-                };
-                if (value is not null) members.Add(new ProtoKeyValue { Key = name, Value = value });
-            }
-        }
-        catch (Exception error) when (error is JsonException or InvalidOperationException)
-        {
-            // Not JSON, or a string with a broken escape (GetString throws InvalidOperationException for an unpaired
-            // surrogate): nothing is lifted. The text itself is never kept or logged.
-            members.Clear();
-        }
-
-        return members;
     }
 
     // The record's EventName field wins. A producer that still names its events in the deprecated event.name
