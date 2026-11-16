@@ -43,7 +43,11 @@ internal static class OtlpJsonIdNormalizer
         // as it was sent: no encoder stands in between. System.Text.Json's writer would escape a character outside
         // the Basic Multilingual Plane (four bytes) as twelve bytes under every encoder it has, and <, >, &, ', +
         // and everything outside ASCII as six bytes each under its default one.
-        var output = new Output(utf8Json.Length);
+        // Replacing is the one thing that makes the output much longer than the input, three bytes for one, so a
+        // document that is not UTF-8 is measured first and the buffer never has to grow for it.
+        var output = new Output(System.Text.Unicode.Utf8.IsValid(utf8Json)
+            ? utf8Json.Length
+            : OtlpUtf8Replacement.ReplacedLength(utf8Json));
 
         // Protojson must ignore unknown fields, including future objects that happen to contain
         // properties named traceId or spanId. Track the containing OTLP message path so
@@ -179,8 +183,8 @@ internal static class OtlpJsonIdNormalizer
         {
             if (count > _bytes.Length - _written)
             {
-                // Rare: the output is longer than the input only where integers became strings (two bytes each)
-                // and where invalid UTF-8 was replaced (three bytes for one).
+                // Rare: the output is longer than its measured input only where integers became strings (two
+                // bytes each).
                 var grown = GC.AllocateUninitializedArray<byte>(
                     checked((int)Math.Max((long)_written + count, _bytes.Length + (_bytes.Length >> 2) + 4096L)));
                 _bytes.AsSpan(0, _written).CopyTo(grown);
@@ -226,10 +230,8 @@ internal static class OtlpJsonIdNormalizer
         }
 
         // Nothing in the replaced text needs an escape: the reader refused quotes, backslashes and control
-        // characters outside an escape.
-        var replaced = new byte[ReplacedLength(utf8)];
-        ReplaceInvalidUtf8(utf8, replaced);
-        output.Write(replaced);
+        // characters outside an escape. It is written where it belongs, with no token built first.
+        OtlpUtf8Replacement.ReplaceInvalidUtf8(utf8, output.Reserve(OtlpUtf8Replacement.ReplacedLength(utf8)));
     }
 
     // The reader validated every escape before handing the token over. A backslash is one byte in UTF-8 and part of
@@ -287,44 +289,11 @@ internal static class OtlpJsonIdNormalizer
         return digits.Length >= DigitsOfTwoToThe53 && digits.IndexOfAnyExceptInRange((byte)'0', (byte)'9') < 0;
     }
 
-    private static int ReplacedLength(ReadOnlySpan<byte> utf8)
-    {
-        var length = 0;
-        while (!utf8.IsEmpty)
-        {
-            var valid = Rune.DecodeFromUtf8(utf8, out _, out var consumed) is System.Buffers.OperationStatus.Done;
-            length += valid ? consumed : 3;
-            utf8 = utf8[consumed..];
-        }
-
-        return length;
-    }
-
-    // Encoding.UTF8 replaces the same sequences, and allocates some forty bytes for each one it replaces.
-    private static void ReplaceInvalidUtf8(ReadOnlySpan<byte> utf8, Span<byte> replaced)
-    {
-        while (!utf8.IsEmpty)
-        {
-            if (Rune.DecodeFromUtf8(utf8, out _, out var consumed) is System.Buffers.OperationStatus.Done)
-            {
-                utf8[..consumed].CopyTo(replaced);
-                replaced = replaced[consumed..];
-            }
-            else
-            {
-                "\uFFFD"u8.CopyTo(replaced);
-                replaced = replaced[3..];
-            }
-
-            utf8 = utf8[consumed..];
-        }
-    }
-
     private static string DecodeUtf8(ReadOnlySpan<byte> utf8)
     {
         if (System.Text.Unicode.Utf8.IsValid(utf8)) return Encoding.UTF8.GetString(utf8);
-        var replaced = new byte[ReplacedLength(utf8)];
-        ReplaceInvalidUtf8(utf8, replaced);
+        var replaced = new byte[OtlpUtf8Replacement.ReplacedLength(utf8)];
+        OtlpUtf8Replacement.ReplaceInvalidUtf8(utf8, replaced);
         return Encoding.UTF8.GetString(replaced);
     }
 

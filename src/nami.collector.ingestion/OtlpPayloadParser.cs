@@ -104,9 +104,9 @@ internal static class OtlpPayloadParser
     /// <summary>
     ///     The value bounds first, on the bytes (<see cref="OtlpValueBounds" />), so that a structure over the cap
     ///     is never built, and the counts of messages and records, so that a request of too many is refused with
-    ///     an <see cref="OtlpPayloadTooLargeException" /> before it is parsed. Then the strict parse; when it fails and the payload holds an invalid UTF-8 sequence in
-    ///     a <c>string</c> field, the sequence is replaced by U+FFFD (OTLP 1.11.1) and the payload is parsed again.
-    ///     A failure that no replacement explains stands.
+    ///     an <see cref="OtlpPayloadTooLargeException" /> before it is parsed. Then an invalid UTF-8 sequence in a
+    ///     <c>string</c> field is replaced by U+FFFD on the bytes (OTLP 1.11.1, <see cref="OtlpUtf8Replacement" />),
+    ///     and the strict parse runs once. Its failure stands.
     /// </summary>
     private static T ParseProtobuf<T>(MessageParser<T> parser, MessageDescriptor descriptor, Span<byte> payload,
         IngestLimits limits)
@@ -117,16 +117,10 @@ internal static class OtlpPayloadParser
         // Unknown fields are not kept: Google.Protobuf would hold every one of them as an object, and the bounds
         // count what nami reads. The converter reads known fields only.
         var known = parser.WithDiscardUnknownFields(true);
-        T message;
-        try
-        {
-            message = known.ParseFrom(payload);
-        }
-        catch (InvalidProtocolBufferException) when (OtlpUtf8Replacement.TryReplaceInvalidUtf8(payload, descriptor,
-                                                         out var replaced))
-        {
-            message = known.ParseFrom(replaced);
-        }
+        // One parse: a payload with an invalid sequence in a string field is rewritten before the parser sees it.
+        var message = OtlpUtf8Replacement.TryReplaceInvalidUtf8(payload, descriptor, out var replaced)
+            ? known.ParseFrom(replaced)
+            : known.ParseFrom(payload);
 
         CountReplaced(bounded);
         return message;
