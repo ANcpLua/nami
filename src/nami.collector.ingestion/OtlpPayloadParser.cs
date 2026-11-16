@@ -102,13 +102,16 @@ internal static class OtlpPayloadParser
         ParseMetricsRequestAsync(request, encoding, IngestLimits.Default, ct);
 
     /// <summary>
-    ///     The strict parse first; when it fails and the payload holds an invalid UTF-8 sequence in a
-    ///     <c>string</c> field, the sequence is replaced by U+FFFD (OTLP 1.11.1) and the payload is
-    ///     parsed again. A failure that no replacement explains stands.
+    ///     The value bounds first, on the bytes (<see cref="OtlpValueBounds" />), so that a structure over the cap
+    ///     is never built. Then the strict parse; when it fails and the payload holds an invalid UTF-8 sequence in
+    ///     a <c>string</c> field, the sequence is replaced by U+FFFD (OTLP 1.11.1) and the payload is parsed again.
+    ///     A failure that no replacement explains stands.
     /// </summary>
-    private static T ParseProtobuf<T>(MessageParser<T> parser, MessageDescriptor descriptor, ReadOnlySpan<byte> payload)
+    private static T ParseProtobuf<T>(MessageParser<T> parser, MessageDescriptor descriptor, Span<byte> payload,
+        IngestLimits limits)
         where T : IMessage<T>
     {
+        _ = OtlpValueBounds.BoundProtobuf(payload, descriptor, limits);
         try
         {
             return parser.ParseFrom(payload);
@@ -120,21 +123,20 @@ internal static class OtlpPayloadParser
         }
     }
 
-    /// <inheritdoc cref="ParseProtobuf{T}(MessageParser{T}, MessageDescriptor, ReadOnlySpan{byte})" />
+    /// <summary>
+    ///     A gRPC message. Its bytes are copied once: the value bounds are applied in place, and the buffers a
+    ///     message arrives in are the server's.
+    /// </summary>
+    internal static T ParseProtobuf<T>(MessageParser<T> parser, MessageDescriptor descriptor,
+        in ReadOnlySequence<byte> payload, IngestLimits limits)
+        where T : IMessage<T> =>
+        ParseProtobuf(parser, descriptor, payload.ToArray().AsSpan(), limits);
+
+    /// <summary>The same with the default bounds, for a caller that has no configuration.</summary>
     internal static T ParseProtobuf<T>(MessageParser<T> parser, MessageDescriptor descriptor,
         in ReadOnlySequence<byte> payload)
-        where T : IMessage<T>
-    {
-        try
-        {
-            return parser.ParseFrom(payload);
-        }
-        catch (InvalidProtocolBufferException) when (OtlpUtf8Replacement.TryReplaceInvalidUtf8(payload.ToArray(),
-                                                         descriptor, out var replaced))
-        {
-            return parser.ParseFrom(replaced);
-        }
-    }
+        where T : IMessage<T> =>
+        ParseProtobuf(parser, descriptor, payload, IngestLimits.Default);
 
     private static async Task<T> ParseProtobufAsync<T>(
         HttpRequest request,
@@ -145,7 +147,7 @@ internal static class OtlpPayloadParser
         where T : IMessage<T>
     {
         await using var payload = await ReadBoundedPayloadAsync(request, limits, ct).ConfigureAwait(false);
-        return ParseProtobuf(parser, descriptor, payload.GetBuffer().AsSpan(0, (int)payload.Length));
+        return ParseProtobuf(parser, descriptor, payload.GetBuffer().AsSpan(0, (int)payload.Length), limits);
     }
 
     private static async Task<T> ParseJsonAsync<T>(HttpRequest request, IngestLimits limits, CancellationToken ct)
@@ -153,9 +155,13 @@ internal static class OtlpPayloadParser
     {
         await using var payload = await ReadBoundedPayloadAsync(request, limits, ct).ConfigureAwait(false);
 
+        // The value bounds first, on the bytes, so that a structure over the cap is never built.
+        var utf8Json = payload.GetBuffer().AsSpan(0, (int)payload.Length);
+        _ = OtlpValueBounds.BoundJson(utf8Json, limits);
+
         // The OTLP spec mandates hex for trace and span ids in JSON, but protojson decodes
         // bytes fields as base64 — rewrite the id fields (validating them) before parsing.
-        var json = OtlpJsonIdNormalizer.NormalizeIdsToProtoJson(payload.GetBuffer().AsSpan(0, (int)payload.Length));
+        var json = OtlpJsonIdNormalizer.NormalizeIdsToProtoJson(utf8Json);
         return s_otlpJsonParser.Parse<T>(json);
     }
 
