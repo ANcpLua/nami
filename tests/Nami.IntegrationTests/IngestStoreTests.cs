@@ -186,7 +186,7 @@ public sealed class IngestStoreTests(TestContext context)
     public void Sanitizer_Boundaries_HoldAtPlusMinusOne(int offset)
     {
         var text = new string('x', 128 * 1024 + offset);
-        var actual = ExceptionTextSanitizer.Sanitize("exception.message", new AnyValue { StringValue = text });
+        var actual = CredentialRedaction.ExceptionText("exception.message", new AnyValue { StringValue = text });
         if (offset > 0) Assert.AreEqual("[SANITIZATION_FAILED]", actual);
         else
         {
@@ -203,7 +203,7 @@ public sealed class IngestStoreTests(TestContext context)
     public void Sanitizer_OutputUtf8Boundary_PreservesValidText(int offset)
     {
         var text = new string('x', 32 * 1024 + offset);
-        var value = ExceptionTextSanitizer.Sanitize("exception.message", new AnyValue { StringValue = text });
+        var value = CredentialRedaction.ExceptionText("exception.message", new AnyValue { StringValue = text });
         if (offset <= 0) Assert.AreEqual(text, value);
         else
         {
@@ -212,7 +212,7 @@ public sealed class IngestStoreTests(TestContext context)
         }
 
         var unicode =
-            ExceptionTextSanitizer.Sanitize("exception.message", new AnyValue { StringValue = new string('ü', 20000) });
+            CredentialRedaction.ExceptionText("exception.message", new AnyValue { StringValue = new string('ü', 20000) });
         Assert.IsLessThanOrEqualTo(32 * 1024, Encoding.UTF8.GetByteCount(unicode));
         Assert.IsFalse(unicode.Contains('\uFFFD'));
     }
@@ -222,7 +222,7 @@ public sealed class IngestStoreTests(TestContext context)
     public void Sanitizer_InvalidUtf16_FailsClosed()
     {
         Assert.AreEqual("[SANITIZATION_FAILED]",
-            ExceptionTextSanitizer.Sanitize("exception.stacktrace",
+            CredentialRedaction.ExceptionText("exception.stacktrace",
                 new AnyValue { StringValue = "invalid" + '\ud800' }));
     }
 

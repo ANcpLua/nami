@@ -163,10 +163,9 @@ public sealed class ClaudeCodeConverterTests
     }
 
     /// <summary>
-    ///     A span status message is free text outside the allowlist, and Claude Code copies the text of its
-    ///     <c>error</c> attribute into it. A producer's is kept as error text is kept elsewhere (observer's ruling, 15
-    ///     Nov): through the sanitizer exception text gets, then up to 1024 UTF-8 bytes with the marker. Another
-    ///     sender's is stored as sent.
+    ///     A span status message is free text that no key names, and Claude Code copies the text of its
+    ///     <c>error</c> attribute into it. Every sender's passes the credential stage (observer's rule, 16 Nov); a
+    ///     producer's is then cut at 1024 UTF-8 bytes with the marker (observer's ruling, 15 Nov).
     /// </summary>
     [TestMethod]
     public void SpanStatusMessage_OnAProducersScope_LosesItsCredentials_AndIsKeptUpTo1024Bytes()
@@ -176,17 +175,18 @@ public sealed class ClaudeCodeConverterTests
                                "connection password=hunter2-and-more;retry in 5 s";
         var text = new string('é', 2000);
 
+        const string redacted =
+            "Request failed with 401\nAuthorization: Bearer [REDACTED]\nconnection password=[REDACTED];retry in 5 s";
         var ours = ConvertSpan(TracingScope, WithStatus(leaking));
-        Assert.AreEqual("Request failed with 401\nAuthorization: Bearer [REDACTED]\nconnection password=[REDACTED];retry in 5 s",
-            ours.StatusMessage);
+        Assert.AreEqual(redacted, ours.StatusMessage);
         Assert.AreEqual((int)Status.Types.StatusCode.Error, ours.StatusCode.GetValueOrDefault());
         Assert.AreEqual(failure, ConvertSpan(TracingScope, WithStatus(failure)).StatusMessage, "text without credentials is kept");
         var cut = ConvertSpan(TracingScope, WithStatus(text)).StatusMessage!;
         Assert.AreEqual(new string('é', (1024 - Marker.Length) / 2) + Marker, cut);
         Assert.IsLessThanOrEqualTo(1024, Encoding.UTF8.GetByteCount(cut));
 
-        Assert.AreEqual(leaking, ConvertSpan(ForeignScope, WithStatus(leaking)).StatusMessage,
-            "no general rule yet: another sender's status message is stored as sent");
+        Assert.AreEqual(redacted, ConvertSpan(ForeignScope, WithStatus(leaking)).StatusMessage,
+            "another sender's status message loses its credentials too");
         Assert.AreEqual(text, ConvertSpan(ForeignScope, WithStatus(text)).StatusMessage);
 
         static Span WithStatus(string message)
@@ -198,8 +198,8 @@ public sealed class ClaudeCodeConverterTests
     }
 
     /// <summary>
-    ///     Claude Code's <c>error</c> attribute is persisted since registry 849dd8b, as error text: through the
-    ///     sanitizer of <c>exception.message</c> first and up to <c>ValueLimits.MaxUtf8Bytes</c> (1024) after it, on
+    ///     Claude Code's <c>error</c> attribute passes the credential stage first, as every string does, and is
+    ///     kept up to <c>ValueLimits.MaxUtf8Bytes</c> (1024) after it, on
     ///     the events and the spans that carry it, under every scope.
     /// </summary>
     [TestMethod]

@@ -35,8 +35,13 @@ internal static partial class OtlpConverter
         return 0;
     }
 
-    private static string? NullIfEmpty(string? value) =>
-        string.IsNullOrEmpty(value) ? null : value;
+    // The converter reads a sender's text through these two and through ConvertProtoAnyValue only, and each passes
+    // the text through the credential stage before any bound (CredentialRedaction): attribute keys, span, event and
+    // metric names, status messages, severity text, scope and schema text, trace state.
+    private static string Kept(string value) => CredentialRedaction.Redact(value);
+
+    private static string? KeptOrNull(string? value) =>
+        string.IsNullOrEmpty(value) ? null : CredentialRedaction.Redact(value);
 
     #region OTLP Trace Conversion
 
@@ -58,7 +63,7 @@ internal static partial class OtlpConverter
 
             var serviceName = ExtractServiceNameFromProto(resourceSpan.Resource);
             var project = ExtractProjectIdHintFromProto(resourceSpan.Resource);
-            var resourceSchema = NullIfEmpty(resourceSpan.SchemaUrl);
+            var resourceSchema = KeptOrNull(resourceSpan.SchemaUrl);
             foreach (var scope in resourceSpan.ScopeSpans)
             {
                 NormalizedAttributes scopeAttributes;
@@ -70,6 +75,9 @@ internal static partial class OtlpConverter
                 }
 
                 var producer = ProducerOfScope(scope.Scope?.Name);
+                var scopeSchema = KeptOrNull(scope.SchemaUrl);
+                var scopeName = KeptOrNull(scope.Scope?.Name);
+                var scopeVersion = KeptOrNull(scope.Scope?.Version);
                 foreach (var span in scope.Spans)
                 {
                     try
@@ -82,10 +90,9 @@ internal static partial class OtlpConverter
                         spans.Add(CreateSpanRecordFromProto(span, project, serviceName,
                                 ExtractAttributesFromProto(span.Attributes, serviceName, producer),
                                 resource.Attributes, resource.EntityRefs,
-                                NullIfEmpty(scope.SchemaUrl) ?? resourceSchema, NullIfEmpty(scope.Scope?.Name),
-                                NullIfEmpty(scope.Scope?.Version), producer, reasons) with
+                                scopeSchema ?? resourceSchema, scopeName, scopeVersion, producer, reasons) with
                         {
-                            ScopeSchemaUrl = NullIfEmpty(scope.SchemaUrl),
+                            ScopeSchemaUrl = scopeSchema,
                             ScopeAttributes = scopeAttributes,
                             ScopeDroppedAttributesCount = scope.Scope?.DroppedAttributesCount ?? 0,
                             ResourceSchemaUrl = resourceSchema,
@@ -126,7 +133,7 @@ internal static partial class OtlpConverter
                     Value.ValueCase: ProtoAnyValue.ValueOneofCase.StringValue
                 })
                 continue;
-            if (!string.IsNullOrWhiteSpace(attr.Value.StringValue)) return attr.Value.StringValue;
+            if (!string.IsNullOrWhiteSpace(attr.Value.StringValue)) return Kept(attr.Value.StringValue);
             break;
         }
 
@@ -151,7 +158,7 @@ internal static partial class OtlpConverter
                     continue;
                 }
 
-                return attr.Value.StringValue;
+                return Kept(attr.Value.StringValue);
             }
         }
 
@@ -169,9 +176,11 @@ internal static partial class OtlpConverter
         foreach (var attr in resource.Attributes)
         {
             if (IsUnresolvedProfilingKey(attr)) continue;
-            // Stored under the key it was sent under: ingest renames nothing and drops no key.
-            attrs[attr.Key] = ConvertAttribute(attr.Key, attr.Value, null);
-            projectedKeys[attr.Key] = new ResourceAttributeProjectionKey(attr.Key);
+            // Stored under the key it was sent under: ingest renames nothing and drops no key. The key is text the
+            // sender chose, so it passes the credential stage like a value.
+            var key = Kept(attr.Key);
+            attrs[key] = ConvertAttribute(key, attr.Value, null);
+            projectedKeys[attr.Key] = new ResourceAttributeProjectionKey(key);
         }
 
         return new ResourceProjection(attrs, ExtractResourceEntityRefs(resource, projectedKeys, attrs));
@@ -200,8 +209,8 @@ internal static partial class OtlpConverter
                 projectedKeys,
                 "description_key");
             var value = new ResourceEntityRefIngestionRecord(
-                NullIfEmpty(entityRef.SchemaUrl),
-                entityRef.Type,
+                KeptOrNull(entityRef.SchemaUrl),
+                Kept(entityRef.Type),
                 idKeys,
                 descriptionKeys);
             var identity = GetEntityReferenceIdentity(value, projectedAttributes);
@@ -288,7 +297,8 @@ internal static partial class OtlpConverter
         foreach (var attr in protoAttributes)
         {
             if (string.IsNullOrEmpty(attr.Key)) continue;
-            attributes[attr.Key] = ConvertAttribute(attr.Key, attr.Value, producer);
+            var key = Kept(attr.Key);
+            attributes[key] = ConvertAttribute(key, attr.Value, producer);
         }
     }
 
@@ -334,7 +344,8 @@ internal static partial class OtlpConverter
         foreach (var attribute in attributes)
         {
             if (IsUnresolvedProfilingKey(attribute)) continue;
-            result[attribute.Key] = ConvertAttribute(attribute.Key, attribute.Value, null);
+            var key = Kept(attribute.Key);
+            result[key] = ConvertAttribute(key, attribute.Value, null);
         }
 
         return result;
@@ -344,7 +355,7 @@ internal static partial class OtlpConverter
     {
         if (span.Events.Count is 0) return [];
 
-        return span.Events.Select(e => new SpanEventIngest(e.Name ?? "", e.TimeUnixNano,
+        return span.Events.Select(e => new SpanEventIngest(Kept(e.Name ?? ""), e.TimeUnixNano,
             ConvertRecordAttributes(e.Attributes, producer), e.DroppedAttributesCount)).ToList();
     }
 
@@ -355,7 +366,7 @@ internal static partial class OtlpConverter
         return span.Links.Select(l => new SpanLinkIngest(
                 RequireId(l.TraceId, 16, "link.trace_id"),
                 RequireId(l.SpanId, 8, "link.span_id"),
-                ConvertRecordAttributes(l.Attributes, producer), NullIfEmpty(l.TraceState), l.Flags,
+                ConvertRecordAttributes(l.Attributes, producer), KeptOrNull(l.TraceState), l.Flags,
                 l.DroppedAttributesCount)).ToList();
     }
 
@@ -368,17 +379,19 @@ internal static partial class OtlpConverter
     private static OtlpAttributeValue ConvertProtoAnyValue(ProtoAnyValue? value, string? attributeKey = null,
         string? producer = null, int nesting = 0)
     {
-        // All keyed carriers, including nested maps and metric metadata, converge here.
-        // A key exemption never bypasses this value policy before original data is journaled.
-        // Exception text is text: a value of another type under such a key stays as it was sent.
+        // All keyed carriers, including nested maps and metric metadata, the items of arrays and log bodies converge
+        // here, and every string among them passes the credential stage before original data is journaled. No key
+        // is exempt. Exception text passes it inside its own limits (PRD R6); a value of another type under such a
+        // key is no text and stays as it was sent.
         if (attributeKey is not null && value?.ValueCase is ProtoAnyValue.ValueOneofCase.StringValue
             && CollectorSemanticAttributeCatalog.ExceptionTextKeys.TryGetValue(attributeKey, out var canonicalKey))
-            return OtlpAttributeValue.FromString(ExceptionTextSanitizer.Sanitize(canonicalKey, value));
+            return OtlpAttributeValue.FromString(CredentialRedaction.ExceptionText(canonicalKey, value));
         if (value is null) return OtlpAttributeValue.Empty;
 
         return value.ValueCase switch
         {
-            ProtoAnyValue.ValueOneofCase.StringValue => OtlpAttributeValue.FromString(value.StringValue),
+            ProtoAnyValue.ValueOneofCase.StringValue =>
+                OtlpAttributeValue.FromString(CredentialRedaction.RedactValue(attributeKey, value.StringValue)),
             ProtoAnyValue.ValueOneofCase.IntValue => OtlpAttributeValue.FromInt(value.IntValue),
             ProtoAnyValue.ValueOneofCase.DoubleValue => OtlpAttributeValue.FromDouble(value.DoubleValue),
             ProtoAnyValue.ValueOneofCase.BoolValue => OtlpAttributeValue.FromBool(value.BoolValue),
@@ -410,7 +423,8 @@ internal static partial class OtlpConverter
         foreach (var item in value.Values)
         {
             if (IsUnresolvedProfilingKey(item)) continue;
-            items[item.Key] = ConvertAttribute(item.Key, item.Value, producer, nesting);
+            var key = Kept(item.Key);
+            items[key] = ConvertAttribute(key, item.Value, producer, nesting);
         }
 
         return OtlpAttributeValue.FromKeyValueList(items);
@@ -443,12 +457,12 @@ internal static partial class OtlpConverter
             SpanId = RequireId(span.SpanId, 8, "span_id"),
             TraceId = RequireId(span.TraceId, 16, "trace_id"),
             ParentSpanId = RequireIdOrAbsent(span.ParentSpanId, 8, "parent_span_id"),
-            TraceState = NullIfEmpty(span.TraceState),
+            TraceState = KeptOrNull(span.TraceState),
             Flags = span.Flags,
             DroppedAttributesCount = span.DroppedAttributesCount,
             DroppedEventsCount = span.DroppedEventsCount,
             DroppedLinksCount = span.DroppedLinksCount,
-            Name = span.Name ?? "unknown",
+            Name = Kept(span.Name ?? "unknown"),
             Kind = DefinedOrZero((int)span.Kind, (int)ProtoSpan.Types.SpanKind.Consumer, SpanKindWarning, warnings),
             StartTimeUnixNano = span.StartTimeUnixNano,
             EndTimeUnixNano = span.EndTimeUnixNano,
@@ -523,6 +537,7 @@ internal static partial class OtlpConverter
 
             var serviceName = ExtractServiceNameFromProto(resourceLogs.Resource);
             var project = ExtractProjectIdHintFromProto(resourceLogs.Resource);
+            var resourceSchema = KeptOrNull(resourceLogs.SchemaUrl);
             foreach (var scope in resourceLogs.ScopeLogs)
             {
                 NormalizedAttributes scopeAttributes;
@@ -535,6 +550,9 @@ internal static partial class OtlpConverter
                 }
 
                 var producer = ProducerOfScope(scope.Scope?.Name);
+                var scopeName = KeptOrNull(scope.Scope?.Name);
+                var scopeVersion = KeptOrNull(scope.Scope?.Version);
+                var scopeSchema = KeptOrNull(scope.SchemaUrl);
                 foreach (var log in scope.LogRecords)
                 {
                     var requestOrdinal = ordinal++;
@@ -546,12 +564,12 @@ internal static partial class OtlpConverter
                             {
                                 UntimedRequestOrdinal =
                                     log is { TimeUnixNano: 0, ObservedTimeUnixNano: 0 } ? requestOrdinal : null,
-                                ScopeName = NullIfEmpty(scope.Scope?.Name),
-                                ScopeVersion = NullIfEmpty(scope.Scope?.Version),
-                                ScopeSchemaUrl = NullIfEmpty(scope.SchemaUrl),
+                                ScopeName = scopeName,
+                                ScopeVersion = scopeVersion,
+                                ScopeSchemaUrl = scopeSchema,
                                 ScopeAttributes = scopeAttributes,
                                 ScopeDroppedAttributesCount = scope.Scope?.DroppedAttributesCount ?? 0,
-                                ResourceSchemaUrl = NullIfEmpty(resourceLogs.SchemaUrl),
+                                ResourceSchemaUrl = resourceSchema,
                                 ResourceDroppedAttributesCount = resourceLogs.Resource?.DroppedAttributesCount ?? 0
                             });
                     }
@@ -596,7 +614,7 @@ internal static partial class OtlpConverter
             // The event-name field, the body and the event.name attribute are stored as they arrive. A sender that
             // names its events only in the attribute (Claude Code 2.1.325) leaves this field empty; a reader that
             // needs one name derives it from both when it reads.
-            EventName = NullIfEmpty(log.EventName),
+            EventName = KeptOrNull(log.EventName),
             Flags = log.Flags,
             DroppedAttributesCount = log.DroppedAttributesCount,
             TimeOrigin =
@@ -607,7 +625,7 @@ internal static partial class OtlpConverter
                     CollectorReceivedTime = observedTime
                 },
             SeverityNumber = severityNumber,
-            SeverityText = log.SeverityText,
+            SeverityText = Kept(log.SeverityText),
             Body = ConvertProtoAnyValue(log.Body),
             ServiceName = serviceName,
             Attributes = attributes,

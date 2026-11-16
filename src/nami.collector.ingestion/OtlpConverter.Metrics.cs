@@ -36,6 +36,7 @@ internal static partial class OtlpConverter
 
             var serviceName = ExtractServiceNameFromProto(resourceMetrics.Resource);
             var projectId = ExtractProjectIdHintFromProto(resourceMetrics.Resource);
+            var resourceSchema = KeptOrNull(resourceMetrics.SchemaUrl);
             foreach (var scopeMetrics in resourceMetrics.ScopeMetrics)
             {
                 NormalizedAttributes scopeAttributes;
@@ -51,6 +52,9 @@ internal static partial class OtlpConverter
                     continue;
                 }
 
+                var scopeName = KeptOrNull(scopeMetrics.Scope?.Name);
+                var scopeVersion = KeptOrNull(scopeMetrics.Scope?.Version);
+                var scopeSchema = KeptOrNull(scopeMetrics.SchemaUrl);
                 foreach (var metric in scopeMetrics.Metrics)
                 {
                     MetricStreamMetadata stream;
@@ -58,13 +62,12 @@ internal static partial class OtlpConverter
                     {
                         if (string.IsNullOrWhiteSpace(metric.Name))
                             throw new InvalidDataException("OTLP metric name must not be empty.");
-                        stream = new MetricStreamMetadata(projectId, metric.Name, NullIfEmpty(metric.Unit),
-                            NullIfEmpty(metric.Description), serviceName,
-                            NullIfEmpty(scopeMetrics.SchemaUrl) ?? NullIfEmpty(resourceMetrics.SchemaUrl),
-                            resource.Attributes, resource.EntityRefs, NullIfEmpty(resourceMetrics.SchemaUrl),
+                        stream = new MetricStreamMetadata(projectId, Kept(metric.Name), KeptOrNull(metric.Unit),
+                            KeptOrNull(metric.Description), serviceName,
+                            scopeSchema ?? resourceSchema,
+                            resource.Attributes, resource.EntityRefs, resourceSchema,
                             resourceMetrics.Resource?.DroppedAttributesCount ?? 0,
-                            NullIfEmpty(scopeMetrics.Scope?.Name),
-                            NullIfEmpty(scopeMetrics.Scope?.Version), NullIfEmpty(scopeMetrics.SchemaUrl),
+                            scopeName, scopeVersion, scopeSchema,
                             scopeAttributes,
                             scopeMetrics.Scope?.DroppedAttributesCount ?? 0,
                             ToContractAttributes(ConvertMetadataAttributes(metric.Metadata)), resourceIdentity,
@@ -102,7 +105,7 @@ internal static partial class OtlpConverter
                         default:
                             Reject(CountMetricPoints(metric),
                                 new InvalidDataException(
-                                    $"OTLP metric '{metric.Name}' carries an unknown data point set."));
+                                    $"OTLP metric '{stream.MetricName}' carries an unknown data point set."));
                             break;
                     }
 
@@ -122,7 +125,7 @@ internal static partial class OtlpConverter
                                 if (record.TimeUnixNano is 0)
                                 {
                                     throw new InvalidDataException(
-                                        $"Metric '{metric.Name}' requires a nonzero time_unix_nano.");
+                                        $"Metric '{stream.MetricName}' requires a nonzero time_unix_nano.");
                                 }
 
                                 points.Add(record);

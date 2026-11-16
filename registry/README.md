@@ -54,9 +54,11 @@ all effective definitions and provenance annotations; the source files retain th
 upstream URLs and exact dependency pin.
 
 `source/nami/persistence.yaml` refines inherited attributes through a public attribute group;
-it does not redeclare upstream definitions. Unknown keys are not persisted. A deprecated key
-normalizes to its declared successor or is dropped. Exception text remains subject to the
-collector sanitizer. Captured header templates are known keys and retain their supplied values.
+it does not redeclare upstream definitions. Since 16 Nov 2026 the collector stores every key as it
+was sent, known or not, deprecated or not, and no annotation decides what is stored. Every string
+passes the collector's credential stage before any bound, whatever its key (`CredentialRedaction`);
+no annotation exempts a key. The value of a key whose own name is a credential name, such as a
+captured `http.request.header.authorization`, is removed whole.
 
 A key nami defines for a sender carries `nami.producer` (Claude Code's keys: `claude_code`)
 and, like a `nami.*` key, a brief, a stability and `nami.persisted`. Its type is the type nami
@@ -65,7 +67,8 @@ so in `nami.wire_type`, and ingest converts; where it nests the key inside a JSO
 attribute, the reference names that attribute in `nami.wire_container`, and ingest lifts the
 key out and drops the container. A key may declare `nami.max_utf8_bytes`, the longest value
 in UTF-8 bytes that ingest keeps of it (generated as `ValueLimits.MaxUtf8Bytes`; ingest
-enforces it). Claude Code's `error` text passes the exception-text sanitizer before its bound. A producer's signals name the instrumentation scope they
+enforces it). The credential stage runs before the bound, for Claude Code's `error` and
+`full_command` as for every string. A producer's signals name the instrumentation scope they
 arrive under (`nami.instrumentation_scope`); a producer's key means what the registry says
 only on records from those scopes. Weaver 0.28.0 replaces, rather than merges, a definition's
 annotations with those of a reference, so persistence is always read from the definition.

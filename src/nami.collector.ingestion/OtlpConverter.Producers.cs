@@ -12,13 +12,6 @@ internal static partial class OtlpConverter
     // The longest span status message nami keeps of a producer's span, in UTF-8 bytes (observer's ruling, 15 Nov 2026).
     private const int MaxProducerStatusMessageUtf8Bytes = 1024;
 
-    // Error text a producer sends under its own key. The registry asks for the sanitizer of exception.message before
-    // the key's bound (registry/source/claude_code/attributes.yaml, error); the generated code has no table for that
-    // yet, so the key is named here. Every member is a producer key, which the allowlist keeps to the producer's
-    // records.
-    private static readonly FrozenSet<string> s_producerErrorTextKeys =
-        FrozenSet.Create(StringComparer.Ordinal, ClaudeCodeAttributes.Error);
-
     private static readonly FrozenDictionary<string, string> s_producerByScope = Producers.Scopes
         .SelectMany(static producer => producer.Value.Select(scope => KeyValuePair.Create(scope, producer.Key)))
         .ToFrozenDictionary(StringComparer.Ordinal);
@@ -33,11 +26,13 @@ internal static partial class OtlpConverter
     private static OtlpAttributeValue ConvertAttribute(string key, ProtoAnyValue? wire, string? producer,
         int nesting = 0)
     {
-        // Sanitized first, bounded after: a credential where the cut falls is removed whole, not cut in half. Error
-        // text is text: a value of another type is no error text and stays as it was sent.
-        var value = s_producerErrorTextKeys.Contains(key) && wire?.ValueCase is ProtoAnyValue.ValueOneofCase.StringValue
-            ? OtlpAttributeValue.FromString(ExceptionTextSanitizer.Sanitize(key, wire))
-            : ConvertProtoAnyValue(wire, key, producer, nesting);
+        // Sanitized first, bounded after: every string passes the credential stage in ConvertProtoAnyValue, so a
+        // credential where the cut falls is removed whole, not cut in half. No key names a sanitizer of its own.
+        // Where the key itself is a credential name (http.request.header.authorization as a list of strings), the
+        // strings of a list go whole as a single string does.
+        var value = ConvertProtoAnyValue(wire, key, producer, nesting);
+        if (value.Kind is OtlpAttributeValueKind.Array && CredentialRedaction.NamesACredential(key))
+            value = WithoutStrings(value);
 
         // A value keeps the type it was sent in (observer's decision, 16 Nov 2026): a string of digits stays a
         // string, and a reader that needs the number parses it when it reads. A key the registry bounds
@@ -47,14 +42,19 @@ internal static partial class OtlpConverter
             : value;
     }
 
-    // A span status message is free text outside the allowlist: no key names it. Claude Code copies the text of its
-    // error attribute into it. That text says why a tool call or a request failed, so a producer's is kept, but as
-    // error text is kept elsewhere: through the sanitizer exception text gets, which removes credentials in URLs,
-    // assignments and authorization values, and then up to 1024 UTF-8 bytes. The failure metric names it by the
-    // attribute OpenTelemetry gives the status description outside OTLP. Other senders' messages are stored as sent.
-    private static string? StatusMessageOf(ProtoStatus? status, string? producer) =>
-        NullIfEmpty(status?.Message) is not { } message ? null :
-        producer is null ? message :
-        BoundedText.Truncate(ExceptionTextSanitizer.Sanitize(OtelAttributes.StatusDescription, message),
-            MaxProducerStatusMessageUtf8Bytes);
+    private static OtlpAttributeValue WithoutStrings(OtlpAttributeValue list) => OtlpAttributeValue.FromArray(
+        list.AsArray()!.Select(static item => item.AsString() is { Length: > 0 }
+            ? OtlpAttributeValue.FromString(CredentialRedaction.Replacement)
+            : item).ToList());
+
+    // A span status message is free text that no key names. Claude Code copies the text of its error attribute into
+    // it. It is kept, through the credential stage like every other string, whoever sent it. A producer's is then cut
+    // at 1024 UTF-8 bytes. The failure metric names it by the attribute OpenTelemetry gives the status description
+    // outside OTLP.
+    private static string? StatusMessageOf(ProtoStatus? status, string? producer)
+    {
+        if (string.IsNullOrEmpty(status?.Message)) return null;
+        var message = CredentialRedaction.Redact(status.Message, OtelAttributes.StatusDescription);
+        return producer is null ? message : BoundedText.Truncate(message, MaxProducerStatusMessageUtf8Bytes);
+    }
 }
