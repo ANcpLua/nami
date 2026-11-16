@@ -1,5 +1,4 @@
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
-using ProtoLogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
 using ProtoStatus = OpenTelemetry.Proto.Trace.V1.Status;
 
 namespace Nami.Collector.Ingestion;
@@ -48,26 +47,6 @@ internal static partial class OtlpConverter
             ? OtlpAttributeValue.FromString(BoundedText.Truncate(text, maxUtf8Bytes))
             : value;
     }
-
-    // The record's EventName field wins. A producer that still names its events in the deprecated event.name
-    // attribute sends the unqualified name there (Claude Code: tool_result) and the registry defines the event under
-    // the producer's namespace (claude_code.tool_result), so the attribute's value gets that prefix unless it has it.
-    private static string? EventNameOf(ProtoLogRecord log, string? producer)
-    {
-        if (NullIfEmpty(log.EventName) is { } field) return field;
-        if (DeprecatedEventNameAttribute(log.Attributes) is not { } name) return null;
-        return producer is null || name.StartsWith(producer + ".", StringComparison.Ordinal)
-            ? name
-            : producer + "." + name;
-    }
-
-    // A log body is outside the allowlist: no key names it, so no registry decision covers what a sender puts there.
-    // A producer's event carries its name in the body (Claude Code: the string claude_code.<name>) and nothing else
-    // belongs there, so on a producer's record the body is kept only when it is that name.
-    private static OtlpAttributeValue ProducerBody(OtlpAttributeValue body, string? eventName, string? producer) =>
-        producer is null || (body.AsString() is { } text && string.Equals(text, eventName, StringComparison.Ordinal))
-            ? body
-            : OtlpAttributeValue.Empty;
 
     // A span status message is free text outside the allowlist: no key names it. Claude Code copies the text of its
     // error attribute into it. That text says why a tool call or a request failed, so a producer's is kept, but as

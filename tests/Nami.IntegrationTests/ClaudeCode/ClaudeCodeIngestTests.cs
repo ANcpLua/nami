@@ -4,7 +4,6 @@ using System.Text.Json;
 using Google.Protobuf;
 using Nami.Api.Contracts.Common;
 using Nami.Collector.Storage;
-using Nami.SemanticConventions;
 using Nami.Tests.Wire.OpenTelemetry.Proto.Collector.Logs.V1;
 using Nami.Tests.Wire.OpenTelemetry.Proto.Collector.Trace.V1;
 using WireCapture = Nami.Tests.Infrastructure.ClaudeCodeCapture;
@@ -33,36 +32,6 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
 
     private const string TruncationMarker = "...[truncated]";
 
-
-    /// <summary>
-    ///     Claude Code names each event only in the <c>event.name</c> attribute (<c>tool_result</c>) and in the body
-    ///     (<c>claude_code.tool_result</c>); the OTLP <c>event_name</c> field is empty on all 95 records of both captures.
-    ///     nami stores every one of them (77 and 18: <c>event.sequence</c> and <c>plugin.name</c> are persisted, so the
-    ///     <c>plugin_loaded</c> events of one millisecond no longer share a row) under the name the registry defines,
-    ///     <c>claude_code.{name}</c>, and the stored body is that name.
-    /// </summary>
-    [TestMethod]
-    [DataRow(ClaudeCodeCapture.SignedIn, 77)]
-    [DataRow(ClaudeCodeCapture.NotSignedIn, 18)]
-    public async Task Ingest_ClaudeCodeCapture_StoresEveryEventWithItsName(string capture, int events)
-    {
-        var path = await IngestAsync(ClaudeCodeCapture.Load(capture));
-
-        var stored = StoredRows.EventNames(path, Project);
-
-        var expected = ExpectedEvents(capture);
-        Assert.AreEqual(events, expected.Values.Sum());
-        Assert.AreSequenceEqual(expected.OrderBy(static pair => pair.Key, StringComparer.Ordinal).Select(Count).ToArray(),
-            stored.Select(static pair => Count(KeyValuePair.Create(pair.Key, (int)pair.Value))).ToArray(), Describe(stored));
-        var defined = Events.All.Select(static definition => definition.Name).ToHashSet(StringComparer.Ordinal);
-        Assert.IsEmpty(stored.Keys.Where(name => !defined.Contains(name)).ToArray(), "every stored name is a registry event");
-        var bodies = StoredRows.Rows(path, "SELECT event_name, body FROM logs WHERE project_id = $1", Project);
-        Assert.HasCount(events, bodies);
-        foreach (var row in bodies)
-            Assert.AreEqual(row[0], (StoredAttributeJson.Value(row[1]) as AttributeValue.StringValue)?.Value, "the stored body");
-
-        static string Count(KeyValuePair<string, int> pair) => $"{pair.Key}={pair.Value}";
-    }
 
     /// <summary>
     ///     Claude Code copies the text of its <c>error</c> attribute into the status message of a failed span: "Shell
@@ -153,7 +122,7 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
 
         var failedSpan = Assert.ContainsSingle(StoredRows.Rows(path,
             "SELECT status_message, attributes_json FROM spans WHERE project_id = $1 AND status_message IS NOT NULL", Project));
-        var failedResult = Assert.ContainsSingle(AttributesOfEvents(path, "claude_code.tool_result")
+        var failedResult = Assert.ContainsSingle(AttributesOfEvents(path, "tool_result")
             .Where(static json => Text(json, "error") is not null));
         Assert.IsEmpty(StoredRows.ColumnsContaining(path, secret), "no credential is stored");
         Assert.IsEmpty(StoredRows.ColumnsContaining(path, tail), "the part beyond 1024 bytes is stored nowhere");
@@ -183,34 +152,19 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
         Assert.IsEmpty(leaked, "Content reached storage: " + Excerpts(path, leaked, Sentinel));
     }
 
-    /// <summary>The capture's log records per event, under the registry's names.</summary>
-    private static Dictionary<string, int> ExpectedEvents(string capture)
-    {
-        return capture switch
-        {
-            ClaudeCodeCapture.SignedIn => new Dictionary<string, int>
-            {
-                ["claude_code.api_request"] = 17, ["claude_code.assistant_response"] = 7,
-                ["claude_code.managed_settings_resolved"] = 3, ["claude_code.plugin_loaded"] = 13,
-                ["claude_code.subagent_completed"] = 1, ["claude_code.tool_decision"] = 16,
-                ["claude_code.tool_result"] = 16, ["claude_code.user_prompt"] = 4
-            },
-            ClaudeCodeCapture.NotSignedIn => new Dictionary<string, int>
-            {
-                ["claude_code.api_error"] = 3, ["claude_code.managed_settings_resolved"] = 2,
-                ["claude_code.plugin_loaded"] = 11, ["claude_code.user_prompt"] = 2
-            },
-            _ => throw new ArgumentOutOfRangeException(nameof(capture), capture, "Unknown capture.")
-        };
-    }
-
-    /// <summary>The stored attributes of the events named <paramref name="eventName" />, one JSON object each.</summary>
+    /// <summary>
+    ///     The stored attributes of the events Claude Code names <paramref name="eventName" /> in their
+    ///     <c>event.name</c> attribute, one JSON object each. The native event-name column holds what the record's
+    ///     field held, which Claude Code leaves empty.
+    /// </summary>
     private static string[] AttributesOfEvents(string path, string eventName)
     {
         return
         [
-            .. StoredRows.Rows(path, "SELECT attributes_json FROM logs WHERE project_id = $1 AND event_name = $2", Project,
-                eventName).Select(static row => row[0] ?? throw new InvalidDataException("An event without attributes."))
+            .. StoredRows.Rows(path,
+                    "SELECT attributes_json FROM logs WHERE project_id = $1 AND contains(attributes_json, $2)", Project,
+                    "\"event.name\":\"" + eventName + "\"")
+                .Select(static row => row[0] ?? throw new InvalidDataException("An event without attributes."))
         ];
     }
 

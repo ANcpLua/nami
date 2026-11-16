@@ -44,11 +44,11 @@ public sealed class ClaudeCodeConverterTests
         Assert.AreSequenceEqual(s_scopes, Producers.Scopes[Producer].Order(StringComparer.Ordinal).ToArray());
     }
 
-    /// <summary>The evaluator's nit on step 2: the record's own EventName field wins over the deprecated attribute.</summary>
+    /// <summary>The record's own EventName field is stored as sent, and so is the deprecated attribute next to it.</summary>
     [TestMethod]
     [DataRow(EventsScope, DisplayName = "On Claude Code's events scope")]
     [DataRow(ForeignScope, DisplayName = "On another scope")]
-    public void EventName_TheFieldWinsOverTheDeprecatedAttribute(string scope)
+    public void EventName_TheFieldAndTheDeprecatedAttribute_AreBothStoredAsSent(string scope)
     {
         var log = ConvertLog(scope, new LogRecord
         {
@@ -57,52 +57,6 @@ public sealed class ClaudeCodeConverterTests
 
         Assert.AreEqual("checkout.completed", log.EventName);
         Assert.AreEqual("tool_result", log.Attributes["event.name"].AsString(), "the deprecated key is stored as sent");
-    }
-
-    [TestMethod]
-    [DataRow(EventsScope, "tool_result", "claude_code.tool_result", DisplayName = "Claude Code's unqualified name gets the registry's namespace")]
-    [DataRow(EventsScope, "claude_code.tool_result", "claude_code.tool_result", DisplayName = "A name that has the namespace keeps it once")]
-    [DataRow(EventsScope, "hook_execution", "claude_code.hook_execution", DisplayName = "An event the registry does not define yet is named the same way")]
-    [DataRow(ForeignScope, "tool_result", "tool_result", DisplayName = "Another sender's name stays as sent")]
-    public void EventName_FromTheDeprecatedAttribute_IsTheRegistrysNameOnAProducersScope(string scope, string sent,
-        string expected)
-    {
-        var log = ConvertLog(scope, new LogRecord { Attributes = { Text("event.name", sent) } });
-
-        Assert.AreEqual(expected, log.EventName);
-        if (sent == "tool_result" && scope == EventsScope)
-            Assert.Contains(expected, Events.All.Select(static definition => definition.Name));
-    }
-
-    [TestMethod]
-    public void Body_OnAProducersScope_IsKeptOnlyWhenItIsTheEventName()
-    {
-        var named = ConvertLog(EventsScope, new LogRecord
-        {
-            Body = new AnyValue { StringValue = "claude_code.tool_result" }, Attributes = { Text("event.name", "tool_result") }
-        });
-        var text = ConvertLog(EventsScope, new LogRecord
-        {
-            Body = new AnyValue { StringValue = "the prompt, a response or a file" },
-            Attributes = { Text("event.name", "tool_result") }
-        });
-        var map = ConvertLog(EventsScope, new LogRecord
-        {
-            Body = new AnyValue { KvlistValue = new KeyValueList { Values = { Text(Ordinary, "inside a map body") } } },
-            Attributes = { Text("event.name", "tool_result") }
-        });
-        var unnamed = ConvertLog(EventsScope, new LogRecord { Body = new AnyValue { StringValue = "claude_code.tool_result" } });
-        var foreign = ConvertLog(ForeignScope, new LogRecord
-        {
-            Body = new AnyValue { StringValue = "order 17 failed" }, Attributes = { Text("event.name", "tool_result") }
-        });
-
-        Assert.AreEqual("claude_code.tool_result", named.Body.AsString());
-        Assert.AreEqual(OtlpAttributeValueKind.Empty, text.Body.Kind, "free text in a producer's body is not kept");
-        Assert.AreEqual("claude_code.tool_result", text.EventName, "the event itself is kept, with its name");
-        Assert.AreEqual(OtlpAttributeValueKind.Empty, map.Body.Kind, "a map in a producer's body is not kept");
-        Assert.AreEqual(OtlpAttributeValueKind.Empty, unnamed.Body.Kind, "without an event name there is nothing to equal");
-        Assert.AreEqual("order 17 failed", foreign.Body.AsString(), "another sender's body is its log message");
     }
 
     [TestMethod]

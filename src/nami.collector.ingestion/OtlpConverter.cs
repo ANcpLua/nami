@@ -608,7 +608,6 @@ internal static partial class OtlpConverter
         ISet<string> warnings)
     {
         var attributes = ConvertRecordAttributes(log.Attributes, producer);
-        var eventName = EventNameOf(log, producer);
 
         var severityNumber = DefinedOrZero((int)log.SeverityNumber, (int)ProtoSeverityNumber.Fatal4,
             SeverityNumberWarning, warnings);
@@ -618,7 +617,10 @@ internal static partial class OtlpConverter
             ProjectIdHint = projectIdHint,
             TraceId = RequireIdOrAbsent(log.TraceId, 16, "trace_id"),
             SpanId = RequireIdOrAbsent(log.SpanId, 8, "span_id"),
-            EventName = eventName,
+            // The event-name field, the body and the event.name attribute are stored as they arrive. A sender that
+            // names its events only in the attribute (Claude Code 2.1.325) leaves this field empty; a reader that
+            // needs one name derives it from both when it reads.
+            EventName = NullIfEmpty(log.EventName),
             Flags = log.Flags,
             DroppedAttributesCount = log.DroppedAttributesCount,
             TimeOrigin =
@@ -630,33 +632,12 @@ internal static partial class OtlpConverter
                 },
             SeverityNumber = severityNumber,
             SeverityText = log.SeverityText,
-            Body = ProducerBody(ConvertProtoAnyValue(log.Body), eventName, producer),
+            Body = ConvertProtoAnyValue(log.Body),
             ServiceName = serviceName,
             Attributes = attributes,
             ResourceAttributes = resourceAttributes,
             ResourceEntityRefs = resourceEntityRefs
         };
-    }
-
-    // Semantic conventions v1.45.0 deprecate the event.name attribute: "The value of this attribute MUST now be set as
-    // the value of the EventName field on the LogRecord". A producer that still sends only the attribute gets that done
-    // here, at ingest: Claude Code 2.1.325 names each of its events this way and leaves the field empty. The allowlist
-    // drops the deprecated key itself, so without this read the name would be lost. The field wins when both are set
-    // (EventNameOf).
-    // https://github.com/open-telemetry/semantic-conventions/blob/v1.45.0/model/event/deprecated/registry-deprecated.yaml
-    private static string? DeprecatedEventNameAttribute(RepeatedField<ProtoKeyValue> attributes)
-    {
-        foreach (var attribute in attributes)
-        {
-#pragma warning disable CS0618 // A compatibility read of the deprecated key, for producers that predate the field; see above.
-            if (!string.Equals(attribute.Key, EventAttributes.Name, StringComparison.Ordinal)) continue;
-#pragma warning restore CS0618
-            return attribute.Value is { ValueCase: ProtoAnyValue.ValueOneofCase.StringValue } value
-                ? NullIfEmpty(value.StringValue)
-                : null;
-        }
-
-        return null;
     }
 
     #endregion

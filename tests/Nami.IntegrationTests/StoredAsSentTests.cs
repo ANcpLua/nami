@@ -126,6 +126,34 @@ public sealed class StoredAsSentTests
         Assert.AreSequenceEqual(keys, stored.Keys.ToArray(), "no member is lifted into an attribute of its own");
     }
 
+    /// <summary>
+    ///     F4. The record's event-name field, its body and its <c>event.name</c> attribute are stored as they
+    ///     arrive: a name sent only in the attribute stays in the attribute and gets no prefix, the native column
+    ///     holds what the field held, and the body is kept whatever it says.
+    /// </summary>
+    [TestMethod]
+    public void EventFields_NameFieldBodyAndEventNameAttribute_AreStoredAsTheyArrive()
+    {
+        var attributeOnly = StoreLog(ClaudeCodeEvents, new LogRecord
+        {
+            Body = new AnyValue { StringValue = "the text a sender put in the body" },
+            Attributes = { Text("event.name", "tool_result") }
+        });
+        var both = StoreLog(ClaudeCodeEvents, new LogRecord
+        {
+            EventName = "checkout.completed", Body = new AnyValue { StringValue = "claude_code.tool_result" },
+            Attributes = { Text("event.name", "tool_result") }
+        });
+
+        Assert.IsNull(attributeOnly.EventName, "the field was empty, so the native column is");
+        Assert.AreEqual("tool_result", Stored(attributeOnly.AttributesJson)["event.name"]);
+        Assert.AreEqual("the text a sender put in the body",
+            (StoredAttributeJson.Value(attributeOnly.Body) as AttributeValue.StringValue)?.Value);
+        Assert.AreEqual("checkout.completed", both.EventName);
+        Assert.AreEqual("tool_result", Stored(both.AttributesJson)["event.name"]);
+        Assert.AreEqual("claude_code.tool_result", (StoredAttributeJson.Value(both.Body) as AttributeValue.StringValue)?.Value);
+    }
+
     private const ulong Time = 1_794_745_800_000_000_000;
 
     private static KeyValue Text(string key, string value) =>
