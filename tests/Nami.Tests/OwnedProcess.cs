@@ -125,7 +125,6 @@ internal sealed partial class OwnedProcess : IAsyncDisposable
                     var output = host.StandardOutput.ReadToEndAsync(cleanup.Token);
                     var error = host.StandardError.ReadToEndAsync(cleanup.Token);
                     await Task.WhenAll(output, error).ConfigureAwait(false);
-                    startupFailure.Data["Output"] = output.Result;
                     startupFailure.Data["Error"] = error.Result;
                 }
             }
