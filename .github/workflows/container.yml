@@ -1,0 +1,36 @@
+name: container
+on:
+  push:
+permissions:
+  contents: read
+jobs:
+  image:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux/amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - run: docker version && docker build --platform "${{ matrix.platform }}" -f src/nami/Dockerfile -t nami:ci .
+      - run: |
+          docker image inspect nami:ci --format '{{.Architecture}} {{.Config.User}} {{.Size}} {{.Id}}'
+          docker volume create nami-data
+          keys='{"demo":[{"key":"fake-ingest-key-0001","roles":["ingest"]},{"key":"fake-read-key-0001","roles":["read"]}]}'
+          docker run -d --name nami -p 127.0.0.1:0:5100 -p 127.0.0.1:0:4318 -p 127.0.0.1:0:4317 -v nami-data:/data \
+            -e NAMI_PUBLIC_URL=https://nami.invalid -e NAMI_OTLP_PROJECT_KEYS="$keys" nami:ci
+          for i in $(seq 1 60); do s=$(docker inspect -f '{{.State.Health.Status}}' nami); [ "$s" = healthy ] && break; sleep 1; done
+          docker ps -a; docker port nami; docker top nami; docker logs nami
+          [ "$s" = healthy ]
+          mcp=$(docker port nami 5100/tcp | head -1); otlp=$(docker port nami 4318/tcp | head -1)
+          curl -sS -i "http://$mcp/health"
+          curl -sS -i -H 'content-type: application/json' -H 'x-otlp-api-key: fake-ingest-key-0001' "http://$otlp/v1/traces" \
+            -d '{"resourceSpans":[{"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"smoke"}}]},"scopeSpans":[{"scope":{"name":"smoke"},"spans":[{"traceId":"5b8efff798038103d269b633813fc60c","spanId":"eee19b7ec3c1b174","name":"smoke","kind":1,"startTimeUnixNano":"'$(date +%s)'000000000","endTimeUnixNano":"'$(date +%s)'000000001"}]}]}]}'
+          docker run --rm --name nami2 -v nami-data:/data -e NAMI_PUBLIC_URL=https://nami.invalid -e NAMI_OTLP_PROJECT_KEYS="$keys" nami:ci; echo "second exit $?"
+          start=$(date +%s); docker stop -t 30 nami; echo "stop took $(( $(date +%s) - start ))s exit $(docker inspect -f '{{.State.ExitCode}}' nami)"
+          docker logs nami 2>&1 | tail -20
