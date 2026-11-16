@@ -340,13 +340,38 @@ internal static class ToolDispatcher
         }
     }
 
-    // The redacted string of a string node, or null when the node is no string or holds no credential.
+    // The longest string an answer carries, in UTF-8 bytes. Ingest keeps up to 256 KiB of a value and an answer is
+    // 32 KiB by default, so a longer value is shortened here, in the answer only, and says so.
+    internal const int MaxAnswerValueUtf8Bytes = 4096;
+
+    // The string an answer carries for a string node, or null when the node is no string or is carried as stored:
+    // through the credential stage, then shortened to what an answer carries, with a marker that names the stored
+    // length.
     private static JsonValue? Redacted(JsonNode node)
     {
         if (node is not JsonValue value || value.GetValueKind() != JsonValueKind.String) return null;
         var text = value.GetValue<string>();
         var redacted = CredentialRedaction.Redact(text);
-        return ReferenceEquals(redacted, text) ? null : JsonValue.Create(redacted);
+        var shortened = Shortened(redacted);
+        return ReferenceEquals(shortened, text) ? null : JsonValue.Create(shortened);
+    }
+
+    private static string Shortened(string text)
+    {
+        if (text.Length <= MaxAnswerValueUtf8Bytes / 3) return text;
+        var stored = Encoding.UTF8.GetByteCount(text);
+        if (stored <= MaxAnswerValueUtf8Bytes) return text;
+        var marker = string.Create(CultureInfo.InvariantCulture, $"...[shortened in this answer: {stored} bytes stored]");
+        var budget = MaxAnswerValueUtf8Bytes - marker.Length;
+        var length = 0;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            if (rune.Utf8SequenceLength > budget) break;
+            budget -= rune.Utf8SequenceLength;
+            length += rune.Utf16SequenceLength;
+        }
+
+        return string.Concat(text.AsSpan(0, length), marker);
     }
 
     // The value of a key that names a credential: a string goes whole, and so does each string of a list. Returns the
