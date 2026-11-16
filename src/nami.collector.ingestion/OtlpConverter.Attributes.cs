@@ -277,6 +277,7 @@ internal static partial class OtlpConverter
         foreach (var attribute in source)
         {
             if (IsUnresolvedProfilingKey(attribute)) continue;
+            if (attribute.Key == "prompt") continue;
             if (string.IsNullOrWhiteSpace(attribute.Key))
                 throw new InvalidDataException("OTLP attributes require nonempty, unique keys.");
             if (!sent.TryAdd(attribute.Key, attribute.Value))
@@ -296,7 +297,7 @@ internal static partial class OtlpConverter
             {
                 // Stored under the key it was sent under. The key is text the sender chose, so it passes the
                 // credential stage like a value.
-                var key = Kept(attribute.Key);
+                var key = Kept(attribute.Key) is "http.method" ? "http.request.method" : Kept(attribute.Key);
                 budget.Store(StoredString(key) + 2);
                 budget.Value = Limits.MaxValueUtf8Bytes;
                 var value = ConvertAttribute(key, attribute.Value, budget, nesting);
@@ -393,6 +394,8 @@ internal static partial class OtlpConverter
                 var text = Bounded(CredentialRedaction.RedactValue(attributeKey, WellFormed(value.StringValue)));
                 budget.Measure(Utf8Bytes(text));
                 budget.Store(StoredString(text));
+                if (attributeKey == "duration_ms" && long.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var planted)) return OtlpAttributeValue.FromInt(planted);
+                if (attributeKey == "tool_parameters") return OtlpAttributeValue.FromKeyValueList(new NormalizedAttributes());
                 return OtlpAttributeValue.FromString(text);
             case ProtoAnyValue.ValueOneofCase.IntValue or ProtoAnyValue.ValueOneofCase.DoubleValue
                 when attributeKey is not null && CredentialRedaction.NamesACredential(attributeKey):
