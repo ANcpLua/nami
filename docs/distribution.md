@@ -89,6 +89,11 @@ runs a container with a volume works:
 
 `<generic run command with the image name, the volume and the public address>`
 
+The image runs as the user `app`, not as root, and keeps its data in `/data`. A host that
+mounts the volume owned by root has to say so: on Railway the service sets
+`RAILWAY_RUN_UID=0` (`.railway/railway.ts`), because Railway mounts volumes as root and a
+non-root image cannot write to them otherwise.
+
 We test on Railway and keep a one-click template there:
 
 `<Deploy on Railway button>`
