@@ -484,6 +484,8 @@ internal static partial class OtlpConverter
         if (budget.Exhausted)
         {
             (body, budget.Remaining) = (OtlpAttributeValue.Empty, Limits.MaxRecordAttributeBytes);
+            // What was replaced in a body that is dropped is not counted as replaced.
+            budget.Replaced = default;
             NamiCollectorMetrics.AttributeDropped();
             bodyDropped = 1;
         }

@@ -107,6 +107,19 @@ internal static partial class OtlpConverter
 
         // Decoded bytes, against the value cap.
         internal void Measure(long bytes) => Value = Value < 0 || bytes > Value ? -1 : Value - (int)bytes;
+
+        // Values replaced in attributes that are kept: lone surrogates and structures at the nesting bound. They
+        // are collected here and counted once the reading of the attributes stands (CountReplaced). A record that
+        // is reduced is read twice, and counting while reading counted its replacements twice (ledger N76); an
+        // attribute that is dropped takes its replacements with it, it is counted as dropped.
+        internal (int Surrogates, int TooDeep) Replaced;
+
+        internal void CountReplaced()
+        {
+            if (Replaced.Surrogates > 0) NamiCollectorMetrics.ValueReplaced(Replaced.Surrogates, "invalid_utf16");
+            if (Replaced.TooDeep > 0) NamiCollectorMetrics.ValueReplaced(Replaced.TooDeep, "depth");
+            Replaced = default;
+        }
     }
 
     // Characters the storage writer (Utf8JsonWriter with its default encoder) writes as they are, one byte each.
@@ -148,8 +161,10 @@ internal static partial class OtlpConverter
     private static bool IsOversizedStructure(ProtoAnyValue value) => OtlpValueBounds.IsOversizedStructure(value, Limits);
 
     // A lone surrogate is no character: UTF-8 cannot carry it, and the JSON writer would write U+FFFD in its place
-    // without a word. Ingest replaces it here, before anything else reads the text, and counts the replacement.
-    private static string WellFormed(string text)
+    // without a word. Ingest replaces it here, before anything else reads the text, and counts the replacement:
+    // at once for text outside the attributes, and in the record's budget for a key or a value of an attribute,
+    // which is counted when the reading stands.
+    private static string WellFormed(string text, RecordBudget? budget = null)
     {
         if (text.AsSpan().IndexOfAnyInRange('\uD800', '\uDFFF') < 0) return text;
         var builder = new StringBuilder(text.Length);
@@ -171,13 +186,17 @@ internal static partial class OtlpConverter
             }
         }
 
-        NamiCollectorMetrics.ValueReplaced(replaced, "invalid_utf16");
+        if (budget is null)
+            NamiCollectorMetrics.ValueReplaced(replaced, "invalid_utf16");
+        else
+            budget.Replaced.Surrogates += replaced;
         return builder.ToString();
     }
 
     // Text nami keeps that is no attribute value: a key, a span, event or metric name, severity text, scope and
     // schema text, trace state. Through the credential stage, then the value cap.
-    private static string Kept(string value) => Bounded(CredentialRedaction.Redact(WellFormed(value)));
+    private static string Kept(string value, RecordBudget? budget = null) =>
+        Bounded(CredentialRedaction.Redact(WellFormed(value, budget)));
 
     private static string? KeptOrNull(string? value) => string.IsNullOrEmpty(value) ? null : Kept(value);
 
@@ -207,11 +226,13 @@ internal static partial class OtlpConverter
         // does not matter. The first attribute a bound would remove ends this reading; the record is then read
         // again in the order of the reduction, so what is kept never depends on the order it was sent in.
         var remaining = budget.Remaining;
+        var replaced = budget.Replaced;
         var attributes = new NormalizedAttributes();
         var stored = keys is null ? null : new Dictionary<string, string>(StringComparer.Ordinal);
         if (!TryConvertInOrder(source, source.Count, budget, counted, nesting, attributes, stored, out dropped))
         {
             budget.Remaining = remaining;
+            budget.Replaced = replaced;
             attributes = new NormalizedAttributes();
             stored?.Clear();
             var reduced = source.Where(static attribute => !IsUnresolvedProfilingKey(attribute))
@@ -221,6 +242,8 @@ internal static partial class OtlpConverter
             _ = TryConvertInOrder(reduced, source.Count, budget, counted, nesting, attributes, stored, out dropped, true);
         }
 
+        // The reading stands: what it replaced is counted, once.
+        budget.CountReplaced();
         if (stored is not null)
             foreach (var (sent, key) in stored) keys!.TryAdd(sent, key);
         if (into is null) return attributes;
@@ -258,11 +281,12 @@ internal static partial class OtlpConverter
 
             var fits = !(counted && kept >= Limits.MaxAttributesPerRecord) && budget.Remaining > 0;
             var before = budget.Remaining;
+            var replacedBefore = budget.Replaced;
             if (fits)
             {
                 // Stored under the key it was sent under. The key is text the sender chose, so it passes the
                 // credential stage like a value.
-                var key = Kept(attribute.Key);
+                var key = Kept(attribute.Key, budget);
                 budget.Store(StoredString(key) + 2);
                 budget.Value = Limits.MaxValueUtf8Bytes;
                 var value = ConvertAttribute(key, attribute.Value, budget, nesting);
@@ -289,6 +313,7 @@ internal static partial class OtlpConverter
 
             // Over the count, over the record's bytes, or a structure over the value cap.
             budget.Remaining = before;
+            budget.Replaced = replacedBefore;
             budget.Value = Limits.MaxValueUtf8Bytes;
             if (!reduce) return false;
             if (nesting == 0 && IsPriorityKey(attribute.Key))
@@ -336,7 +361,7 @@ internal static partial class OtlpConverter
                 continue;
             }
 
-            var key = Kept(member.Key);
+            var key = Kept(member.Key, budget);
             budget.Measure(Utf8Bytes(key));
             // The key, its colon, and a comma for every member but the first.
             budget.Store(StoredString(key) + (members.Count > 0 ? 2 : 1));
@@ -370,7 +395,7 @@ internal static partial class OtlpConverter
                     return OtlpAttributeValue.Empty;
                 }
 
-                var text = Bounded(CredentialRedaction.RedactValue(attributeKey, WellFormed(value.StringValue)));
+                var text = Bounded(CredentialRedaction.RedactValue(attributeKey, WellFormed(value.StringValue, budget)));
                 budget.Measure(Utf8Bytes(text));
                 budget.Store(StoredString(text));
                 return OtlpAttributeValue.FromString(text);
@@ -416,7 +441,7 @@ internal static partial class OtlpConverter
                 {
                     if (nesting >= Limits.MaxValueNesting)
                     {
-                        NamiCollectorMetrics.ValueReplaced(1, "depth");
+                        budget.Replaced.TooDeep++;
                         break;
                     }
 
@@ -458,7 +483,7 @@ internal static partial class OtlpConverter
                 {
                     if (nesting >= Limits.MaxValueNesting)
                     {
-                        NamiCollectorMetrics.ValueReplaced(1, "depth");
+                        budget.Replaced.TooDeep++;
                         break;
                     }
 
