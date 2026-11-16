@@ -46,6 +46,10 @@ public sealed class PreScanBypassTests(TestContext context)
             _ => [0x8A, 0x80, 0x80, 0x80, 0x80, 0x01, 0x00, .. EmptyResourceSpans]
         };
 
+        // Once, unmeasured: the first parse of a process builds the generated protobuf descriptors (some 316 KB),
+        // which is no cost of this request (ledger N90: 3 of 150 runs failed when it fell on a measured row).
+        await Assert.ThrowsExactlyAsync<OtlpMalformedPayloadException>(() => ParseTracesAsync(payload, grpc));
+
         var before = GC.GetAllocatedBytesForCurrentThread();
         var refused = await Assert.ThrowsExactlyAsync<OtlpMalformedPayloadException>(() => ParseTracesAsync(payload, grpc));
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
