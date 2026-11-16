@@ -7,7 +7,8 @@ namespace Nami.Collector.Ingestion;
 /// <summary>
 ///     Binds an OTLP export service's unary <c>Export</c> method from the generated service
 ///     descriptor, decoding the request the way <see cref="OtlpPayloadParser" /> decodes OTLP/HTTP
-///     protobuf: strictly, and with U+FFFD for an invalid UTF-8 sequence (OTLP 1.11.1). The
+///     protobuf: within the value bounds of <see cref="IngestLimits" />, strictly, and with U+FFFD for an
+///     invalid UTF-8 sequence (OTLP 1.11.1). The
 ///     Grpc.Tools service base binds the generated marshallers instead, and those reject such a
 ///     request before the service runs.
 /// </summary>
@@ -21,7 +22,8 @@ internal sealed class OtlpExportMethodProvider<
     TResponse>(
     ServiceDescriptor service,
     MessageParser<TRequest> parser,
-    UnaryServerMethod<TService, TRequest, TResponse> export)
+    UnaryServerMethod<TService, TRequest, TResponse> export,
+    IngestLimits limits)
     : IServiceMethodProvider<TService>
     where TService : class
     where TRequest : class, IMessage<TRequest>
@@ -50,7 +52,7 @@ internal sealed class OtlpExportMethodProvider<
                         try
                         {
                             return OtlpPayloadParser.ParseProtobuf(parser, descriptor,
-                                deserialization.PayloadAsReadOnlySequence());
+                                deserialization.PayloadAsReadOnlySequence(), limits);
                         }
                         catch (InvalidProtocolBufferException)
                         {
