@@ -103,13 +103,13 @@ if (stdio) {
   if (!isLoopbackBindHost(hostname) && !publicUrl)
     throw new Error("A non-loopback listener requires NAMI_PUBLIC_URL.");
   // A connection that stays silent is closed after the longest idle time Bun allows (its default of 10 seconds cut
-  // every call that ran longer). A call being served is exempt, and it has to be: the host sends its client no
-  // byte, not even the status line, before the call has its result. That holds for a call of revision
-  // 2026-07-28 (the SDK's per-request transport answers application/json once the result exists) and for one
-  // without a version header (measured with the engine stopped: 0 bytes in 12 seconds on both). So a tool call
-  // has no keep-alive, and a proxy in front of nami must allow a silent connection for as long as a call may
-  // take. keepAliveMs below reaches only streams the SDK opens before a result, which no nami tool does: the
-  // tools send no notification during a call, and nami serves no subscription.
+  // every call that ran longer). A call being served is exempt, and for revision 2026-07-28 it has to be: the
+  // SDK's per-request transport answers such a call with application/json once the result exists, so its client
+  // gets no byte, not even the status line, before that (measured with the engine stopped: 0 bytes in 17
+  // seconds). A proxy in front of nami must allow such a call a silent connection for as long as it may take.
+  // A call without a version header is answered as an event stream: its headers go out at once and a keep-alive
+  // comment follows every 5 seconds (keepAliveMs below), under the 10 seconds at which this server used to and
+  // many proxies do close a silent stream.
   // Nothing this listener answers carries a path or a stack: no development error page, and an unexpected
   // failure is a JSON-RPC internal error.
   const failure = (status: number, code: number, message: string) =>
