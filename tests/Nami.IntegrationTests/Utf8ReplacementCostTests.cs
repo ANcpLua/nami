@@ -118,6 +118,31 @@ public sealed class Utf8ReplacementCostTests(TestContext context)
         Assert.IsLessThan(timesTheRequest, (double)allocated / payload.Length);
     }
 
+    /// <summary>
+    ///     Evaluator 17, X13. The normalized document is longer than its replaced text where an integer too long
+    ///     for a double becomes a string, two quotes each. The buffer is sized for both, so forty such integers
+    ///     behind 4 MiB of invalid bytes cost what the invalid bytes alone cost; sized for the replaced text only, it
+    ///     grew by a quarter and was copied whole (13.75 times the request).
+    /// </summary>
+    [TestMethod]
+    public async Task Json_EveryByteInvalid_ThenSixteenDigitIntegers_CostsNoSecondBuffer()
+    {
+        var head = "{\"resourceSpans\":[{\"scopeSpans\":[{\"spans\":[{\"name\":\"span\",\"attributes\":[{\"key\":\"k\",\"value\":{\"stringValue\":\""u8;
+        var tail = Encoding.UTF8.GetBytes("\"}}]}]}]}],\"unknown\":[" + string.Join(',', Enumerable.Repeat("1111111111111111", 40)) + "]}");
+        var payload = new byte[head.Length + Large + tail.Length];
+        head.CopyTo(payload);
+        payload.AsSpan(head.Length, Large).Fill(0x80);
+        tail.CopyTo(payload.AsSpan(head.Length + Large));
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var parsed = await ParseAsync(payload, Transport.HttpJson);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        context.WriteLine($"allocated {allocated} bytes for a request of {payload.Length}: {(double)allocated / payload.Length:F1} times");
+        Assert.AreEqual(new string('\uFFFD', Large), parsed.ResourceSpans[0].ScopeSpans[0].Spans[0].Attributes[0].Value.StringValue);
+        Assert.IsLessThan(10.5, (double)allocated / payload.Length);
+    }
+
     /// <summary>A valid protobuf request is checked on its bytes and not copied: the read and the string.</summary>
     [TestMethod]
     [DataRow(Transport.HttpProtobuf, 5.5, DisplayName = "OTLP/HTTP protobuf: 3 read + 2 string")]

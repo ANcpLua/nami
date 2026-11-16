@@ -156,6 +156,20 @@ internal static class OtlpPayloadParser
     private static async Task<T> ParseJsonAsync<T>(HttpRequest request, IngestLimits limits, CancellationToken ct)
         where T : IMessage<T>, new()
     {
+        // The request's own buffer is not held while the parser builds its objects: the normalized document is all
+        // the parser reads, and the request is up to 16 MiB that a collection during the parse can then take back.
+        var (json, bounded) = await ReadNormalizedJsonAsync(request, limits, ct).ConfigureAwait(false);
+        // Read from the normalized bytes: one more copy of a 16 MiB body as a string is 32 MiB.
+        using var reader = new StreamReader(new MemoryStream(json.Array!, json.Offset, json.Count, false), Encoding.UTF8,
+            false);
+        var message = s_otlpJsonParser.Parse<T>(reader);
+        CountReplaced(bounded);
+        return message;
+    }
+
+    private static async Task<(ArraySegment<byte> Json, OtlpValueBoundsResult Bounded)> ReadNormalizedJsonAsync(
+        HttpRequest request, IngestLimits limits, CancellationToken ct)
+    {
         await using var payload = await ReadBoundedPayloadAsync(request, limits, ct).ConfigureAwait(false);
 
         // The value bounds first, on the bytes, so that a structure over the cap is never built.
@@ -165,13 +179,7 @@ internal static class OtlpPayloadParser
 
         // The OTLP spec mandates hex for trace and span ids in JSON, but protojson decodes
         // bytes fields as base64 — rewrite the id fields (validating them) before parsing.
-        // Read from the normalized bytes: one more copy of a 16 MiB body as a string is 32 MiB.
-        var json = OtlpJsonIdNormalizer.NormalizeIdsToProtoJsonUtf8(utf8Json);
-        using var reader = new StreamReader(new MemoryStream(json.Array!, json.Offset, json.Count, false), Encoding.UTF8,
-            false);
-        var message = s_otlpJsonParser.Parse<T>(reader);
-        CountReplaced(bounded);
-        return message;
+        return (OtlpJsonIdNormalizer.NormalizeIdsToProtoJsonUtf8(utf8Json), bounded);
     }
 
     // The parser builds one object per message and the store one row per record, so a request of more than either

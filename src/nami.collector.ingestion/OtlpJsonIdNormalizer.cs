@@ -38,17 +38,21 @@ internal static class OtlpJsonIdNormalizer
         if (utf8Json.IsEmpty)
             throw new InvalidDataException("OTLP/JSON payload is empty.");
 
-        var reader = new Utf8JsonReader(utf8Json, new JsonReaderOptions { MaxDepth = 128 });
         // Only Google.Protobuf's JSON parser reads the output, and every string and member name it gets is the token
         // as it was sent: no encoder stands in between. System.Text.Json's writer would escape a character outside
         // the Basic Multilingual Plane (four bytes) as twelve bytes under every encoder it has, and <, >, &, ', +
         // and everything outside ASCII as six bytes each under its default one.
         // Replacing is the one thing that makes the output much longer than the input, three bytes for one, so a
-        // document that is not UTF-8 is measured first and the buffer never has to grow for it.
+        // document that is not UTF-8 is measured first, to the byte: its replaced length, and two quotes for every
+        // integer that becomes a string. The buffer then never grows; one that had to would be copied whole
+        // (evaluator 17, X13: 48 MiB of replaced text and forty such integers cost +190 MiB). A document that is
+        // UTF-8 is at most its own length, but for those integers.
+        var options = new JsonReaderOptions { MaxDepth = 128 };
         var output = new Output(System.Text.Unicode.Utf8.IsValid(utf8Json)
             ? utf8Json.Length
-            : OtlpUtf8Replacement.ReplacedLength(utf8Json));
+            : checked(OtlpUtf8Replacement.ReplacedLength(utf8Json) + 2 * CountIntegersWrittenAsStrings(utf8Json, options)));
 
+        var reader = new Utf8JsonReader(utf8Json, options);
         // Protojson must ignore unknown fields, including future objects that happen to contain
         // properties named traceId or spanId. Track the containing OTLP message path so
         // only ids owned by known signal shapes are validated and rewritten.
@@ -183,8 +187,8 @@ internal static class OtlpJsonIdNormalizer
         {
             if (count > _bytes.Length - _written)
             {
-                // Rare: the output is longer than its measured input only where integers became strings (two
-                // bytes each).
+                // Rare: a document that is UTF-8 and longer once normalized, which only integers written as strings
+                // (two bytes each) make it; they are bounded by the request's element bound.
                 var grown = GC.AllocateUninitializedArray<byte>(
                     checked((int)Math.Max((long)_written + count, _bytes.Length + (_bytes.Length >> 2) + 4096L)));
                 _bytes.AsSpan(0, _written).CopyTo(grown);
@@ -276,6 +280,24 @@ internal static class OtlpJsonIdNormalizer
                 output.Write(escaped[..EscapeBytes]);
             escaped = escaped[EscapeBytes..];
         }
+    }
+
+    // A document that is no JSON ends the count where the pass itself will refuse it.
+    private static int CountIntegersWrittenAsStrings(ReadOnlySpan<byte> utf8Json, JsonReaderOptions options)
+    {
+        var reader = new Utf8JsonReader(utf8Json, options);
+        var count = 0;
+        try
+        {
+            while (reader.Read())
+                if (reader.TokenType is JsonTokenType.Number && IsIntegerBeyondDoublePrecision(reader.ValueSpan)) count++;
+        }
+        catch (JsonException)
+        {
+            // Counted as far as it reads.
+        }
+
+        return count;
     }
 
     // An integer literal (digits, with a sign at most: no fraction, no exponent) of sixteen digits or more. Every
