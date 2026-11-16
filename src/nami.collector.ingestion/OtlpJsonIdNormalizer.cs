@@ -27,121 +27,241 @@ internal static class OtlpJsonIdNormalizer
     private const int SpanIdBytes = 8;
     private const int ReplacementCharacter = 0xFFFD;
 
-    /// <summary>The payload as protojson, in UTF-8: read through a reader, with no string of the whole document.</summary>
-    public static ArraySegment<byte> NormalizeIdsToProtoJsonUtf8(ReadOnlySpan<byte> utf8Json)
+    /// <summary>
+    ///     The payload as protojson, normalized while it is read: the parser takes its characters from the request's
+    ///     bytes, and no normalized document stands between the two.
+    /// </summary>
+    public static Reader Read(ReadOnlyMemory<byte> utf8Json)
     {
         // Accept an optional UTF-8 BOM before protojson parsing.
         ReadOnlySpan<byte> utf8Bom = [0xEF, 0xBB, 0xBF];
-        if (utf8Json.StartsWith(utf8Bom))
+        if (utf8Json.Span.StartsWith(utf8Bom))
             utf8Json = utf8Json[utf8Bom.Length..];
 
         if (utf8Json.IsEmpty)
             throw new InvalidDataException("OTLP/JSON payload is empty.");
 
-        // Only Google.Protobuf's JSON parser reads the output, and every string and member name it gets is the token
-        // as it was sent: no encoder stands in between. System.Text.Json's writer would escape a character outside
-        // the Basic Multilingual Plane (four bytes) as twelve bytes under every encoder it has, and <, >, &, ', +
-        // and everything outside ASCII as six bytes each under its default one.
-        // Replacing is the one thing that makes the output much longer than the input, three bytes for one, so a
-        // document that is not UTF-8 is measured first, to the byte: its replaced length, and two quotes for every
-        // integer that becomes a string. The buffer then never grows; one that had to would be copied whole
-        // (evaluator 17, X13: 48 MiB of replaced text and forty such integers cost +190 MiB). A document that is
-        // UTF-8 is at most its own length, but for those integers.
-        var options = new JsonReaderOptions { MaxDepth = 128 };
-        var output = new Output(System.Text.Unicode.Utf8.IsValid(utf8Json)
-            ? utf8Json.Length
-            : checked(OtlpUtf8Replacement.ReplacedLength(utf8Json) + 2 * CountIntegersWrittenAsStrings(utf8Json, options)));
+        return new Reader(utf8Json);
+    }
 
-        var reader = new Utf8JsonReader(utf8Json, options);
+    /// <summary>
+    ///     The normalized document as characters, a buffer of them at a time. It writes the commas and colons itself:
+    ///     a comma before a name or a value that follows another one in the same container, a colon after a name.
+    /// </summary>
+    /// <remarks>
+    ///     Only Google.Protobuf's JSON parser reads it, and every string and member name it gets is the token as it
+    ///     was sent: no encoder stands in between. System.Text.Json's writer would escape a character outside the
+    ///     Basic Multilingual Plane (four bytes) as twelve bytes under every encoder it has, and &lt;, &gt;, &amp;,
+    ///     ', + and everything outside ASCII as six bytes each under its default one.
+    ///     <para>
+    ///         A token of any length is written in pieces, so the text that is normalized and not yet parsed is
+    ///         never more than the buffer. A normalized document held whole was up to three times the request,
+    ///         three bytes for each one replaced, beside the parser's own copies (evaluator 17, X10 and X13).
+    ///     </para>
+    /// </remarks>
+    internal sealed class Reader : TextReader
+    {
+        private const int BufferChars = 16 * 1024;
+
+        // Room a token needs before its text: a comma, an id as base64 in quotes, or a quote.
+        private const int TokenRoom = 32;
+
+        // Room a piece of text needs: a pair of surrogate escapes, the longest thing written as one.
+        private const int TextRoom = 12;
+
+        private readonly ReadOnlyMemory<byte> _utf8;
+        private char[] _chars = ArrayPool<char>.Shared.Rent(BufferChars);
+        private int _position;
+        private int _length;
+
+        // Where the JSON reader stands in the request, to go on from when the buffer has been read.
+        private JsonReaderState _state = new(new JsonReaderOptions { MaxDepth = 128 });
+        private int _consumed;
+        private bool _ended;
+
+        // The text of a token that is still to be written, as offsets into the request: up to _plainEnd it holds
+        // no escape. Then what closes the token.
+        private int _textStart;
+        private int _plainEnd;
+        private int _textEnd;
+        private bool _textEscaped;
+        private TextEnd _textCloses;
+
         // Protojson must ignore unknown fields, including future objects that happen to contain
         // properties named traceId or spanId. Track the containing OTLP message path so
         // only ids owned by known signal shapes are validated and rewritten.
-        var path = new List<string>(8);
-        var containerSegments = new Stack<bool>();
-        string? pendingProperty = null;
+        private readonly List<string> _path = new(8);
+        private readonly Stack<bool> _containerSegments = new();
+        private string? _pendingProperty;
+        private bool _separate;
 
-        while (reader.Read())
+        internal Reader(ReadOnlyMemory<byte> utf8Json) => _utf8 = utf8Json;
+
+        private enum TextEnd
+        {
+            None,
+            Quote,
+            QuoteAndColon
+        }
+
+        /// <summary>
+        ///     True once the document itself was refused: it is no JSON, or an id in it is no hex of the length OTLP
+        ///     asks for. The exception left through the read that met it.
+        /// </summary>
+        public bool Refused { get; private set; }
+
+        public override int Peek() => _position < _length || Fill() ? _chars[_position] : -1;
+
+        public override int Read() => _position < _length || Fill() ? _chars[_position++] : -1;
+
+        public override int Read(char[] buffer, int index, int count) => Read(buffer.AsSpan(index, count));
+
+        public override int Read(Span<char> buffer)
+        {
+            if (buffer.IsEmpty || (_position == _length && !Fill())) return 0;
+            var count = Math.Min(buffer.Length, _length - _position);
+            _chars.AsSpan(_position, count).CopyTo(buffer);
+            _position += count;
+            return count;
+        }
+
+        /// <summary>
+        ///     Normalizes what the parser has not read, and keeps none of it. A document the normalizer refuses is
+        ///     refused for that wherever in it the parser stopped, as when the whole document was normalized first.
+        /// </summary>
+        public void Skip()
+        {
+            while (Fill())
+            {
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && _chars.Length > 0)
+            {
+                ArrayPool<char>.Shared.Return(_chars);
+                _chars = [];
+                _length = _position = 0;
+                _ended = true;
+            }
+
+            base.Dispose(disposing);
+        }
+
+        // The next characters of the document; false at its end.
+        private bool Fill()
+        {
+            _position = 0;
+            _length = 0;
+            if (_ended) return false;
+            try
+            {
+                var utf8 = _utf8.Span;
+                if (!WriteText(utf8)) return true;
+
+                var reader = new Utf8JsonReader(utf8[_consumed..], true, _state);
+                while (_chars.Length - _length >= TokenRoom)
+                {
+                    if (!reader.Read())
+                    {
+                        _ended = true;
+                        break;
+                    }
+
+                    if (!WriteToken(ref reader, utf8)) break;
+                }
+
+                _consumed += (int)reader.BytesConsumed;
+                _state = reader.CurrentState;
+                return _length > 0;
+            }
+            catch
+            {
+                Refused = true;
+                _ended = true;
+                throw;
+            }
+        }
+
+        // False when the token's text did not fit: the rest is written into the next buffer.
+        private bool WriteToken(ref Utf8JsonReader reader, ReadOnlySpan<byte> utf8)
         {
             switch (reader.TokenType)
             {
                 case JsonTokenType.PropertyName:
-                    output.Separate();
-                    WriteStringToken(ref output, reader.ValueSpan, reader.ValueIsEscaped);
-                    output.NameEnd();
-                    pendingProperty = ReadName(ref reader);
-                    continue;
+                    Separate();
+                    _pendingProperty = ReadName(ref reader);
+                    // The token as it was sent, not the name that was read from it.
+                    return WriteStringToken(utf8, reader.ValueSpan, reader.ValueIsEscaped, TextEnd.QuoteAndColon);
 
                 case JsonTokenType.String:
-                    var expectedBytes = pendingProperty is not null
-                        ? ExpectedIdByteLength(path, pendingProperty)
+                    var expectedBytes = _pendingProperty is not null
+                        ? ExpectedIdByteLength(_path, _pendingProperty)
                         : 0;
-                    output.Separate();
+                    Separate();
+                    _separate = true;
                     if (expectedBytes > 0)
-                        WriteIdAsBase64(ref output, ReadString(ref reader), expectedBytes, pendingProperty!);
-                    else
-                        WriteStringToken(ref output, reader.ValueSpan, reader.ValueIsEscaped);
-                    output.ValueEnd();
-                    break;
+                    {
+                        WriteIdAsBase64(ReadString(ref reader), expectedBytes, _pendingProperty!);
+                        _pendingProperty = null;
+                        return true;
+                    }
+
+                    _pendingProperty = null;
+                    return WriteStringToken(utf8, reader.ValueSpan, reader.ValueIsEscaped, TextEnd.Quote);
 
                 case JsonTokenType.Number:
                     // OTLP/JSON lets a 64-bit integer arrive as a number or as a string. Protojson reads a
                     // number through a double, which holds 53 bits: 9007199254740993 would arrive as ...992.
                     // Its string form is read exactly, so an integer too long for a double is passed on as one.
-                    output.Separate();
-                    if (IsIntegerBeyondDoublePrecision(reader.ValueSpan))
-                    {
-                        output.Write((byte)'"');
-                        output.Write(reader.ValueSpan);
-                        output.Write((byte)'"');
-                    }
-                    else
-                    {
-                        output.Write(reader.ValueSpan);
-                    }
-
-                    output.ValueEnd();
-                    break;
+                    Separate();
+                    _separate = true;
+                    _pendingProperty = null;
+                    return IsIntegerBeyondDoublePrecision(reader.ValueSpan)
+                        ? WriteStringToken(utf8, reader.ValueSpan, false, TextEnd.Quote)
+                        : WriteText(utf8, reader.ValueSpan, false, TextEnd.None);
 
                 case JsonTokenType.True:
-                    output.Separate();
-                    output.Write("true"u8);
-                    output.ValueEnd();
+                    Separate();
+                    Write("true");
+                    _separate = true;
                     break;
 
                 case JsonTokenType.False:
-                    output.Separate();
-                    output.Write("false"u8);
-                    output.ValueEnd();
+                    Separate();
+                    Write("false");
+                    _separate = true;
                     break;
 
                 case JsonTokenType.Null:
-                    output.Separate();
-                    output.Write("null"u8);
-                    output.ValueEnd();
+                    Separate();
+                    Write("null");
+                    _separate = true;
                     break;
 
                 case JsonTokenType.StartObject:
-                    output.Separate();
-                    output.Write((byte)'{');
-                    PushContainerPath(path, containerSegments, ref pendingProperty);
+                    Separate();
+                    Write('{');
+                    PushContainerPath(_path, _containerSegments, ref _pendingProperty);
                     break;
 
                 case JsonTokenType.EndObject:
-                    output.Write((byte)'}');
-                    output.ValueEnd();
-                    PopContainerPath(path, containerSegments);
+                    Write('}');
+                    _separate = true;
+                    PopContainerPath(_path, _containerSegments);
                     break;
 
                 case JsonTokenType.StartArray:
-                    output.Separate();
-                    output.Write((byte)'[');
-                    PushContainerPath(path, containerSegments, ref pendingProperty);
+                    Separate();
+                    Write('[');
+                    PushContainerPath(_path, _containerSegments, ref _pendingProperty);
                     break;
 
                 case JsonTokenType.EndArray:
-                    output.Write((byte)']');
-                    output.ValueEnd();
-                    PopContainerPath(path, containerSegments);
+                    Write(']');
+                    _separate = true;
+                    PopContainerPath(_path, _containerSegments);
                     break;
                 case JsonTokenType.None:
                 case JsonTokenType.Comment:
@@ -149,55 +269,147 @@ internal static class OtlpJsonIdNormalizer
                     break;
             }
 
-            pendingProperty = null;
+            _pendingProperty = null;
+            return true;
         }
 
-        return output.Written;
-    }
-
-    /// <summary>
-    ///     The normalized document. It writes the commas and colons itself: a comma before a name or a value that
-    ///     follows another one in the same container, a colon after a name.
-    /// </summary>
-    private ref struct Output(int capacity)
-    {
-        private byte[] _bytes = GC.AllocateUninitializedArray<byte>(Math.Max(capacity, 16));
-        private int _written;
-        private bool _separate;
-
-        public readonly ArraySegment<byte> Written => new(_bytes, 0, _written);
-
-        /// <summary>Before a name or a value: the comma, when another member or element went before.</summary>
-        public void Separate()
+        // Before a name or a value: the comma, when another member or element went before.
+        private void Separate()
         {
-            if (_separate) Write((byte)',');
+            if (_separate) Write(',');
             _separate = false;
         }
 
-        public void NameEnd() => Write((byte)':');
+        private void Write(char value) => _chars[_length++] = value;
 
-        public void ValueEnd() => _separate = true;
-
-        public void Write(byte value) => Reserve(1)[0] = value;
-
-        public void Write(ReadOnlySpan<byte> bytes) => bytes.CopyTo(Reserve(bytes.Length));
-
-        /// <summary>The next <paramref name="count" /> bytes of the document, for the caller to fill.</summary>
-        public Span<byte> Reserve(int count)
+        private void Write(ReadOnlySpan<char> text)
         {
-            if (count > _bytes.Length - _written)
+            text.CopyTo(_chars.AsSpan(_length));
+            _length += text.Length;
+        }
+
+        /// <summary>
+        ///     A string or a member name as the token it was sent as, quotes included, with the two things replaced
+        ///     that Google.Protobuf would refuse the whole payload for: a sequence that is not UTF-8 and the escape
+        ///     of an unpaired surrogate. Each becomes U+FFFD (OTLP 1.11.1). Everything else, every other escape
+        ///     included, stays as it was sent, so nothing is escaped again and no string is built.
+        /// </summary>
+        private bool WriteStringToken(ReadOnlySpan<byte> utf8, ReadOnlySpan<byte> token, bool escaped, TextEnd closes)
+        {
+            Write('"');
+            return WriteText(utf8, token, escaped, closes);
+        }
+
+        private bool WriteText(ReadOnlySpan<byte> utf8, ReadOnlySpan<byte> token, bool escaped, TextEnd closes)
+        {
+            // The reader runs over the request itself, so a token is a part of it.
+            _textStart = token.IsEmpty || !utf8.Overlaps(token, out var offset) ? 0 : offset;
+            _textEnd = _textStart + token.Length;
+            _textEscaped = escaped;
+            _plainEnd = PlainEnd(utf8);
+            _textCloses = closes;
+            return WriteText(utf8);
+        }
+
+        private int PlainEnd(ReadOnlySpan<byte> utf8)
+        {
+            if (!_textEscaped) return _textEnd;
+            var backslash = utf8[_textStart.._textEnd].IndexOf((byte)'\\');
+            return backslash < 0 ? _textEnd : _textStart + backslash;
+        }
+
+        // The reader validated every escape before handing the token over. A backslash is one byte in UTF-8 and
+        // part of no longer sequence, so the text between two escapes is replaced on its own. Nothing in the
+        // replaced text needs an escape: the reader refused quotes, backslashes and control characters outside one.
+        private bool WriteText(ReadOnlySpan<byte> utf8)
+        {
+            while (_textStart < _textEnd)
             {
-                // Rare: a document that is UTF-8 and longer once normalized, which only integers written as strings
-                // (two bytes each) make it; they are bounded by the request's element bound.
-                var grown = GC.AllocateUninitializedArray<byte>(
-                    checked((int)Math.Max((long)_written + count, _bytes.Length + (_bytes.Length >> 2) + 4096L)));
-                _bytes.AsSpan(0, _written).CopyTo(grown);
-                _bytes = grown;
+                var room = _chars.AsSpan(_length);
+                if (room.Length < TextRoom) return false;
+
+                if (_textStart < _plainEnd)
+                {
+                    // Each maximal invalid subsequence becomes one U+FFFD, the sequences Encoding.UTF8 replaces.
+                    System.Text.Unicode.Utf8.ToUtf16(utf8[_textStart.._plainEnd], room, out var read, out var written);
+                    _textStart += read;
+                    _length += written;
+                    continue;
+                }
+
+                _textStart += WriteEscape(utf8[_textStart.._textEnd], room);
+                _plainEnd = PlainEnd(utf8);
             }
 
-            var reserved = _bytes.AsSpan(_written, count);
-            _written += count;
-            return reserved;
+            if (_textCloses is TextEnd.None) return true;
+            if (_chars.Length - _length < 2) return false;
+            Write('"');
+            if (_textCloses is TextEnd.QuoteAndColon) Write(':');
+            _textCloses = TextEnd.None;
+            return true;
+        }
+
+        // One escape, or the two of a surrogate pair; the bytes it took.
+        private int WriteEscape(ReadOnlySpan<byte> escaped, Span<char> room)
+        {
+            const int EscapeBytes = 6;
+            // \" \ \/ \b \f \n \r \t
+            var taken = 2;
+            if (escaped[1] is (byte)'u')
+            {
+                var unit = (char)ReadHex(escaped.Slice(2, 4));
+                if (char.IsHighSurrogate(unit) &&
+                    escaped.Length >= 2 * EscapeBytes &&
+                    escaped[EscapeBytes] is (byte)'\\' &&
+                    escaped[EscapeBytes + 1] is (byte)'u' &&
+                    char.IsLowSurrogate((char)ReadHex(escaped.Slice(EscapeBytes + 2, 4))))
+                {
+                    taken = 2 * EscapeBytes;
+                }
+                else if (char.IsSurrogate(unit))
+                {
+                    Write("\\uFFFD");
+                    return EscapeBytes;
+                }
+                else
+                {
+                    taken = EscapeBytes;
+                }
+            }
+
+            // An escape is ASCII.
+            for (var i = 0; i < taken; i++) room[i] = (char)escaped[i];
+            _length += taken;
+            return taken;
+        }
+
+        private void WriteIdAsBase64(string hex, int expectedBytes, string field)
+        {
+            // Empty means absent (e.g. a root span's parentSpanId); protojson maps it to empty bytes.
+            if (hex.Length is 0)
+            {
+                Write("\"\"");
+                return;
+            }
+
+            if (hex.Length != expectedBytes * 2)
+            {
+                throw new InvalidDataException(
+                    $"OTLP/JSON field '{field}' must be {expectedBytes * 2} hex characters ({expectedBytes} bytes); got {hex.Length} characters.");
+            }
+
+            Span<byte> bytes = stackalloc byte[TraceIdBytes];
+            bytes = bytes[..expectedBytes];
+            if (Convert.FromHexString(hex, bytes, out _, out _) is not OperationStatus.Done)
+            {
+                throw new InvalidDataException(
+                    $"OTLP/JSON field '{field}' must be hex-encoded per the OTLP spec; got a non-hex value.");
+            }
+
+            Write('"');
+            Convert.TryToBase64Chars(bytes, _chars.AsSpan(_length), out var written);
+            _length += written;
+            Write('"');
         }
     }
 
@@ -208,97 +420,6 @@ internal static class OtlpJsonIdNormalizer
 
     private static string ReadName(ref Utf8JsonReader reader) =>
         reader.ValueSpan.Length > MaxKnownNameBytes ? UnknownName : ReadString(ref reader);
-
-    /// <summary>
-    ///     A string or a member name as the token it was sent as, quotes included, with the two things replaced that
-    ///     Google.Protobuf would refuse the whole payload for: a sequence that is not UTF-8 and the escape of an
-    ///     unpaired surrogate. Each becomes U+FFFD (OTLP 1.11.1). Everything else, every other escape included,
-    ///     stays byte for byte, so nothing is escaped again and no string is built.
-    /// </summary>
-    private static void WriteStringToken(ref Output output, ReadOnlySpan<byte> token, bool escaped)
-    {
-        output.Write((byte)'"');
-        if (escaped)
-            WriteEscaped(ref output, token);
-        else
-            WriteUtf8(ref output, token);
-        output.Write((byte)'"');
-    }
-
-    private static void WriteUtf8(ref Output output, ReadOnlySpan<byte> utf8)
-    {
-        if (System.Text.Unicode.Utf8.IsValid(utf8))
-        {
-            output.Write(utf8);
-            return;
-        }
-
-        // Nothing in the replaced text needs an escape: the reader refused quotes, backslashes and control
-        // characters outside an escape. It is written where it belongs, with no token built first.
-        OtlpUtf8Replacement.ReplaceInvalidUtf8(utf8, output.Reserve(OtlpUtf8Replacement.ReplacedLength(utf8)));
-    }
-
-    // The reader validated every escape before handing the token over. A backslash is one byte in UTF-8 and part of
-    // no longer sequence, so the text between two escapes is replaced on its own.
-    private static void WriteEscaped(ref Output output, ReadOnlySpan<byte> escaped)
-    {
-        const int EscapeBytes = 6;
-        while (!escaped.IsEmpty)
-        {
-            var backslash = escaped.IndexOf((byte)'\\');
-            if (backslash < 0)
-            {
-                WriteUtf8(ref output, escaped);
-                return;
-            }
-
-            WriteUtf8(ref output, escaped[..backslash]);
-            escaped = escaped[backslash..];
-            if (escaped[1] is not (byte)'u')
-            {
-                // \" \\ \/ \b \f \n \r \t
-                output.Write(escaped[..2]);
-                escaped = escaped[2..];
-                continue;
-            }
-
-            var unit = (char)ReadHex(escaped.Slice(2, 4));
-            if (char.IsHighSurrogate(unit) &&
-                escaped.Length >= 2 * EscapeBytes &&
-                escaped[EscapeBytes] is (byte)'\\' &&
-                escaped[EscapeBytes + 1] is (byte)'u' &&
-                char.IsLowSurrogate((char)ReadHex(escaped.Slice(EscapeBytes + 2, 4))))
-            {
-                output.Write(escaped[..(2 * EscapeBytes)]);
-                escaped = escaped[(2 * EscapeBytes)..];
-                continue;
-            }
-
-            if (char.IsSurrogate(unit))
-                output.Write("\\uFFFD"u8);
-            else
-                output.Write(escaped[..EscapeBytes]);
-            escaped = escaped[EscapeBytes..];
-        }
-    }
-
-    // A document that is no JSON ends the count where the pass itself will refuse it.
-    private static int CountIntegersWrittenAsStrings(ReadOnlySpan<byte> utf8Json, JsonReaderOptions options)
-    {
-        var reader = new Utf8JsonReader(utf8Json, options);
-        var count = 0;
-        try
-        {
-            while (reader.Read())
-                if (reader.TokenType is JsonTokenType.Number && IsIntegerBeyondDoublePrecision(reader.ValueSpan)) count++;
-        }
-        catch (JsonException)
-        {
-            // Counted as far as it reads.
-        }
-
-        return count;
-    }
 
     // An integer literal (digits, with a sign at most: no fraction, no exponent) of sixteen digits or more. Every
     // integer of fewer digits is below 2^53 and exact as a double. In a field that is no 64-bit integer the string
@@ -468,33 +589,4 @@ internal static class OtlpJsonIdNormalizer
     private static bool IsName(string actual, string jsonName, string protoName) =>
         string.Equals(actual, jsonName, StringComparison.Ordinal) ||
         string.Equals(actual, protoName, StringComparison.Ordinal);
-
-    private static void WriteIdAsBase64(ref Output output, string hex, int expectedBytes, string field)
-    {
-        // Empty means absent (e.g. a root span's parentSpanId); protojson maps it to empty bytes.
-        if (hex.Length is 0)
-        {
-            output.Write("\"\""u8);
-            return;
-        }
-
-        if (hex.Length != expectedBytes * 2)
-        {
-            throw new InvalidDataException(
-                $"OTLP/JSON field '{field}' must be {expectedBytes * 2} hex characters ({expectedBytes} bytes); got {hex.Length} characters.");
-        }
-
-        Span<byte> bytes = stackalloc byte[TraceIdBytes];
-        bytes = bytes[..expectedBytes];
-        if (Convert.FromHexString(hex, bytes, out _, out _) is not System.Buffers.OperationStatus.Done)
-        {
-            throw new InvalidDataException(
-                $"OTLP/JSON field '{field}' must be hex-encoded per the OTLP spec; got a non-hex value.");
-        }
-
-        output.Write((byte)'"');
-        var encoded = output.Reserve(System.Buffers.Text.Base64.GetMaxEncodedToUtf8Length(expectedBytes));
-        System.Buffers.Text.Base64.EncodeToUtf8(bytes, encoded, out _, out _);
-        output.Write((byte)'"');
-    }
 }

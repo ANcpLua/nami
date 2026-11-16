@@ -299,7 +299,7 @@ public sealed class PreScanBypassTests(TestContext context)
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.AreEqual(new string('\uFFFD', Invalid), parsed.ResourceSpans[0].ScopeSpans[0].Spans[0].Attributes[0].Value.StringValue);
-        Assert.IsLessThan(11L * json.Length, allocated, "Read (3), normalized (3), the parser's builder and string (2 each).");
+        Assert.IsLessThan(15L * json.Length / 2, allocated, "Read (3), the parser's builder and string (2 each); normalized while read.");
     }
 
     private Task<ExportTraceServiceRequest> ParseTracesAsync(byte[] payload, bool grpc) => grpc

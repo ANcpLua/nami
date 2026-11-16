@@ -33,10 +33,11 @@ public sealed class JsonStringCopyTests(TestContext context)
     {
         var sent = Encoding.UTF8.GetBytes(json);
 
-        var normalized = OtlpJsonIdNormalizer.NormalizeIdsToProtoJsonUtf8(sent);
+        using var normalized = OtlpJsonIdNormalizer.Read(sent);
+        var read = normalized.ReadToEnd();
 
-        Assert.AreEqual(json, Encoding.UTF8.GetString(normalized));
-        CollectionAssert.AreEqual(sent, normalized.ToArray());
+        Assert.AreEqual(json, read);
+        CollectionAssert.AreEqual(sent, Encoding.UTF8.GetBytes(read));
     }
 
     /// <summary>
