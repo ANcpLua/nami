@@ -336,6 +336,36 @@ Two classes need no new tool and run in the gate: `ContentAtIngestTests` (EndToE
 content is in the stopped engine's store as the session sent it) and `ClaudeCodeCaptureTests` (Integration: the planted
 gate runs and the content sentinels are what the acceptance tests say they are).
 
+## Measurements outside the gate
+
+A measurement that depends on the machine is a script, not a test: the gate never asserts resident memory or
+wall time. [`a3_rss.py`](../eng/scripts/a3_rss.py) measures what the export of engine audit A3 costs the engine
+(one span whose attribute is an array of four million empty values: 7.6 MiB as protobuf, 11.4 MiB as JSON). It
+starts the engine as its own process for every run, reads `VmHWM` from `/proc/<pid>/status` when the engine is
+idle after one ordinary export and again after the A3 export has been stored, and asks `traces_get` what was
+kept and what was counted as dropped. Run it on a quiet machine against a Release build, three runs per encoding
+(protobuf over HTTP, JSON over HTTP, gRPC through `curl --http2-prior-knowledge`):
+
+```bash
+python3 eng/scripts/a3_rss.py --engine artifacts/bin/nami/release/nami.dll --runs 3 --markdown a3.md
+```
+
+[`ingest_bounds_rss.py`](../eng/scripts/ingest_bounds_rss.py) measures the whole path the same way for requests
+at the bounds of one request: a chosen number of protobuf messages in one of several compositions (minimal spans,
+empty log records, number data points, empty wrappers, spans of the density Claude Code sends, a fixed number of
+spans that fill the message bound), sent by one or several clients at the same moment. It reports the peak over
+idle, the answers and the stored rows per run. The defaults of the record bound and of the ingest slots come
+from it:
+
+```bash
+python3 eng/scripts/ingest_bounds_rss.py --engine artifacts/bin/nami/release/nami.dll \
+    --messages 50000 --compositions "3000 spans filling the messages" --runs 3 --clients 3
+```
+
+What the gate holds instead is the cause, counted in allocated bytes on the test's own thread:
+`ValueBoundsTests.AnAttributeOfAMillionEmptyValues_IsNeverBuilt` and the allocation tests of `IngressLimitTests`;
+and the bounds themselves: `RequestMessageBoundTests` and `IngestGateTests`.
+
 ## Current diagnostics: one entry, no report history in the workspace
 
 The reviewed C# suggestions and the reasons for intentionally retaining particular implementations are recorded in [inspection-review.md](inspection-review.md). Rules remain enabled; a reviewed informational finding is not hidden from the current report.

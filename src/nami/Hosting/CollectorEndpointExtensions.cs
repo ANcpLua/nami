@@ -96,14 +96,14 @@ internal static class CollectorEndpointExtensions
     }
 
     /// <summary>
-    ///     One OTLP/HTTP export of any signal: an undecodable body is 413 over the size bound, 415 for a media type or
+    ///     One OTLP/HTTP export of any signal: an undecodable body is 413 over a size or message bound, 415 for a media type or
     ///     content encoding OTLP does not define and 400 otherwise; a decoded export the converter or the storage mapper
     ///     rejects is 400, and one the store cannot persist is a retryable 503.
     /// </summary>
     private static async Task<IResult> IngestOtlpAsync<TRequest, TBatch>(
         HttpContext context,
         string signal,
-        Func<HttpRequest, OtlpPayloadEncoding, CancellationToken, Task<TRequest>> parse,
+        Func<HttpRequest, OtlpPayloadEncoding, IngestLimits, CancellationToken, Task<TRequest>> parse,
         Func<TRequest, bool> isEmpty,
         IMessage emptyResponse,
         Func<TRequest, TBatch> convert,
@@ -117,7 +117,8 @@ internal static class CollectorEndpointExtensions
         try
         {
             encoding = OtlpPayloadParser.GetEncoding(context.Request.ContentType);
-            request = await parse(context.Request, encoding, ct);
+            var limits = context.RequestServices.GetRequiredService<IOptions<IngestLimits>>().Value;
+            request = await parse(context.Request, encoding, limits, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -125,8 +126,9 @@ internal static class CollectorEndpointExtensions
         }
         catch (OtlpPayloadTooLargeException ex)
         {
-            // OTLP 1.11 (request size limits): a body over the decompressed bound is 413, never 400.
-            return Failure(ex, StatusCodes.Status413PayloadTooLarge, OtlpPayloadParser.PayloadTooLargeMessage);
+            // OTLP 1.11 (request size limits): a body over the wire or the decompressed bound is 413, never 400.
+            // A request of too many messages carries its own status (OtlpPayloadTooLargeException).
+            return Failure(ex, ex.HttpStatus, ex.Message);
         }
         catch (Exception ex) when (ex is OtlpUnsupportedMediaTypeException or OtlpUnsupportedContentEncodingException)
         {

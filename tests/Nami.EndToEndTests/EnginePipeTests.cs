@@ -308,14 +308,17 @@ public sealed class EnginePipeTests(TestContext context)
             return Task.FromResult($"the engine exited with code {_process.ExitCode}: {string.Join(" | ", _errors.Take(2))}");
         }
 
+        // Inside the record bound of one export request (IngestLimits.MaxRequestRecords, 3,000 unless configured).
+        private const int SpansPerRequest = 2000;
+
         /// <summary>One trace of <paramref name="spans" /> spans through the engine's OTLP/HTTP JSON endpoint.</summary>
         internal async Task SeedTraceAsync(string traceId, int spans, CancellationToken cancellationToken)
         {
             var now = TestData.Nanos(TimeProvider.System.GetUtcNow().AddMinutes(-1));
-            for (var offset = 0; offset < spans; offset += 4000)
+            for (var offset = 0; offset < spans; offset += SpansPerRequest)
             {
                 var batch = new StringBuilder("{\"resourceSpans\":[{\"resource\":{\"attributes\":[{\"key\":\"service.name\",\"value\":{\"stringValue\":\"pipe\"}}]},\"scopeSpans\":[{\"scope\":{\"name\":\"pipe\"},\"spans\":[");
-                for (var index = offset; index < Math.Min(spans, offset + 4000); index++)
+                for (var index = offset; index < Math.Min(spans, offset + SpansPerRequest); index++)
                 {
                     if (index > offset) batch.Append(',');
                     batch.Append(CultureInfo.InvariantCulture,

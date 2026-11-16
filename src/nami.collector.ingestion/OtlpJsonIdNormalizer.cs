@@ -12,6 +12,10 @@ namespace Nami.Collector.Ingestion;
 ///     non-hex or wrong-length id throws <see cref="InvalidDataException" />, which the ingest
 ///     endpoints surface as a 400, never a mangled row.
 ///     <para>
+///         The same pass keeps 64-bit integers exact: an integer sent as a JSON number too long for a
+///         double is passed on in its string form, which protojson reads without a double in between.
+///     </para>
+///     <para>
 ///         Strings are read the way OTLP 1.11.1 asks a decoder to: an invalid UTF-8 sequence and an
 ///         escape of an unpaired surrogate become U+FFFD, where <see cref="Utf8JsonReader.GetString" />
 ///         would refuse the whole payload.
@@ -66,7 +70,13 @@ internal static class OtlpJsonIdNormalizer
                     break;
 
                 case JsonTokenType.Number:
-                    writer.WriteRawValue(reader.ValueSpan, true);
+                    // OTLP/JSON lets a 64-bit integer arrive as a number or as a string. Protojson reads a
+                    // number through a double, which holds 53 bits: 9007199254740993 would arrive as ...992.
+                    // Its string form is read exactly, so an integer too long for a double is passed on as one.
+                    if (IsIntegerBeyondDoublePrecision(reader.ValueSpan))
+                        writer.WriteStringValue(reader.ValueSpan);
+                    else
+                        writer.WriteRawValue(reader.ValueSpan, true);
                     break;
 
                 case JsonTokenType.True:
@@ -111,6 +121,17 @@ internal static class OtlpJsonIdNormalizer
 
         writer.Flush();
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
+    // An integer literal (digits, with a sign at most: no fraction, no exponent) of sixteen digits or more. Every
+    // integer of fewer digits is below 2^53 and exact as a double. In a field that is no 64-bit integer the string
+    // form reads as the number did: a double field parses it to the same double, and no enum or 32-bit field holds
+    // a value this long in either form.
+    private static bool IsIntegerBeyondDoublePrecision(ReadOnlySpan<byte> number)
+    {
+        const int DigitsOfTwoToThe53 = 16;
+        var digits = number.Length > 0 && number[0] is (byte)'-' ? number[1..] : number;
+        return digits.Length >= DigitsOfTwoToThe53 && digits.IndexOfAnyExceptInRange((byte)'0', (byte)'9') < 0;
     }
 
     // The reader runs over one span, so the token's bytes are always in ValueSpan. Encoding.UTF8

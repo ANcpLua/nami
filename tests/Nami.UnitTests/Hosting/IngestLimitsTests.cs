@@ -1,4 +1,6 @@
+using Grpc.AspNetCore.Server;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -27,6 +29,10 @@ public class IngestLimitsTests
         Assert.AreEqual(16, limits.MaxValueNesting);
         Assert.AreEqual(16 * 1024 * 1024, limits.MaxRequestWireBytes);
         Assert.AreEqual(16 * 1024 * 1024, limits.MaxRequestDecompressedBytes);
+        Assert.AreEqual(50_000, limits.MaxRequestMessages);
+        Assert.AreEqual(3_000, limits.MaxRequestRecords);
+        Assert.AreEqual(1, limits.MaxConcurrentRequests);
+        Assert.AreEqual(5, limits.MaxRequestWaitSeconds);
         AssertSameBounds(limits, IngestLimits.Default);
     }
 
@@ -48,7 +54,11 @@ public class IngestLimitsTests
             ["NAMI_INGEST_MAX_RECORD_BYTES"] = "1003",
             ["NAMI_INGEST_MAX_VALUE_NESTING"] = "4",
             ["NAMI_INGEST_MAX_REQUEST_BYTES"] = "1005",
-            ["NAMI_INGEST_MAX_DECOMPRESSED_BYTES"] = "1006"
+            ["NAMI_INGEST_MAX_DECOMPRESSED_BYTES"] = "1006",
+            ["NAMI_INGEST_MAX_REQUEST_MESSAGES"] = "1007",
+            ["NAMI_INGEST_MAX_REQUEST_RECORDS"] = "1008",
+            ["NAMI_INGEST_MAX_CONCURRENT_REQUESTS"] = "9",
+            ["NAMI_INGEST_MAX_WAIT_SECONDS"] = "10"
         });
 
         var limits = app.Services.GetRequiredService<IOptions<IngestLimits>>().Value;
@@ -59,6 +69,10 @@ public class IngestLimitsTests
         Assert.AreEqual(4, limits.MaxValueNesting);
         Assert.AreEqual(1005, limits.MaxRequestWireBytes);
         Assert.AreEqual(1006, limits.MaxRequestDecompressedBytes);
+        Assert.AreEqual(1007, limits.MaxRequestMessages);
+        Assert.AreEqual(1008, limits.MaxRequestRecords);
+        Assert.AreEqual(9, limits.MaxConcurrentRequests);
+        Assert.AreEqual(10, limits.MaxRequestWaitSeconds);
     }
 
     [TestMethod]
@@ -69,6 +83,10 @@ public class IngestLimitsTests
     [DataRow(IngestLimits.MaxValueNestingKey, "29")]
     [DataRow(IngestLimits.MaxRequestWireBytesKey, "0")]
     [DataRow(IngestLimits.MaxRequestDecompressedBytesKey, "1073741825")]
+    [DataRow(IngestLimits.MaxRequestMessagesKey, "0")]
+    [DataRow(IngestLimits.MaxRequestRecordsKey, "0")]
+    [DataRow(IngestLimits.MaxConcurrentRequestsKey, "0")]
+    [DataRow(IngestLimits.MaxRequestWaitSecondsKey, "-1")]
     public async Task Should_RefuseTheBoundAndNameItsKey_When_ItIsOutOfRange(string key, string value)
     {
         await using var app = BuildCollectorHost(new Dictionary<string, string?> { [key] = value });
@@ -81,6 +99,37 @@ public class IngestLimitsTests
         Assert.Contains($"'{value}'", failure);
     }
 
+    [TestMethod]
+    [DataRow(null, null, 16 * 1024 * 1024, DisplayName = "defaults")]
+    [DataRow("1024", "4096", 1024, DisplayName = "wire bound smaller")]
+    [DataRow("4096", "1024", 1024, DisplayName = "decompressed bound smaller")]
+    public async Task Should_GiveGrpcTheSmallerRequestBound_When_TheEngineIsComposed(string? wire, string? decompressed,
+        int expected)
+    {
+        await using var app = BuildCollectorHost(new Dictionary<string, string?>
+        {
+            [IngestLimits.MaxRequestWireBytesKey] = wire,
+            [IngestLimits.MaxRequestDecompressedBytesKey] = decompressed
+        });
+
+        Assert.AreEqual(expected, app.Services.GetRequiredService<IOptions<GrpcServiceOptions>>().Value.MaxReceiveMessageSize);
+    }
+
+    [TestMethod]
+    [DataRow(null, 30_000_000L, DisplayName = "Kestrel's default stays above the default bound")]
+    [DataRow("67108864", 67108869L, DisplayName = "a bound above Kestrel's default raises it, gRPC prefix included")]
+    public async Task Should_KeepKestrelsBodyBoundAtOrAboveTheRequestBound_When_TheEngineIsComposed(string? wire,
+        long expected)
+    {
+        await using var app = BuildCollectorHost(new Dictionary<string, string?>
+        {
+            [IngestLimits.MaxRequestWireBytesKey] = wire
+        }, true);
+
+        Assert.AreEqual(expected,
+            app.Services.GetRequiredService<IOptions<KestrelServerOptions>>().Value.Limits.MaxRequestBodySize);
+    }
+
     private static void AssertSameBounds(IngestLimits expected, IngestLimits actual)
     {
         Assert.AreEqual(expected.MaxValueUtf8Bytes, actual.MaxValueUtf8Bytes);
@@ -89,14 +138,20 @@ public class IngestLimitsTests
         Assert.AreEqual(expected.MaxValueNesting, actual.MaxValueNesting);
         Assert.AreEqual(expected.MaxRequestWireBytes, actual.MaxRequestWireBytes);
         Assert.AreEqual(expected.MaxRequestDecompressedBytes, actual.MaxRequestDecompressedBytes);
+        Assert.AreEqual(expected.MaxRequestMessages, actual.MaxRequestMessages);
+        Assert.AreEqual(expected.MaxRequestRecords, actual.MaxRequestRecords);
+        Assert.AreEqual(expected.MaxConcurrentRequests, actual.MaxConcurrentRequests);
+        Assert.AreEqual(expected.MaxRequestWaitSeconds, actual.MaxRequestWaitSeconds);
     }
 
-    private static WebApplication BuildCollectorHost(Dictionary<string, string?> settings)
+    private static WebApplication BuildCollectorHost(Dictionary<string, string?> settings, bool kestrel = false)
     {
         var builder = WebApplication.CreateSlimBuilder();
         _ = builder.Logging.ClearProviders();
         _ = builder.Configuration.AddInMemoryCollection(settings);
         builder.Services.AddNamiCollectorCore(builder.Configuration);
+        // Kestrel reads its options while the host is built, so only the test of those options configures it.
+        if (kestrel) builder.Services.ConfigureNamiCollectorKestrel();
         return builder.Build();
     }
 }
