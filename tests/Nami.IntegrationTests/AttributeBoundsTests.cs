@@ -512,6 +512,45 @@ public sealed class AttributeBoundsTests
     }
 
     /// <summary>
+    ///     A value ingest replaces while it keeps the attribute is no dropped attribute, but it is a loss. The counter
+    ///     <c>nami.collector.values.replaced</c> counts it once per replaced value, by reason: <c>depth</c> for a
+    ///     structure at the nesting bound that became an empty value, <c>invalid_utf16</c> for a lone surrogate that
+    ///     became U+FFFD.
+    /// </summary>
+    [TestMethod]
+    public void Replaced_Values_AreCountedOncePerValue_ByReason()
+    {
+        var deep = new AnyValue { StringValue = "leaf" };
+        for (var level = 0; level < OtlpConverter.MaxValueNesting + 1; level++)
+            deep = new AnyValue { ArrayValue = new ArrayValue { Values = { deep } } };
+        var thread = Environment.CurrentManagedThreadId;
+        var counted = new Dictionary<string, long>(StringComparer.Ordinal);
+        using var listener = new System.Diagnostics.Metrics.MeterListener();
+        listener.InstrumentPublished = (instrument, own) =>
+        {
+            if (instrument.Meter.Name == "nami.collector" && instrument.Name == "nami.collector.values.replaced")
+                own.EnableMeasurementEvents(instrument);
+        };
+        listener.SetMeasurementEventCallback<long>((_, measurement, tags, _) =>
+        {
+            // The meter is the process's; conversion is synchronous, so this thread's measurements are this test's.
+            if (Environment.CurrentManagedThreadId != thread) return;
+            var reason = (string)tags.ToArray().Single(static tag => tag.Key == "nami.value.replacement.reason").Value!;
+            counted[reason] = counted.GetValueOrDefault(reason) + measurement;
+        });
+        listener.Start();
+
+        var span = Convert(Text("acme.two", "a\uD800b\uDC00"), Text("acme.one", "\uDBFF"), Text("acme.clean", "ok 😀"),
+            new KeyValue { Key = "acme.deep", Value = deep }, new KeyValue { Key = "acme.deep_too", Value = deep });
+
+        Assert.AreEqual(3L, counted.GetValueOrDefault("invalid_utf16"), "three lone surrogates in two values");
+        Assert.AreEqual(2L, counted.GetValueOrDefault("depth"), "two structures at the nesting bound");
+        Assert.HasCount(2, counted);
+        Assert.AreEqual(0U, span.DroppedAttributesCount, "a replaced value is no dropped attribute");
+        Assert.HasCount(5 + 1, span.Attributes);
+    }
+
+    /// <summary>
     ///     The bound before materialization leaves a sentinel in place of a structure that could never fit. It can
     ///     sit on every carrier of all three signals; wherever it sits, its attribute is dropped and counted (a log
     ///     body becomes an empty value), the neighbour is kept, and the sentinel reaches no stored column. A metric

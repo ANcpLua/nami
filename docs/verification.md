@@ -26,7 +26,7 @@ bounded details. A changed source/output fingerprint requires fresh validation.
 | G5 | `DeprecatedKeys_HaveSuccessorOrDrop`; `Catalog_EachDefinition_CarriesResolvedStabilityAndSuccessor` (the successor of every attribute) |
 | G6 | `EnumValues_MatchSchemaStability` |
 | G7 | `GeneratedCode_AotAnalyzers_ReportNothing`; `NativeAOT conformance execution` |
-| G8 | `PolicyNamingUnpersistedKey_FailsGeneration`; `TokenExemption_ForUnpersistedKey_FailsGeneration` |
+| G8 | `NamiKeyWithoutBrief_FailsGeneration` |
 | G9 | `CurrentPins_MismatchedMetadata_FailsBeforeSourceResolution`; `CurrentPins_WithoutHistoricalRegistry_ReachSourceResolution`; `CurrentPins_ChangedSincePreviousRelease_RecordTheRegistryDiff` |
 | R1 | `Ingest_ThreeTransports_SameRows` (traces/logs/metrics × JSON/protobuf/gRPC); `EveryTool_ThreeOtlpTransports_ReturnsTypedEvidence` (generated six-tool × three-transport cases); `Ingest_ThreeTransports_ProduceEquivalentRows` (one export per signal, the whole store compared across the three transports) |
 | R2 | `Watermark_BackdatedRecord_DoesNotRegress`; `Watermark_ClockStepsBack_DoesNotRegress` |

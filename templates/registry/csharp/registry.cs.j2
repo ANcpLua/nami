@@ -12,9 +12,7 @@ public sealed record MetricDefinition(string Name, string Unit, Instrument Instr
 public sealed record SpanDefinition(string Id, string Type, string Kind, Stability Stability, IReadOnlyList<string> RequiredAttributes);
 public sealed record EventDefinition(string Name, Stability Stability);
 
-// Producer: the sender nami describes a key for when the key is that sender's own, such as
-// claude_code for Claude Code's keys; null for the keys of the semantic conventions and nami.
-public sealed record AttributeDefinition(string Key, string Type, Stability Stability, bool IsPersisted, bool IsTokenExempt, string SourceSchema, string? Successor, string? Producer);
+public sealed record AttributeDefinition(string Key, string Type, Stability Stability, string SourceSchema, string? Successor);
 
 public static class RegistryInfo
 {
@@ -31,7 +29,7 @@ public static class AttributeCatalog
     private static readonly AttributeDefinition[] Definitions =
     [
 {% for a in ctx.attributes %}
-        new({{ a.json }}, {{ a.type_json }}, Stability.{{ a.cs_stability }}, {{ "true" if a.persisted else "false" }}, {{ "true" if a.token_exempt else "false" }}, {{ a.source_json }}, {{ a.successor }}, {{ a.producer_json }}),
+        new({{ a.json }}, {{ a.type_json }}, Stability.{{ a.cs_stability }}, {{ a.source_json }}, {{ a.successor }}),
 {% endfor %}
     ];
     private static readonly FrozenDictionary<string, AttributeDefinition> ByKey =
@@ -48,51 +46,6 @@ public static class AttributeCatalog
     }
 }
 
-public static class RegistryPolicy
-{
-    public static bool IsPersisted(string key) => AttributeCatalog.Find(key)?.IsPersisted == true;
-    public static bool IsTokenExempt(string key) => AttributeCatalog.Find(key)?.IsTokenExempt == true;
-    public static string? ProducerOf(string key) => AttributeCatalog.Find(key)?.Producer;
-}
-
-// The longest value, in UTF-8 bytes, that ingest keeps of a key (annotation nami.max_utf8_bytes).
-// Ingest enforces the bound; a key without one keeps its value as sent.
-public static class ValueLimits
-{
-    public static FrozenDictionary<string, int> MaxUtf8Bytes { get; } =
-        new Dictionary<string, int>(StringComparer.Ordinal)
-        {
-{% for limit in ctx.value_limits %}
-            [{{ limit.json }}] = {{ limit.bytes }},
-{% endfor %}
-        }.ToFrozenDictionary(StringComparer.Ordinal);
-}
-
-// The instrumentation scopes a producer's signals arrive under. A key whose definition names a
-// producer means what the registry says only on records from these scopes.
-public static class Producers
-{
-    public static FrozenDictionary<string, IReadOnlyList<string>> Scopes { get; } =
-        new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
-        {
-{% for producer in ctx.producer_scopes %}
-            [{{ producer.json }}] = Array.AsReadOnly(new string[] { {{ producer.scopes | join(", ") }} }),
-{% endfor %}
-        }.ToFrozenDictionary(StringComparer.Ordinal);
-}
-
-// Keys a producer sends inside a JSON string attribute, by that attribute. The container is
-// never persisted; ingest lifts these members out of it and drops the rest.
-public static class WireContainers
-{
-    public static FrozenDictionary<string, IReadOnlyList<string>> Members { get; } =
-        new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
-        {
-{% for container in ctx.wire_containers %}
-            [{{ container.json }}] = Array.AsReadOnly(new string[] { {{ container.members | join(", ") }} }),
-{% endfor %}
-        }.ToFrozenDictionary(StringComparer.Ordinal);
-}
 public static class AttributeStability
 {
     public static Stability Of(string key) => AttributeCatalog.Find(key)?.Stability ?? Stability.Unknown;
@@ -213,6 +166,7 @@ public static class CollectorSemanticAttributeCatalog
     public const string NamiProjectId = NamiAttributes.ProjectId;
     public const string NamiAttributeKey = NamiAttributes.AttributeKey;
     public const string NamiAttributeNamespace = NamiAttributes.AttributeNamespace;
+    public const string NamiValueReplacementReason = NamiAttributes.ValueReplacementReason;
     public const string GenAiProviderName = GenAiAttributes.ProviderName;
     public const string GenAiOperationName = GenAiAttributes.OperationName;
     public const string GenAiOutputType = GenAiAttributes.OutputType;
@@ -227,6 +181,7 @@ public static class CollectorSemanticAttributeCatalog
     public const string AttributesDroppedMetric = Metrics.NamiCollectorAttributesDropped.Name;
     public const string AttributesCoalescedMetric = Metrics.NamiCollectorAttributesCoalesced.Name;
     public const string SanitizationFailedMetric = Metrics.NamiCollectorAttributesSanitizationFailed.Name;
+    public const string ValuesReplacedMetric = Metrics.NamiCollectorValuesReplaced.Name;
     public const string MissingServiceNameMetric = Metrics.ResourceMissingServiceName.Name;
     public static FrozenSet<string> ExceptionTextKeys { get; } = FrozenSet.Create(StringComparer.Ordinal, ExceptionAttributes.Message, ExceptionAttributes.Stacktrace);
 }

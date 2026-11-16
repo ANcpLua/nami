@@ -15,18 +15,16 @@ using LogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
 namespace Nami.IntegrationTests.ClaudeCode;
 
 /// <summary>
-///     What the registry declares for a producer, at the converter: on records under one of Claude Code's
-///     instrumentation scopes (<c>Producers.Scopes</c>) the event name is the registry's, the body is kept only when
-///     it is that name, string values become the stored type, the named members of <c>tool_parameters</c> become
-///     attributes and the container goes, <c>full_command</c> is cut at the registry's bound, and a span status
-///     message loses its credentials and is cut at 1024 bytes. On any other scope the same keys are another sender's
-///     unknown keys. Each rule is shown on both sides, so a rule that fired everywhere, or nowhere, fails.
+///     Claude Code's records at the converter: stored as sent, whatever instrumentation scope they arrive under.
+///     The event name field and the deprecated <c>event.name</c> attribute are both kept, values keep their type,
+///     <c>tool_parameters</c> stays whole, and no key has a bound of its own. A span status message loses its
+///     credentials and is cut at 1024 bytes. Each case runs under one of Claude Code's scopes and under another
+///     sender's, and must come out the same.
 /// </summary>
 [TestClass]
 [TestCategory("Integration")]
 public sealed class ClaudeCodeConverterTests
 {
-    private const string Producer = "claude_code";
     private const string EventsScope = "com.anthropic.claude_code.events";
     private const string TracingScope = "com.anthropic.claude_code.tracing";
     private const string MeterScope = "com.anthropic.claude_code";
@@ -34,16 +32,8 @@ public sealed class ClaudeCodeConverterTests
     private const string Marker = "…[truncated]";
     private const int MarkerBytes = 14;
 
-    // A key the registry persists for every sender, next to each producer key: it shows the record was converted.
+    // An ordinary key next to each of Claude Code's: it shows the record was converted.
     private const string Ordinary = "gen_ai.agent.name";
-
-    private static readonly string[] s_scopes = [MeterScope, EventsScope, TracingScope];
-
-    [TestMethod]
-    public void Scopes_AreTheThreeTheRegistryNamesForClaudeCode()
-    {
-        Assert.AreSequenceEqual(s_scopes, Producers.Scopes[Producer].Order(StringComparer.Ordinal).ToArray());
-    }
 
     /// <summary>The record's own EventName field is stored as sent, and so is the deprecated attribute next to it.</summary>
     [TestMethod]
