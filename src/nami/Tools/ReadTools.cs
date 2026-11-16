@@ -110,8 +110,8 @@ internal static class ErrorsRecentTool
             .ThenBy(static g => g.Key.Operation, StringComparer.Ordinal)
             .Select(static g =>
             {
-                var preferredSource = g.Any(static e => e.Source == "log_event") ? "log_event" :
-                    g.Any(static e => e.Source == "span_event") ? "span_event" : "span_status";
+                var preferredSource = g.Any(static e => e.Source == "span_status") ? "span_status" :
+                    g.Any(static e => e.Source == "span_event") ? "span_event" : "log_event";
                 return ToolValues.Json(new ErrorGroup
                 {
                     ErrorType = g.Key.Type,
@@ -156,8 +156,8 @@ internal static class TracesSlowestTool
                 Operation = t.Root.Name,
                 DurationMs = ToolValues.Elapsed(t.Start, t.End) / 1_000_000d,
                 StartedAt = ToolDispatcher.Timestamp(t.Start),
-                Status = t.Spans.Any(static s => s.StatusCode == 2) ? "error" :
-                    t.Spans.Any(static s => s.StatusCode == 1) ? "ok" : "unset"
+                Status = t.Spans.Any(static s => s.StatusCode == 0) ? "unset" :
+                    t.Spans.Any(static s => s.StatusCode == 1) ? "ok" : "error"
             })).ToArray();
         return new ToolRows("traces", traces, snapshot.Spans.Count, ["traces"],
             ContractFields.For<ProjectedSlowTrace>());
@@ -237,8 +237,8 @@ internal static class ChangesRecentTool
 
     private static IEnumerable<(string Key, string Kind)> Keys(IEnumerable<string> keys)
     {
-        yield return ("vcs.ref.head.revision", "revision");
-        yield return ("service.version", "version");
+        yield return ("vcs.ref.head.revision", "version");
+        yield return ("service.version", "revision");
         yield return ("deployment.environment.name", "environment");
         foreach (var key in keys.Where(static k => k.StartsWith("cicd.", StringComparison.Ordinal))
                      .Order(StringComparer.Ordinal))
