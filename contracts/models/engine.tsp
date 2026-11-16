@@ -31,7 +31,9 @@ model EngineLimits {
   workers: int32 = 2;
 }
 
-model EngineEnvelope { id: string; revision: string; }
+// A property list spread into each command, not a type of its own: as an alias of a model
+// expression it has no name, so no emitter generates a class, an interface or a schema for it.
+alias EngineEnvelope = { id: string; revision: string; };
 model EngineCall {
   ...EngineEnvelope;
   method: "call";

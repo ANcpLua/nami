@@ -1,4 +1,6 @@
-The URI grammar in common/types.tsp is adapted from ajv-formats.
+The ISO 8601 duration pattern of the scalar IsoDuration in common/types.tsp is adapted from
+ajv-formats: its `duration` expression, with \d written as [0-9] and the end of the text
+written as (?![\s\S]).
 
 MIT License
 

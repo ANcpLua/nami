@@ -102,7 +102,8 @@
               "version",
               "environment",
               "pipeline"
-            ]
+            ],
+            "description": "The resource attribute that changed, named in source_key: revision is vcs.ref.head.revision, version is service.version, environment is deployment.environment.name, pipeline is any cicd.* attribute."
           },
           "from": {
             "type": "string"
