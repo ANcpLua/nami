@@ -324,7 +324,7 @@ internal static partial class OtlpConverter
             DroppedAttributesCount = span.DroppedAttributesCount + dropped,
             DroppedEventsCount = span.DroppedEventsCount,
             DroppedLinksCount = span.DroppedLinksCount,
-            Name = Kept(span.Name ?? "unknown"),
+            Name = span.Name ?? "unknown",
             Kind = DefinedOrZero((int)span.Kind, (int)ProtoSpan.Types.SpanKind.Consumer, SpanKindWarning, warnings),
             StartTimeUnixNano = span.StartTimeUnixNano,
             EndTimeUnixNano = span.EndTimeUnixNano,
