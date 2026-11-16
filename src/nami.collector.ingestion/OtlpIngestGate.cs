@@ -30,6 +30,9 @@ internal sealed class OtlpIngestGate(IOptions<IngestLimits> limits) : IDisposabl
     internal Task<bool> EnterAsync(CancellationToken cancellationToken) => _slots.WaitAsync(_wait, cancellationToken);
 
     internal void Leave() => _slots.Release();
+
+    /// <summary>The slots no request holds at this moment.</summary>
+    internal int FreeSlots => _slots.CurrentCount;
 }
 
 /// <summary>

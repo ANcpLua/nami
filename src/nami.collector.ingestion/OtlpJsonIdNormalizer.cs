@@ -27,13 +27,7 @@ internal static class OtlpJsonIdNormalizer
     private const int SpanIdBytes = 8;
     private const int ReplacementCharacter = 0xFFFD;
 
-    public static string NormalizeIdsToProtoJson(ReadOnlySpan<byte> utf8Json)
-    {
-        var normalized = NormalizeIdsToProtoJsonUtf8(utf8Json);
-        return Encoding.UTF8.GetString(normalized.AsSpan());
-    }
-
-    /// <summary>The same as UTF-8 bytes, for a reader that needs no string of the whole document.</summary>
+    /// <summary>The payload as protojson, in UTF-8: read through a reader, with no string of the whole document.</summary>
     public static ArraySegment<byte> NormalizeIdsToProtoJsonUtf8(ReadOnlySpan<byte> utf8Json)
     {
         // Accept an optional UTF-8 BOM before protojson parsing.
@@ -46,7 +40,11 @@ internal static class OtlpJsonIdNormalizer
 
         var reader = new Utf8JsonReader(utf8Json, new JsonReaderOptions { MaxDepth = 128 });
         var buffer = new ArrayBufferWriter<byte>(utf8Json.Length);
-        using var writer = new Utf8JsonWriter(buffer);
+        // Only Google.Protobuf's JSON parser reads the output, so nothing is escaped that JSON does not require: the
+        // default encoder writes <, >, &, ', + and every character outside ASCII as six bytes each. This holds for
+        // names and for the strings that go through a string (escaped or invalid UTF-8 in the request).
+        using var writer = new Utf8JsonWriter(buffer,
+            new JsonWriterOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
 
         // Protojson must ignore unknown fields, including future objects that happen to contain
         // properties named traceId or spanId. Track the containing OTLP message path so
@@ -72,8 +70,12 @@ internal static class OtlpJsonIdNormalizer
                     if (expectedBytes > 0)
                         WriteIdAsBase64(writer, ReadString(ref reader), expectedBytes, pendingProperty!);
                     else if (!reader.ValueIsEscaped && System.Text.Unicode.Utf8.IsValid(reader.ValueSpan))
-                        // Most strings: valid and without escapes, copied as bytes with no string in between.
-                        writer.WriteStringValue(reader.ValueSpan);
+                        // Most strings: valid and without escapes. The token is copied as it stands, quotes
+                        // included, with no string in between and past the encoder, which would still write a
+                        // character outside the Basic Multilingual Plane (four bytes) as twelve.
+                        writer.WriteRawValue(utf8Json.Slice((int)reader.TokenStartIndex, reader.ValueSpan.Length + 2), true);
+                    else if (!reader.ValueIsEscaped)
+                        WriteWithInvalidUtf8Replaced(writer, reader.ValueSpan);
                     else
                         writer.WriteStringValue(ReadString(ref reader));
                     break;
@@ -145,12 +147,64 @@ internal static class OtlpJsonIdNormalizer
         return digits.Length >= DigitsOfTwoToThe53 && digits.IndexOfAnyExceptInRange((byte)'0', (byte)'9') < 0;
     }
 
+    // A string without escapes that is not UTF-8: every maximal invalid subsequence becomes U+FFFD, three bytes
+    // where one may have stood. Nothing in it needs an escape (the reader refused quotes, backslashes and control
+    // characters), so the replaced text is written as it stands, with no string in between.
+    private static void WriteWithInvalidUtf8Replaced(Utf8JsonWriter writer, ReadOnlySpan<byte> invalid)
+    {
+        var token = new byte[ReplacedLength(invalid) + 2];
+        token[0] = token[^1] = (byte)'"';
+        ReplaceInvalidUtf8(invalid, token.AsSpan(1));
+        writer.WriteRawValue(token, true);
+    }
+
+    private static int ReplacedLength(ReadOnlySpan<byte> utf8)
+    {
+        var length = 0;
+        while (!utf8.IsEmpty)
+        {
+            var valid = Rune.DecodeFromUtf8(utf8, out _, out var consumed) is System.Buffers.OperationStatus.Done;
+            length += valid ? consumed : 3;
+            utf8 = utf8[consumed..];
+        }
+
+        return length;
+    }
+
+    // Encoding.UTF8 replaces the same sequences, and allocates some forty bytes for each one it replaces.
+    private static void ReplaceInvalidUtf8(ReadOnlySpan<byte> utf8, Span<byte> replaced)
+    {
+        while (!utf8.IsEmpty)
+        {
+            if (Rune.DecodeFromUtf8(utf8, out _, out var consumed) is System.Buffers.OperationStatus.Done)
+            {
+                utf8[..consumed].CopyTo(replaced);
+                replaced = replaced[consumed..];
+            }
+            else
+            {
+                "\uFFFD"u8.CopyTo(replaced);
+                replaced = replaced[3..];
+            }
+
+            utf8 = utf8[consumed..];
+        }
+    }
+
+    private static string DecodeUtf8(ReadOnlySpan<byte> utf8)
+    {
+        if (System.Text.Unicode.Utf8.IsValid(utf8)) return Encoding.UTF8.GetString(utf8);
+        var replaced = new byte[ReplacedLength(utf8)];
+        ReplaceInvalidUtf8(utf8, replaced);
+        return Encoding.UTF8.GetString(replaced);
+    }
+
     // The reader runs over one span, so the token's bytes are always in ValueSpan. Encoding.UTF8
     // decodes each maximal invalid subsequence as one U+FFFD.
     private static string ReadString(ref Utf8JsonReader reader) =>
         reader.ValueIsEscaped
             ? Unescape(reader.ValueSpan)
-            : Encoding.UTF8.GetString(reader.ValueSpan);
+            : DecodeUtf8(reader.ValueSpan);
 
     private static string Unescape(ReadOnlySpan<byte> escaped)
     {
@@ -210,7 +264,7 @@ internal static class OtlpJsonIdNormalizer
             }
         }
 
-        return Encoding.UTF8.GetString(unescaped[..written]);
+        return DecodeUtf8(unescaped[..written]);
     }
 
     private static int ReadHex(ReadOnlySpan<byte> utf8Hex) =>

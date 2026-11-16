@@ -149,6 +149,9 @@ internal sealed class CollectorHost : IAsyncDisposable
         return await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>The slots of the ingest gate no request holds at this moment.</summary>
+    internal int FreeIngestSlots => _application.Services.GetRequiredService<OtlpIngestGate>().FreeSlots;
+
     /// <summary>The OTLP/HTTP listener, for a request a test builds itself.</summary>
     internal Uri HttpEndpoint => _otlpHttp;
 

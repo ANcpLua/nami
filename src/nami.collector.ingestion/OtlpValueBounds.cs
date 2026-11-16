@@ -101,6 +101,7 @@ internal static class OtlpValueBounds
 
     // ArrayValue.values, KeyValueList.values, KeyValue.value.
     private const int ValuesField = 1;
+    private const int KeyValueKeyField = 1;
     private const int KeyValueValueField = 2;
 
     private static readonly byte[] s_sentinelUtf8 = Encoding.UTF8.GetBytes(OversizedValueSentinel);
@@ -205,7 +206,11 @@ internal static class OtlpValueBounds
             if (field is null) continue;
             if (field.FieldType is not FieldType.Message)
             {
-                if (field.IsRepeated) CountElements(field, wireType, message.Slice(start, length), ref scan);
+                // A repeated scalar holds elements; and every occurrence of a string or bytes field is an object to
+                // the parser, also of a field that is not repeated and keeps only the last one.
+                if (field.IsRepeated || (wireType == WireTypeLengthDelimited &&
+                                         field.FieldType is FieldType.String or FieldType.Bytes))
+                    CountElements(field, wireType, message.Slice(start, length), ref scan);
                 continue;
             }
 
@@ -249,6 +254,11 @@ internal static class OtlpValueBounds
         if (scan.Elements > scan.MaxElements) throw OtlpPayloadTooLargeException.TooManyElements(scan.MaxElements);
     }
 
+    private static void CountElement(ref Scan scan)
+    {
+        if (++scan.Elements > scan.MaxElements) throw OtlpPayloadTooLargeException.TooManyElements(scan.MaxElements);
+    }
+
     private static OtlpMalformedPayloadException Malformed(string what) =>
         new("The OTLP request is not protobuf as an OTLP exporter writes it: " + what + ".");
 
@@ -263,6 +273,7 @@ internal static class OtlpValueBounds
         {
             ReadField(value, ref position, out var number, out var wireType, out _, out _);
             if (number is < StringValueField or > LastOneofField) continue;
+            if (wireType == WireTypeLengthDelimited && number is StringValueField or BytesValueField) CountElement(ref scan);
             last = number;
             holdsStructure |= wireType == WireTypeLengthDelimited && number is ArrayValueField or KvlistValueField;
         }
@@ -278,8 +289,11 @@ internal static class OtlpValueBounds
             // Every structure on the wire is counted, also one a later member of the oneof replaces: the parser
             // builds it before it discards it.
             var left = scan.MaxNested;
+            var elementsBefore = scan.Elements;
             // Walked also when it is too short to replace: the messages inside it count.
             over = WalkValue(value, 0, ref left, ref nested, ref scan) is Walk.Over && replaceable;
+            // Replaced: what the walk counted inside it is never built.
+            if (over) scan.Elements = elementsBefore;
         }
 
         if (!over)
@@ -310,6 +324,9 @@ internal static class OtlpValueBounds
         while (position < value.Length)
         {
             ReadField(value, ref position, out var number, out var wireType, out var start, out var length);
+            // A string or bytes value below the top level; the top level is counted where it is bounded.
+            if (nesting > 0 && wireType == WireTypeLengthDelimited && number is StringValueField or BytesValueField)
+                CountElement(ref scan);
             if (wireType != WireTypeLengthDelimited || number is not (ArrayValueField or KvlistValueField)) continue;
             if (nesting >= scan.MaxNesting)
             {
@@ -342,6 +359,8 @@ internal static class OtlpValueBounds
                 {
                     ReadField(item, ref member, out var memberNumber, out var memberType, out var memberStart,
                         out var memberLength);
+                    // The member's key: a string like any other.
+                    if (memberType == WireTypeLengthDelimited && memberNumber == KeyValueKeyField) CountElement(ref scan);
                     if (memberType != WireTypeLengthDelimited || memberNumber != KeyValueValueField) continue;
                     messages++;
                     var walked = WalkValue(item.Slice(memberStart, memberLength), nesting + 1, ref left, ref messages,
@@ -504,6 +523,9 @@ internal static class OtlpValueBounds
                 switch (reader.TokenType)
                 {
                     case JsonTokenType.PropertyName:
+                        // A name is a string to the JSON reader like any other, in unknown members too.
+                        if (++elements > limits.MaxRequestElements)
+                            throw OtlpPayloadTooLargeException.TooManyElements(limits.MaxRequestElements);
                         namesRecords = reader.ValueTextEquals("spans"u8) || reader.ValueTextEquals("logRecords"u8) ||
                                        reader.ValueTextEquals("log_records"u8) || reader.ValueTextEquals("dataPoints"u8) ||
                                        reader.ValueTextEquals("data_points"u8) || reader.ValueTextEquals("exemplars"u8);

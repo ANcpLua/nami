@@ -25,52 +25,44 @@ public sealed class IngestGateTests(TestContext context)
     public async Task ARequestThatFindsNoSlot_IsTurnedAwayToBeSentAgain_AndIsAcceptedOnceTheSlotIsFree(string transport)
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
-        // One slot and a wait of one second. The wait is what makes the order certain: the held request, should it
-        // arrive while a probe is in the slot, waits those milliseconds and takes the slot after it; a probe that
-        // finds the slot held is turned away after its second.
+        // One slot, and no waiting: a request that finds it taken is turned away at once.
         await using var host = await CollectorHost.StartAsync(Path.Combine(directory, "gate-" + transport + ".duckdb"),
             context.CancellationToken, settings: new Dictionary<string, string?>
             {
-                [IngestLimits.MaxConcurrentRequestsKey] = "1", [IngestLimits.MaxRequestWaitSecondsKey] = "1"
+                [IngestLimits.MaxConcurrentRequestsKey] = "1", [IngestLimits.MaxRequestWaitSecondsKey] = "0"
             });
         var export = OtlpData.Traces(TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2)));
 
         // One export holds the slot: its headers and the first half of its body are sent, the rest is not.
-        var payload = CollectorHost.Encode(Signals.Traces, export);
-        var held = new HeldBody(payload);
+        using var held = new HeldBody(CollectorHost.Encode(Signals.Traces, export));
         var holding = PostHeldAsync(host, held);
-        var deadline = Stopwatch.StartNew();
-        string? turnedAway = null;
         try
         {
-            while (turnedAway is null)
+            // The gate itself says when the held request has the slot; nothing here depends on how fast it got there.
+            var deadline = Stopwatch.StartNew();
+            while (host.FreeIngestSlots > 0)
             {
                 Assert.IsLessThan(TimeSpan.FromSeconds(60), deadline.Elapsed, "The held request never took the slot.");
-                // The collector takes the slot when the request's headers arrive. Should a probe have been in
-                // the slot at that moment, the held request was turned away itself: hold another.
-                _ = await Task.WhenAny(held.FirstHalfSent, holding).WaitAsync(context.CancellationToken);
-                if (holding.IsCompleted)
-                {
-                    (await holding).Dispose();
-                    held.Dispose();
-                    held = new HeldBody(payload);
-                    holding = PostHeldAsync(host, held);
-                    continue;
-                }
-
-                turnedAway = await TrySendAsync(host, transport, export);
+                Assert.IsFalse(holding.IsCompleted, "The held request was answered before its body was complete.");
+                await Task.Delay(TimeSpan.FromMilliseconds(10), context.CancellationToken);
             }
 
-            Assert.AreEqual(OtlpIngestGate.BusyMessage, turnedAway);
+            Assert.AreEqual(OtlpIngestGate.BusyMessage, await TrySendAsync(host, transport, export));
 
             held.Release();
             using (var first = await holding) Assert.AreEqual(HttpStatusCode.OK, first.StatusCode);
+            // The answer is on the wire before the request has left the gate; the gate says when it has.
+            while (host.FreeIngestSlots == 0)
+            {
+                Assert.IsLessThan(TimeSpan.FromSeconds(60), deadline.Elapsed, "The answered request never left the gate.");
+                await Task.Delay(TimeSpan.FromMilliseconds(10), context.CancellationToken);
+            }
+
             Assert.IsNull(await TrySendAsync(host, transport, export), "With the slot free the same export is accepted.");
         }
         finally
         {
             held.Release();
-            held.Dispose();
         }
     }
 
@@ -114,10 +106,6 @@ public sealed class IngestGateTests(TestContext context)
     private sealed class HeldBody(byte[] payload) : HttpContent
     {
         private readonly TaskCompletionSource _released = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly TaskCompletionSource _firstHalfSent = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        /// <summary>Completes when the headers and the first half of the body are on the wire.</summary>
-        internal Task FirstHalfSent => _firstHalfSent.Task;
 
         internal void Release() => _released.TrySetResult();
 
@@ -136,7 +124,6 @@ public sealed class IngestGateTests(TestContext context)
             var half = payload.Length / 2;
             await stream.WriteAsync(payload.AsMemory(0, half), cancellationToken).ConfigureAwait(false);
             await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-            _ = _firstHalfSent.TrySetResult();
             await _released.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
             await stream.WriteAsync(payload.AsMemory(half), cancellationToken).ConfigureAwait(false);
         }

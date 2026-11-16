@@ -140,11 +140,12 @@ internal sealed class IngestLimits
     public int MaxRequestRecords { get; set; } = DefaultMaxRequestRecords;
 
     /// <summary>
-    ///     nami receiver policy: the most scalar elements one export request may hold outside its messages. Over
-    ///     protobuf these are the elements of repeated scalar fields, packed or not (the bucket counts and bounds
-    ///     of a histogram point): 16 MiB of one-byte packed counts are sixteen million 8-byte numbers. Over JSON
-    ///     every string, number, boolean and null counts, in known and unknown members alike, because the JSON
-    ///     reader builds a token for each. A request over the bound is refused whole, like one over a byte bound.
+    ///     nami receiver policy: the most scalar elements one export request may hold outside its messages: what
+    ///     a parser builds an object or an array slot for besides the messages. Over protobuf these are the elements
+    ///     of repeated scalar fields, packed or not (16 MiB of one-byte packed bucket counts are sixteen million
+    ///     8-byte numbers), and every occurrence of a string or bytes field, also of one that is not repeated. Over
+    ///     JSON every member name and every string, number, boolean and null counts, in known and unknown members
+    ///     alike. A request over the bound is refused whole, like one over a byte bound.
     /// </summary>
     [ConfigurationKeyName(MaxRequestElementsKey)]
     [ConfiguredRange(Key = MaxRequestElementsKey, Minimum = 1, Maximum = int.MaxValue - 1)]

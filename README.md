@@ -101,7 +101,7 @@ nami stores telemetry as it was sent. What it bounds is what one request may cos
 the SDK limits in the OpenTelemetry Common Specification). A request over a bound of the first table is refused
 whole and nothing of it is stored: OTLP/HTTP answers `413` with an OTLP `Status` that names the bound, OTLP/gRPC
 answers `RESOURCE_EXHAUSTED` without `RetryInfo`. By OTLP an exporter does not send such a request again. Protobuf that no OTLP exporter writes (a group,
-a tag or length longer than it needs to be) is refused with `400` or `INVALID_ARGUMENT`, and fields OTLP does not
+a tag or length of more than five bytes or more than 32 bits) is refused with `400` or `INVALID_ARGUMENT`, and fields OTLP does not
 define are read past and not kept.
 
 | Bound of one request | Default | Setting |
@@ -110,7 +110,7 @@ define are read past and not kept.
 | Bytes after decompression | 16 MiB | `NAMI_INGEST_MAX_DECOMPRESSED_BYTES` |
 | Protobuf messages of every type: containers, records, attributes and their values | 50,000 | `NAMI_INGEST_MAX_REQUEST_MESSAGES` |
 | Records, the messages stored as rows of their own: spans, log records, metric data points, exemplars | 3,000 | `NAMI_INGEST_MAX_REQUEST_RECORDS` |
-| Scalar elements: over protobuf the elements of repeated scalar fields such as histogram bucket counts, over JSON every string, number, boolean and null | 1,000,000 | `NAMI_INGEST_MAX_REQUEST_ELEMENTS` |
+| Scalar elements: over protobuf the elements of repeated scalar fields such as histogram bucket counts and every string or bytes field, over JSON every member name, string, number, boolean and null | 1,000,000 | `NAMI_INGEST_MAX_REQUEST_ELEMENTS` |
 
 nami ingests one request at a time (`NAMI_INGEST_MAX_CONCURRENT_REQUESTS`, default 1). A request waits for its
 turn before its body is read, five seconds at most (`NAMI_INGEST_MAX_WAIT_SECONDS`); then it is turned away with
