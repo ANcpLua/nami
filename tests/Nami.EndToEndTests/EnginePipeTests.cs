@@ -36,8 +36,9 @@ public sealed class EnginePipeTests(TestContext context)
     [Timeout(60000, CooperativeCancellation = true)]
     public async Task EngineProtocol_MalformedFrame_DoesNotCancelInFlightCalls()
     {
-        // P14: one read with a valid call, a line that is not JSON, and a valid call (Proofs/Engine.lean,
-        // badFrameNotFatal_refuted and badFrameKeepsOtherCalls_refuted).
+        // P14: one read with a valid call, a line that is not JSON, and a valid call. Proofs/Engine.lean proves
+        // badFrameNotFatal and badFrameKeepsOtherCalls for the engine as it is; Mutants.lean refutes both for the
+        // engine at 843383e (mutant_badFrameNotFatal, mutant_badFrameKeepsOtherCalls).
         await using var engine = await EngineProcess.StartAsync(Directory, context.CancellationToken);
         await engine.WriteAsync(Call("1") + "not-json\n" + Call("2"), context.CancellationToken);
         var replies = await engine.ReadRepliesAsync(["1", "2"], TimeSpan.FromSeconds(20), context.CancellationToken);
@@ -109,11 +110,13 @@ public sealed class EnginePipeTests(TestContext context)
     [Timeout(180000, CooperativeCancellation = true)]
     public async Task EngineProtocol_CancelThenNewCalls_WithinTheHostLimit_KeepServing()
     {
-        // Proofs/System.lean, correctHostNeverEndsTheEngine_refuted: engine.ts frees a slot when its caller
-        // aborts (engine.ts:77) and allows 32 waiting requests (engine.ts:69). The engine frees the slot only
-        // when the cancelled task has ended (EngineProtocol.cs:173) and throws at 32 (:74-75). A tool's work
-        // ignores cancellation once it runs (ToolDispatcher.Run), so a cancelled call that is running keeps
-        // its slot. The test sends what engine.ts sends: call 1, its cancel, then 32 new calls.
+        // Proofs/System.lean, correctHostNeverEndsTheEngine: engine.ts frees a slot when its caller aborts
+        // (abort in Engine.request) and allows 32 waiting requests (ENGINE_LIMITS.max_pending). The engine frees
+        // its slot when it reads the cancel frame (EngineProtocol.Accept), although a tool's work ignores
+        // cancellation once it runs (ToolDispatcher.Run) and so goes on; a call at a full table is refused for
+        // its id and the read loop goes on. At 843383e the slot stayed taken until the cancelled task had ended
+        // and a call at a full table ended the engine (Mutants.lean, mutant_correctHost). The test sends what
+        // engine.ts sends: call 1, its cancel, then 32 new calls.
         await using var engine = await EngineProcess.StartAsync(Directory, context.CancellationToken);
         const string Trace = "00000000000000000000000000000001";
         await engine.SeedTraceAsync(Trace, 20_000, context.CancellationToken);
