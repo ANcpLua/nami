@@ -42,10 +42,65 @@ public sealed class CredentialReadSideTests(TestContext context)
     [Timeout(60000, CooperativeCancellation = true)]
     public async Task Tools_RowsStoredBeforeTheStage_ReturnNoCredential()
     {
+        var answers = await AnswersAfterPlantingAsync(Token, "before-the-stage.duckdb");
+
+        var leaks = answers.Where(static answer => answer.Text.Contains(Token, StringComparison.Ordinal))
+            .Select(static answer => answer.Tool).ToArray();
+        Assert.IsEmpty(leaks, "these answers return the planted token: " + string.Join(", ", leaks));
+
+        // The rest of each string is still there: the answers were read from the planted rows.
+        var all = string.Join('\n', answers.Select(static answer => answer.Text));
+        foreach (var rest in new[]
+                 {
+                     "[REDACTED]-operation", "[REDACTED]-status", "[REDACTED]-route", "[REDACTED]-type",
+                     "[REDACTED]-version", "[REDACTED]-body", "[REDACTED]-severity", "[REDACTED]-service"
+                 })
+            Assert.Contains(rest, all);
+        Assert.DoesNotContain("-named", all, "the value of an attribute named like a credential goes whole");
+        Assert.AreEqual(7, answers.Count);
+        Assert.HasCount(1, answers.Where(static answer => answer.Tool.EndsWith("(refusal)", StringComparison.Ordinal)));
+    }
+
+    /// <summary>
+    ///     Ledger N77. The shapes of the fourth round, in rows stored before their rules existed: a secret named only
+    ///     by the place it stands in is not shown either. Each text is planted into every text column and asked for
+    ///     through all six tools. Quotes are written as the JSON columns hold them.
+    /// </summary>
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    [DataRow("https://hooks.example.test/services/T000/B000/{0}", DisplayName = "Slack webhook path")]
+    [DataRow("https://api.example.test/bot123456:{0}/sendMessage", DisplayName = "Telegram bot path")]
+    [DataRow("GET /app/home;jsessionid={0} 200", DisplayName = "jsessionid path parameter")]
+    [DataRow("<add key='ApiKey' value='{0}' />", DisplayName = ".NET configuration entry")]
+    [DataRow("db.example.test:5432:orders:svc:{0}", DisplayName = "pgpass line")]
+    [DataRow("DbPwd={0}", DisplayName = "camel-case DbPwd=")]
+    [DataRow("requirepass {0}", DisplayName = "redis requirepass")]
+    [DataRow("X-Auth: {0}", DisplayName = "X-Auth header")]
+    [DataRow("echo -n 'svc:{0}' | base64", DisplayName = "echo user:password piped to base64")]
+    [DataRow("{{\\\"kty\\\":\\\"RSA\\\",\\\"d\\\":\\\"{0}\\\",\\\"e\\\":\\\"AQAB\\\"}}", DisplayName = "JWK private exponent")]
+    [DataRow("sent Bearer {0} and failed", DisplayName = "Bearer with a lower-case value")]
+    public async Task Tools_RowsStoredBeforeARuleOfTheFourthRound_ShowNoSecret(string shape)
+    {
+        // After a scheme only a value of lower-case letters needed a new rule.
+        var secret = shape.Contains("Bearer", StringComparison.Ordinal) ? "zqrnineoooxoookkkk" : "ZQR900X000ZZZZZZ";
+        var answers = await AnswersAfterPlantingAsync(string.Format(CultureInfo.InvariantCulture, shape, secret),
+            "fourth-round-" + Guid.NewGuid().ToString("N") + ".duckdb", secret);
+
+        var leaks = answers.Where(answer => answer.Text.Contains(secret, StringComparison.Ordinal))
+            .Select(static answer => answer.Tool).ToArray();
+        Assert.IsEmpty(leaks, "these answers return the planted secret: " + string.Join(", ", leaks));
+        Assert.Contains("[REDACTED]", string.Join('\n', answers.Select(static answer => answer.Text)));
+    }
+
+    // Stores ordinary rows with a placeholder, turns the placeholder into the planted text behind the stage's back
+    // and asks every tool. proof is what the planted columns must then hold.
+    private async Task<List<(string Tool, string Text)>> AnswersAfterPlantingAsync(string planted, string file, string? proof = null)
+    {
+        proof ??= planted;
         var clock = new FakeTimeProvider(TestData.s_now);
         var path = Path.Combine(
             context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
-            "before-the-stage.duckdb");
+            file);
         var time = TestData.Nanos(TestData.s_now.AddSeconds(-2));
         var traceId = 1.ToString("x32", CultureInfo.InvariantCulture);
         await using (var store = new DuckDbStore(path, timeProvider: clock))
@@ -55,10 +110,10 @@ public sealed class CredentialReadSideTests(TestContext context)
             Assert.HasCount(1, (await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
         }
 
-        Plant(path);
-        var stored = StoredRows.ColumnsContaining(path, Token);
+        Plant(path, planted);
+        var stored = StoredRows.ColumnsContaining(path, proof);
         foreach (var column in s_plantedColumns)
-            Assert.IsGreaterThan(0L, stored.GetValueOrDefault(column), column + " holds no planted token, so the test proves nothing there");
+            Assert.IsGreaterThan(0L, stored.GetValueOrDefault(column), column + " holds no planted text, so the test proves nothing there");
 
         clock.Advance(TimeSpan.FromSeconds(1));
         var answers = new List<(string Tool, string Text)>();
@@ -81,21 +136,7 @@ public sealed class CredentialReadSideTests(TestContext context)
             }
         }
 
-        var leaks = answers.Where(static answer => answer.Text.Contains(Token, StringComparison.Ordinal))
-            .Select(static answer => answer.Tool).ToArray();
-        Assert.IsEmpty(leaks, "these answers return the planted token: " + string.Join(", ", leaks));
-
-        // The rest of each string is still there: the answers were read from the planted rows.
-        var all = string.Join('\n', answers.Select(static answer => answer.Text));
-        foreach (var rest in new[]
-                 {
-                     "[REDACTED]-operation", "[REDACTED]-status", "[REDACTED]-route", "[REDACTED]-type",
-                     "[REDACTED]-version", "[REDACTED]-body", "[REDACTED]-severity", "[REDACTED]-service"
-                 })
-            Assert.Contains(rest, all);
-        Assert.DoesNotContain("-named", all, "the value of an attribute named like a credential goes whole");
-        Assert.AreEqual(7, answers.Count);
-        Assert.HasCount(1, answers.Where(static answer => answer.Tool.EndsWith("(refusal)", StringComparison.Ordinal)));
+        return answers;
     }
 
     private static string Traces(ulong time)
@@ -123,7 +164,7 @@ public sealed class CredentialReadSideTests(TestContext context)
     }
 
     /// <summary>Replaces the placeholder with the token in every text and JSON column of every table.</summary>
-    private static void Plant(string path)
+    private static void Plant(string path, string planted)
     {
         using var connection = new DuckDBConnection($"DataSource={path}");
         connection.Open();
@@ -147,7 +188,7 @@ public sealed class CredentialReadSideTests(TestContext context)
             update.CommandText = $"UPDATE \"{table}\" SET \"{column}\" = replace(CAST(\"{column}\" AS VARCHAR), $1, $2) " +
                                  $"WHERE contains(CAST(\"{column}\" AS VARCHAR), $1)";
             update.Parameters.Add(new DuckDBParameter { Value = Placeholder });
-            update.Parameters.Add(new DuckDBParameter { Value = Token });
+            update.Parameters.Add(new DuckDBParameter { Value = planted });
             update.ExecuteNonQuery();
             update.Parameters.Clear();
             update.Parameters.Add(new DuckDBParameter { Value = KeyPlaceholder });

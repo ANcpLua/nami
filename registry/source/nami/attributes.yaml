@@ -32,7 +32,7 @@ attributes:
     type: string
     stability: development
     brief: >
-      Why ingest replaced a value it kept the attribute of.
+      Why ingest replaced a value and kept what carries it.
     note: >
       `depth`: a structure nested deeper than the bound became an empty value.
       `invalid_utf16`: a lone surrogate became U+FFFD.

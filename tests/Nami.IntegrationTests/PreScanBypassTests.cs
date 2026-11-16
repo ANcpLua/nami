@@ -46,6 +46,10 @@ public sealed class PreScanBypassTests(TestContext context)
             _ => [0x8A, 0x80, 0x80, 0x80, 0x80, 0x01, 0x00, .. EmptyResourceSpans]
         };
 
+        // Once, unmeasured: the first parse of a process builds the generated protobuf descriptors (some 316 KB),
+        // which is no cost of this request (ledger N90: 3 of 150 runs failed when it fell on a measured row).
+        await Assert.ThrowsExactlyAsync<OtlpMalformedPayloadException>(() => ParseTracesAsync(payload, grpc));
+
         var before = GC.GetAllocatedBytesForCurrentThread();
         var refused = await Assert.ThrowsExactlyAsync<OtlpMalformedPayloadException>(() => ParseTracesAsync(payload, grpc));
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
@@ -166,15 +170,23 @@ public sealed class PreScanBypassTests(TestContext context)
     [DataRow("string value", true, DisplayName = "the string of an attribute value, gRPC")]
     [DataRow("nested key", false, DisplayName = "the key of a member in a key-value list, HTTP")]
     [DataRow("nested key", true, DisplayName = "the key of a member in a key-value list, gRPC")]
+    [DataRow("nested string", false, DisplayName = "the string of a value in an array, HTTP")]
+    [DataRow("nested string", true, DisplayName = "the string of a value in an array, gRPC")]
+    [DataRow("nested bytes", false, DisplayName = "the bytes of a value in an array, HTTP")]
+    [DataRow("nested bytes", true, DisplayName = "the bytes of a value in an array, gRPC")]
     public async Task AStringFieldSentMoreOftenThanTheBound_IsRefused(string shape, bool grpc)
     {
-        // Span.name = 5; KeyValue { key = 1, value = 2 }; AnyValue { string_value = 1, kvlist_value = 6 { values = 1 } }.
+        // Span.name = 5; KeyValue { key = 1, value = 2 }; AnyValue { string_value = 1, array_value = 5 { values = 1 },
+        // kvlist_value = 6 { values = 1 }, bytes_value = 7 }.
         // A structure over the cap of one value is replaced unread, so the keys come in twenty values under it:
-        // each a key-value list of one member whose key is sent 60,000 times.
+        // each a key-value list of one member whose key is sent 60,000 times. The same below the top level of a
+        // value (evaluator 15, X3c): twenty arrays of one value whose string, or whose bytes, is sent 60,000 times.
         var span = shape switch
         {
             "span name" => Repeat([0x2A, 0x01, (byte)'n'], s_limits.MaxRequestElements + 1),
             "string value" => Field(9, Field(2, Repeat([0x0A, 0x01, (byte)'n'], s_limits.MaxRequestElements + 1))),
+            "nested string" => Repeat(Field(9, Field(2, Field(5, Field(1, Repeat([0x0A, 0x01, (byte)'n'], 60_000))))), 20),
+            "nested bytes" => Repeat(Field(9, Field(2, Field(5, Field(1, Repeat([0x3A, 0x01, (byte)'n'], 60_000))))), 20),
             _ => Repeat(Field(9, Field(2, Field(6, Field(1, Repeat([0x0A, 0x01, (byte)'n'], 60_000))))), 20)
         };
         // Export { resource_spans = 1 { scope_spans = 2 { spans = 2 } } }.
@@ -186,6 +198,38 @@ public sealed class PreScanBypassTests(TestContext context)
 
         Assert.AreEqual("OTLP request holds more than 1000000 scalar elements.", refused.Message);
         Assert.IsLessThan(3L * payload.Length + 65536, allocated, "Refused from the bytes: no string per occurrence.");
+    }
+
+    /// <summary>
+    ///     A structure over the value cap is replaced by the sentinel and never built, so the strings the scan
+    ///     counted inside it before it knew are given back: they are no elements of the request. Here two arrays,
+    ///     each over the cap by its count of values (250, the cap allows 204) and each with 150 strings in front,
+    ///     in a request that may hold 200 elements. Counted without the give-back the first array leaves 50 and
+    ///     the second is refused.
+    /// </summary>
+    [TestMethod]
+    [DataRow(false, DisplayName = "OTLP/HTTP")]
+    [DataRow(true, DisplayName = "OTLP/gRPC")]
+    public async Task AStructureReplacedByTheSentinel_GivesBackTheElementsCountedInsideIt(bool grpc)
+    {
+        var limits = new IngestLimits { MaxValueUtf8Bytes = 1024, MaxRequestElements = 200 };
+        Assert.AreEqual(204, OtlpValueBounds.MaxNestedValues(limits));
+        // ArrayValue.values = 1: 150 values that hold a string of one byte, then 100 empty ones; 950 bytes.
+        byte[] items = [.. Repeat([0x0A, 0x03, 0x0A, 0x01, (byte)'n'], 150), .. Repeat([0x0A, 0x00], 100)];
+        var attribute = Field(9, [.. Field(1, "k"u8.ToArray()), .. Field(2, Field(5, items))]);
+        Assert.IsLessThan(limits.MaxValueUtf8Bytes, attribute.Length, "Over the cap by its count, not by its bytes.");
+        var payload = Field(1, Field(2, Field(2, [.. attribute, .. attribute])));
+
+        var parsed = grpc
+            ? OtlpPayloadParser.ParseProtobuf(ExportTraceServiceRequest.Parser, ExportTraceServiceRequest.Descriptor,
+                new ReadOnlySequence<byte>(payload), limits)
+            : await OtlpPayloadParser.ParseTraceRequestAsync(Request(payload), OtlpPayloadEncoding.Protobuf, limits,
+                context.CancellationToken);
+
+        var attributes = parsed.ResourceSpans[0].ScopeSpans[0].Spans[0].Attributes;
+        Assert.HasCount(2, attributes);
+        foreach (var replaced in attributes)
+            Assert.AreEqual(OtlpValueBounds.OversizedValueSentinel, replaced.Value.StringValue);
     }
 
     /// <summary>
@@ -255,7 +299,7 @@ public sealed class PreScanBypassTests(TestContext context)
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.AreEqual(new string('\uFFFD', Invalid), parsed.ResourceSpans[0].ScopeSpans[0].Spans[0].Attributes[0].Value.StringValue);
-        Assert.IsLessThan(24L * json.Length, allocated);
+        Assert.IsLessThan(11L * json.Length, allocated, "Read (3), normalized (3), the parser's builder and string (2 each).");
     }
 
     private Task<ExportTraceServiceRequest> ParseTracesAsync(byte[] payload, bool grpc) => grpc

@@ -6,14 +6,16 @@ namespace Nami.Collector.Ingestion;
 /// <summary>
 ///     OTLP 1.11.1 "UTF-8 String Handling": a decoder SHOULD replace an invalid UTF-8 sequence with
 ///     U+FFFD rather than refuse the export. Google.Protobuf has no lenient mode and rejects the whole
-///     message, so after its strict parse fails the <c>string</c> fields are rewritten on the wire,
-///     guided by the generated <see cref="MessageDescriptor" />, and the message is parsed again.
-///     Every other field is copied byte for byte. A valid payload never reaches this.
+///     message, so before its strict parse the <c>string</c> fields are checked on the wire, guided by the
+///     generated <see cref="MessageDescriptor" />. A payload that holds an invalid sequence is rewritten once,
+///     every other field copied byte for byte, and the rewritten bytes are what the parser reads: no parse
+///     that fails first, and no string or copy of a replaced value in between.
 /// </summary>
 /// <remarks>
 ///     Two passes over the bytes: the first measures the rewritten message and records each nested
-///     message's new length and each replaced string; the second writes into a buffer of exactly that
-///     size. That keeps a hostile payload linear in time and memory.
+///     message's new length and the new length of each replaced string, and is all a valid payload costs; the
+///     second writes into a buffer of exactly that size. That keeps a hostile payload linear in time and at one
+///     copy in memory (three bytes for each invalid one, at most).
 /// </remarks>
 internal static class OtlpUtf8Replacement
 {
@@ -46,7 +48,7 @@ internal static class OtlpUtf8Replacement
         }
 
         plan.BeginWrite();
-        replaced = new byte[measure.Length];
+        replaced = GC.AllocateUninitializedArray<byte>(measure.Length);
         var write = new Sink(replaced, true);
         if (!Rewrite(message, descriptor, 0, plan, ref write) || write.Length != replaced.Length)
             throw new InvalidOperationException("The UTF-8 rewrite did not match its measured output.");
@@ -109,10 +111,8 @@ internal static class OtlpUtf8Replacement
                     switch (field)
                     {
                         case { FieldType: FieldType.String } when !Utf8.IsValid(body):
-                            var replacement = plan.Replacement(body);
                             sink.Copy(message[fieldStart..tagEnd]);
-                            sink.Varint((ulong)replacement.Length);
-                            sink.Copy(replacement);
+                            sink.Replaced(body, plan.ReplacedLength(body));
                             break;
                         case { FieldType: FieldType.Message }:
                             if (!RewriteNested(body, field.MessageType, depth, plan, ref sink, message[fieldStart..tagEnd]))
@@ -236,29 +236,86 @@ internal static class OtlpUtf8Replacement
         return true;
     }
 
+    /// <summary>
+    ///     How many bytes <paramref name="utf8" /> has once every maximal invalid subsequence is U+FFFD: three bytes
+    ///     where one to three stood.
+    /// </summary>
+    internal static int ReplacedLength(ReadOnlySpan<byte> utf8)
+    {
+        var length = 0;
+        while (!utf8.IsEmpty)
+        {
+            var beyondAscii = utf8.IndexOfAnyInRange((byte)0x80, (byte)0xFF);
+            if (beyondAscii < 0)
+                return checked(length + utf8.Length);
+
+            utf8 = utf8[beyondAscii..];
+            var valid = Rune.DecodeFromUtf8(utf8, out _, out var consumed) is OperationStatus.Done;
+            length = checked(length + beyondAscii + (valid ? consumed : 3));
+            utf8 = utf8[consumed..];
+        }
+
+        return length;
+    }
+
+    /// <summary>
+    ///     Writes <paramref name="utf8" /> with every maximal invalid subsequence replaced by U+FFFD, the sequences
+    ///     Encoding.UTF8 replaces, into <paramref name="replaced" />, which holds
+    ///     <see cref="ReplacedLength" /> bytes. Encoding.UTF8 would build a string and allocate some forty bytes
+    ///     for each sequence it replaces.
+    /// </summary>
+    internal static void ReplaceInvalidUtf8(ReadOnlySpan<byte> utf8, Span<byte> replaced)
+    {
+        while (!utf8.IsEmpty)
+        {
+            var beyondAscii = utf8.IndexOfAnyInRange((byte)0x80, (byte)0xFF);
+            if (beyondAscii < 0)
+            {
+                utf8.CopyTo(replaced);
+                return;
+            }
+
+            utf8[..beyondAscii].CopyTo(replaced);
+            utf8 = utf8[beyondAscii..];
+            replaced = replaced[beyondAscii..];
+            if (Rune.DecodeFromUtf8(utf8, out _, out var consumed) is OperationStatus.Done)
+            {
+                utf8[..consumed].CopyTo(replaced);
+                replaced = replaced[consumed..];
+            }
+            else
+            {
+                "\uFFFD"u8.CopyTo(replaced);
+                replaced = replaced[3..];
+            }
+
+            utf8 = utf8[consumed..];
+        }
+    }
+
     /// <summary>What the measure pass learned, consumed by the write pass in the same order.</summary>
     private sealed class Plan
     {
         private readonly List<int> _nestedLengths = [];
-        private readonly List<byte[]> _replacements = [];
+        private readonly List<int> _replacedLengths = [];
         private int _nextNestedLength;
-        private int _nextReplacement;
+        private int _nextReplaced;
 
         public bool Measuring { get; private set; } = true;
 
-        public bool ReplacedAnything => _replacements.Count > 0;
+        public bool ReplacedAnything => _replacedLengths.Count > 0;
 
         public void BeginWrite() => Measuring = false;
 
-        public byte[] Replacement(ReadOnlySpan<byte> invalidUtf8)
+        /// <summary>The length of a string field once replaced; the value itself is written by the write pass.</summary>
+        public int ReplacedLength(ReadOnlySpan<byte> invalidUtf8)
         {
             if (!Measuring)
-                return _replacements[_nextReplacement++];
+                return _replacedLengths[_nextReplaced++];
 
-            // Encoding.UTF8 decodes each maximal invalid subsequence as one U+FFFD.
-            var replacement = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(invalidUtf8));
-            _replacements.Add(replacement);
-            return replacement;
+            var length = OtlpUtf8Replacement.ReplacedLength(invalidUtf8);
+            _replacedLengths.Add(length);
+            return length;
         }
 
         public int ReserveNestedLength()
@@ -284,6 +341,15 @@ internal static class OtlpUtf8Replacement
             if (write)
                 bytes.CopyTo(_output[Length..]);
             Length += bytes.Length;
+        }
+
+        /// <summary>A string field's length and its bytes with the invalid sequences replaced, written in place.</summary>
+        public void Replaced(ReadOnlySpan<byte> invalidUtf8, int replacedLength)
+        {
+            Varint((ulong)replacedLength);
+            if (write)
+                ReplaceInvalidUtf8(invalidUtf8, _output.Slice(Length, replacedLength));
+            Length += replacedLength;
         }
 
         public void Varint(ulong value)

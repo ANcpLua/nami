@@ -52,16 +52,17 @@ internal sealed class OtlpHttpResult : IResult
         new OtlpHttpResult(statusCode, encoding, new RpcStatus { Message = message });
 }
 
-internal sealed class OtlpUnsupportedMediaTypeException(string? contentType, Exception? innerException)
-    : NotSupportedException($"Unsupported OTLP Content-Type '{contentType ?? "<missing>"}'.", innerException)
+// The header value is the sender's text and the exception is logged: the message names the header only.
+internal sealed class OtlpUnsupportedMediaTypeException(Exception? innerException)
+    : NotSupportedException("Unsupported OTLP Content-Type.", innerException)
 {
-    public OtlpUnsupportedMediaTypeException(string? contentType) : this(contentType, null) { }
+    public OtlpUnsupportedMediaTypeException() : this(null) { }
 }
 
-internal sealed class OtlpUnsupportedContentEncodingException(string? contentEncoding, Exception? innerException)
-    : NotSupportedException($"Unsupported OTLP Content-Encoding '{contentEncoding ?? "<missing>"}'.", innerException)
+internal sealed class OtlpUnsupportedContentEncodingException(Exception? innerException)
+    : NotSupportedException("Unsupported OTLP Content-Encoding.", innerException)
 {
-    public OtlpUnsupportedContentEncodingException(string? contentEncoding) : this(contentEncoding, null) { }
+    public OtlpUnsupportedContentEncodingException() : this(null) { }
 }
 
 /// <summary>

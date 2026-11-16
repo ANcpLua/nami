@@ -577,22 +577,8 @@ public sealed class AttributeBoundsTests
         var deep = new AnyValue { StringValue = "leaf" };
         for (var level = 0; level < OtlpConverter.MaxValueNesting + 1; level++)
             deep = new AnyValue { ArrayValue = new ArrayValue { Values = { deep } } };
-        var thread = Environment.CurrentManagedThreadId;
         var counted = new Dictionary<string, long>(StringComparer.Ordinal);
-        using var listener = new System.Diagnostics.Metrics.MeterListener();
-        listener.InstrumentPublished = (instrument, own) =>
-        {
-            if (instrument.Meter.Name == "nami.collector" && instrument.Name == "nami.collector.values.replaced")
-                own.EnableMeasurementEvents(instrument);
-        };
-        listener.SetMeasurementEventCallback<long>((_, measurement, tags, _) =>
-        {
-            // The meter is the process's; conversion is synchronous, so this thread's measurements are this test's.
-            if (Environment.CurrentManagedThreadId != thread) return;
-            var reason = (string)tags.ToArray().Single(static tag => tag.Key == "nami.value.replacement.reason").Value!;
-            counted[reason] = counted.GetValueOrDefault(reason) + measurement;
-        });
-        listener.Start();
+        using var listener = ListenForReplacedValues(counted);
 
         var span = Convert(Text("acme.two", "a\uD800b\uDC00"), Text("acme.one", "\uDBFF"), Text("acme.clean", "ok 😀"),
             new KeyValue { Key = "acme.deep", Value = deep }, new KeyValue { Key = "acme.deep_too", Value = deep });
@@ -602,6 +588,81 @@ public sealed class AttributeBoundsTests
         Assert.HasCount(2, counted);
         Assert.AreEqual(0U, span.DroppedAttributesCount, "a replaced value is no dropped attribute");
         Assert.HasCount(5 + 1, span.Attributes);
+    }
+
+    /// <summary>
+    ///     Ledger N76. A record over a bound is read twice: in the order sent until the first attribute a bound
+    ///     removes, then again in the order of the reduction. What the first reading replaced is replaced again by
+    ///     the second, and it is one replacement: the count is taken once, when the reading stands. Here 132
+    ///     attributes, four more than a record keeps; the lone surrogate and the deep value come first and are the
+    ///     smallest, so both readings convert them and the reduction keeps them.
+    /// </summary>
+    [TestMethod]
+    public void Replaced_Values_AreCountedOnce_WhenTheRecordIsReduced()
+    {
+        var deep = new AnyValue { StringValue = "leaf" };
+        for (var level = 0; level < OtlpConverter.MaxValueNesting + 1; level++)
+            deep = new AnyValue { ArrayValue = new ArrayValue { Values = { deep } } };
+        KeyValue[] attributes =
+        [
+            Text("acme.lone", "\uD800"), Text("acme.\uDC00", "key"), new KeyValue { Key = "acme.deep", Value = deep },
+            .. Enumerable.Range(0, OtlpConverter.MaxAttributesPerRecord + 1).Select(static i => Text($"acme.pad.{i:D3}", new string('p', 200)))
+        ];
+        var counted = new Dictionary<string, long>(StringComparer.Ordinal);
+        using var listener = ListenForReplacedValues(counted);
+
+        var span = Convert(attributes);
+
+        Assert.AreEqual(4U, span.DroppedAttributesCount, "The record was reduced.");
+        Assert.AreEqual("\uFFFD", span.Attributes["acme.lone"].AsString());
+        Assert.AreEqual("key", span.Attributes["acme.\uFFFD"].AsString());
+        Assert.IsTrue(span.Attributes.ContainsKey("acme.deep"));
+        Assert.AreEqual(2L, counted.GetValueOrDefault("invalid_utf16"), "one lone surrogate in a value and one in a key, each counted once");
+        Assert.AreEqual(1L, counted.GetValueOrDefault("depth"), "one structure at the nesting bound, counted once");
+    }
+
+    /// <summary>
+    ///     A replaced value is counted because its attribute is kept with something in it changed. When the attribute
+    ///     is dropped instead, it is counted as dropped and its replacements are not counted: nothing of it is stored.
+    ///     Here the attribute with the lone surrogate is the largest of 129, so the reduction drops it.
+    /// </summary>
+    [TestMethod]
+    public void AReplacedValue_InAnAttributeTheReductionDrops_IsNotCountedAsReplaced()
+    {
+        KeyValue[] attributes =
+        [
+            Text("acme.lone", "\uD800" + new string('x', 400)),
+            .. Enumerable.Range(0, OtlpConverter.MaxAttributesPerRecord).Select(static i => Text($"acme.pad.{i:D3}", new string('p', 200)))
+        ];
+        var counted = new Dictionary<string, long>(StringComparer.Ordinal);
+        using var listener = ListenForReplacedValues(counted);
+
+        var span = Convert(attributes);
+
+        Assert.AreEqual(1U, span.DroppedAttributesCount);
+        Assert.IsFalse(span.Attributes.ContainsKey("acme.lone"));
+        Assert.IsEmpty(counted);
+    }
+
+    // Collects nami.collector.values.replaced by reason. The meter is the process's; conversion is synchronous, so
+    // this thread's measurements are this test's.
+    private static System.Diagnostics.Metrics.MeterListener ListenForReplacedValues(Dictionary<string, long> counted)
+    {
+        var thread = Environment.CurrentManagedThreadId;
+        var listener = new System.Diagnostics.Metrics.MeterListener();
+        listener.InstrumentPublished = (instrument, own) =>
+        {
+            if (instrument.Meter.Name == "nami.collector" && instrument.Name == "nami.collector.values.replaced")
+                own.EnableMeasurementEvents(instrument);
+        };
+        listener.SetMeasurementEventCallback<long>((_, measurement, tags, _) =>
+        {
+            if (Environment.CurrentManagedThreadId != thread) return;
+            var reason = (string)tags.ToArray().Single(static tag => tag.Key == "nami.value.replacement.reason").Value!;
+            counted[reason] = counted.GetValueOrDefault(reason) + measurement;
+        });
+        listener.Start();
+        return listener;
     }
 
     /// <summary>

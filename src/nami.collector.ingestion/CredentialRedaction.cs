@@ -16,7 +16,10 @@ namespace Nami.Collector.Ingestion;
 ///     (--password x, --api-key=x); the password of curl -u, of mysql -p and of sshpass -p; the value after a
 ///     Bearer or Basic scheme; JSON Web Tokens; tokens with a known prefix; and the whole value of an attribute or
 ///     JSON member whose own name is a credential name, a number, a list and a map under it included; a PEM
-///     private key block; an AWS secret next to its key id. A user name is no credential and stays. A string that is a JSON document is redacted leaf by leaf,
+///     private key block; an AWS secret next to its key id; and a secret in a place only its surroundings name: the
+///     last segment of a Slack webhook path, the token of a Telegram bot path, a ;jsessionid= path parameter, the
+///     value of a .NET configuration entry whose key is a credential name, the password of a pgpass line, of redis'
+///     requirepass and of echo user:password piped to base64, and the private members of a JSON Web Key. A user name is no credential and stays. A string that is a JSON document is redacted leaf by leaf,
 ///     so it stays JSON. A credential of no such shape is not recognised; this lowers the risk and is no guarantee.
 ///     The outcome depends on the text alone: every pattern matches without backtracking, in time linear in the
 ///     text, so no wall-clock deadline exists that a loaded machine could miss.
@@ -56,6 +59,51 @@ internal static class CredentialRedaction
     private static readonly Regex s_credentialAssignments = Pattern(
         "(?:(?:\\A|[^A-Za-z0-9])(?:pass|pwd|sig)|authorization|passw(?:or)?d|passphrase|sshpass|secret|token|credentials?|cookie|signature|(?:api|access|account|private|encryption|signing|master|session|shared[-_ ]?access)[-_. ]?key)" +
         "(?<suffix>(?:[_.-][A-Za-z0-9]+)*)(?:\\\\?[\"'])?\\]?[ \\t]*(?<separator>[:=]|%3D)[ \\t]*(?<scheme>(?:Bearer|Basic|Token)(?:[ \\t]+|%20))?");
+
+    // The same for a name in camel case, where the short words follow a lower-case letter or a digit: DbPwd=,
+    // smtpPass:, urlSig=. Case matters here, so bypass= and design= stay as they do above; and didPass=true stays,
+    // the result of a test.
+    private static readonly Regex s_camelCaseAssignments = Pattern(
+        "[a-z0-9](?:Pwd|Pass|Sig)" +
+        "(?<suffix>(?:[_.-][A-Za-z0-9]+)*)(?:\\\\?[\"'])?\\]?[ \\t]*(?<separator>[:=]|%3D)[ \\t]*(?<scheme>(?:Bearer|Basic|Token)(?:[ \\t]+|%20))?",
+        Linear);
+
+    // A header an application names itself and that ends in "auth": X-Auth:, X-Api-Auth:. A longer name
+    // (X-Auth-User:) says what else the header holds and stays, unless it ends in a credential name of the rule above.
+    private static readonly Regex s_authHeaderAssignments = Pattern(
+        "(?:\\A|[^A-Za-z0-9-])x-(?:[a-z0-9]+-)*auth(?:\\\\?[\"'])?\\]?[ \\t]*(?<separator>[:=])[ \\t]*(?<scheme>(?:Bearer|Basic|Token)[ \\t]+)?");
+
+    // Secrets a URL path carries in a known place: the last segment of a Slack webhook (/services/T.../B.../secret),
+    // the token of a Telegram bot (/bot<id>:<token>/) and the session of a Java servlet (;jsessionid=...).
+    private static readonly Regex s_slackWebhooks =
+        Pattern("(?<keep>/services/T[A-Z0-9]+/B[A-Z0-9]+/)[A-Za-z0-9]{12,}", Linear);
+
+    private static readonly Regex s_telegramBots = Pattern("(?<keep>/bot[0-9]+:)[A-Za-z0-9_-]{8,}", Linear);
+    private static readonly Regex s_servletSessions = Pattern("(?<keep>;jsessionid=)[A-Za-z0-9._!~*-]+");
+
+    // A pgpass line: host:port:database:user:password, five fields and no more, where the host is a dotted name, an
+    // address, localhost or * and the port a number or *.
+    private static readonly Regex s_pgpassLines = Pattern(
+        "(?<keep>(?:\\A|[\\s\"'])(?:\\*|localhost|[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)+):(?:[0-9]{1,5}|\\*):(?<database>[^\\s:\"']+):[^\\s:\"']+:)[^\\s:\"']+",
+        Linear);
+
+    // .NET configuration: <add key="ApiKey" value="..." />, where the key holds a credential word or ends in key.
+    private static readonly Regex s_configurationEntries = Pattern(
+        "<add[ \\t\\r\\n]+key[ \\t]*=[ \\t]*[\"'](?:[^\"'<>]*(?:secret|passw(?:or)?d|pwd|token|credentials?)[^\"'<>]*|[^\"'<>]*key)[\"'][ \\t\\r\\n]+value[ \\t]*=[ \\t]*");
+
+    // redis.conf and CONFIG SET: requirepass <password>, masterauth <password>.
+    private static readonly Regex s_redisPasswords = Pattern("\\b(?:requirepass|masterauth)[ \\t]+");
+
+    // echo -n "user:password" | base64, as a Basic header is built by hand; read only on a line that names base64.
+    private static readonly Regex s_echoArguments = Pattern("\\b(?:echo|printf)[ \\t]+(?:-[A-Za-z]+[ \\t]+)*");
+
+    // The private members of a JSON Web Key (RFC 7518: d, p, q, dp, dq, qi of a private key, k of a symmetric one),
+    // in a text that names kty, with its quotes plain or escaped.
+    private static readonly Regex s_jwkPrivateMembers =
+        Pattern("\\\\?\"(?:d|p|q|dp|dq|qi|k)\\\\?\"[ \\t]*:[ \\t]*\\\\?\"", Linear);
+
+    private static readonly FrozenSet<string> s_jwkPrivateNames =
+        FrozenSet.Create(StringComparer.Ordinal, "d", "p", "q", "dp", "dq", "qi", "k");
 
     // Words after a credential word that say the value is about the credential and is none itself.
     private static readonly FrozenSet<string> s_noSecretSuffixes = FrozenSet.Create(StringComparer.OrdinalIgnoreCase,
@@ -116,10 +164,13 @@ internal static class CredentialRedaction
     // ssh.passphrase, SecretString. user and uid are not among them (k8s.pod.uid is no credential), neither is a bare
     // key (messaging.kafka.message.key) nor a count of tokens (input_tokens).
     private static readonly Regex s_credentialNames = Pattern(
-        "(?:authorization|api[-_. ]?key|access[-_ ]?key(?:[-_ ]?id)?|account[-_ ]?key|shared[-_ ]?access[-_ ]?(?:key|signature)|secret(?:[-_ ]?(?:key|string))?|private[-_ ]?key|encryption[-_ ]?key|session[-_ ]?key|passw(?:or)?d|passphrase|credentials?|token|cookie|(?:\\A|[^A-Za-z0-9])(?:pass|pwd|sshpass))\\z");
+        "(?:authorization|api[-_. ]?key|access[-_ ]?key(?:[-_ ]?id)?|account[-_ ]?key|shared[-_ ]?access[-_ ]?(?:key|signature)|secret(?:[-_ ]?(?:key|string))?|private[-_ ]?key|encryption[-_ ]?key|session[-_ ]?key|passw(?:or)?d|passphrase|credentials?|token|cookie|(?:\\A|[^A-Za-z0-9])(?:pass|pwd|sshpass)|(?:\\A|[^A-Za-z0-9-])x-(?:[a-z0-9]+-)*auth)\\z");
+
+    // The short words at the end of a name in camel case: DbPwd, smtpPass. Case matters, so compass and bypass stay.
+    private static readonly Regex s_camelCaseCredentialNames = Pattern("[a-z0-9](?:Pwd|Pass)\\z", Linear);
 
     private static readonly SearchValues<string> s_credentialNameParts = SearchValues.Create(
-        ["authorization", "key", "secret", "pass", "pwd", "token", "signature", "cookie", "credential"],
+        ["authorization", "key", "secret", "pass", "pwd", "token", "signature", "cookie", "credential", "-auth"],
         StringComparison.OrdinalIgnoreCase);
 
     // Keys repeat on every record; senders choose them, so the table stops growing at a fixed size.
@@ -133,7 +184,7 @@ internal static class CredentialRedaction
     private static readonly SearchValues<char> s_assignmentSeparators = SearchValues.Create(":=");
 
     private static readonly SearchValues<string> s_assignmentNames = SearchValues.Create(
-        ["authorization", "key", "secret", "pass", "pwd", "token", "sig", "credential", "cookie"],
+        ["authorization", "key", "secret", "pass", "pwd", "token", "sig", "credential", "cookie", "-auth"],
         StringComparison.OrdinalIgnoreCase);
 
     private static readonly SearchValues<string> s_schemes =
@@ -175,7 +226,7 @@ internal static class CredentialRedaction
     {
         if (!name.AsSpan().ContainsAny(s_credentialNameParts)) return false;
         if (s_namesACredential.TryGetValue(name, out var known)) return known;
-        var names = s_credentialNames.IsMatch(name);
+        var names = s_credentialNames.IsMatch(name) || s_camelCaseCredentialNames.IsMatch(name);
         if (s_namesACredential.Count < MaxRememberedNames) s_namesACredential.TryAdd(name, names);
         return names;
     }
@@ -208,8 +259,16 @@ internal static class CredentialRedaction
         var dashes = span.Contains(" -", StringComparison.Ordinal) || span.Contains("\t-", StringComparison.Ordinal);
         var pem = span.Contains(PemHeaderEnd, StringComparison.Ordinal);
         var logins = span.Contains('@') && span.Contains(':');
-        var words = (named || span.Contains("IDENTIFIED", StringComparison.OrdinalIgnoreCase)) &&
+        var words = (named || span.Contains("IDENTIFIED", StringComparison.OrdinalIgnoreCase) ||
+                     span.Contains("masterauth", StringComparison.OrdinalIgnoreCase)) &&
                     (span.Contains(' ') || span.Contains('<'));
+        // A secret in a known place of a URL path, and a pgpass line (five fields, four colons).
+        var paths = slash && (span.Contains("/services/T", StringComparison.Ordinal) ||
+                              span.Contains("/bot", StringComparison.Ordinal) ||
+                              span.Contains(";jsessionid=", StringComparison.OrdinalIgnoreCase));
+        var pgpass = span.Count(':') >= 4;
+        var encoded = span.Contains("base64", StringComparison.Ordinal) && span.Contains(':');
+        var jwk = span.Contains("kty", StringComparison.Ordinal) && span.Contains('"');
         // In a JSON document a member's name alone can say that its value is a credential ("cookie": "..."), and
         // the name can be written with escapes.
         var json = nesting < MaxJsonNesting && LooksLikeJson(span);
@@ -217,7 +276,7 @@ internal static class CredentialRedaction
         var members = json && (span.ContainsAny(s_credentialNameParts) || span.Contains("\\u", StringComparison.Ordinal) ||
                                span.Contains("\"-p\"", StringComparison.Ordinal) || span.Contains("\"-a\"", StringComparison.Ordinal));
         if (!(urls || encodedUrls || assignments || schemes || tokens || prefixes || flags || dashes || pem || logins ||
-              words || members)) return text;
+              words || members || paths || pgpass || encoded || jwk)) return text;
 
         try
         {
@@ -238,7 +297,23 @@ internal static class CredentialRedaction
                 redacted = s_relativeReferences.Replace(redacted, RedactRelativeReference);
             }
 
-            if (assignments) redacted = RedactAssignments(redacted);
+            if (paths)
+            {
+                redacted = s_slackWebhooks.Replace(redacted, KeepAndReplace);
+                redacted = s_telegramBots.Replace(redacted, KeepAndReplace);
+                redacted = s_servletSessions.Replace(redacted, KeepAndReplace);
+            }
+
+            if (assignments)
+            {
+                redacted = RedactAssignments(redacted, s_credentialAssignments);
+                redacted = RedactAssignments(redacted, s_camelCaseAssignments, true);
+                redacted = RedactAssignments(redacted, s_authHeaderAssignments);
+            }
+
+            if (pgpass) redacted = RedactPgpass(redacted);
+            if (encoded) redacted = RedactValuesAfter(redacted, s_echoArguments, ValueShape.AfterColon, "base64");
+            if (jwk) redacted = RedactValuesAfter(redacted, s_jwkPrivateMembers, ValueShape.Token);
             if (flags) redacted = RedactValuesAfter(redacted, s_credentialFlags, ValueShape.Word);
             if (dashes) redacted = RedactToolPasswords(redacted);
             if (words) redacted = RedactWordPatterns(redacted);
@@ -348,6 +423,17 @@ internal static class CredentialRedaction
         return networkPath ? safe["http:".Length..] : safe;
     }
 
+    private static string KeepAndReplace(Match match) => match.Groups["keep"].Value + Replacement;
+
+    // The password of a pgpass line. A sixth field, or a database that is a number (file:line:column:severity:code
+    // of a compiler), says the line is something else.
+    private static string RedactPgpass(string text) => s_pgpassLines.Replace(text, match =>
+    {
+        var end = match.Index + match.Length;
+        if (end < text.Length && text[end] == ':') return match.Value;
+        return match.Groups["database"].ValueSpan.ContainsAnyExceptInRange('0', '9') ? KeepAndReplace(match) : match.Value;
+    });
+
     private static string RedactRelativeReference(Match match)
     {
         var rest = match.Groups["rest"].ValueSpan;
@@ -405,12 +491,13 @@ internal static class CredentialRedaction
             text.AsSpan(_start, _end - _start).Contains(word, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string RedactAssignments(string text)
+    // With keepResults a value that is true or false stays: didPass=true is the result of a test.
+    private static string RedactAssignments(string text, Regex names, bool keepResults = false)
     {
         StringBuilder? result = null;
         var copied = 0;
         var line = new LineCursor();
-        foreach (Match match in s_credentialAssignments.Matches(text))
+        foreach (Match match in names.Matches(text))
         {
             if (match.Index < copied) continue;
             var start = match.Index + match.Length;
@@ -421,6 +508,7 @@ internal static class CredentialRedaction
             var end = separator.Length > 1
                 ? WordEnd(text, start, line.End)
                 : SecretEnd(text, start, separator[0] == '=', match.Groups["scheme"].Success, ref line);
+            if (keepResults && text.AsSpan(start, end - start).Trim("\"'") is "true" or "false" or "True" or "False") continue;
             // An empty quoted value ("password":"") holds nothing to remove.
             if (end == start || (end == start + 2 && text[start] is '"' or '\'' && text[start + 1] == text[start])) continue;
             result ??= new StringBuilder(text.Length);
@@ -497,7 +585,10 @@ internal static class CredentialRedaction
         Quoted,
 
         // Up to the next '<' (the text of an XML element).
-        Element
+        Element,
+
+        // To the end of the word, whatever it starts with: the match has read the opening quote already.
+        Token
     }
 
     // Replaces the value that follows each match. A word that starts with '-' after a blank is the next flag, not a
@@ -536,8 +627,8 @@ internal static class CredentialRedaction
             }
             else
             {
-                if (text[start] == '-' && text[start - 1] != '=') continue;
-                var quoted = text[start] is '"' or '\'';
+                if (shape is not ValueShape.Token && text[start] == '-' && text[start - 1] != '=') continue;
+                var quoted = shape is not ValueShape.Token && text[start] is '"' or '\'';
                 if (shape is ValueShape.Quoted && !quoted) continue;
                 var end = quoted ? QuoteEnd(text, start) : WordEnd(text, start, text.Length);
                 if (end == start) continue;
@@ -598,6 +689,11 @@ internal static class CredentialRedaction
             text = RedactValuesAfter(text, s_sqlPasswords, ValueShape.Quoted);
         if (span.Contains('<') && span.Contains('>'))
             text = RedactValuesAfter(text, s_xmlElements, ValueShape.Element);
+        if (span.Contains("<add", StringComparison.OrdinalIgnoreCase))
+            text = RedactValuesAfter(text, s_configurationEntries, ValueShape.Quoted);
+        if (span.Contains("requirepass", StringComparison.OrdinalIgnoreCase) ||
+            span.Contains("masterauth", StringComparison.OrdinalIgnoreCase))
+            text = RedactValuesAfter(text, s_redisPasswords, ValueShape.Word);
         return text;
     }
 
@@ -650,12 +746,16 @@ internal static class CredentialRedaction
         return end;
     }
 
+    private const int ProseWordLength = 16;
+
     private static string RedactAuthorizationValue(Match match)
     {
-        // "Basic authentication failed" and "bearer token" are prose: a lone lower-case word is no credential. After
-        // an authorization name the assignment rule has removed the value already, whatever it looks like.
+        // "Basic authentication failed" and "bearer token" are prose: a lone lower-case word is no credential, up to
+        // the length of the longest word that follows a scheme in prose (authentication, authorization and their
+        // plurals: fifteen letters). After an authorization name the assignment rule has removed the value already,
+        // whatever it looks like.
         var value = match.Groups["value"].ValueSpan;
-        if (value.Length < 20 && !value.ContainsAnyExcept(s_letters) && !value[1..].ContainsAnyInRange('A', 'Z'))
+        if (value.Length < ProseWordLength && !value.ContainsAnyExcept(s_letters) && !value[1..].ContainsAnyInRange('A', 'Z'))
             return match.Value;
         return match.Groups["scheme"].Value + Replacement;
     }
@@ -737,6 +837,8 @@ internal static class CredentialRedaction
         {
             case JsonValueKind.Object:
                 writer.WriteStartObject();
+                // A JSON Web Key names its type in kty; its private members have names of one or two letters.
+                var jwk = element.TryGetProperty("kty", out var keyType) && keyType.ValueKind is JsonValueKind.String;
                 foreach (var member in element.EnumerateObject())
                 {
                     var sent = member.Name;
@@ -744,7 +846,9 @@ internal static class CredentialRedaction
                     changed |= !ReferenceEquals(name, sent);
                     writer.WritePropertyName(name);
                     // Under a credential name everything goes, however deep: an object, a list, a number.
-                    WriteRedacted(member.Value, writer, credential || NamesACredential(sent), nesting, ref changed);
+                    WriteRedacted(member.Value, writer,
+                        credential || NamesACredential(sent) || (jwk && s_jwkPrivateNames.Contains(sent)), nesting,
+                        ref changed);
                 }
 
                 writer.WriteEndObject();

@@ -23,7 +23,7 @@ internal static class OtlpPayloadParser
     {
         return TryGetEncoding(contentType, out var encoding)
             ? encoding
-            : throw new OtlpUnsupportedMediaTypeException(contentType);
+            : throw new OtlpUnsupportedMediaTypeException();
     }
 
     /// <summary>The encoding a Content-Type names; false for a missing one and for one OTLP does not define.</summary>
@@ -104,9 +104,9 @@ internal static class OtlpPayloadParser
     /// <summary>
     ///     The value bounds first, on the bytes (<see cref="OtlpValueBounds" />), so that a structure over the cap
     ///     is never built, and the counts of messages and records, so that a request of too many is refused with
-    ///     an <see cref="OtlpPayloadTooLargeException" /> before it is parsed. Then the strict parse; when it fails and the payload holds an invalid UTF-8 sequence in
-    ///     a <c>string</c> field, the sequence is replaced by U+FFFD (OTLP 1.11.1) and the payload is parsed again.
-    ///     A failure that no replacement explains stands.
+    ///     an <see cref="OtlpPayloadTooLargeException" /> before it is parsed. Then an invalid UTF-8 sequence in a
+    ///     <c>string</c> field is replaced by U+FFFD on the bytes (OTLP 1.11.1, <see cref="OtlpUtf8Replacement" />),
+    ///     and the strict parse runs once. Its failure stands.
     /// </summary>
     private static T ParseProtobuf<T>(MessageParser<T> parser, MessageDescriptor descriptor, Span<byte> payload,
         IngestLimits limits)
@@ -117,16 +117,10 @@ internal static class OtlpPayloadParser
         // Unknown fields are not kept: Google.Protobuf would hold every one of them as an object, and the bounds
         // count what nami reads. The converter reads known fields only.
         var known = parser.WithDiscardUnknownFields(true);
-        T message;
-        try
-        {
-            message = known.ParseFrom(payload);
-        }
-        catch (InvalidProtocolBufferException) when (OtlpUtf8Replacement.TryReplaceInvalidUtf8(payload, descriptor,
-                                                         out var replaced))
-        {
-            message = known.ParseFrom(replaced);
-        }
+        // One parse: a payload with an invalid sequence in a string field is rewritten before the parser sees it.
+        var message = OtlpUtf8Replacement.TryReplaceInvalidUtf8(payload, descriptor, out var replaced)
+            ? known.ParseFrom(replaced)
+            : known.ParseFrom(payload);
 
         CountReplaced(bounded);
         return message;
@@ -162,6 +156,20 @@ internal static class OtlpPayloadParser
     private static async Task<T> ParseJsonAsync<T>(HttpRequest request, IngestLimits limits, CancellationToken ct)
         where T : IMessage<T>, new()
     {
+        // The request's own buffer is not held while the parser builds its objects: the normalized document is all
+        // the parser reads, and the request is up to 16 MiB that a collection during the parse can then take back.
+        var (json, bounded) = await ReadNormalizedJsonAsync(request, limits, ct).ConfigureAwait(false);
+        // Read from the normalized bytes: one more copy of a 16 MiB body as a string is 32 MiB.
+        using var reader = new StreamReader(new MemoryStream(json.Array!, json.Offset, json.Count, false), Encoding.UTF8,
+            false);
+        var message = s_otlpJsonParser.Parse<T>(reader);
+        CountReplaced(bounded);
+        return message;
+    }
+
+    private static async Task<(ArraySegment<byte> Json, OtlpValueBoundsResult Bounded)> ReadNormalizedJsonAsync(
+        HttpRequest request, IngestLimits limits, CancellationToken ct)
+    {
         await using var payload = await ReadBoundedPayloadAsync(request, limits, ct).ConfigureAwait(false);
 
         // The value bounds first, on the bytes, so that a structure over the cap is never built.
@@ -171,13 +179,7 @@ internal static class OtlpPayloadParser
 
         // The OTLP spec mandates hex for trace and span ids in JSON, but protojson decodes
         // bytes fields as base64 — rewrite the id fields (validating them) before parsing.
-        // Read from the normalized bytes: one more copy of a 16 MiB body as a string is 32 MiB.
-        var json = OtlpJsonIdNormalizer.NormalizeIdsToProtoJsonUtf8(utf8Json);
-        using var reader = new StreamReader(new MemoryStream(json.Array!, json.Offset, json.Count, false), Encoding.UTF8,
-            false);
-        var message = s_otlpJsonParser.Parse<T>(reader);
-        CountReplaced(bounded);
-        return message;
+        return (OtlpJsonIdNormalizer.NormalizeIdsToProtoJsonUtf8(utf8Json), bounded);
     }
 
     // The parser builds one object per message and the store one row per record, so a request of more than either
@@ -214,7 +216,7 @@ internal static class OtlpPayloadParser
         var isIdentity = contentEncoding.Length is 0 ||
                          string.Equals(contentEncoding, "identity", StringComparison.OrdinalIgnoreCase);
         if (!isIdentity && !string.Equals(contentEncoding, "gzip", StringComparison.OrdinalIgnoreCase))
-            throw new OtlpUnsupportedContentEncodingException(contentEncoding);
+            throw new OtlpUnsupportedContentEncodingException();
 
         var wireLimit = limits.MaxRequestWireBytes;
         var decompressedLimit = limits.MaxRequestDecompressedBytes;

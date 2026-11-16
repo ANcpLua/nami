@@ -37,6 +37,56 @@ public sealed class EngineProtocolTests(TestContext context)
     private static string Cancel(string id, string? revision = null) =>
         $"{{\"id\":\"{id}\",\"revision\":\"{revision ?? ContractRevision.Value}\",\"method\":\"cancel\"}}\n";
 
+    /// <summary>
+    ///     Ledger N56. The tool name of a call is the caller's text. nami's own span and its duration metric carry it
+    ///     only when it is the name of one of nami's tools; any other name is "_OTHER" and the span is named by the
+    ///     method alone.
+    /// </summary>
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task ToolCall_ANameThatIsNoneOfNamisTools_ReachesNoSpanNameAndNoTagOfNamisOwnTelemetry()
+    {
+        const string received = "zqt-received-ZQT900X000ZZZZZZ";
+        var spans = new System.Collections.Concurrent.ConcurrentQueue<(string Name, string Tags)>();
+        using var activities = new System.Diagnostics.ActivityListener
+        {
+            ShouldListenTo = static source => source.Name == "nami",
+            Sample = static (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) =>
+                System.Diagnostics.ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = activity => spans.Enqueue((activity.DisplayName + "|" + activity.OperationName,
+                string.Join(";", activity.TagObjects.Select(static tag => tag.Key + "=" + tag.Value))))
+        };
+        System.Diagnostics.ActivitySource.AddActivityListener(activities);
+        var measured = new System.Collections.Concurrent.ConcurrentQueue<string>();
+        using var meters = new System.Diagnostics.Metrics.MeterListener();
+        meters.InstrumentPublished = static (instrument, own) =>
+        {
+            if (instrument.Meter.Name == "nami") own.EnableMeasurementEvents(instrument);
+        };
+        meters.SetMeasurementEventCallback<double>((_, _, tags, _) =>
+            measured.Enqueue(string.Join(";", tags.ToArray().Select(static tag => tag.Key + "=" + tag.Value))));
+        meters.Start();
+
+        await WithEngineAsync(async exchange =>
+        {
+            var unknown = await exchange(Call("1", received));
+            Assert.IsTrue(unknown.GetProperty("is_error").GetBoolean());
+            var known = await exchange(Call("2"));
+            Assert.IsFalse(known.GetProperty("is_error").GetBoolean());
+        });
+
+        var all = spans.ToArray();
+        Assert.IsTrue(all.Any(static span => span.Name == "tools/call|tools/call" && span.Tags.Contains("gen_ai.tool.name=_OTHER", StringComparison.Ordinal)),
+            "No span for the unknown tool: " + string.Join(" / ", all));
+        Assert.IsTrue(all.Any(static span => span.Name.StartsWith("tools/call sources_status|", StringComparison.Ordinal) &&
+                                             span.Tags.Contains("gen_ai.tool.name=sources_status", StringComparison.Ordinal)),
+            "One of nami's own tools keeps its name: " + string.Join(" / ", all));
+        Assert.IsFalse(all.Any(static span => (span.Name + span.Tags).Contains("ZQT900X000ZZZZZZ", StringComparison.Ordinal)),
+            "A received name in a span: " + string.Join(" / ", all));
+        Assert.IsTrue(measured.Any(static tags => tags.Contains("gen_ai.tool.name=_OTHER", StringComparison.Ordinal)));
+        Assert.IsFalse(measured.Any(static tags => tags.Contains("ZQT900X000ZZZZZZ", StringComparison.Ordinal)));
+    }
+
     [TestMethod]
     [DataRow(62, DisplayName = "Inside the reader's default depth")]
     [DataRow(63, DisplayName = "One level past the default depth")]

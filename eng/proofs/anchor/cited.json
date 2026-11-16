@@ -370,8 +370,8 @@
   "model": "Engine.accept .req _ _ true (add; a repeated id is refused: Engine.refuse)"
  },
  "src/nami/Hosting/EngineProtocol.cs|Execute|pending|1": {
-  "memberHash": "54f506776a5c1401",
-  "line": 243,
+  "memberHash": "27a77e8d473f5858",
+  "line": 251,
   "model": "Engine.step .drop (a call cancelled through _lifetime); no effect after Reply or a cancel frame removed the entry"
  },
  "src/nami/Hosting/EngineProtocol.cs|Reply|pending|1": {
@@ -390,13 +390,13 @@
   "model": "Engine.cancelAll (finally)"
  },
  "src/nami/Hosting/EngineProtocol.cs|Execute|worker|1": {
-  "memberHash": "54f506776a5c1401",
-  "line": 182,
+  "memberHash": "27a77e8d473f5858",
+  "line": 185,
   "model": "Engine.step .enter and .unwindEnter"
  },
  "src/nami/Hosting/EngineProtocol.cs|Execute|worker|2": {
-  "memberHash": "54f506776a5c1401",
-  "line": 241,
+  "memberHash": "27a77e8d473f5858",
+  "line": 249,
   "model": "Engine.step .drop and .unwind true (busy - 1)"
  },
  "src/nami/Hosting/EngineProtocol.cs|Accept|tasks|1": {
@@ -455,23 +455,23 @@
   "model": "Engine.step .respond"
  },
  "src/nami/Hosting/EngineProtocol.cs|Execute|reply|1": {
-  "memberHash": "54f506776a5c1401",
-  "line": 186,
+  "memberHash": "27a77e8d473f5858",
+  "line": 189,
   "model": "Engine.step .respond"
  },
  "src/nami/Hosting/EngineProtocol.cs|Execute|reply|2": {
-  "memberHash": "54f506776a5c1401",
-  "line": 195,
+  "memberHash": "27a77e8d473f5858",
+  "line": 198,
   "model": "Engine.step .respond"
  },
  "src/nami/Hosting/EngineProtocol.cs|Execute|reply|3": {
-  "memberHash": "54f506776a5c1401",
-  "line": 218,
+  "memberHash": "27a77e8d473f5858",
+  "line": 226,
   "model": "Engine.step .respond"
  },
  "src/nami/Hosting/EngineProtocol.cs|Execute|reply|4": {
-  "memberHash": "54f506776a5c1401",
-  "line": 235,
+  "memberHash": "27a77e8d473f5858",
+  "line": 243,
   "model": "Engine.step .respond"
  },
  "src/nami/Hosting/EngineProtocol.cs|ProcessAsync|drop|1": {
@@ -530,8 +530,8 @@
   "model": "Engine.step .stop"
  },
  "src/nami/Hosting/EngineProtocol.cs|Execute|catchCancel|1": {
-  "memberHash": "54f506776a5c1401",
-  "line": 227,
+  "memberHash": "27a77e8d473f5858",
+  "line": 235,
   "model": "Engine.step .drop, and .unwind for a task whose entry a cancel frame removed"
  },
  "src/nami/Hosting/EngineProtocol.cs|Dispose|disposed|1": {

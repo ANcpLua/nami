@@ -115,7 +115,7 @@ internal static partial class OtlpConverter
                         default:
                             Reject(CountMetricPoints(metric),
                                 new InvalidDataException(
-                                    $"OTLP metric '{stream.MetricName}' carries an unknown data point set."));
+                                    "An OTLP metric carries an unknown data point set."));
                             break;
                     }
 
@@ -135,7 +135,7 @@ internal static partial class OtlpConverter
                                 if (record.TimeUnixNano is 0)
                                 {
                                     throw new InvalidDataException(
-                                        $"Metric '{stream.MetricName}' requires a nonzero time_unix_nano.");
+                                        "An OTLP metric data point requires a nonzero time_unix_nano.");
                                 }
 
                                 points.Add(record);
@@ -172,10 +172,10 @@ internal static partial class OtlpConverter
         if (point.BucketCounts.Count is not 0 && point.ExplicitBounds.Count + 1 != point.BucketCounts.Count)
         {
             throw new InvalidDataException(
-                $"OTLP histogram '{stream.MetricName}' must carry one more count than explicit bound.");
+                "An OTLP histogram must carry one more count than explicit bound.");
         }
 
-        ValidateAscendingBounds(stream.MetricName, point.ExplicitBounds);
+        ValidateAscendingBounds(point.ExplicitBounds);
         return CreateRecord(stream, point.Attributes, MetricKind.Histogram, temporality, false,
                 new CommonContract.MetricHistogramPointData
                 {
@@ -361,7 +361,7 @@ internal static partial class OtlpConverter
         TimeUnixNano = 0
     };
 
-    private static void ValidateAscendingBounds(string metricName, RepeatedField<double> bounds)
+    private static void ValidateAscendingBounds(RepeatedField<double> bounds)
     {
         var previous = double.NegativeInfinity;
         foreach (var bound in bounds)
@@ -369,7 +369,7 @@ internal static partial class OtlpConverter
             if (!double.IsFinite(bound) || bound <= previous)
             {
                 throw new InvalidDataException(
-                    $"OTLP histogram '{metricName}' explicit bounds must be finite and strictly ascending.");
+                    "OTLP histogram explicit bounds must be finite and strictly ascending.");
             }
 
             previous = bound;

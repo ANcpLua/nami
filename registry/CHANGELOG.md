@@ -28,7 +28,8 @@
 - Added the counter `nami.collector.values.replaced` with the attribute
   `nami.value.replacement.reason` (`depth`, `invalid_utf16`): values ingest replaced while it
   kept their attribute. Until a record can say so in a field of its own, this counter is where
-  such a replacement shows.
+  such a replacement shows. Its brief names everything it counts: a replacement in an attribute
+  key or value, and one in a name or a status message, where no attribute is involved.
 - Advanced the Nami registry schema to 0.5.0. This does not change the product version.
 
 ## 0.4.0 — 2026-11-15
