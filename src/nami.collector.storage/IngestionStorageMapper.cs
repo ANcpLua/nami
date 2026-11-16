@@ -89,7 +89,9 @@ internal static class IngestionStorageMapper
                 builder.AppendSegment(sessionId, true);
                 AppendIdentityPart(builder, log.TimeUnixNano);
                 AppendIdentityPart(builder, log.TimeOrigin.ProducerObservedTime);
-                if (log.UntimedRequestOrdinal is { } ordinal) AppendIdentityPart(builder, ordinal);
+                // The record's place in its request: equal records of one request are rows of their own, and the
+                // request sent again is the same rows (LogIngestionRecord.RequestOrdinal).
+                if (log.RequestOrdinal is { } ordinal) AppendIdentityPart(builder, ordinal);
                 AppendIdentityPart(builder, severityNumber);
                 builder.AppendSegment(severityText, true);
                 builder.AppendSegment(originalBody, true);

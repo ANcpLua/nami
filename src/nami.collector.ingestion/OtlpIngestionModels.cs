@@ -9,11 +9,13 @@ internal sealed partial record LogIngestionRecord
 
     public ulong? ObservedTimeUnixNano => TimeOrigin.ProducerObservedTime ?? TimeOrigin.CollectorReceivedTime;
 
-    public int? UntimedRequestOrdinal
-    {
-        get => TimeOrigin.UntimedRequestOrdinal;
-        init => TimeOrigin = TimeOrigin with { UntimedRequestOrdinal = value };
-    }
+    /// <summary>
+    ///     The record's place in its export request, counted over every log record of the request. OTLP gives a log
+    ///     record no identifier, so the stored row is keyed by the record's content and this place: two records of one
+    ///     request that are equal in every field are two rows, as they were sent, and the same request sent again
+    ///     finds the rows of the first time. A sender that sends a record again at another place stores it again.
+    /// </summary>
+    public int? RequestOrdinal { get; init; }
 
     public ulong? ReceivedTimeUnixNano => TimeOrigin.CollectorReceivedTime;
 }

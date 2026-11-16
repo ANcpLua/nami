@@ -9,7 +9,9 @@ namespace Nami.IntegrationTests;
 ///     of the stop budget) the sender has no acknowledgement and, by OTLP, sends the export again: nami receives a
 ///     stored export a second time (ledger N62; observed in N105). These tests hold what the store then holds, for
 ///     each signal: every row is keyed by what identifies its record, so the second delivery finds the rows of the
-///     first and adds none. The only thing it moves is the watermark, which says when the service was last heard.
+///     first and adds none. The only thing it moves is the watermark, which says when the service was last heard: a
+///     retry is a receipt. A log record has no identifier of its own; its place in the request stands in for one, so
+///     a retry that carries it at another place stores it again.
 /// </summary>
 [TestClass]
 [TestCategory("Integration")]
@@ -29,9 +31,8 @@ public sealed class RedeliveryTests(TestContext context)
              "links":[{"traceId":"5b8efff798038103d269b633813fc60d","spanId":"eee19b7ec3c1b176"}]}]}]}]}
         """;
 
-    // A log record carries no identifier. The row's key is the record's whole content, and for a record with
-    // neither a time nor an observed time also its place in the request. So of the two pairs of equal records
-    // below, the pair with times is one row and the pair without is two: three rows.
+    // A log record carries no identifier. The row's key is the record's whole content and its place in the request,
+    // so the two pairs of equal records below are four rows, as they were sent.
     private const string Logs = """
         {"resourceLogs":[{"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"sender"}}]},
           "scopeLogs":[{"scope":{"name":"redelivery"},"logRecords":[
@@ -61,7 +62,7 @@ public sealed class RedeliveryTests(TestContext context)
 
     [TestMethod]
     [DataRow(Signals.Traces, Traces, "spans", 2, DisplayName = "Spans: one row a trace and span id")]
-    [DataRow(Signals.Logs, Logs, "logs", 3, DisplayName = "Log records: one row a content")]
+    [DataRow(Signals.Logs, Logs, "logs", 4, DisplayName = "Log records: one row a content and place in the request")]
     [DataRow(Signals.Metrics, Metrics, "metric_observations", 4, DisplayName = "Data points: one row a series, time and content")]
     public async Task Redelivery_OfAStoredExport_AddsNoRowAndChangesNone(string signal, string export, string table,
         int rows)
@@ -84,6 +85,48 @@ public sealed class RedeliveryTests(TestContext context)
         foreach (var (name, expected) in stored)
             Assert.AreSequenceEqual(expected, redelivered[name], $"The retry changed {name}.");
         Assert.AreEqual(heard + 30_000_000_000m, LastHeard(path));
+    }
+
+    /// <summary>
+    ///     nami stores telemetry as it was sent: two log records of one request that are equal in every field are two
+    ///     rows. What tells them apart is their place in the request, and that is also all that tells a retry from a
+    ///     new record. A sender that batches again before it retries, here with two new records in front, sends the
+    ///     two records at other places: they are stored again. At the places they had, they are the rows they were.
+    /// </summary>
+    [TestMethod]
+    public async Task Redelivery_OfLogRecordsAtOtherPlaces_StoresThemAgain()
+    {
+        const string Equal = """
+            {"timeUnixNano":"1792843198000000000","observedTimeUnixNano":"1792843198000000001","severityNumber":9,
+             "body":{"stringValue":"equal"},"attributes":[{"key":"k","value":{"stringValue":"v"}}]}
+            """;
+        const string First = """{"timeUnixNano":"1792843199000000000","severityNumber":9,"body":{"stringValue":"new 1"}}""";
+        const string Second = """{"timeUnixNano":"1792843199000000000","severityNumber":9,"body":{"stringValue":"new 2"}}""";
+        var path = Path.Combine(context.TestTempDirectory ?? throw new InvalidOperationException("No test directory"),
+            "rebatched.duckdb");
+        var clock = new FakeTimeProvider(TestData.s_now);
+
+        await DeliverAsync(path, clock, Signals.Logs, Request(Equal, Equal));
+        Assert.AreEqual(2, EqualRows(), "Two equal records of one request are two rows.");
+
+        clock.Advance(TimeSpan.FromSeconds(30));
+        await DeliverAsync(path, clock, Signals.Logs, Request(First, Second, Equal, Equal));
+        Assert.AreEqual(4, EqualRows(), "The two records, sent again at other places, are stored again.");
+        Assert.HasCount(6, Read(path)["logs"]);
+
+        await DeliverAsync(path, clock, Signals.Logs, Request(Equal, Equal, First));
+        Assert.AreEqual(4, EqualRows(), "At the places they had in the first request they are its rows.");
+
+        int EqualRows() => Read(path)["logs"].Count(static row => row.Contains("equal", StringComparison.Ordinal));
+
+        static string Request(params string[] records)
+        {
+            const string Head = """
+                {"resourceLogs":[{"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"sender"}}]},
+                  "scopeLogs":[{"scope":{"name":"redelivery"},"logRecords":[
+                """;
+            return Head + string.Join(",", records) + "]}]}]}";
+        }
     }
 
     /// <summary>Starts a collector on <paramref name="path" />, sends the export and stops the collector again.</summary>

@@ -435,8 +435,7 @@ internal static partial class OtlpConverter
                             CreateLogRecord(log, project, serviceName, resource.Attributes, resource.EntityRefs,
                                     observedTime, reasons) with
                             {
-                                UntimedRequestOrdinal =
-                                    log is { TimeUnixNano: 0, ObservedTimeUnixNano: 0 } ? requestOrdinal : null,
+                                RequestOrdinal = requestOrdinal,
                                 ScopeName = scopeName,
                                 ScopeVersion = scopeVersion,
                                 ScopeSchemaUrl = scopeSchema,

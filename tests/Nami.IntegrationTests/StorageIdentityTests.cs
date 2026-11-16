@@ -9,7 +9,9 @@ namespace Nami.IntegrationTests;
 
 /// <summary>
 ///     Stored rows key on ids hashed from their content, so the same record must keep the id it was stored with. The
-///     values were taken from the build of 843383e, before the log, instrument and series ids shared one recipe.
+///     values were taken from the build of 843383e, before the log, instrument and series ids shared one recipe. The
+///     log id was taken again when the record's place in its request became part of every log key (ledger N62): it
+///     is the id of this record at the first place. Rows stored before that keep the id without the place.
 /// </summary>
 [TestClass]
 [TestCategory("Integration")]
@@ -52,7 +54,7 @@ public sealed class StorageIdentityTests
         var series = Assert.ContainsSingle(metrics.Series);
         var observation = Assert.ContainsSingle(metrics.Observations);
 
-        Assert.AreEqual("log_ebdd5e9536cd4b1c9d00a104eb5e2fed", log.LogId);
+        Assert.AreEqual("log_4d0ec50d221cb0119ed9d24b8ec2083d", log.LogId);
         Assert.AreEqual("mi_e2babd097554c5e098dfc3ac5a191f84", series.InstrumentId);
         Assert.AreEqual("ms_2f23b323e8890b1b61e0f205f1ea6e26", series.SeriesId);
         Assert.AreEqual("mo_54634891374fae16223f16f1162d5a9dcb8df68666945730e44f022f0a06add4",
