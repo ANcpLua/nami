@@ -1,7 +1,7 @@
 {
   "Unit": {
     "project": "tests/Nami.UnitTests/Nami.UnitTests.csproj",
-    "minimumExpectedTests": 241,
+    "minimumExpectedTests": 251,
     "verbosity": "Minimal",
     "timeout": "5m"
   },
