@@ -225,15 +225,16 @@ internal static partial class OtlpConverter
                 throw new InvalidDataException($"OTLP resource entity {fieldName} must not be empty.");
             if (!projectedKeys.TryGetValue(key, out var projection))
             {
+                // The key is the sender's text and this message is logged and answered: it names the field only.
                 throw new InvalidDataException(
-                    $"OTLP resource entity {fieldName} '{key}' does not reference a persisted resource attribute.");
+                    $"OTLP resource entity {fieldName} does not reference a persisted resource attribute.");
             }
 
             var projectedKey = projection.PersistedKey;
             if (!normalized.Add(projectedKey))
             {
                 throw new InvalidDataException(
-                    $"OTLP resource entity contains duplicate {fieldName} '{projectedKey}'.");
+                    $"OTLP resource entity contains a duplicate {fieldName}.");
             }
         }
 

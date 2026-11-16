@@ -28,6 +28,9 @@ internal sealed class EngineProtocol(
     /// <summary>The longest id a refusal echoes; a longer one is the host's fault and is dropped like a frame without id.</summary>
     private const int MaxRefusedIdLength = 128;
 
+    // What nami's own telemetry says in place of a tool name that is none of nami's tools.
+    private const string OtherTool = "_OTHER";
+
     private static readonly byte[] s_lineTerminator = [10];
 
     private readonly TextWriter _diagnostics = diagnostics ?? Console.Error;
@@ -198,9 +201,14 @@ internal sealed class EngineProtocol(
 
             if (!ActivityContext.TryParse(request.Traceparent.Value, request.Tracestate.Value, out var parent))
                 Activity.Current = null;
-            activity = NamiTelemetry.Source.StartActivity("tools/call " + request.Name.Value, ActivityKind.Server, parent);
+            // The name a caller sends is the caller's text. nami's own span and metric carry it only when it is the
+            // name of one of nami's tools, taken from nami's own list; any other name is "_OTHER" and the span is
+            // named by the method alone.
+            var tool = ToolDispatcher.Names.FirstOrDefault(name => string.Equals(name, request.Name.Value, StringComparison.Ordinal));
+            activity = NamiTelemetry.Source.StartActivity(tool is null ? "tools/call" : "tools/call " + tool,
+                ActivityKind.Server, parent);
             activity?.SetTag("mcp.method.name", "tools/call");
-            activity?.SetTag("gen_ai.tool.name", request.Name.Value);
+            activity?.SetTag("gen_ai.tool.name", tool ?? OtherTool);
             var started = Stopwatch.GetTimestamp();
             try
             {
@@ -221,7 +229,7 @@ internal sealed class EngineProtocol(
             {
                 NamiTelemetry.Duration.Record(Stopwatch.GetElapsedTime(started).TotalSeconds,
                     new KeyValuePair<string, object?>("mcp.method.name", "tools/call"),
-                    new KeyValuePair<string, object?>("gen_ai.tool.name", request.Name.Value));
+                    new KeyValuePair<string, object?>("gen_ai.tool.name", tool ?? OtherTool));
             }
         }
         catch (OperationCanceledException) when (cancellation.Token.IsCancellationRequested)
