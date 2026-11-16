@@ -479,11 +479,11 @@ internal static partial class OtlpConverter
         var body = ConvertValue(log.Body, null, budget, 0);
         if (budget.Exhausted)
         {
-            (body, budget.Remaining) = (OtlpAttributeValue.Empty, Limits.MaxRecordAttributeBytes);
+            (body, budget.Remaining) = (OtlpAttributeValue.Empty, MaxRecordAttributeBytes);
             NamiCollectorMetrics.AttributeDropped();
         }
 
-        budget.Value = Limits.MaxValueUtf8Bytes;
+        budget.Value = MaxValueUtf8Bytes;
         var attributes = ConvertAttributes(log.Attributes, budget, true, out var dropped);
 
         var severityNumber = DefinedOrZero((int)log.SeverityNumber, (int)ProtoSeverityNumber.Fatal4,

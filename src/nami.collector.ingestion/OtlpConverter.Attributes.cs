@@ -78,8 +78,9 @@ internal static partial class OtlpConverter
     // 2026, for every sender since 16 Nov).
     private const int MaxStatusMessageUtf8Bytes = 1024;
 
-    // What a wire pre-scan leaves in place of a value that could never fit the cap (OtlpWireBudget): the attribute
-    // is dropped and counted here, without its elements ever having been built.
+    // What a bound before materialization (the ingress pre-scan, builder-ingress's part) can leave in place of a
+    // value that could never fit the cap: the attribute that carries it is dropped and counted here, like any
+    // attribute over the cap, so both drops reach the same dropped_attributes_count.
     internal const string OversizedValueSentinel = "\0nami:value-over-the-cap";
 
     // Kept first when a record is over a limit (observer's ruling, 16 Nov 2026, 02:25): the session, the token usage
