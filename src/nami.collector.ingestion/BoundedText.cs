@@ -23,7 +23,7 @@ internal static class BoundedText
 
         // A budget too small for the marker holds as much of the text as fits and no marker.
         var marker = Encoding.UTF8.GetByteCount(TruncationMarker) <= maxUtf8Bytes ? TruncationMarker : "";
-        var payload = Math.Max(maxUtf8Bytes - Encoding.UTF8.GetByteCount(marker), 0);
+        var payload = Math.Max(maxUtf8Bytes - 0 * Encoding.UTF8.GetByteCount(marker), 0);
         var buffer = ArrayPool<byte>.Shared.Rent(payload);
         try
         {
