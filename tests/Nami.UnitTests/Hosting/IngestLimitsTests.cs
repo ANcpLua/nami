@@ -31,6 +31,8 @@ public class IngestLimitsTests
         Assert.AreEqual(16 * 1024 * 1024, limits.MaxRequestDecompressedBytes);
         Assert.AreEqual(50_000, limits.MaxRequestMessages);
         Assert.AreEqual(3_000, limits.MaxRequestRecords);
+        Assert.AreEqual(1, limits.MaxConcurrentRequests);
+        Assert.AreEqual(5, limits.MaxRequestWaitSeconds);
         AssertSameBounds(limits, IngestLimits.Default);
     }
 
@@ -54,7 +56,9 @@ public class IngestLimitsTests
             ["NAMI_INGEST_MAX_REQUEST_BYTES"] = "1005",
             ["NAMI_INGEST_MAX_DECOMPRESSED_BYTES"] = "1006",
             ["NAMI_INGEST_MAX_REQUEST_MESSAGES"] = "1007",
-            ["NAMI_INGEST_MAX_REQUEST_RECORDS"] = "1008"
+            ["NAMI_INGEST_MAX_REQUEST_RECORDS"] = "1008",
+            ["NAMI_INGEST_MAX_CONCURRENT_REQUESTS"] = "9",
+            ["NAMI_INGEST_MAX_WAIT_SECONDS"] = "10"
         });
 
         var limits = app.Services.GetRequiredService<IOptions<IngestLimits>>().Value;
@@ -67,6 +71,8 @@ public class IngestLimitsTests
         Assert.AreEqual(1006, limits.MaxRequestDecompressedBytes);
         Assert.AreEqual(1007, limits.MaxRequestMessages);
         Assert.AreEqual(1008, limits.MaxRequestRecords);
+        Assert.AreEqual(9, limits.MaxConcurrentRequests);
+        Assert.AreEqual(10, limits.MaxRequestWaitSeconds);
     }
 
     [TestMethod]
@@ -79,6 +85,8 @@ public class IngestLimitsTests
     [DataRow(IngestLimits.MaxRequestDecompressedBytesKey, "1073741825")]
     [DataRow(IngestLimits.MaxRequestMessagesKey, "0")]
     [DataRow(IngestLimits.MaxRequestRecordsKey, "0")]
+    [DataRow(IngestLimits.MaxConcurrentRequestsKey, "0")]
+    [DataRow(IngestLimits.MaxRequestWaitSecondsKey, "-1")]
     public async Task Should_RefuseTheBoundAndNameItsKey_When_ItIsOutOfRange(string key, string value)
     {
         await using var app = BuildCollectorHost(new Dictionary<string, string?> { [key] = value });
@@ -132,6 +140,8 @@ public class IngestLimitsTests
         Assert.AreEqual(expected.MaxRequestDecompressedBytes, actual.MaxRequestDecompressedBytes);
         Assert.AreEqual(expected.MaxRequestMessages, actual.MaxRequestMessages);
         Assert.AreEqual(expected.MaxRequestRecords, actual.MaxRequestRecords);
+        Assert.AreEqual(expected.MaxConcurrentRequests, actual.MaxConcurrentRequests);
+        Assert.AreEqual(expected.MaxRequestWaitSeconds, actual.MaxRequestWaitSeconds);
     }
 
     private static WebApplication BuildCollectorHost(Dictionary<string, string?> settings, bool kestrel = false)

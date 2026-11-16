@@ -109,10 +109,18 @@ answers `RESOURCE_EXHAUSTED` without `RetryInfo`. By OTLP an exporter does not s
 | Protobuf messages of every type: containers, records, attributes and their values | 50,000 | `NAMI_INGEST_MAX_REQUEST_MESSAGES` |
 | Records, the messages stored as rows of their own: spans, log records, metric data points, exemplars | 3,000 | `NAMI_INGEST_MAX_REQUEST_RECORDS` |
 
-An OpenTelemetry SDK's default batch (512 records) is inside these bounds. An OpenTelemetry Collector in front of
-nami batches up to 8,192 records by default: cap its batch below the record bound (`send_batch_max_size` of the
-batch processor, or `sending_queue.batch.max_size` of the exporter), or raise the bound for the memory you give
-nami.
+nami ingests one request at a time (`NAMI_INGEST_MAX_CONCURRENT_REQUESTS`, default 1). A request waits for its
+turn before its body is read, five seconds at most (`NAMI_INGEST_MAX_WAIT_SECONDS`); then it is turned away with
+an answer an exporter retries: `503` with `Retry-After`, or gRPC `UNAVAILABLE`. One request at the record bound
+costs nami about 100 MiB of memory while it is stored, so the slots times that is what ingest may take.
+
+An OpenTelemetry SDK's default batch of 512 records is inside the bounds: Claude Code's exports hold 37 messages
+per span, 57 per log record and 22 per metric data point (63 at most), so 512 records are at most about 32,000
+messages. An OpenTelemetry Collector in front of nami batches 8,192 records by default, which is over both
+bounds, and nami does not split a request. Cap the Collector's batch: `send_batch_max_size: 512` in its batch
+processor (or `sending_queue.batch.max_size` of the exporter) keeps every request inside the defaults; with a
+larger batch, raise `NAMI_INGEST_MAX_REQUEST_RECORDS` and `NAMI_INGEST_MAX_REQUEST_MESSAGES` for the memory you
+give nami.
 
 Inside an accepted request, an attribute value or log body is bounded on its own, and what a bound removes is
 counted, not hidden:

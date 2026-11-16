@@ -10,5 +10,7 @@ internal static class CollectorMiddlewareExtensions
         if (app.Services.GetRequiredService<IOptions<OtlpCorsOptions>>().Value.IsEnabled)
             app.UseMiddleware<OtlpCorsMiddleware>();
         app.UseMiddleware<CollectorApiKeyMiddleware>();
+        // After the credential check, so a request without a valid key takes no slot; before any body is read.
+        app.UseMiddleware<OtlpIngestGateMiddleware>();
     }
 }

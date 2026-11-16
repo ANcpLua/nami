@@ -45,6 +45,12 @@ internal sealed class IngestLimits
     /// <inheritdoc cref="MaxValueUtf8BytesKey" />
     internal const string MaxRequestRecordsKey = "NAMI_INGEST_MAX_REQUEST_RECORDS";
 
+    /// <inheritdoc cref="MaxValueUtf8BytesKey" />
+    internal const string MaxConcurrentRequestsKey = "NAMI_INGEST_MAX_CONCURRENT_REQUESTS";
+
+    /// <inheritdoc cref="MaxValueUtf8BytesKey" />
+    internal const string MaxRequestWaitSecondsKey = "NAMI_INGEST_MAX_WAIT_SECONDS";
+
     internal const int DefaultMaxValueUtf8Bytes = 256 * 1024;
     internal const int DefaultMaxAttributesPerRecord = 128;
     internal const int DefaultMaxRecordAttributeBytes = 1024 * 1024;
@@ -52,6 +58,8 @@ internal sealed class IngestLimits
     internal const int DefaultMaxRequestBytes = 16 * 1024 * 1024;
     internal const int DefaultMaxRequestMessages = 50_000;
     internal const int DefaultMaxRequestRecords = 3_000;
+    internal const int DefaultMaxConcurrentRequests = 1;
+    internal const int DefaultMaxRequestWaitSeconds = 5;
 
     /// <summary>The bounds as the observer confirmed them; what a caller without configuration uses.</summary>
     internal static IngestLimits Default => new();
@@ -126,6 +134,23 @@ internal sealed class IngestLimits
     [ConfigurationKeyName(MaxRequestRecordsKey)]
     [ConfiguredRange(Key = MaxRequestRecordsKey, Minimum = 1, Maximum = int.MaxValue - 1)]
     public int MaxRequestRecords { get; set; } = DefaultMaxRequestRecords;
+
+    /// <summary>
+    ///     nami receiver policy: how many export requests are read, parsed, converted and stored at once, in the
+    ///     whole process (<see cref="OtlpIngestGate" />). One request at the record bound took about 100 MiB of
+    ///     peak memory when the defaults were measured, so the slots times that is what ingest may cost.
+    /// </summary>
+    [ConfigurationKeyName(MaxConcurrentRequestsKey)]
+    [ConfiguredRange(Key = MaxConcurrentRequestsKey, Minimum = 1, Maximum = 1024)]
+    public int MaxConcurrentRequests { get; set; } = DefaultMaxConcurrentRequests;
+
+    /// <summary>
+    ///     How many seconds a request waits for a slot before it is turned away with an answer an exporter retries
+    ///     (HTTP 503 with Retry-After, gRPC UNAVAILABLE). It waits before its body is read and holds no buffer.
+    /// </summary>
+    [ConfigurationKeyName(MaxRequestWaitSecondsKey)]
+    [ConfiguredRange(Key = MaxRequestWaitSecondsKey, Minimum = 0, Maximum = 300)]
+    public int MaxRequestWaitSeconds { get; set; } = DefaultMaxRequestWaitSeconds;
 
     // One buffer holds a request, so a byte bound stays inside what one array can hold.
     private const long MaxConfigurableBytes = 1024L * 1024 * 1024;

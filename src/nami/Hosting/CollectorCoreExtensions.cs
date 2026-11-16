@@ -29,6 +29,7 @@ internal static class CollectorCoreExtensions
             .Bind(config)
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<IngestLimits>, IngestLimitsValidator>();
+        services.AddSingleton<OtlpIngestGate>();
         services.TryAddSingleton(TimeProvider.System);
 
         services.AddGrpc(static options =>
