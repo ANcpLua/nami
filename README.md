@@ -72,7 +72,9 @@ claude mcp add --transport http nami http://127.0.0.1:5100/mcp
 nami listens on loopback unless `NAMI_BIND_ADDRESS` says otherwise. `NAMI_OTLP_AUTH_MODE=Unsecured`
 lets local producers send without a key; outside the Development environment the default is
 `ApiKey`, which needs project keys (below). The store is the DuckDB file `NAMI_DATA_PATH`, by
-default `nami.duckdb` in the working directory. Each nami process binds the OTLP ports and holds
+default `nami.duckdb` in the working directory. `NAMI_DB_MEMORY_LIMIT` (for example `2GB`) caps the
+memory DuckDB uses for that store; without it DuckDB's own default applies, 80 % of the memory of the
+machine or container. Each nami process binds the OTLP ports and holds
 its store open, so for several MCP clients at once, run one supervisor and connect them over
 Streamable HTTP. `/health` on the MCP port reports native-engine readiness. A non-loopback MCP
 listener requires `NAMI_PUBLIC_URL`; on Railway its public domain is used automatically. The

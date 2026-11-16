@@ -39,7 +39,7 @@ The command assignments were traced to their callers. No request value is used a
 | `DuckDbStore.MetricObservations.cs` | Generated `MetricPointRow` insert SQL and fixed deletion/projection statements | Typed row binders and positional parameters |
 | `DuckDbStore.Metrics.cs` | Generated column lists; private migration calls select fixed table names | Positional parameters for project, series and measurement values |
 | `DuckDbStore.Snapshots.cs` | Private snapshot readers receive generated table/column names and fixed ordering; writes use generated row SQL | Positional parameters and typed row binders |
-| `DuckDbStore.InsertRowsBatchedAsync` | The statically selected row type generates the insert statement from its declared columns and batch size | Every row value is bound separately |
+| `DuckDbStore.InsertRowsStaged` | The statically selected row type generates every statement as a constant from its declared columns: the temporary table of a batch, the statement that moves the batch into the table, and the single-row insert | Row values go through DuckDB's appender into the temporary table, never into SQL text; a batch of one row and the occurrence number of a repeated key are bound parameters |
 | `DuckDbStore.ExecutePragma` | Fixed SET statement names | Numeric options are formatted invariantly; string options use `EscapeSqlLiteral` |
 | `DuckDbStore.HasRows` | Table names from the generated schema/migration catalog, quoted with `QuoteIdentifier` | No request input is concatenated |
 | `DuckDbStore.ExecuteSchemaSql` | Generated DDL or private migration statements; discovered index names are checked against the declared catalog and quoted | No client SQL is accepted |
