@@ -118,6 +118,11 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
     ///     nami's own log holds nothing a sender chose. A request refused for its Content-Type or its
     ///     Content-Encoding is logged without the header's value, and a payload a library refuses is logged by the
     ///     type of the failure: Google.Protobuf repeats a number that is out of range in its message.
+    ///     <para>
+    ///         The log is read whole, ASP.NET Core's categories included, with every level lowered as far as a
+    ///         setting can lower it (ledger N124). Its request log names the Content-Type of every request at
+    ///         Information; nami holds those categories at Warning in code, so no setting writes the header.
+    ///     </para>
     /// </summary>
     [TestMethod]
     [Timeout(120000, CooperativeCancellation = true)]
@@ -128,7 +133,17 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
         using var logs = new Captured();
-        await using var host = await CollectorHost.StartAsync(Path.Combine(directory, "log.duckdb"), context.CancellationToken, logs: logs);
+        await using var host = await CollectorHost.StartAsync(Path.Combine(directory, "log.duckdb"), context.CancellationToken,
+            settings: new Dictionary<string, string?>
+            {
+                ["Logging:LogLevel:Default"] = "Trace",
+                ["Logging:LogLevel:Microsoft.AspNetCore"] = "Trace",
+                ["Logging:LogLevel:Microsoft.AspNetCore.Hosting"] = "Trace",
+                ["Logging:LogLevel:Microsoft.AspNetCore.Hosting.Diagnostics"] = "Information",
+                ["Logging:LogLevel:Microsoft.*.Hosting.Diagnostics"] = "Trace",
+                [$"Logging:{typeof(Captured).FullName}:LogLevel:Default"] = "Trace",
+                [$"Logging:{typeof(Captured).FullName}:LogLevel:Microsoft.AspNetCore.Hosting.Diagnostics"] = "Trace"
+            }, logs: logs);
         using var client = new HttpClient();
         using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(host.HttpEndpoint, "v1/traces"));
         var json = shape == "number"
@@ -146,6 +161,12 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
         var logged = string.Join('\n', logs.Lines);
         Assert.Contains("Failed to process OTLP traces payload: ", logged, "The refusal was not logged, so the test proves nothing.");
         Assert.Contains("   at Nami.", logged, "The stack frames are logged.");
+        Assert.Contains("[Debug] Microsoft.AspNetCore.", logged, "The lowered levels did not reach the log, so the test proves nothing.");
+        Assert.IsEmpty(logs.Lines.Where(static line => line.Contains("] Microsoft.AspNetCore.Hosting", StringComparison.Ordinal) &&
+                                                       !line.StartsWith("[Warning]", StringComparison.Ordinal) &&
+                                                       !line.StartsWith("[Error]", StringComparison.Ordinal) &&
+                                                       !line.StartsWith("[Critical]", StringComparison.Ordinal)).ToArray(),
+            "The request log is held at Warning.");
         Assert.Contains(shape switch
         {
             "content type" => "OtlpUnsupportedMediaTypeException",
@@ -194,28 +215,28 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
         Assert.DoesNotContain("holds", logged);
     }
 
-    // Every line nami itself logs: the formatted message and, when one is logged, the whole exception. What
-    // ASP.NET Core logs under its own categories (its request log names the Content-Type at Information, a level
-    // the engine does not write) is not nami's text.
-    private sealed class Captured : ILoggerProvider, ILogger
+    // Every line that reaches nami's log, under every category: the level, the category, the formatted message
+    // and, when one is logged, the whole exception.
+    private sealed class Captured : ILoggerProvider
     {
-        private static readonly ILogger s_ignored = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
-
         internal System.Collections.Concurrent.ConcurrentQueue<string> Lines { get; } = new();
 
-        public ILogger CreateLogger(string categoryName) =>
-            categoryName.StartsWith("Microsoft.", StringComparison.Ordinal) ? s_ignored : this;
+        public ILogger CreateLogger(string categoryName) => new Category(categoryName, Lines);
 
         public void Dispose()
         {
         }
 
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        private sealed class Category(string name, System.Collections.Concurrent.ConcurrentQueue<string> lines) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
 
-        public bool IsEnabled(LogLevel logLevel) => true;
+            public bool IsEnabled(LogLevel logLevel) => true;
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
-            Func<TState, Exception?, string> formatter) => Lines.Enqueue(formatter(state, exception) + " " + exception);
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+                Func<TState, Exception?, string> formatter) =>
+                lines.Enqueue($"[{logLevel}] {name}: {formatter(state, exception)} {exception}");
+        }
     }
 
     // The converter refuses a record in the batch's rejection message and a request by an exception; both texts

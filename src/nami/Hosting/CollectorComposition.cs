@@ -36,6 +36,7 @@ internal static class CollectorComposition
         builder.Services.AddNamiCollectorStorage(builder.Configuration);
         builder.Services.AddNamiCollectorAuth(builder.Configuration, builder.Environment);
         builder.Services.ConfigureNamiCollectorKestrel();
+        builder.Services.HoldRequestLogAtWarning();
         if (parts == CollectorParts.Engine)
         {
             builder.Services.AddSingleton<NamiToolService>();
