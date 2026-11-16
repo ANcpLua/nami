@@ -77,7 +77,7 @@ internal sealed partial class OwnedProcess : IAsyncDisposable
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 StandardOutputEncoding = start.StandardOutputEncoding,
-                StandardErrorEncoding = start.StandardErrorEncoding
+                StandardErrorEncoding = start.StandardOutputEncoding
             };
             hostStart.ArgumentList.Add(assembly);
             hostStart.ArgumentList.Add(pipeName);
