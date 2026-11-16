@@ -42,7 +42,6 @@ public sealed class ChildProcessTests(TestContext context) : IAsyncDisposable
     [Timeout(30_000, CooperativeCancellation = true)]
     public async Task OwnedProcess_TerminateAsync_AllowsTheCommandToFlushAndExit()
     {
-        if (OperatingSystem.IsWindows()) Assert.Inconclusive("This test requires POSIX signals.");
         await using var process = await OwnedProcess.StartAsync(Shell(
             "trap 'printf shutdown-flushed; exit 23' TERM; printf 'ready\\n'; while :; do sleep 1; done"),
             context.CancellationToken);
@@ -59,7 +58,6 @@ public sealed class ChildProcessTests(TestContext context) : IAsyncDisposable
     [Timeout(30_000, CooperativeCancellation = true)]
     public async Task OwnedProcess_TerminateAsync_DeadlineStillAllowsForcedCleanup()
     {
-        if (OperatingSystem.IsWindows()) Assert.Inconclusive("This test requires POSIX signals.");
         await using var process = await OwnedProcess.StartAsync(Shell(
             "trap '' TERM; printf 'ready\\n'; while :; do sleep 1; done"), context.CancellationToken);
         Assert.AreEqual("ready", await process.StandardOutput.ReadLineAsync(context.CancellationToken));

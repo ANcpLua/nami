@@ -300,7 +300,7 @@ class Run:
                       keys["GrpcPort"]: "0", keys["BindAddress"]: "127.0.0.1", "ASPNETCORE_URLS": "http://127.0.0.1:0"}
         eras = ["modern", "legacy"] if self.args.era == "both" else [self.args.era]
         transports = ["stdio", "http"] if self.args.transport == "both" else [self.args.transport]
-        binary = ROOT / "artifacts/publish" / ("nami.exe" if os.name == "nt" else "nami")
+        binary = ROOT / "artifacts/publish/nami"
         command = [bun, str(ROOT / "artifacts/publish/mcp/main.js"), "--engine", str(binary)]
         server = None
         self.summary["cleanup"] = dict(privateDaemonStopped=False, httpExitCode=None)

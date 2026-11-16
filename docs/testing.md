@@ -303,8 +303,8 @@ For a test stage containing built modules but lacking project restore state, use
 ```
 
 Module mode skips project evaluation. Its adjacent `testconfig.json`, runtime dependencies and
-the test's fixture inputs must still be present. EndToEnd also requires `artifacts/publish/nami`
-(`nami.exe` on Windows), `artifacts/publish/mcp/main.js`, and Bun. Keep the expression narrow: support and unselected assemblies are rejected.
+the test's fixture inputs must still be present. EndToEnd also requires `artifacts/publish/nami`,
+`artifacts/publish/mcp/main.js`, and Bun. Keep the expression narrow: support and unselected assemblies are rejected.
 
 ## Test lanes
 

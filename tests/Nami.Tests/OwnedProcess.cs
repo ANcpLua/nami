@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Nami.Tests;
 
-/// <summary>Retains a private process group/job until the command and all its descendants are terminated.</summary>
+/// <summary>Retains a private process group until the command and all its descendants are terminated.</summary>
 internal sealed partial class OwnedProcess : IAsyncDisposable
 {
     private readonly NamedPipeServerStream _control;
@@ -149,8 +149,7 @@ internal sealed partial class OwnedProcess : IAsyncDisposable
     internal static string CreatePipeName(string temporaryDirectory)
     {
         var name = Guid.NewGuid().ToString("N");
-        if (OperatingSystem.IsWindows()
-            || Encoding.UTF8.GetByteCount(Path.Combine(temporaryDirectory, "CoreFxPipe_" + name)) < 104)
+        if (Encoding.UTF8.GetByteCount(Path.Combine(temporaryDirectory, "CoreFxPipe_" + name)) < 104)
             return name;
 
         // .NET supports absolute Unix pipe paths for temporary directories exceeding sockaddr_un.sun_path.
@@ -176,13 +175,6 @@ internal sealed partial class OwnedProcess : IAsyncDisposable
 
     private async Task TerminateCoreAsync()
     {
-        // Windows console processes have no equivalent to SIGTERM. Keep their existing job cleanup.
-        if (OperatingSystem.IsWindows())
-        {
-            await _termination.Value.ConfigureAwait(false);
-            return;
-        }
-
         // Signal only the command: the ownership host must remain alive to report its exit and
         // retain descendants until KillAsync/DisposeAsync releases the complete process group.
         if (!_exit.IsCompleted && Kill(Id, 15) != 0)
@@ -224,7 +216,7 @@ internal sealed partial class OwnedProcess : IAsyncDisposable
 
     private static void Terminate(Process host, bool groupEstablished)
     {
-        if (!OperatingSystem.IsWindows() && groupEstablished)
+        if (groupEstablished)
         {
             if (Kill(-host.Id, 9) != 0 && !host.HasExited)
                 throw new Win32Exception(Marshal.GetLastPInvokeError());
