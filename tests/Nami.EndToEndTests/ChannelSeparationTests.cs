@@ -25,6 +25,7 @@ namespace Nami.EndToEndTests;
 public sealed class ChannelSeparationTests(TestContext context)
 {
     private const int Rounds = 10;
+    private const int RefusedExportsPerRound = 4;
 
     private string Directory => context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
 
@@ -73,10 +74,10 @@ public sealed class ChannelSeparationTests(TestContext context)
         start.Environment["NAMI_OTLP_AUTH_MODE"] = "Unsecured";
         start.Environment["DOTNET_ENVIRONMENT"] = "Development";
         // Diagnostics of the engine. A warning at every start: Kestrel says that it overrides this address (the
-        // runtime image set it until the Dockerfile cleared it). Noise: the engine's log from Information up,
-        // several lines for every request it receives. Failures that get logged: the exports below.
+        // runtime image set it until the Dockerfile cleared it). Failures that get logged, under nami's own
+        // category and with their stack frames: the exports below. No log level is set here, so the test holds
+        // whatever level the engine keeps ASP.NET Core's own log at.
         start.Environment["ASPNETCORE_HTTP_PORTS"] = "8080";
-        start.Environment["Logging__LogLevel__Default"] = "Information";
 
         var stdout = new ConcurrentQueue<string>();
         var stderr = new ConcurrentQueue<string>();
@@ -140,7 +141,7 @@ public sealed class ChannelSeparationTests(TestContext context)
             if (trouble is null) await SendAsync("""{"jsonrpc":"2.0","method":"notifications/initialized"}""");
 
             // Each round: two tool calls (one answered with a result, one refused for its cursor), two lines the
-            // host cannot serve and reports on standard error, and two exports the engine cannot store and logs.
+            // host cannot serve and reports on standard error, and four exports the engine cannot store and logs.
             for (var round = 0; round < Rounds && trouble is null; round++)
             {
                 var call = 100 + round * 2;
@@ -149,11 +150,14 @@ public sealed class ChannelSeparationTests(TestContext context)
                 await SendAsync("warn: this line is no JSON, and says so the way a log line would");
                 await SendAsync(ToolCall(call + 1, "sources_status", """{"cursor":"no cursor of nami"}"""));
                 await SendAsync("""{"id":"no-version","method":"tools/list"}""");
-                using var noJson = new StringContent("""{"resourceSpans":[{"scopeSpans":[{"spans":[{"traceId":"zz"}]}]}]}""",
-                    Encoding.UTF8, "application/json");
-                using var noProtobuf = new ByteArrayContent("neither protobuf nor anything else"u8.ToArray());
-                noProtobuf.Headers.ContentType = new("application/x-protobuf");
-                trouble = await RefusedExportAsync(noJson) ?? await RefusedExportAsync(noProtobuf);
+                for (var export = 0; export < RefusedExportsPerRound / 2 && trouble is null; export++)
+                {
+                    using var noJson = new StringContent("""{"resourceSpans":[{"scopeSpans":[{"spans":[{"traceId":"zz"}]}]}]}""",
+                        Encoding.UTF8, "application/json");
+                    using var noProtobuf = new ByteArrayContent("neither protobuf nor anything else"u8.ToArray());
+                    noProtobuf.Headers.ContentType = new("application/x-protobuf");
+                    trouble = await RefusedExportAsync(noJson) ?? await RefusedExportAsync(noProtobuf);
+                }
             }
 
             trouble ??= await WaitForAnswersAsync(expected, TimeSpan.FromSeconds(60));
@@ -205,9 +209,8 @@ public sealed class ChannelSeparationTests(TestContext context)
 
         // The private channel: every line in either direction is one frame of the contract. The engine's side
         // first: it writes before the host does.
-        var replies = await File.ReadAllTextAsync(fromEngine, context.CancellationToken);
         var answered = new List<string>();
-        foreach (var line in replies.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var line in await ReadFramesAsync(fromEngine, "from the engine"))
         {
             EngineResponse? reply = null;
             try
@@ -224,10 +227,8 @@ public sealed class ChannelSeparationTests(TestContext context)
             answered.Add(reply.Id);
         }
 
-        Assert.IsTrue(replies.EndsWith('\n'), "The last frame from the engine is whole.");
-        var commands = await File.ReadAllTextAsync(toEngine, context.CancellationToken);
         var called = new List<string>();
-        foreach (var line in commands.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var line in await ReadFramesAsync(toEngine, "to the engine"))
         {
             using var frame = ParseFrame(line, "to the engine");
             Assert.AreEqual(ContractRevision.Value, frame.RootElement.GetProperty("revision").GetString(), line);
@@ -235,8 +236,6 @@ public sealed class ChannelSeparationTests(TestContext context)
             Assert.AreEqual("sources_status", frame.RootElement.GetProperty("name").GetString(), line);
             called.Add(frame.RootElement.GetProperty("id").GetString()!);
         }
-
-        Assert.IsTrue(commands.EndsWith('\n'), "The last frame to the engine is whole.");
 
         // Only now what the run itself showed: with whole channels nothing went wrong, and every request and
         // every call was answered exactly once.
@@ -250,10 +249,12 @@ public sealed class ChannelSeparationTests(TestContext context)
 
         // And the diagnostics were written, by both processes, while those frames were exchanged.
         Assert.Contains("warn: Microsoft.AspNetCore.Server.Kestrel", errors, "The engine's warning at start.");
-        Assert.IsGreaterThan(Rounds * 2 - 1, stderr.Count(static line => line.StartsWith("warn: OtlpTracesEndpoint", StringComparison.Ordinal)),
-            "The engine logs every export it could not store.");
-        Assert.IsGreaterThan(Rounds * 4 - 1, stderr.Count(static line => line.StartsWith("info: ", StringComparison.Ordinal)),
-            "The engine's log from Information up.");
+        Assert.IsGreaterThan(Rounds * RefusedExportsPerRound - 1,
+            stderr.Count(static line => line.StartsWith("warn: OtlpTracesEndpoint", StringComparison.Ordinal)),
+            "The engine logs every export it could not store, under nami's own category.");
+        Assert.IsGreaterThan(Rounds * RefusedExportsPerRound - 1,
+            stderr.Count(static line => line.Contains("   at Nami.", StringComparison.Ordinal)),
+            "Each of those log entries carries stack frames: several lines of diagnostics for one export.");
         Assert.IsGreaterThan(Rounds - 1, stderr.Count(static line => line.Contains("\"jsonrpc\"", StringComparison.Ordinal)),
             "The host reports each line without a JSON-RPC version; its report is itself shaped like JSON.");
         context.WriteLine($"{stdout.Count} MCP frames, {called.Count} frames to the engine, {answered.Count} from it, " +
@@ -264,6 +265,33 @@ public sealed class ChannelSeparationTests(TestContext context)
     {
         return "{\"jsonrpc\":\"2.0\",\"id\":" + id.ToString(CultureInfo.InvariantCulture) +
                ",\"method\":\"tools/call\",\"params\":{\"name\":\"" + tool + "\",\"arguments\":" + arguments + "}}";
+    }
+
+    /// <summary>
+    ///     The lines of one direction of the private channel, read strictly: the bytes must be UTF-8 without a
+    ///     byte order mark, there must be at least one frame, the last one must end with a line feed, and no
+    ///     line may be empty. Whether a line is a frame is the caller's check.
+    /// </summary>
+    private async Task<string[]> ReadFramesAsync(string file, string direction)
+    {
+        var bytes = await File.ReadAllBytesAsync(file, context.CancellationToken);
+        Assert.IsNotEmpty(bytes, $"Nothing was sent {direction}.");
+        Assert.IsFalse(bytes.AsSpan().StartsWith("\uFEFF"u8), $"The channel {direction} starts with a byte order mark.");
+        var text = "";
+        try
+        {
+            text = new UTF8Encoding(false, true).GetString(bytes);
+        }
+        catch (DecoderFallbackException error)
+        {
+            Assert.Fail($"The bytes {direction} are not UTF-8: {error.Message}");
+        }
+
+        Assert.IsTrue(text.EndsWith('\n'), $"The last frame {direction} is not whole: it has no line feed.");
+        var lines = text[..^1].Split('\n');
+        for (var index = 0; index < lines.Length; index++)
+            Assert.AreNotEqual("", lines[index], $"Line {index + 1} {direction} is empty; a frame is one line of JSON.");
+        return lines;
     }
 
     private static JsonDocument ParseFrame(string line, string direction)
