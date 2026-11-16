@@ -1,6 +1,9 @@
 using System.Buffers.Text;
 using Google.Protobuf.Reflection;
 using ProtoAnyValue = OpenTelemetry.Proto.Common.V1.AnyValue;
+using ProtoLogs = OpenTelemetry.Proto.Logs.V1;
+using ProtoMetrics = OpenTelemetry.Proto.Metrics.V1;
+using ProtoTrace = OpenTelemetry.Proto.Trace.V1;
 
 namespace Nami.Collector.Ingestion;
 
@@ -8,6 +11,14 @@ namespace Nami.Collector.Ingestion;
 /// <param name="Oversized">Structures over the value cap, replaced by <see cref="OtlpValueBounds.OversizedValueSentinel" />.</param>
 /// <param name="TooDeep">Values nested deeper than the bound, replaced by an empty value.</param>
 internal readonly record struct OtlpValueBoundsResult(int Oversized, int TooDeep);
+
+/// <summary>
+///     What the parser will build from one request, counted by <see cref="OtlpValueBounds" /> before it does. Each
+///     count stops one past its bound.
+/// </summary>
+/// <param name="Messages">Every message: the request itself and each message in it, of whatever type.</param>
+/// <param name="Records">The messages stored as rows of their own: spans, log records, metric data points, exemplars.</param>
+internal readonly record struct OtlpRequestCounts(int Messages, int Records);
 
 /// <summary>
 ///     The value bounds of <see cref="IngestLimits" />, applied to the bytes of an export before its objects exist.
@@ -37,6 +48,13 @@ internal readonly record struct OtlpValueBoundsResult(int Oversized, int TooDeep
 ///         <see cref="IngestLimits.MaxValueNesting" /> is replaced by an empty value, in place as well.
 ///     </para>
 ///     <para>
+///         The same scan counts the messages of the request for <see cref="IngestLimits.MaxRequestMessages" />: every
+///         message the parser will build an object for, of whatever type; and among them the records for
+///         <see cref="IngestLimits.MaxRequestRecords" />: the messages stored as rows of their own. What a dropped
+///         structure or an emptied value held is not counted, because it is never built. Over JSON a message is a
+///         JSON object, and a record is an object in an array named spans, logRecords, dataPoints or exemplars.
+///     </para>
+///     <para>
 ///         Everything else stays byte for byte as it was sent, so an export within the bounds parses exactly as it
 ///         did without this step. What is replaced is not validated: a structure over the cap that is also
 ///         malformed inside is dropped, not refused. Bytes that are no well-formed message are left alone, so the
@@ -56,8 +74,8 @@ internal static class OtlpValueBounds
     // What one nested value costs of the cap at least, as nami stores it.
     private const int StoredBytesPerNestedValue = 5;
 
-    // Below this an AnyValue is not looked at: it must be able to carry the sentinel, and nothing so small is over
-    // a bound anyone would configure. The converter applies the same bounds to what passes.
+    // Below this an AnyValue is not replaced: it must be able to carry the sentinel, and nothing so short is over a
+    // bound anyone would configure. The converter applies the same bounds to what passes.
     private const int MinScannedValueBytes = 32;
 
     // Google.Protobuf's recursion limit; a message nested deeper fails the parse anyway.
@@ -125,20 +143,42 @@ internal static class OtlpValueBounds
     ///     place. The length of <paramref name="message" /> and of everything in it stays as it was.
     /// </summary>
     internal static OtlpValueBoundsResult BoundProtobuf(Span<byte> message, MessageDescriptor descriptor,
-        IngestLimits limits)
+        IngestLimits limits) =>
+        BoundProtobuf(message, descriptor, limits, out _);
+
+    /// <summary>
+    ///     The same, and <paramref name="counted" /> is what the parser will build from what is left. The scan ends
+    ///     one past <see cref="IngestLimits.MaxRequestMessages" /> or <see cref="IngestLimits.MaxRequestRecords" />;
+    ///     the caller refuses such a request.
+    /// </summary>
+    internal static OtlpValueBoundsResult BoundProtobuf(Span<byte> message, MessageDescriptor descriptor,
+        IngestLimits limits, out OtlpRequestCounts counted)
     {
-        var scan = new Scan(limits);
-        if (message.Length >= MinScannedValueBytes) ScanMessage(message, descriptor, 0, ref scan);
+        var scan = new Scan(limits) { Messages = 1 };
+        ScanMessage(message, descriptor, 0, ref scan);
+        counted = new OtlpRequestCounts(scan.Messages, scan.Records);
         return new OtlpValueBoundsResult(scan.Oversized, scan.TooDeep);
     }
+
+    // The messages nami stores as rows of their own. Span events and links are stored inside their span's row.
+    private static readonly FrozenSet<MessageDescriptor> s_recordTypes = FrozenSet.Create(
+        ProtoTrace.Span.Descriptor, ProtoLogs.LogRecord.Descriptor, ProtoMetrics.NumberDataPoint.Descriptor,
+        ProtoMetrics.HistogramDataPoint.Descriptor, ProtoMetrics.ExponentialHistogramDataPoint.Descriptor,
+        ProtoMetrics.SummaryDataPoint.Descriptor, ProtoMetrics.Exemplar.Descriptor);
 
     private struct Scan(IngestLimits limits)
     {
         internal readonly int MaxValueBytes = limits.MaxValueUtf8Bytes;
         internal readonly int MaxNested = MaxNestedValues(limits);
         internal readonly int MaxNesting = limits.MaxValueNesting;
+        internal readonly int MaxMessages = limits.MaxRequestMessages;
+        internal readonly int MaxRecords = limits.MaxRequestRecords;
         internal int Oversized;
         internal int TooDeep;
+        internal int Messages;
+        internal int Records;
+
+        internal readonly bool TooMany => Messages > MaxMessages || Records > MaxRecords;
     }
 
     private enum Walk
@@ -148,18 +188,22 @@ internal static class OtlpValueBounds
         Malformed
     }
 
-    // Every message on the way to an attribute value or a log body. A message too short to hold a value worth
-    // looking at is skipped, so an ordinary export costs one pass over the headers of its larger fields.
+    // Every message of the request: each is counted, an attribute value or a log body is bounded, and every other
+    // message is read through to the messages it holds. The scan ends when the request holds too many messages
+    // or too many records.
     private static void ScanMessage(Span<byte> message, MessageDescriptor descriptor, int depth, ref Scan scan)
     {
         if (depth > MaxMessageDepth) return;
         var position = 0;
-        while (position < message.Length)
+        while (position < message.Length && !scan.TooMany)
         {
             if (!TryReadField(message, ref position, out var number, out var wireType, out var start, out var length))
                 return;
-            if (wireType != WireTypeLengthDelimited || length < MinScannedValueBytes) continue;
+            if (wireType != WireTypeLengthDelimited) continue;
             if (descriptor.FindFieldByNumber(number) is not { FieldType: FieldType.Message } field) continue;
+            scan.Messages++;
+            if (s_recordTypes.Contains(field.MessageType)) scan.Records++;
+            if (length == 0) continue;
             var body = message.Slice(start, length);
             if (ReferenceEquals(field.MessageType, ProtoAnyValue.Descriptor))
                 BoundValue(body, ref scan);
@@ -184,20 +228,31 @@ internal static class OtlpValueBounds
         }
 
         if (!holdsStructure) return;
-        var over = last is ArrayValueField or KvlistValueField && value.Length > scan.MaxValueBytes;
+        // A value too short to carry the sentinel is left to the converter; nothing so short is over a bound
+        // anyone would configure.
+        var replaceable = value.Length >= MinScannedValueBytes;
+        var over = replaceable && last is ArrayValueField or KvlistValueField && value.Length > scan.MaxValueBytes;
+        var nested = 0;
         if (!over)
         {
             // Every structure on the wire is counted, also one a later member of the oneof replaces: the parser
             // builds it before it discards it.
             var left = scan.MaxNested;
-            var walk = WalkValue(value, 0, ref left, ref scan);
+            var walk = WalkValue(value, 0, ref left, ref nested, ref scan);
             if (walk is Walk.Malformed) return;
-            over = walk is Walk.Over;
+            over = replaceable && walk is Walk.Over;
         }
 
-        if (!over) return;
+        if (!over)
+        {
+            // Kept: the messages inside it are messages of the request.
+            scan.Messages += nested;
+            return;
+        }
+
         // The sentinel last, so that it is the member the parser ends with; before it, bytes_value over the rest,
-        // which the parser reads as one object and discards.
+        // which the parser reads as one object and discards. Nothing the structure held is built, so nothing of it
+        // is counted.
         var padding = value[..^(2 + s_sentinelUtf8.Length)];
         Pad(padding, BytesValueField, BoolValueField);
         var sentinel = value[padding.Length..];
@@ -207,8 +262,10 @@ internal static class OtlpValueBounds
         scan.Oversized++;
     }
 
-    // Counts the values inside an AnyValue, through every level it may nest to, and empties what nests deeper.
-    private static Walk WalkValue(Span<byte> value, int nesting, ref int left, ref Scan scan)
+    // Counts the values inside an AnyValue, through every level it may nest to, and empties what nests deeper. left
+    // is what the value cap still allows; messages is every message found inside: each array, key-value list, item
+    // and member, and each member's value.
+    private static Walk WalkValue(Span<byte> value, int nesting, ref int left, ref int messages, ref Scan scan)
     {
         var position = 0;
         while (position < value.Length)
@@ -224,6 +281,7 @@ internal static class OtlpValueBounds
                 return Walk.Fits;
             }
 
+            messages++;
             var container = value.Slice(start, length);
             var inner = 0;
             while (inner < container.Length)
@@ -233,10 +291,11 @@ internal static class OtlpValueBounds
                     return Walk.Malformed;
                 if (itemType != WireTypeLengthDelimited || itemNumber != ValuesField) continue;
                 if (--left < 0) return Walk.Over;
+                messages++;
                 var item = container.Slice(itemStart, itemLength);
                 if (number == ArrayValueField)
                 {
-                    var walked = WalkValue(item, nesting + 1, ref left, ref scan);
+                    var walked = WalkValue(item, nesting + 1, ref left, ref messages, ref scan);
                     if (walked is not Walk.Fits) return walked;
                     continue;
                 }
@@ -248,7 +307,9 @@ internal static class OtlpValueBounds
                             out var memberLength))
                         return Walk.Malformed;
                     if (memberType != WireTypeLengthDelimited || memberNumber != KeyValueValueField) continue;
-                    var walked = WalkValue(item.Slice(memberStart, memberLength), nesting + 1, ref left, ref scan);
+                    messages++;
+                    var walked = WalkValue(item.Slice(memberStart, memberLength), nesting + 1, ref left, ref messages,
+                        ref scan);
                     if (walked is not Walk.Fits) return walked;
                 }
             }
@@ -364,11 +425,73 @@ internal static class OtlpValueBounds
     ///     followed by spaces up to the length of what it replaces. Property names are matched as the protobuf JSON
     ///     mapping reads them: in either spelling and with their escapes resolved.
     /// </summary>
-    internal static OtlpValueBoundsResult BoundJson(Span<byte> utf8Json, IngestLimits limits)
+    internal static OtlpValueBoundsResult BoundJson(Span<byte> utf8Json, IngestLimits limits) =>
+        BoundJson(utf8Json, limits, out _);
+
+    /// <summary>
+    ///     The same, and <paramref name="counted" /> is what the parser will build from what is left: a message is a
+    ///     JSON object, a record an object in an array named spans, logRecords, dataPoints or exemplars. The count
+    ///     ends one past <see cref="IngestLimits.MaxRequestMessages" /> or
+    ///     <see cref="IngestLimits.MaxRequestRecords" />.
+    /// </summary>
+    internal static OtlpValueBoundsResult BoundJson(Span<byte> utf8Json, IngestLimits limits,
+        out OtlpRequestCounts counted)
     {
-        var scan = new Scan(limits);
         ReadOnlySpan<byte> utf8Bom = [0xEF, 0xBB, 0xBF];
         var json = utf8Json.StartsWith(utf8Bom) ? utf8Json[utf8Bom.Length..] : utf8Json;
+        var bounded = BoundJsonValues(json, limits);
+        // Counted after the values are bounded: what a dropped structure held is spaces now.
+        counted = CountJson(json, limits);
+        return bounded;
+    }
+
+    // No array of records lies deeper than this in OTLP/JSON (the exemplars of a data point are at depth 11).
+    private const int MaxRecordArrayDepth = 32;
+
+    private static OtlpRequestCounts CountJson(ReadOnlySpan<byte> json, IngestLimits limits)
+    {
+        var messages = 0;
+        var records = 0;
+        // Per depth: whether the container that starts there is an array of records.
+        Span<bool> recordArray = stackalloc bool[MaxRecordArrayDepth];
+        var namesRecords = false;
+        try
+        {
+            var reader = new Utf8JsonReader(json, new JsonReaderOptions { MaxDepth = int.MaxValue });
+            while (messages <= limits.MaxRequestMessages && records <= limits.MaxRequestRecords && reader.Read())
+            {
+                var depth = reader.CurrentDepth;
+                switch (reader.TokenType)
+                {
+                    case JsonTokenType.PropertyName:
+                        namesRecords = reader.ValueTextEquals("spans"u8) || reader.ValueTextEquals("logRecords"u8) ||
+                                       reader.ValueTextEquals("log_records"u8) || reader.ValueTextEquals("dataPoints"u8) ||
+                                       reader.ValueTextEquals("data_points"u8) || reader.ValueTextEquals("exemplars"u8);
+                        continue;
+                    case JsonTokenType.StartArray:
+                        if (depth < MaxRecordArrayDepth) recordArray[depth] = namesRecords;
+                        break;
+                    case JsonTokenType.StartObject:
+                        messages++;
+                        if (depth is > 0 and <= MaxRecordArrayDepth && recordArray[depth - 1]) records++;
+                        if (depth < MaxRecordArrayDepth) recordArray[depth] = false;
+                        break;
+                }
+
+                namesRecords = false;
+            }
+        }
+        catch (JsonException)
+        {
+            // No well-formed JSON: the parser's own failure stands.
+        }
+
+        return new OtlpRequestCounts(messages, records);
+    }
+
+    private static OtlpValueBoundsResult BoundJsonValues(Span<byte> json, IngestLimits limits)
+    {
+        var scan = new Scan(limits);
         if (json.Length < MinScannedValueBytes) return default;
         try
         {

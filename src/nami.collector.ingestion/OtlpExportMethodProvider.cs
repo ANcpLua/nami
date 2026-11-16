@@ -59,6 +59,12 @@ internal sealed class OtlpExportMethodProvider<
                             throw new RpcException(new Status(StatusCode.InvalidArgument,
                                 "The OTLP request contains invalid protobuf."));
                         }
+                        catch (OtlpPayloadTooLargeException refused)
+                        {
+                            // More messages or records than a request may hold: the answer of a message over the size bound,
+                            // and without RetryInfo, so an exporter does not send the same request again.
+                            throw new RpcException(new Status(StatusCode.ResourceExhausted, refused.Message));
+                        }
                     }),
                 Marshallers.Create<TResponse>(
                     static (message, serialization) => Serialize(message, serialization),
