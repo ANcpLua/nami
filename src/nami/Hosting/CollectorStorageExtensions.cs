@@ -33,8 +33,6 @@ internal static class CollectorStorageExtensions
             memoryLimit: storage.MemoryLimit,
             threads: storage.Threads,
             tempDirectory: storage.TempDirectory,
-            loggerFactory: services.GetRequiredService<ILoggerFactory>(),
-            // The clock every other collector service takes: receipt times, watermarks and snapshot lifetimes.
-            timeProvider: services.GetRequiredService<TimeProvider>());
+            loggerFactory: services.GetRequiredService<ILoggerFactory>());
     }
 }
