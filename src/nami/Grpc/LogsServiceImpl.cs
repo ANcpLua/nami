@@ -20,7 +20,7 @@ internal sealed class LogsServiceImpl(
         {
             var logBatch = OtlpConverter.ConvertLogs(request, timeProvider, limits?.Value);
             var logs = IngestionStorageMapper.ToLogStorageRows(
-                logBatch, AuthenticatedProject.ForGrpcIngest(context, options?.Value), limits?.Value);
+                logBatch, AuthenticatedProject.ForGrpcIngest(context, options?.Value));
 
             if (logs.Count <= 0) return OtlpExportAck.Create(logBatch);
 

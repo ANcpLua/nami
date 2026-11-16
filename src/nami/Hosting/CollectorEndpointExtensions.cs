@@ -63,8 +63,7 @@ internal static class CollectorEndpointExtensions
             request => OtlpConverter.ConvertLogs(request, timeProvider, limits.Value),
             async (batch, token) =>
             {
-                var logs = IngestionStorageMapper.ToLogStorageRows(batch, AuthenticatedProject.ForHttpIngest(context),
-                    limits.Value);
+                var logs = IngestionStorageMapper.ToLogStorageRows(batch, AuthenticatedProject.ForHttpIngest(context));
                 if (logs.Count > 0) await store.InsertLogsAsync(logs, token);
             },
             OtlpExportAck.Create,

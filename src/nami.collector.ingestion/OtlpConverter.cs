@@ -474,17 +474,23 @@ internal static partial class OtlpConverter
         ISet<string> warnings)
     {
         // One log record is one record: its body and its attributes share the record's 1 MiB. The body is read
-        // first; a body that does not fit is stored as an empty value.
+        // first and bounded like any value: a string is cut to the cap, a list or map within the cap is kept as
+        // sent, with its structure. A body over the cap as a structure, or one that does not fit the record, is
+        // dropped whole: it is stored as an empty value and counted in the record's dropped_attributes_count, the
+        // only count a log record has.
         var budget = new RecordBudget();
         var body = ConvertValue(log.Body, null, budget, 0);
+        var bodyDropped = 0U;
         if (budget.Exhausted)
         {
-            (body, budget.Remaining) = (OtlpAttributeValue.Empty, MaxRecordAttributeBytes);
+            (body, budget.Remaining) = (OtlpAttributeValue.Empty, Limits.MaxRecordAttributeBytes);
             NamiCollectorMetrics.AttributeDropped();
+            bodyDropped = 1;
         }
 
-        budget.Value = MaxValueUtf8Bytes;
+        budget.Value = Limits.MaxValueUtf8Bytes;
         var attributes = ConvertAttributes(log.Attributes, budget, true, out var dropped);
+        dropped += bodyDropped;
 
         var severityNumber = DefinedOrZero((int)log.SeverityNumber, (int)ProtoSeverityNumber.Fatal4,
             SeverityNumberWarning, warnings);

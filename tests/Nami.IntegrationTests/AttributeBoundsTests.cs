@@ -241,7 +241,7 @@ public sealed class AttributeBoundsTests
         {
             ResourceLogs = { new ResourceLogs { ScopeLogs = { new ScopeLogs { LogRecords = { new LogRecord { TimeUnixNano = Time, Body = new AnyValue { StringValue = new string('b', 100) } } } } } } }
         }, TimeProvider.System, limits);
-        var body = Assert.ContainsSingle(Nami.Collector.Storage.IngestionStorageMapper.ToLogStorageRows(logs, null, limits)).Body;
+        var body = Assert.ContainsSingle(Nami.Collector.Storage.IngestionStorageMapper.ToLogStorageRows(logs)).Body;
         using var stored = JsonDocument.Parse(body!);
         Assert.AreEqual(new string('b', 64 - MarkerBytes) + Marker, stored.RootElement.GetString());
     }
@@ -317,6 +317,40 @@ public sealed class AttributeBoundsTests
             }
         }, TimeProvider.System).Logs);
         Assert.AreEqual(new string('b', Cap - MarkerBytes) + Marker, log.Body.AsString());
+    }
+
+    /// <summary>
+    ///     A structured log body is a value like any other: within 256 KiB of decoded size it is stored as sent, with
+    ///     its structure, however many bytes its JSON takes, and those bytes count toward the record. Over the cap it
+    ///     is dropped whole: an empty body, counted in the record's dropped_attributes_count.
+    /// </summary>
+    [TestMethod]
+    public void Body_AStructureWithinTheCap_IsStoredAsSent_AndOneOverItIsDroppedAndCounted()
+    {
+        LogIngestionBatch Convert(int items, AnyValue item)
+        {
+            var body = new AnyValue { ArrayValue = new ArrayValue() };
+            for (var i = 0; i < items; i++) body.ArrayValue.Values.Add(item);
+            return OtlpConverter.ConvertLogs(new ExportLogsServiceRequest
+            {
+                ResourceLogs = { new ResourceLogs { ScopeLogs = { new ScopeLogs { LogRecords = { new LogRecord { TimeUnixNano = Time, Body = body } } } } } }
+            }, TimeProvider.System);
+        }
+
+        // 20,000 integers are well within the cap as values and take more than half a megabyte of JSON as stored.
+        var within = Convert(20_000, new AnyValue { IntValue = 7 });
+        Assert.AreEqual(0U, Assert.ContainsSingle(within.Logs).DroppedAttributesCount);
+        var stored = Assert.ContainsSingle(Nami.Collector.Storage.IngestionStorageMapper.ToLogStorageRows(within)).Body!;
+        Assert.IsGreaterThan(Cap, Encoding.UTF8.GetByteCount(stored), "the stored JSON is larger than the cap of the decoded value");
+        using var document = JsonDocument.Parse(stored);
+        Assert.AreEqual(JsonValueKind.Array, document.RootElement.ValueKind, "the structure is kept");
+        Assert.AreEqual(20_000, document.RootElement.GetArrayLength());
+
+        var over = Convert(3, new AnyValue { StringValue = new string('a', 100 * 1024) });
+        var dropped = Assert.ContainsSingle(over.Logs);
+        Assert.AreEqual(OtlpAttributeValueKind.Empty, dropped.Body.Kind);
+        Assert.AreEqual(1U, dropped.DroppedAttributesCount);
+        Assert.IsNull(Assert.ContainsSingle(Nami.Collector.Storage.IngestionStorageMapper.ToLogStorageRows(over)).Body);
     }
 
     /// <summary>
@@ -628,7 +662,7 @@ public sealed class AttributeBoundsTests
         }, TimeProvider.System);
         var log = Assert.ContainsSingle(logs.Logs);
         Assert.AreEqual(OtlpAttributeValueKind.Empty, log.Body.Kind);
-        Assert.AreEqual(1U, log.DroppedAttributesCount);
+        Assert.AreEqual(2U, log.DroppedAttributesCount, "the attribute, and the body, which has no count of its own");
         Assert.AreEqual(1U, log.ResourceDroppedAttributesCount);
         Assert.AreEqual(1U, log.ScopeDroppedAttributesCount);
         Assert.AreEqual("fits", log.Attributes["acme.kept"].AsString());
