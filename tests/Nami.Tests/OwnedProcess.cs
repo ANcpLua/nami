@@ -122,11 +122,8 @@ internal sealed partial class OwnedProcess : IAsyncDisposable
                     Terminate(host, connected);
                     using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(10), time);
                     await host.WaitForExitAsync(cleanup.Token).ConfigureAwait(false);
-                    var output = host.StandardOutput.ReadToEndAsync(cleanup.Token);
-                    var error = host.StandardError.ReadToEndAsync(cleanup.Token);
-                    await Task.WhenAll(output, error).ConfigureAwait(false);
-                    startupFailure.Data["Output"] = output.Result;
-                    startupFailure.Data["Error"] = error.Result;
+                    var (_, error) = await host.ReadAllTextAsync(cleanup.Token).ConfigureAwait(false);
+                    startupFailure.Data["Error"] = error;
                 }
             }
             catch (Exception cleanupFailure)
