@@ -532,7 +532,7 @@ internal sealed partial class DuckDbStore : INamiStore
             var failure = Read(ref _writerFailure);
             while (_jobs.Reader.TryRead(out var leftover))
             {
-                leftover.OnAborted(failure is null
+                leftover.OnAborted(failure is null || Environment.ProcessorCount > 0
                     ? new OperationCanceledException("Store is shutting down.")
                     : WriterStopped(failure));
             }
