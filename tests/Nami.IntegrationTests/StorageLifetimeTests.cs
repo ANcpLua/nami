@@ -528,7 +528,7 @@ public sealed class StorageLifetimeTests(TestContext context)
 
     /// <summary>
     ///     The rollback of the transaction a cancelled job left is tried three times. When an interrupt ended every
-    ///     attempt the writer has given up, and it says so with the last failure: before, it went on as if the
+    ///     attempt it is given up, and the answer is the last failure: before, the writer went on as if the
     ///     transaction had ended (ledger N125). An attempt that ends the transaction is no failure, whatever came
     ///     before it.
     /// </summary>
@@ -548,6 +548,56 @@ public sealed class StorageLifetimeTests(TestContext context)
 
         Assert.AreEqual(Math.Min(interrupted + 1, 3), attempts);
         Assert.AreEqual(givenUp ? "interrupt 3" : null, failure?.Message);
+    }
+
+    /// <summary>
+    ///     A rollback that was given up stops the writer, as a connection that refuses a new transaction does: the
+    ///     transaction may still be open, and the next statement on the connection would meet it. The cancelled job
+    ///     is answered with the stop, later writes are refused as such, the health check is Unhealthy and DisposeAsync
+    ///     reports the failure (ledger N125). Here every ROLLBACK of the writer is interrupted.
+    /// </summary>
+    [TestMethod]
+    public async Task RollbackGivenUp_StopsTheWriterAndIsReported()
+    {
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        var rollbacks = 0;
+        var store = DuckDbStore.CreateForTesting(new Connections().Create, DatabasePath("given-up.duckdb"),
+            maxConcurrentReads: 1, timeProvider: new FakeTimeProvider(TestData.s_now),
+            // The job is cancelled while it runs on the writer.
+            beforeWrite: _ =>
+            {
+                cancellation.Cancel();
+                return ValueTask.CompletedTask;
+            },
+            rollBack: _ =>
+            {
+                rollbacks++;
+                throw new OperationCanceledException("interrupt " + (uint)rollbacks);
+            });
+        try
+        {
+            var stopped = await Assert.ThrowsExactlyAsync<NamiStoreUnavailableException>(() =>
+                store.CheckpointAsync(cancellation.Token));
+
+            Assert.AreEqual(3, rollbacks);
+            Assert.AreEqual("interrupt 3", stopped.InnerException?.InnerException?.Message);
+            Assert.AreSame(stopped.InnerException, store.WriterFailure);
+            // The writer has stopped: a write is refused, without reaching the connection.
+            Assert.AreSame(store.WriterFailure, (await Assert.ThrowsExactlyAsync<NamiStoreUnavailableException>(() =>
+                SeedTrace(store, context.CancellationToken))).InnerException);
+            Assert.AreEqual(3, rollbacks);
+            var check = new Nami.Health.DuckDbHealthCheck(store,
+                Options.Create(new Nami.Retention.RetentionOptions { StorageMinimumFreeMegabytes = 0 }));
+            var health = await check.CheckHealthAsync(new HealthCheckContext(), context.CancellationToken);
+            Assert.AreEqual(HealthStatus.Unhealthy, health.Status, health.Description);
+
+            var shutdown = await Assert.ThrowsExactlyAsync<AggregateException>(() => store.DisposeAsync().AsTask());
+            Assert.Contains("cannot end", Assert.ContainsSingle(shutdown.InnerExceptions).Message);
+        }
+        finally
+        {
+            await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
     }
 
     /// <summary>

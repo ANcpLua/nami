@@ -21,7 +21,7 @@ internal static partial class DuckDbStoreLog
     [LoggerMessage(
         EventId = 4107,
         Level = LogLevel.Error,
-        Message = "DuckDB writer gave up rolling back the transaction of a cancelled job after three attempts; the transaction may still be open")]
+        Message = "DuckDB shutdown gave up rolling back the transaction a cancelled job left after three attempts; the transaction may still be open")]
     public static partial void RollbackGaveUp(
         ILogger logger,
         Exception error);

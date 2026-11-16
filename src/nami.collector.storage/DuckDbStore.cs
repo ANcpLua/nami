@@ -20,6 +20,7 @@ internal sealed partial class DuckDbStore : INamiStore
     private readonly Func<ValueTask>? _beforeQueue;
     private readonly Func<CancellationToken, ValueTask>? _beforeWrite;
     private readonly Func<CancellationToken, ValueTask>? _beforeWriterLoop;
+    private readonly Action<DuckDBConnection> _rollBack;
 
     private readonly CancellationTokenSource _cts;
     private readonly string _databasePath;
@@ -52,7 +53,7 @@ internal sealed partial class DuckDbStore : INamiStore
         TimeSpan? snapshotLifetime = null)
         : this(static value => new DuckDBConnection(value), databasePath, jobQueueCapacity, maxConcurrentReads,
             readQueueCapacity, memoryLimit, threads, tempDirectory, beforeWrite, loggerFactory, timeProvider,
-            snapshotLifetime, beforeWriterLoop: null, beforeQueue: null)
+            snapshotLifetime, beforeWriterLoop: null, beforeQueue: null, rollBack: null)
     {
     }
 
@@ -70,10 +71,11 @@ internal sealed partial class DuckDbStore : INamiStore
         TimeProvider? timeProvider = null,
         TimeSpan? snapshotLifetime = null,
         Func<CancellationToken, ValueTask>? beforeWriterLoop = null,
-        Func<ValueTask>? beforeQueue = null) =>
+        Func<ValueTask>? beforeQueue = null,
+        Action<DuckDBConnection>? rollBack = null) =>
         new(connectionFactory, databasePath, jobQueueCapacity, maxConcurrentReads, readQueueCapacity,
             memoryLimit, threads, tempDirectory, beforeWrite, loggerFactory, timeProvider, snapshotLifetime,
-            beforeWriterLoop, beforeQueue);
+            beforeWriterLoop, beforeQueue, rollBack);
 
     private DuckDbStore(
         Func<string, DuckDBConnection> connectionFactory,
@@ -89,7 +91,8 @@ internal sealed partial class DuckDbStore : INamiStore
         TimeProvider? timeProvider,
         TimeSpan? snapshotLifetime,
         Func<CancellationToken, ValueTask>? beforeWriterLoop,
-        Func<ValueTask>? beforeQueue)
+        Func<ValueTask>? beforeQueue,
+        Action<DuckDBConnection>? rollBack)
     {
         ArgumentNullException.ThrowIfNull(connectionFactory);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(jobQueueCapacity);
@@ -110,6 +113,8 @@ internal sealed partial class DuckDbStore : INamiStore
         _beforeWrite = beforeWrite;
         _beforeWriterLoop = beforeWriterLoop;
         _beforeQueue = beforeQueue;
+        // Test seam: the ROLLBACK that ends a transaction a cancelled job left (RollBackLeftTransaction).
+        _rollBack = rollBack ?? RollBack;
         _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(jobQueueCapacity)
         {
             FullMode = BoundedChannelFullMode.Wait,
@@ -294,7 +299,7 @@ internal sealed partial class DuckDbStore : INamiStore
             try
             {
                 // No job runs any more; a transaction one of them left open would refuse the checkpoint.
-                if (RollBackLeftTransaction(() => RollBack(Connection)) is { } gaveUp)
+                if (RollBackLeftTransaction(() => _rollBack(Connection)) is { } gaveUp)
                     DuckDbStoreLog.RollbackGaveUp(_logger, gaveUp);
                 await using var checkpoint = Connection.CreateCommand();
                 checkpoint.CommandText = "CHECKPOINT";
@@ -504,8 +509,9 @@ internal sealed partial class DuckDbStore : INamiStore
     ///     back when the job disposes it, but the interrupt of the job's cancellation can end that ROLLBACK itself.
     ///     An interrupt can also still be pending here, so the statement is tried again; DuckDB's refusal of a
     ///     ROLLBACK without a transaction is the usual answer and means there is nothing to do. Three attempts that
-    ///     all failed are the end: the answer is the last failure, for the writer to report, because the transaction
-    ///     may still be open and the next statement on the connection would meet it (ledger N125).
+    ///     all failed are the end: the answer is the last failure. The writer stops on it, because the transaction
+    ///     may still be open and the next statement on the connection would meet it (ledger N125); shutdown logs it
+    ///     and goes on to its CHECKPOINT, whose failure it reports.
     /// </summary>
     internal static Exception? RollBackLeftTransaction(Action rollback)
     {
@@ -632,14 +638,13 @@ internal sealed partial class DuckDbStore : INamiStore
             // that it starts late. It receives the token that shutdown cancels.
             if (_beforeWriterLoop is not null)
                 await _beforeWriterLoop(_cts.Token).ConfigureAwait(false);
-            Action<Exception> rollbackGaveUp = error => DuckDbStoreLog.RollbackGaveUp(_logger, error);
             await foreach (var job in _jobs.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
             {
                 if (!job.TryClaim())
                     continue;
                 try
                 {
-                    await job.ExecuteAsync(Connection, _beforeWrite, rollbackGaveUp, _cts.Token).ConfigureAwait(false);
+                    await job.ExecuteAsync(Connection, _beforeWrite, _rollBack, _cts.Token).ConfigureAwait(false);
                 }
                 catch (WriterConnectionUnusableException unusable)
                 {
@@ -1157,7 +1162,7 @@ internal sealed partial class DuckDbStore : INamiStore
         public abstract bool TryClaim();
 
         public abstract ValueTask ExecuteAsync(DuckDBConnection con, Func<CancellationToken, ValueTask>? beforeWrite,
-            Action<Exception> rollbackGaveUp, CancellationToken ct);
+            Action<DuckDBConnection> rollBack, CancellationToken ct);
 
         public virtual void OnAborted(Exception error)
         {
@@ -1200,7 +1205,7 @@ internal sealed partial class DuckDbStore : INamiStore
         }
 
         public override async ValueTask ExecuteAsync(DuckDBConnection con, Func<CancellationToken, ValueTask>? beforeWrite,
-            Action<Exception> rollbackGaveUp, CancellationToken ct)
+            Action<DuckDBConnection> rollBack, CancellationToken ct)
         {
             // Accepted ingestion finishes independently of the caller; reads and maintenance
             // retain request cancellation while they own the writer connection.
@@ -1231,8 +1236,11 @@ internal sealed partial class DuckDbStore : INamiStore
                     // refusal stops the writer (below).
                     await interrupt.DisposeAsync().ConfigureAwait(false);
                     WriterInterrupt.End();
-                    if (token.IsCancellationRequested && RollBackLeftTransaction(() => RollBack(con)) is { } gaveUp)
-                        rollbackGaveUp(gaveUp);
+                    // Given up: the transaction may still be open and aborted, so the next statement on this
+                    // connection would meet it. Like the refused BeginTransaction below this is not one failed job:
+                    // the writer stops and says why (ledger N125).
+                    if (token.IsCancellationRequested && RollBackLeftTransaction(() => rollBack(con)) is { } gaveUp)
+                        unusable = new WriterConnectionUnusableException(gaveUp);
                 }
             }
             catch (InvalidOperationException ex) when (ex.Message == "Already in a transaction.")
@@ -1245,7 +1253,9 @@ internal sealed partial class DuckDbStore : INamiStore
             }
             catch (Exception) when (token.IsCancellationRequested)
             {
-                _tcs.TrySetCanceled(token);
+                // After a rollback that was given up the loop answers the caller, once it has recorded why the writer
+                // stops.
+                if (unusable is null) _tcs.TrySetCanceled(token);
             }
             catch (OperationCanceledException oce)
             {
