@@ -33,26 +33,50 @@ public sealed class IngestGateTests(TestContext context)
             });
         var export = OtlpData.Traces(TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2)));
 
-        // One export holds the slot: its headers have arrived, its body is announced and not finished.
-        using var held = new HeldBody(CollectorHost.Encode(Signals.Traces, export));
-        held.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(OtlpReceiver.ProtobufMediaType);
-        var holding = TelemetryLifecycle.Http.PostAsync(new Uri(host.HttpEndpoint, "v1/" + Signals.Traces), held,
-            context.CancellationToken);
-
-        // The slot is taken once the holder's request has reached the collector: until then an export is accepted.
+        // One export holds the slot: its headers and the first half of its body are sent, the rest is not.
+        var payload = CollectorHost.Encode(Signals.Traces, export);
+        var held = new HeldBody(payload);
+        var holding = PostHeldAsync(host, held);
         var deadline = Stopwatch.StartNew();
         string? turnedAway = null;
-        while (turnedAway is null)
+        try
         {
-            Assert.IsLessThan(TimeSpan.FromSeconds(60), deadline.Elapsed, "The held request never took the slot.");
-            turnedAway = await TrySendAsync(host, transport, export);
+            while (turnedAway is null)
+            {
+                Assert.IsLessThan(TimeSpan.FromSeconds(60), deadline.Elapsed, "The held request never took the slot.");
+                // The collector takes the slot when the request's headers arrive. Should a probe have been in
+                // the slot at that moment, the held request was turned away itself: hold another.
+                _ = await Task.WhenAny(held.FirstHalfSent, holding).WaitAsync(context.CancellationToken);
+                if (holding.IsCompleted)
+                {
+                    (await holding).Dispose();
+                    held.Dispose();
+                    held = new HeldBody(payload);
+                    holding = PostHeldAsync(host, held);
+                    continue;
+                }
+
+                turnedAway = await TrySendAsync(host, transport, export);
+            }
+
+            Assert.AreEqual(OtlpIngestGate.BusyMessage, turnedAway);
+
+            held.Release();
+            using (var first = await holding) Assert.AreEqual(HttpStatusCode.OK, first.StatusCode);
+            Assert.IsNull(await TrySendAsync(host, transport, export), "With the slot free the same export is accepted.");
         }
+        finally
+        {
+            held.Release();
+            held.Dispose();
+        }
+    }
 
-        Assert.AreEqual(OtlpIngestGate.BusyMessage, turnedAway);
-
-        held.Release();
-        using (var first = await holding) Assert.AreEqual(HttpStatusCode.OK, first.StatusCode);
-        Assert.IsNull(await TrySendAsync(host, transport, export), "With the slot free the same export is accepted.");
+    private Task<HttpResponseMessage> PostHeldAsync(CollectorHost host, HeldBody held)
+    {
+        held.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(OtlpReceiver.ProtobufMediaType);
+        return TelemetryLifecycle.Http.PostAsync(new Uri(host.HttpEndpoint, "v1/" + Signals.Traces), held,
+            context.CancellationToken);
     }
 
     // Null when the export is accepted; the message of the answer when it is turned away, after its shape is checked.
@@ -88,6 +112,10 @@ public sealed class IngestGateTests(TestContext context)
     private sealed class HeldBody(byte[] payload) : HttpContent
     {
         private readonly TaskCompletionSource _released = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _firstHalfSent = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        /// <summary>Completes when the headers and the first half of the body are on the wire.</summary>
+        internal Task FirstHalfSent => _firstHalfSent.Task;
 
         internal void Release() => _released.TrySetResult();
 
@@ -106,6 +134,7 @@ public sealed class IngestGateTests(TestContext context)
             var half = payload.Length / 2;
             await stream.WriteAsync(payload.AsMemory(0, half), cancellationToken).ConfigureAwait(false);
             await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+            _ = _firstHalfSent.TrySetResult();
             await _released.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
             await stream.WriteAsync(payload.AsMemory(half), cancellationToken).ConfigureAwait(false);
         }

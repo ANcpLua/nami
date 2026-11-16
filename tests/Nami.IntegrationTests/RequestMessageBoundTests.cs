@@ -231,7 +231,7 @@ public sealed class RequestMessageBoundTests(TestContext context)
 
     /// <summary>
     ///     The capture of 15 Nov 2026 as Claude Code sent it: no request is changed by the scan, each is counted as
-    ///     the parser builds it, and the largest holds 554 messages and 14 records.
+    ///     the parser builds it, and the largest holds 554 messages and 11 records.
     /// </summary>
     [TestMethod]
     public void TheClaudeCodeCapture_IsUnchanged_AndFarBelowTheBounds()
@@ -263,7 +263,7 @@ public sealed class RequestMessageBoundTests(TestContext context)
         }
 
         Assert.AreEqual(59, requests);
-        Assert.AreEqual(new OtlpRequestCounts(554, 14), largest);
+        Assert.AreEqual(new OtlpRequestCounts(554, 11), largest);
     }
 
     // An OTLP/JSON trace export of exactly records spans, each a row of its own.
