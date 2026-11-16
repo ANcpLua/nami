@@ -392,7 +392,7 @@ internal static partial class OtlpConverter
 
                 var text = Bounded(CredentialRedaction.RedactValue(attributeKey, WellFormed(value.StringValue)));
                 budget.Measure(Utf8Bytes(text));
-                budget.Store(StoredString(text));
+                budget.Store(2 + Utf8Bytes(text));
                 return OtlpAttributeValue.FromString(text);
             case ProtoAnyValue.ValueOneofCase.IntValue or ProtoAnyValue.ValueOneofCase.DoubleValue
                 when attributeKey is not null && CredentialRedaction.NamesACredential(attributeKey):
