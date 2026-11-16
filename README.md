@@ -89,7 +89,8 @@ default off: the engine then runs with the runtime's own gen0 budget.
 **Ports chosen by the operating system.** `NAMI_PORT` (MCP), `NAMI_OTLP_PORT` (OTLP/HTTP) and
 `NAMI_GRPC_PORT` (OTLP/gRPC) each accept `0`: the operating system then picks a free port, so
 several nami processes start side by side without anyone probing for ports. To learn the ports,
-name a ready manifest with `--ready-file <path>` or `NAMI_READY_FILE`:
+name a ready manifest with `--ready-file <path>` or `NAMI_READY_FILE`; with `NAMI_PORT=0` nami does
+not start without one, because nothing else names the MCP port:
 
 ```json
 {"mcp":"http://127.0.0.1:40123/mcp","otlp_http":"http://127.0.0.1:40124","otlp_grpc":"http://127.0.0.1:40125","data_path":"/work/nami.duckdb"}
@@ -103,7 +104,9 @@ loopback, and with `--stdio` `mcp` is `null`. The store stays where `NAMI_DATA_P
 `data_path` reports it as an absolute path. With `NAMI_OTLP_PORT=0` nami does not export its own
 telemetry, because that exporter needs the port before the listener is bound. Inside a
 container the manifest names the container's own ports; the ports on the host are what
-`docker port <container>` prints.
+`docker port <container>` prints. The image's health check asks `NAMI_PORT`; with `NAMI_PORT=0` it
+reads the MCP URL from the manifest named by `NAMI_READY_FILE`, so set the variable there, not the
+option.
 
 ## Run in a container
 

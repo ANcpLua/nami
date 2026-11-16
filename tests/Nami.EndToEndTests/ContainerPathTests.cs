@@ -237,6 +237,73 @@ public sealed class ContainerPathTests(TestContext context)
         Assert.Contains("NAMI_PUBLIC_URL must be an HTTPS origin, or an HTTP origin on localhost, 127.0.0.1 or [::1]", failure.Message);
     }
 
+    /// <summary>The container's health probe as Docker runs it: the bundled file under Bun, in the container's environment.</summary>
+    private Task<ProcessResult> RunHealthProbeAsync(IReadOnlyDictionary<string, string?> environment)
+    {
+        return ProcessRunner.RunAsync("bun",
+            [Path.Combine(ProcessRunner.RepositoryRoot, "artifacts", "publish", "mcp", "healthcheck.js")], Directory,
+            context.CancellationToken, environment);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    [DataRow("0")]
+    [DataRow("00", DisplayName = "Zero written with two digits")]
+    public async Task HealthProbe_PortOfTheSystemsChoice_IsReadFromTheReadyManifest(string port)
+    {
+        // The probe has the container's environment, so it sees the port as the host does: a system-chosen one,
+        // however the zero is written, is in the ready manifest and nowhere else.
+        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory, context.CancellationToken,
+            environment: new Dictionary<string, string?> { ["NAMI_PORT"] = port }, readyManifest: true);
+        var probe = await RunHealthProbeAsync(new Dictionary<string, string?>
+        {
+            ["NAMI_PORT"] = port, ["PORT"] = null, ["NAMI_BIND_ADDRESS"] = null, ["NAMI_READY_FILE"] = host.ReadyFile
+        });
+        Assert.AreEqual(0, probe.ExitCode, probe.Error);
+
+        // A probe that cannot know the port says so instead of asking a port nobody listens on.
+        var blind = await RunHealthProbeAsync(new Dictionary<string, string?>
+        {
+            ["NAMI_PORT"] = port, ["PORT"] = null, ["NAMI_BIND_ADDRESS"] = null, ["NAMI_READY_FILE"] = null
+        });
+        Assert.AreEqual(1, blind.ExitCode);
+        Assert.Contains("NAMI_READY_FILE", blind.Error);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public async Task HealthProbe_ConfiguredPort_AsksThatPortAndFailsWhenNothingListens()
+    {
+        Dictionary<string, string?> environment;
+        await using (var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory, context.CancellationToken))
+        {
+            environment = new Dictionary<string, string?>
+            {
+                ["NAMI_PORT"] = host.HttpPort.ToString(CultureInfo.InvariantCulture), ["PORT"] = null,
+                ["NAMI_BIND_ADDRESS"] = null, ["NAMI_READY_FILE"] = null
+            };
+            var probe = await RunHealthProbeAsync(environment);
+            Assert.AreEqual(0, probe.ExitCode, probe.Error);
+        }
+
+        var stopped = await RunHealthProbeAsync(environment);
+        Assert.AreEqual(1, stopped.ExitCode);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(stopped.Error), "A failed probe says why.");
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public async Task Start_PortOfTheSystemsChoiceWithoutAReadyManifest_Refused()
+    {
+        // Nobody could find such a listener, and the container's health probe would fail for as long as it ran.
+        var failure = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+        {
+            await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory,
+                context.CancellationToken, environment: new Dictionary<string, string?> { ["NAMI_PORT"] = "0" });
+        });
+        Assert.Contains("NAMI_PORT=0 leaves the port to the operating system; name a ready manifest", failure.Message);
+    }
+
     private static Dictionary<string, string?> StopBudget(string seconds)
     {
         return new Dictionary<string, string?> { ["NAMI_STOP_BUDGET_SECONDS"] = seconds };

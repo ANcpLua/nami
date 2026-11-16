@@ -323,7 +323,8 @@ def main():
                     return finish(summary, code)
                 mcp_output = root / "artifacts/publish/mcp"
                 mcp_output.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(mcp / "dist/main.js", mcp_output / "main.js")
+                for file in ("main.js", "healthcheck.js"):
+                    shutil.copy2(mcp / "dist" / file, mcp_output / file)
         module_files = []
         if args.test_modules:
             expression = args.test_modules if Path(args.test_modules).is_absolute() else str(root / args.test_modules)

@@ -7,6 +7,7 @@ import { CONFIG, CONFIG_DEFAULTS, CONTRACT_REVISION } from "./contracts/generate
 import type { HealthReport, ProjectKeyDocument } from "./contracts/generated/json.js";
 import { Engine, EngineError } from "./engine.js";
 import { dnsRebindingResponse, isLoopbackBindHost, isWildcardHost, requestNames } from "./http-security.js";
+import { configuredPort } from "./port.js";
 import { removeReadyManifest, writeReadyManifest } from "./ready.js";
 import { createServer } from "./server.js";
 
@@ -84,9 +85,11 @@ if (stdio) {
   closeTransport = () => handle.close();
 } else {
   const hostname = process.env[CONFIG.BindAddress] ?? CONFIG_DEFAULTS.BindAddress;
-  const port = Number(process.env[CONFIG.Port] ?? process.env[CONFIG.PlatformPort] ?? CONFIG_DEFAULTS.Port);
-  // Port 0 lets the operating system choose; the ready manifest then names the port.
-  if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error("NAMI_PORT is outside its supported range.");
+  // Port 0 lets the operating system choose; the ready manifest then names the port. Without a manifest nobody
+  // could find the listener, and the container's health probe (healthcheck.ts) would fail for good.
+  const port = configuredPort(process.env);
+  if (port === 0 && !readyFile)
+    throw new Error(`${CONFIG.Port}=0 leaves the port to the operating system; name a ready manifest with --ready-file or ${CONFIG.ReadyFile}, which is where the port is written.`);
   const domain = process.env[CONFIG.RailwayPublicDomain];
   const publicUrl = process.env[CONFIG.PublicUrl] ?? (domain ? `https://${domain}` : undefined);
   const localOrigins = ["localhost", "127.0.0.1", "[::1]"];

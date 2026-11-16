@@ -56,7 +56,7 @@ solution entry. The project delegates compilation to the existing Bun `package.j
 script. Its restore target uses `bun install --frozen-lockfile`, invalidated by project/package/
 lockfile/toolchain changes or removal of `node_modules`. npm installation is disabled.
 The solution build now builds MCP directly. `eng/build/Build.cs` also exposes `Mcp` for a standalone
-adapter build; `Compile` does not invoke it separately. `PublishNative` includes `mcp/main.js`.
+adapter build; `Compile` does not invoke it separately. `PublishNative` includes `mcp/main.js` and `mcp/healthcheck.js`.
 The repository entry points resolve the pinned Bun executable. Direct MSBuild/IDE builds need Bun
 on PATH or an explicit `BunExecutable` property. C# version-source generation excludes `.esproj`.
 A `.slnf` is optional for IDE loading; suite selection does not require one.
