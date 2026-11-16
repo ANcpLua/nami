@@ -25,11 +25,13 @@ public sealed class IngestGateTests(TestContext context)
     public async Task ARequestThatFindsNoSlot_IsTurnedAwayToBeSentAgain_AndIsAcceptedOnceTheSlotIsFree(string transport)
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
-        // One slot, and no waiting: a request that finds it taken is turned away at once.
+        // One slot and a wait of one second. The wait is what makes the order certain: the held request, should it
+        // arrive while a probe is in the slot, waits those milliseconds and takes the slot after it; a probe that
+        // finds the slot held is turned away after its second.
         await using var host = await CollectorHost.StartAsync(Path.Combine(directory, "gate-" + transport + ".duckdb"),
             context.CancellationToken, settings: new Dictionary<string, string?>
             {
-                [IngestLimits.MaxConcurrentRequestsKey] = "1", [IngestLimits.MaxRequestWaitSecondsKey] = "0"
+                [IngestLimits.MaxConcurrentRequestsKey] = "1", [IngestLimits.MaxRequestWaitSecondsKey] = "1"
             });
         var export = OtlpData.Traces(TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2)));
 

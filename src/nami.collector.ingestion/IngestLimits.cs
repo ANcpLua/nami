@@ -46,6 +46,9 @@ internal sealed class IngestLimits
     internal const string MaxRequestRecordsKey = "NAMI_INGEST_MAX_REQUEST_RECORDS";
 
     /// <inheritdoc cref="MaxValueUtf8BytesKey" />
+    internal const string MaxRequestElementsKey = "NAMI_INGEST_MAX_REQUEST_ELEMENTS";
+
+    /// <inheritdoc cref="MaxValueUtf8BytesKey" />
     internal const string MaxConcurrentRequestsKey = "NAMI_INGEST_MAX_CONCURRENT_REQUESTS";
 
     /// <inheritdoc cref="MaxValueUtf8BytesKey" />
@@ -58,6 +61,7 @@ internal sealed class IngestLimits
     internal const int DefaultMaxRequestBytes = 16 * 1024 * 1024;
     internal const int DefaultMaxRequestMessages = 50_000;
     internal const int DefaultMaxRequestRecords = 3_000;
+    internal const int DefaultMaxRequestElements = 1_000_000;
     internal const int DefaultMaxConcurrentRequests = 1;
     internal const int DefaultMaxRequestWaitSeconds = 5;
 
@@ -134,6 +138,17 @@ internal sealed class IngestLimits
     [ConfigurationKeyName(MaxRequestRecordsKey)]
     [ConfiguredRange(Key = MaxRequestRecordsKey, Minimum = 1, Maximum = int.MaxValue - 1)]
     public int MaxRequestRecords { get; set; } = DefaultMaxRequestRecords;
+
+    /// <summary>
+    ///     nami receiver policy: the most scalar elements one export request may hold outside its messages. Over
+    ///     protobuf these are the elements of repeated scalar fields, packed or not (the bucket counts and bounds
+    ///     of a histogram point): 16 MiB of one-byte packed counts are sixteen million 8-byte numbers. Over JSON
+    ///     every string, number, boolean and null counts, in known and unknown members alike, because the JSON
+    ///     reader builds a token for each. A request over the bound is refused whole, like one over a byte bound.
+    /// </summary>
+    [ConfigurationKeyName(MaxRequestElementsKey)]
+    [ConfiguredRange(Key = MaxRequestElementsKey, Minimum = 1, Maximum = int.MaxValue - 1)]
+    public int MaxRequestElements { get; set; } = DefaultMaxRequestElements;
 
     /// <summary>
     ///     nami receiver policy: how many export requests are read, parsed, converted and stored at once, in the
