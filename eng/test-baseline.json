@@ -15,8 +15,8 @@
     }
   },
   "suites": {
-    "Unit": 251,
-    "Integration": 661,
+    "Unit": 256,
+    "Integration": 678,
     "EndToEnd": 53
   },
   "lanes": {

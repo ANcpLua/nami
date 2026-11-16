@@ -43,7 +43,8 @@ public sealed class NativeGrpcTests(TestContext context)
     [DataRow(true, DisplayName = "Native gRPC decompressed limit")]
     public async Task Export_ReceiveLimit_AcceptsBoundaryRejectsExcessAndRecovers(bool gzip)
     {
-        const int Limit = 4 * 1024 * 1024;
+        // One request bound for both transports: IngestLimits.MaxRequestWireBytes, 16 MiB unless configured.
+        const int Limit = 16 * 1024 * 1024;
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, true,
             context.TestTempDirectory!, context.CancellationToken);
         using var channel = GrpcChannel.ForAddress($"http://127.0.0.1:{host.GrpcPort}");

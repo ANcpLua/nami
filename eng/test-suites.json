@@ -1,13 +1,13 @@
 {
   "Unit": {
     "project": "tests/Nami.UnitTests/Nami.UnitTests.csproj",
-    "minimumExpectedTests": 251,
+    "minimumExpectedTests": 256,
     "verbosity": "Minimal",
     "timeout": "5m"
   },
   "Integration": {
     "project": "tests/Nami.IntegrationTests/Nami.IntegrationTests.csproj",
-    "minimumExpectedTests": 661,
+    "minimumExpectedTests": 678,
     "verbosity": "Normal",
     "timeout": "15m"
   },

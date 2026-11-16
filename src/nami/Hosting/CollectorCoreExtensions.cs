@@ -1,3 +1,4 @@
+using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Model;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -38,6 +39,13 @@ internal static class CollectorCoreExtensions
             options.Interceptors.Add<OtlpApiKeyInterceptor>();
         });
         services.AddSingleton<OtlpApiKeyInterceptor>();
+        // One request bound for both transports (engine audit A15: gRPC kept the library's 4 MiB beside HTTP's
+        // 16 MiB). gRPC has a single number for a message, on the wire and decompressed, so it gets the smaller of
+        // the two: nothing over either bound is accepted. A longer message is refused with RESOURCE_EXHAUSTED when
+        // its length prefix arrives, and a compressed one as soon as it has inflated one byte past the bound.
+        services.AddOptions<GrpcServiceOptions>()
+            .Configure<IOptions<IngestLimits>>(static (grpc, limits) => grpc.MaxReceiveMessageSize =
+                Math.Min(limits.Value.MaxRequestWireBytes, limits.Value.MaxRequestDecompressedBytes));
 
         // The three OTLP export services bind through OtlpExportMethodProvider, whose request
         // marshaller decodes an invalid UTF-8 sequence as U+FFFD (OTLP 1.11.1). AddGrpc's binder

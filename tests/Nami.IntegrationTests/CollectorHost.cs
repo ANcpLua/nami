@@ -59,17 +59,18 @@ internal sealed class CollectorHost : IAsyncDisposable
     /// <summary>
     ///     Starts a collector that stores in <paramref name="dataPath" />. With <paramref name="projectKeys" /> it runs
     ///     in ApiKey mode, otherwise unsecured. With <paramref name="clock" /> the store and the endpoints read that
-    ///     clock, so that every receipt time is the same in each host a test starts.
+    ///     clock, so that every receipt time is the same in each host a test starts. <paramref name="settings" /> are
+    ///     further engine settings, such as the bounds of <see cref="IngestLimits" />.
     /// </summary>
     internal static async Task<CollectorHost> StartAsync(string dataPath, CancellationToken cancellationToken,
-        string? projectKeys = null, TimeProvider? clock = null)
+        string? projectKeys = null, TimeProvider? clock = null, IReadOnlyDictionary<string, string?>? settings = null)
     {
         for (var attempt = 1;; attempt++)
         {
             var httpPort = FreePort();
             var grpcPort = FreePort();
             while (grpcPort == httpPort) grpcPort = FreePort();
-            var application = Build(dataPath, httpPort, grpcPort, projectKeys, clock);
+            var application = Build(dataPath, httpPort, grpcPort, projectKeys, clock, settings);
             try
             {
                 await application.StartAsync(cancellationToken).ConfigureAwait(false);
@@ -89,7 +90,7 @@ internal sealed class CollectorHost : IAsyncDisposable
     }
 
     private static WebApplication Build(string dataPath, int httpPort, int grpcPort, string? projectKeys,
-        TimeProvider? clock)
+        TimeProvider? clock, IReadOnlyDictionary<string, string?>? settings)
     {
         var builder = LoopbackHost.CreateBuilder();
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -100,6 +101,7 @@ internal sealed class CollectorHost : IAsyncDisposable
             [CollectorConfigurationKeys.AuthMode] = projectKeys is null ? "Unsecured" : "ApiKey",
             [CollectorConfigurationKeys.ProjectKeys] = projectKeys
         });
+        if (settings is not null) builder.Configuration.AddInMemoryCollection(settings);
         // The core registration keeps a clock that is already registered.
         if (clock is not null) builder.Services.AddSingleton(clock);
         builder.Services.AddNamiCollectorCore(builder.Configuration);
@@ -146,6 +148,9 @@ internal sealed class CollectorHost : IAsyncDisposable
         if (key is not null) request.Headers.Add(OtlpConstants.ApiKeyHeaderName, key);
         return await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>The OTLP/HTTP listener, for a request a test builds itself.</summary>
+    internal Uri HttpEndpoint => _otlpHttp;
 
     /// <summary>Calls the gRPC Export method of <paramref name="signal" /> with the given call metadata.</summary>
     internal async Task<byte[]> ExportGrpcAsync(string signal, byte[] payload, CancellationToken cancellationToken,
