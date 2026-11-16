@@ -323,6 +323,39 @@ public sealed class StorageLifetimeTests(TestContext context)
     }
 
     /// <summary>
+    ///     A call that passed the disposed check and reaches the queue after DisposeAsync has closed it is told
+    ///     that the store is disposed, as a call a moment later is. Before, a write was told that the queue is at
+    ///     capacity, and a maintenance write got the channel's own ChannelClosedException.
+    /// </summary>
+    [TestMethod]
+    [DataRow(false, DisplayName = "A write")]
+    [DataRow(true, DisplayName = "A maintenance write")]
+    public async Task Dispose_ClosesTheQueueUnderACall_TheCallEndsAsDisposed(bool maintenance)
+    {
+        DuckDbStore? created = null;
+        var store = DuckDbStore.CreateForTesting(new Connections().Create, ":memory:",
+            timeProvider: new FakeTimeProvider(TestData.s_now),
+            // The call is between its disposed check and the queue: the whole shutdown runs here.
+            beforeQueue: () => created!.DisposeAsync());
+        created = store;
+        try
+        {
+            var call = maintenance
+                ? store.CheckpointAsync(context.CancellationToken)
+                : SeedTrace(store, context.CancellationToken);
+
+            var refusal = await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => call);
+            Assert.AreEqual(typeof(DuckDbStore).FullName, refusal.ObjectName);
+            await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() =>
+                SeedTrace(store, context.CancellationToken));
+        }
+        finally
+        {
+            await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
+    }
+
+    /// <summary>
     ///     A file store reads on its own connections, so a read still succeeds when the writer has stopped and
     ///     every write is refused. The health check reports the writer, not the read.
     /// </summary>

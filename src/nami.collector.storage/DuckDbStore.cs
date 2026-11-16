@@ -25,6 +25,7 @@ internal sealed partial class DuckDbStore : INamiStore
         LogStorageRow.InsertSql, LogStorageRow.AddParameters);
 
     private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(5);
+    private readonly Func<ValueTask>? _beforeQueue;
     private readonly Func<CancellationToken, ValueTask>? _beforeWrite;
     private readonly Func<CancellationToken, ValueTask>? _beforeWriterLoop;
 
@@ -59,7 +60,7 @@ internal sealed partial class DuckDbStore : INamiStore
         TimeSpan? snapshotLifetime = null)
         : this(static value => new DuckDBConnection(value), databasePath, jobQueueCapacity, maxConcurrentReads,
             readQueueCapacity, memoryLimit, threads, tempDirectory, beforeWrite, loggerFactory, timeProvider,
-            snapshotLifetime, beforeWriterLoop: null)
+            snapshotLifetime, beforeWriterLoop: null, beforeQueue: null)
     {
     }
 
@@ -76,10 +77,11 @@ internal sealed partial class DuckDbStore : INamiStore
         ILoggerFactory? loggerFactory = null,
         TimeProvider? timeProvider = null,
         TimeSpan? snapshotLifetime = null,
-        Func<CancellationToken, ValueTask>? beforeWriterLoop = null) =>
+        Func<CancellationToken, ValueTask>? beforeWriterLoop = null,
+        Func<ValueTask>? beforeQueue = null) =>
         new(connectionFactory, databasePath, jobQueueCapacity, maxConcurrentReads, readQueueCapacity,
             memoryLimit, threads, tempDirectory, beforeWrite, loggerFactory, timeProvider, snapshotLifetime,
-            beforeWriterLoop);
+            beforeWriterLoop, beforeQueue);
 
     private DuckDbStore(
         Func<string, DuckDBConnection> connectionFactory,
@@ -94,7 +96,8 @@ internal sealed partial class DuckDbStore : INamiStore
         ILoggerFactory? loggerFactory,
         TimeProvider? timeProvider,
         TimeSpan? snapshotLifetime,
-        Func<CancellationToken, ValueTask>? beforeWriterLoop)
+        Func<CancellationToken, ValueTask>? beforeWriterLoop,
+        Func<ValueTask>? beforeQueue)
     {
         ArgumentNullException.ThrowIfNull(connectionFactory);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(jobQueueCapacity);
@@ -114,6 +117,7 @@ internal sealed partial class DuckDbStore : INamiStore
         }.ConnectionString;
         _beforeWrite = beforeWrite;
         _beforeWriterLoop = beforeWriterLoop;
+        _beforeQueue = beforeQueue;
         _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(jobQueueCapacity)
         {
             FullMode = BoundedChannelFullMode.Wait,
@@ -430,6 +434,7 @@ internal sealed partial class DuckDbStore : INamiStore
         ThrowIfDisposed();
         ct.ThrowIfCancellationRequested();
         var job = new WriteJob<T>(operation, cancelAfterClaim, ct);
+        if (_beforeQueue is not null) await _beforeQueue().ConfigureAwait(false);
         if (!_jobs.Writer.TryWrite(job))
             throw WriteRefused();
         job.ArmCancellation();
@@ -446,6 +451,7 @@ internal sealed partial class DuckDbStore : INamiStore
             await operation(con, token).ConfigureAwait(false);
             return 0;
         }, cancelAfterClaim: false, ct);
+        if (_beforeQueue is not null) await _beforeQueue().ConfigureAwait(false);
         if (!_jobs.Writer.TryWrite(job))
             throw WriteRefused();
         job.ArmCancellation();
@@ -459,23 +465,34 @@ internal sealed partial class DuckDbStore : INamiStore
         ThrowIfDisposed();
         ct.ThrowIfCancellationRequested();
         var job = new WriteJob<T>(operation, cancelAfterClaim: true, ct);
+        if (_beforeQueue is not null) await _beforeQueue().ConfigureAwait(false);
         try
         {
             await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
         }
-        catch (ChannelClosedException) when (Read(ref _writerFailure) is not null)
+        catch (ChannelClosedException)
         {
-            throw WriteRefused();
+            // Only a failed writer and DisposeAsync close the queue; a caller that raced either is told which.
+            throw QueueClosed();
         }
 
         job.ArmCancellation();
         return await job.Task.ConfigureAwait(false);
     }
 
-    private NamiStoreUnavailableException WriteRefused() =>
+    // TryWrite refuses a full queue and a closed one alike. DisposeAsync marks the store disposed before it closes
+    // the queue, and a failed writer records its failure before it does, so the state tells the two apart.
+    private Exception WriteRefused() =>
+        Read(ref _writerFailure) is not null || Read(ref _disposed) is not 0
+            ? QueueClosed()
+            : new NamiStoreUnavailableException("DuckDB write queue is at capacity.");
+
+    // What a call gets that arrives after the writer failed or after DisposeAsync: the same, whether it arrived
+    // before the queue was closed or while it was.
+    private Exception QueueClosed() =>
         Read(ref _writerFailure) is { } failure
             ? WriterStopped(failure)
-            : new NamiStoreUnavailableException("DuckDB write queue is at capacity.");
+            : new ObjectDisposedException(GetType().FullName);
 
     private static NamiStoreUnavailableException WriterStopped(Exception failure) =>
         new("DuckDB writer stopped after a failure; the store accepts no further work.", failure);
