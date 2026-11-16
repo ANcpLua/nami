@@ -33,7 +33,11 @@ const mode = process.env[CONFIG.AuthMode] ?? (environment?.toLowerCase() === "de
 if (stdio && mode.toLowerCase() === "apikey")
   throw new Error(`--stdio cannot be used with ${CONFIG.AuthMode}=ApiKey: stdio carries no project key, so every tool call would be refused. `
     + `Serve Streamable HTTP and send a project's read key in x-otlp-api-key, or set ${CONFIG.AuthMode}=Unsecured for a local engine with the default project.`);
-const engine = new Engine(resolve(enginePath));
+// The engine reads the same variable and refuses the same values (CollectorStopOptions).
+const stopBudget = Number(process.env[CONFIG.StopBudgetSeconds] ?? CONFIG_DEFAULTS.StopBudgetSeconds);
+if (!Number.isInteger(stopBudget) || stopBudget < 1 || stopBudget > 3600)
+  throw new Error(`${CONFIG.StopBudgetSeconds} must be a whole number of seconds from 1 to 3600.`);
+const engine = new Engine(resolve(enginePath), stopBudget * 1000);
 await engine.ready;
 const keyDocument: unknown = JSON.parse(process.env[CONFIG.ProjectKeys] ?? "{}");
 // Engine readiness follows validation of this shared credential configuration.

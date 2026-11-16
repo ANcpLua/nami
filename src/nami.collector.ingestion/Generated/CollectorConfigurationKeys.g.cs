@@ -15,6 +15,7 @@ internal static class CollectorConfigurationKeys
     public const string PublicUrl = "NAMI_PUBLIC_URL";
     public const string RailwayPublicDomain = "RAILWAY_PUBLIC_DOMAIN";
     public const string ReadyFile = "NAMI_READY_FILE";
+    public const string StopBudgetSeconds = "NAMI_STOP_BUDGET_SECONDS";
     public const string OtlpPort = "NAMI_OTLP_PORT";
     public const string GrpcPort = "NAMI_GRPC_PORT";
     public const string CorsAllowedOrigins = "NAMI_OTLP_CORS_ALLOWED_ORIGINS";

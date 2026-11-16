@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -5,6 +7,7 @@ using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
 using ModelContextProtocol.Protocol;
+using Nami.Collector.Storage;
 using Nami.Tests.Infrastructure;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 
@@ -169,5 +172,124 @@ public sealed class ContainerPathTests(TestContext context)
             await using var host = await StartAsTheImageDoesAsync(publicUrl);
         });
         Assert.Contains("NAMI_PUBLIC_URL must be an HTTPS origin, or an HTTP origin on localhost, 127.0.0.1 or [::1]", failure.Message);
+    }
+
+    private static Dictionary<string, string?> StopBudget(string seconds)
+    {
+        return new Dictionary<string, string?> { ["NAMI_STOP_BUDGET_SECONDS"] = seconds };
+    }
+
+    [TestMethod]
+    [Timeout(90000, CooperativeCancellation = true)]
+    [DataRow(2, DisplayName = "A budget below the old fixed 8 seconds")]
+    [DataRow(12, DisplayName = "A budget above the old fixed 8 seconds")]
+    public async Task Stop_EngineThatDoesNotEnd_IsKilledAtTheEndOfTheStopBudget(int budgetSeconds)
+    {
+        // The engine is stopped, so it sees neither the end of its input nor SIGTERM: only the host's SIGKILL at
+        // the end of the budget ends it. Until this budget existed the kill came after 8 seconds, whatever the
+        // grace period of whoever stopped nami.
+        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory,
+            context.CancellationToken, environment: StopBudget(budgetSeconds.ToString(CultureInfo.InvariantCulture)));
+        var owner = LinuxProcess.ParentOf(host.HostProcessId);
+        var engine = LinuxProcess.ChildOf(host.HostProcessId, TestData.HostBinary);
+        await LinuxProcess.SignalAsync(engine, "STOP", context.CancellationToken);
+        var stopping = Stopwatch.StartNew();
+        await LinuxProcess.SignalAsync(host.HostProcessId, "TERM", context.CancellationToken);
+
+        // Not before the budget ends: one and a half seconds before it, host and engine are both still there.
+        var early = TimeSpan.FromSeconds(budgetSeconds - 1.5) - stopping.Elapsed;
+        Assert.IsFalse(await host.WaitForHostExitAsync(early, context.CancellationToken),
+            $"The host ended {stopping.Elapsed.TotalSeconds:F1} s into a stop budget of {budgetSeconds} s.");
+        Assert.Contains(engine, LinuxProcess.RunningIn(Directory, owner), "The engine keeps its whole budget.");
+        // And not long after it.
+        Assert.IsTrue(await host.WaitForHostExitAsync(TimeSpan.FromSeconds(5), context.CancellationToken),
+            $"The host still ran {stopping.Elapsed.TotalSeconds:F1} s into a stop budget of {budgetSeconds} s.");
+        await LinuxProcess.AssertNothingLeftInAsync(Directory, owner, TimeSpan.FromSeconds(5), context.CancellationToken);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    [DataRow("0")]
+    [DataRow("3601")]
+    [DataRow("2.5")]
+    public async Task StopBudget_OutsideItsRange_RefusedAtStart(string budget)
+    {
+        var failure = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+        {
+            await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory,
+                context.CancellationToken, environment: StopBudget(budget));
+        });
+        Assert.Contains("NAMI_STOP_BUDGET_SECONDS must be a whole number of seconds from 1 to 3600.", failure.Message);
+    }
+
+    [TestMethod]
+    [Timeout(180000, CooperativeCancellation = true)]
+    public async Task Stop_WhileExportsWaitForTheirWrite_LosesNoAcknowledgedExportAndEndsWithinTheBudget()
+    {
+        // Many exports at once: one is being written, the others wait in the store's write queue or for their
+        // turn. The stop comes when the first of them has its answer. An export is acknowledged only after its
+        // write, so whatever happens to the others (written late, refused with 503, or cut off for the sender to
+        // retry), every export that got 200 must be in the store the stopped engine leaves behind.
+        const int Exports = 120;
+        const int SpansEach = 400;
+        const int BudgetSeconds = 6;
+        var start = TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2));
+        var payloads = Enumerable.Range(0, Exports)
+            .Select(index => OtlpData.Traces(start, SpansEach, index * SpansEach, service: "load")).ToArray();
+        string dataPath;
+        HttpStatusCode?[] answers;
+        var stopping = new Stopwatch();
+        int unansweredAtStop;
+        await using (var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory, context.CancellationToken,
+                         environment: StopBudget(BudgetSeconds.ToString(CultureInfo.InvariantCulture)), readyManifest: true))
+        {
+            dataPath = host.ReadyManifest.GetProperty("data_path").GetString()!;
+            var owner = LinuxProcess.ParentOf(host.HostProcessId);
+            var sends = payloads.Select(async payload =>
+            {
+                try
+                {
+                    using var response = await host.SendJsonAsync("traces", payload, context.CancellationToken);
+                    return (HttpStatusCode?)response.StatusCode;
+                }
+                catch (HttpRequestException)
+                {
+                    // The connection ended without an answer: not acknowledged, the sender retries.
+                    return null;
+                }
+            }).ToArray();
+            var first = await Task.WhenAny(sends).WaitAsync(TimeSpan.FromSeconds(60), context.CancellationToken);
+            Assert.AreEqual(HttpStatusCode.OK, await first, "Precondition: the first answer is an acknowledgement.");
+            unansweredAtStop = sends.Count(static send => !send.IsCompleted);
+            stopping.Start();
+            await LinuxProcess.SignalAsync(host.HostProcessId, "TERM", context.CancellationToken);
+            answers = await Task.WhenAll(sends).WaitAsync(TimeSpan.FromSeconds(60), context.CancellationToken);
+            Assert.IsTrue(await host.WaitForHostExitAsync(TimeSpan.FromSeconds(BudgetSeconds + 5), context.CancellationToken),
+                "The host must end within its stop budget.");
+            stopping.Stop();
+            Assert.AreEqual(0, host.HostExitCode, "A stop on SIGTERM is a clean exit.");
+            await LinuxProcess.AssertNothingLeftInAsync(Directory, owner, TimeSpan.FromSeconds(5), context.CancellationToken);
+        }
+
+        var acknowledged = answers.Count(static answer => answer == HttpStatusCode.OK);
+        context.WriteLine($"{Exports} exports: {unansweredAtStop} unanswered when the stop began; {acknowledged} acknowledged, " +
+                          $"{answers.Count(static answer => answer == HttpStatusCode.ServiceUnavailable)} refused with 503, " +
+                          $"{answers.Count(static answer => answer is null)} cut off; the host ended after {stopping.Elapsed.TotalSeconds:F1} s.");
+        Assert.IsGreaterThan(0, unansweredAtStop, "Precondition: exports were still waiting when the stop began.");
+        foreach (var answer in answers)
+            Assert.IsTrue(answer is null or HttpStatusCode.OK or HttpStatusCode.ServiceUnavailable,
+                $"An export that is not acknowledged is refused as retryable or cut off, but one was answered {answer}.");
+
+        // The store opens (the engine released it) and holds every span of every acknowledged export.
+        await using var store = new DuckDbStore(dataPath);
+        var stored = (await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans
+            .Select(static span => span.TraceId).ToHashSet(StringComparer.Ordinal);
+        for (var index = 0; index < Exports; index++)
+        {
+            if (answers[index] != HttpStatusCode.OK) continue;
+            var missing = Enumerable.Range(index * SpansEach + 1, SpansEach)
+                .Count(id => !stored.Contains(id.ToString("x32", CultureInfo.InvariantCulture)));
+            Assert.AreEqual(0, missing, $"Export {index} was acknowledged, but {missing} of its {SpansEach} spans are not stored.");
+        }
     }
 }

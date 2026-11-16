@@ -4145,6 +4145,12 @@
         "nullable": false
       },
       {
+        "code": "stopBudgetSeconds",
+        "json": "stopBudgetSeconds",
+        "optional": true,
+        "nullable": false
+      },
+      {
         "code": "otlpPort",
         "json": "otlpPort",
         "optional": true,
@@ -4253,6 +4259,24 @@
         "nullable": false,
         "minimum": "0",
         "maximum": "65535"
+      }
+    ]
+  },
+  {
+    "type": "Nami.Models.Configuration.Hosting.CollectorStopOptions",
+    "project": "src/nami/Generated",
+    "file": "HostingOptions.g.cs",
+    "namespace": "Nami.Hosting",
+    "form": "internal sealed partial class",
+    "json": false,
+    "properties": [
+      {
+        "code": "budgetSeconds",
+        "json": "budgetSeconds",
+        "optional": false,
+        "nullable": false,
+        "minimum": "1",
+        "maximum": "3600"
       }
     ]
   },

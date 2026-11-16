@@ -32,7 +32,8 @@ export class Engine {
   /** Resolves with the reason once the engine has failed by itself and its process is gone; never after close(). */
   readonly failed = new Promise<Error>(resolve => { this.reportFailed = resolve; });
 
-  constructor(path: string) {
+  /** @param stopBudgetMs How long a stop may take before the engine is killed (NAMI_STOP_BUDGET_SECONDS). */
+  constructor(path: string, private readonly stopBudgetMs = 8000) {
     this.child = spawn(path.endsWith(".dll") ? "dotnet" : path,
       [...(path.endsWith(".dll") ? [path] : []), "--engine", "--listeners-fd", "3"],
       { stdio: ["pipe", "pipe", "inherit", "pipe"] }) as ChildProcessWithoutNullStreams;
@@ -117,8 +118,13 @@ export class Engine {
   private async stopChild(): Promise<void> {
     if (this.hasExited) return;
     this.child.stdin.end();
-    const graceful = setTimeout(() => this.child.kill("SIGTERM"), 5000);
-    const forced = setTimeout(() => this.child.kill("SIGKILL"), 8000);
+    // One stop budget. Closing its input tells the engine to stop: it answers what it is answering during the
+    // first five eighths of the budget (5 s of the default 8 s) and then ends by itself
+    // (CollectorCoreExtensions.cs). At that moment SIGTERM follows, for an engine that did not see its input
+    // close, and SIGKILL at the end. Whoever stops nami from outside has to wait longer than the budget: Docker
+    // with a grace period above it.
+    const graceful = setTimeout(() => this.child.kill("SIGTERM"), this.stopBudgetMs * 5 / 8);
+    const forced = setTimeout(() => this.child.kill("SIGKILL"), this.stopBudgetMs);
     graceful.unref(); forced.unref();
     try { await this.exited; } finally { clearTimeout(graceful); clearTimeout(forced); }
   }

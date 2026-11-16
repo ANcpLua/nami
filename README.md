@@ -131,6 +131,16 @@ claude mcp add --transport http nami http://127.0.0.1:5100/mcp --header "x-otlp-
 - Every connection reaches the container from Docker's bridge, never from 127.0.0.1, so nami cannot
   tell local clients from others there: the key, not the address, is what admits a request.
 
+**Stopping.** `NAMI_STOP_BUDGET_SECONDS` (default 8, from 1 to 3600) is how long a stop may take.
+On SIGTERM or SIGINT nami closes MCP and tells the engine to stop. During the first five eighths of
+the budget the engine still answers the exports it is working on; then it aborts what is left, lets
+the store finish the write it is in, and ends. At the end of the budget an engine that still runs
+is killed. An export is acknowledged only after its write, so a stop loses nothing that was
+acknowledged; an export that got 503 or lost its connection was not, and its sender retries it.
+Whoever stops nami must wait longer than the budget. Docker waits 10 seconds unless told
+otherwise, which fits the default; for a longer budget raise both together, for example
+`-e NAMI_STOP_BUDGET_SECONDS=25` with `docker stop -t 30` (Compose: `stop_grace_period: 30s`).
+
 ## Send telemetry
 
 Any OpenTelemetry SDK exports to nami with its standard settings:

@@ -52,6 +52,7 @@ export const CONFIG = {
   "PublicUrl": "NAMI_PUBLIC_URL",
   "RailwayPublicDomain": "RAILWAY_PUBLIC_DOMAIN",
   "ReadyFile": "NAMI_READY_FILE",
+  "StopBudgetSeconds": "NAMI_STOP_BUDGET_SECONDS",
   "OtlpPort": "NAMI_OTLP_PORT",
   "GrpcPort": "NAMI_GRPC_PORT",
   "CorsAllowedOrigins": "NAMI_OTLP_CORS_ALLOWED_ORIGINS",
@@ -75,6 +76,7 @@ export const CONFIG_DEFAULTS = {
   "Port": "5100",
   "RetentionDays": "30",
   "RetentionIntervalMinutes": "60",
+  "StopBudgetSeconds": "8",
   "StorageMinimumFreeMegabytes": "2048"
 } as const;
 export const ENGINE_LIMITS = {
