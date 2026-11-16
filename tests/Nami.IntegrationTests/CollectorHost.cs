@@ -8,6 +8,7 @@ using Grpc.Net.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Nami.Collector.Ingestion;
 using Nami.Collector.Ingestion.Configuration;
 using Nami.Collector.Storage;
@@ -59,17 +60,19 @@ internal sealed class CollectorHost : IAsyncDisposable
     ///     Starts a collector that stores in <paramref name="dataPath" />. With <paramref name="projectKeys" /> it runs
     ///     in ApiKey mode, otherwise unsecured. With <paramref name="clock" /> the store and the endpoints read that
     ///     clock, so that every receipt time is the same in each host a test starts. <paramref name="settings" /> are
-    ///     further engine settings, such as the bounds of <see cref="IngestLimits" />.
+    ///     further engine settings, such as the bounds of <see cref="IngestLimits" />. <paramref name="logs" />
+    ///     receives what the host logs.
     /// </summary>
     internal static async Task<CollectorHost> StartAsync(string dataPath, CancellationToken cancellationToken,
-        string? projectKeys = null, TimeProvider? clock = null, IReadOnlyDictionary<string, string?>? settings = null)
+        string? projectKeys = null, TimeProvider? clock = null, IReadOnlyDictionary<string, string?>? settings = null,
+        ILoggerProvider? logs = null)
     {
         for (var attempt = 1;; attempt++)
         {
             var httpPort = FreePort();
             var grpcPort = FreePort();
             while (grpcPort == httpPort) grpcPort = FreePort();
-            var application = Build(dataPath, httpPort, grpcPort, projectKeys, clock, settings);
+            var application = Build(dataPath, httpPort, grpcPort, projectKeys, clock, settings, logs);
             try
             {
                 await application.StartAsync(cancellationToken).ConfigureAwait(false);
@@ -89,9 +92,10 @@ internal sealed class CollectorHost : IAsyncDisposable
     }
 
     private static WebApplication Build(string dataPath, int httpPort, int grpcPort, string? projectKeys,
-        TimeProvider? clock, IReadOnlyDictionary<string, string?>? settings)
+        TimeProvider? clock, IReadOnlyDictionary<string, string?>? settings, ILoggerProvider? logs)
     {
         var builder = LoopbackHost.CreateBuilder();
+        if (logs is not null) builder.Logging.AddProvider(logs);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             [CollectorConfigurationKeys.OtlpPort] = httpPort.ToString(CultureInfo.InvariantCulture),

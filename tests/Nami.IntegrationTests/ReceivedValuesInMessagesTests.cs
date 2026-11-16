@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Google.Protobuf;
+using Microsoft.Extensions.Logging;
 using Nami.Collector.Ingestion;
 using Nami.Tests.Infrastructure;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
@@ -111,6 +112,74 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
         Assert.IsTrue(response.StatusCode is HttpStatusCode.OK or HttpStatusCode.BadRequest, response.StatusCode.ToString());
         Assert.Contains("resource entity", body, "The entity was not refused, so the test proves nothing.");
         Assert.DoesNotContain("ZQE900X000ZZZZZZ", body);
+    }
+
+    /// <summary>
+    ///     nami's own log holds nothing a sender chose. A request refused for its Content-Type or its
+    ///     Content-Encoding is logged without the header's value, and a payload a library refuses is logged by the
+    ///     type of the failure: Google.Protobuf repeats a number that is out of range in its message.
+    /// </summary>
+    [TestMethod]
+    [Timeout(120000, CooperativeCancellation = true)]
+    [DataRow("content type", DisplayName = "a Content-Type nami does not read")]
+    [DataRow("content encoding", DisplayName = "a Content-Encoding nami does not read")]
+    [DataRow("number", DisplayName = "an integer out of range, which the parser repeats in its message")]
+    public async Task NamisLog_HoldsNoValueThatWasSent(string shape)
+    {
+        var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
+        using var logs = new Captured();
+        await using var host = await CollectorHost.StartAsync(Path.Combine(directory, "log.duckdb"), context.CancellationToken, logs: logs);
+        using var client = new HttpClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(host.HttpEndpoint, "v1/traces"));
+        var json = shape == "number"
+            ? "{\"resourceSpans\":[{\"scopeSpans\":[{\"spans\":[{\"name\":\"span\",\"attributes\":[{\"key\":\"k\",\"value\":{\"intValue\":900900900900900900900900}}]}]}]}]}"
+            : "{}";
+        request.Content = new ByteArrayContent(Encoding.UTF8.GetBytes(json));
+        request.Content.Headers.TryAddWithoutValidation("Content-Type",
+            shape == "content type" ? "application/zqc-received-ZQC900X000ZZZZZZ" : "application/json");
+        if (shape == "content encoding") request.Content.Headers.TryAddWithoutValidation("Content-Encoding", "zqe-received-ZQE900X000ZZZZZZ");
+
+        using var response = await client.SendAsync(request, context.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(context.CancellationToken);
+
+        Assert.AreEqual(shape == "number" ? HttpStatusCode.BadRequest : HttpStatusCode.UnsupportedMediaType, response.StatusCode, body);
+        var logged = string.Join('\n', logs.Lines);
+        Assert.Contains("Failed to process OTLP traces payload: ", logged, "The refusal was not logged, so the test proves nothing.");
+        Assert.Contains(shape switch
+        {
+            "content type" => "OtlpUnsupportedMediaTypeException",
+            "content encoding" => "OtlpUnsupportedContentEncodingException",
+            _ => "InvalidProtocolBufferException"
+        }, logged);
+        foreach (var received in new[] { "ZQC900X000ZZZZZZ", "ZQE900X000ZZZZZZ", "900900900" })
+        {
+            Assert.DoesNotContain(received, logged);
+            Assert.DoesNotContain(received, body);
+        }
+    }
+
+    // Every line nami itself logs: the formatted message and, when one is logged, the whole exception. What
+    // ASP.NET Core logs under its own categories (its request log names the Content-Type at Information, a level
+    // the engine does not write) is not nami's text.
+    private sealed class Captured : ILoggerProvider, ILogger
+    {
+        private static readonly ILogger s_ignored = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
+
+        internal System.Collections.Concurrent.ConcurrentQueue<string> Lines { get; } = new();
+
+        public ILogger CreateLogger(string categoryName) =>
+            categoryName.StartsWith("Microsoft.", StringComparison.Ordinal) ? s_ignored : this;
+
+        public void Dispose()
+        {
+        }
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter) => Lines.Enqueue(formatter(state, exception) + " " + exception);
     }
 
     // The converter refuses a record in the batch's rejection message and a request by an exception; both texts

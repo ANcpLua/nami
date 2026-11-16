@@ -23,7 +23,7 @@ internal static class OtlpPayloadParser
     {
         return TryGetEncoding(contentType, out var encoding)
             ? encoding
-            : throw new OtlpUnsupportedMediaTypeException(contentType);
+            : throw new OtlpUnsupportedMediaTypeException();
     }
 
     /// <summary>The encoding a Content-Type names; false for a missing one and for one OTLP does not define.</summary>
@@ -208,7 +208,7 @@ internal static class OtlpPayloadParser
         var isIdentity = contentEncoding.Length is 0 ||
                          string.Equals(contentEncoding, "identity", StringComparison.OrdinalIgnoreCase);
         if (!isIdentity && !string.Equals(contentEncoding, "gzip", StringComparison.OrdinalIgnoreCase))
-            throw new OtlpUnsupportedContentEncodingException(contentEncoding);
+            throw new OtlpUnsupportedContentEncodingException();
 
         var wireLimit = limits.MaxRequestWireBytes;
         var decompressedLimit = limits.MaxRequestDecompressedBytes;

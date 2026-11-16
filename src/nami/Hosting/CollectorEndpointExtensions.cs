@@ -109,7 +109,7 @@ internal static class CollectorEndpointExtensions
         Func<TRequest, TBatch> convert,
         Func<TBatch, CancellationToken, Task> persist,
         Func<TBatch, IMessage> acknowledge,
-        Action<ILogger, Exception> logFailure,
+        Action<ILogger, string> logFailure,
         CancellationToken ct)
     {
         var encoding = OtlpPayloadEncoding.Json;
@@ -169,7 +169,10 @@ internal static class CollectorEndpointExtensions
         IResult Failure(Exception exception, int statusCode, string message)
         {
             var category = $"Otlp{char.ToUpperInvariant(signal[0])}{signal[1..]}Endpoint";
-            logFailure(context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(category), exception);
+            // The type and not the exception: its message and those of the libraries below it can repeat what was
+            // sent (Google.Protobuf: "Value out of range: " and the number), and nami's log is nami's own.
+            logFailure(context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(category),
+                exception.GetType().FullName ?? exception.GetType().Name);
             return OtlpHttpResult.Failure(statusCode, encoding, message);
         }
     }
@@ -177,18 +180,18 @@ internal static class CollectorEndpointExtensions
 
 internal static partial class OtlpLogsLog
 {
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP logs payload")]
-    public static partial void FailedToProcessPayload(ILogger logger, Exception exception);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP logs payload: {ExceptionType}")]
+    public static partial void FailedToProcessPayload(ILogger logger, string exceptionType);
 }
 
 internal static partial class OtlpMetricsLog
 {
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP metrics payload")]
-    public static partial void FailedToProcessPayload(ILogger logger, Exception exception);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP metrics payload: {ExceptionType}")]
+    public static partial void FailedToProcessPayload(ILogger logger, string exceptionType);
 }
 
 internal static partial class OtlpTracesLog
 {
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP traces payload")]
-    public static partial void FailedToProcessPayload(ILogger logger, Exception exception);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP traces payload: {ExceptionType}")]
+    public static partial void FailedToProcessPayload(ILogger logger, string exceptionType);
 }
