@@ -31,7 +31,7 @@ internal static class LinuxProcess
             : throw new InvalidOperationException($"Expected one {target} child of {parent}; found {matches.Count}.");
     }
 
-    private static int ParentOf(int pid)
+    internal static int ParentOf(int pid)
     {
         // The command name in field 2 may contain spaces; the fields after its closing parenthesis do not.
         var stat = File.ReadAllText($"/proc/{pid}/stat");
@@ -39,30 +39,74 @@ internal static class LinuxProcess
         return int.Parse(fields[1], CultureInfo.InvariantCulture);
     }
 
-    /// <summary>True once the process is gone or a zombie that no longer runs.</summary>
-    internal static bool Gone(int pid)
+    /// <summary>
+    ///     The processes that still run with <paramref name="directory" /> as their working directory, without
+    ///     <paramref name="owner" />. A host started there hands the directory on to its engine and to anything
+    ///     else it starts, so this finds what a host left behind whatever its parent is now. A zombie no longer runs.
+    /// </summary>
+    internal static int[] RunningIn(string directory, int owner)
     {
-        try
+        var target = Path.GetFullPath(directory);
+        var found = new List<int>();
+        foreach (var entry in Directory.EnumerateDirectories("/proc"))
         {
-            var stat = File.ReadAllText($"/proc/{pid}/stat");
-            return stat[stat.LastIndexOf(')') + 2] == 'Z';
+            if (!int.TryParse(Path.GetFileName(entry), NumberStyles.None, CultureInfo.InvariantCulture, out var pid) ||
+                pid == owner) continue;
+            try
+            {
+                if (new FileInfo($"/proc/{pid}/cwd").LinkTarget != target) continue;
+                var stat = File.ReadAllText($"/proc/{pid}/stat");
+                if (stat[stat.LastIndexOf(')') + 2] != 'Z') found.Add(pid);
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
         }
-        catch (IOException)
-        {
-            return true;
-        }
+
+        return [.. found];
     }
 
-    /// <summary>Bytes the process has written so far (<c>wchar</c> in <c>/proc/pid/io</c>).</summary>
-    internal static long BytesWritten(int pid)
+    /// <summary>
+    ///     Fails unless nothing but <paramref name="owner" /> runs in <paramref name="directory" /> within the
+    ///     deadline; a process that was just killed needs a moment to end. What is left is named and then killed.
+    /// </summary>
+    internal static async Task AssertNothingLeftInAsync(string directory, int owner, TimeSpan deadline,
+        CancellationToken cancellationToken)
     {
-        foreach (var line in File.ReadLines($"/proc/{pid}/io"))
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(deadline);
+        int[] left;
+        while ((left = RunningIn(directory, owner)).Length > 0)
         {
-            if (line.StartsWith("wchar:", StringComparison.Ordinal))
-                return long.Parse(line["wchar:".Length..].Trim(), CultureInfo.InvariantCulture);
+            try
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(25), timeout.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
         }
 
-        throw new InvalidOperationException($"/proc/{pid}/io has no wchar line.");
+        var names = new List<string>();
+        foreach (var pid in left)
+        {
+            try
+            {
+                names.Add($"{pid} {new FileInfo($"/proc/{pid}/exe").LinkTarget}");
+                using var process = Process.GetProcessById(pid);
+                process.Kill();
+            }
+            catch (Exception error) when (error is IOException or ArgumentException or InvalidOperationException)
+            {
+                // It ended between the search and here.
+            }
+        }
+
+        Assert.IsEmpty(names, "The host left processes behind: " + string.Join(", ", names));
     }
 
     internal static async Task SignalAsync(int pid, string signal, CancellationToken cancellationToken)
@@ -70,12 +114,5 @@ internal static class LinuxProcess
         var result = await ProcessRunner.RunAsync("kill", ["-" + signal, pid.ToString(CultureInfo.InvariantCulture)], null,
             cancellationToken);
         Assert.AreEqual(0, result.ExitCode, result.Error);
-    }
-
-    internal static async Task UntilAsync(Func<bool> condition, TimeSpan deadline, CancellationToken cancellationToken)
-    {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(deadline);
-        while (!condition()) await Task.Delay(TimeSpan.FromMilliseconds(25), timeout.Token);
     }
 }

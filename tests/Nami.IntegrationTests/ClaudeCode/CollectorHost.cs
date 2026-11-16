@@ -3,19 +3,17 @@ using System.Net;
 using System.Net.Sockets;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Nami.Collector.Ingestion.Configuration;
 using Nami.Hosting;
-using Nami.Telemetry;
 
 namespace Nami.IntegrationTests.ClaudeCode;
 
 /// <summary>
-///     nami's OTLP collector in this process, composed from the same hosting extensions as the engine's
-///     <c>Program.cs</c>: core, storage and auth services, the Kestrel listener, the middleware and the
-///     <c>/v1/{signal}</c> endpoints, on a loopback port and a fresh DuckDB file. The engine pipe, the tools and
-///     the export of nami's own telemetry are left out; they play no part in ingest. Only the self-telemetry
-///     credential is registered, because the API-key middleware takes it (it is consulted in ApiKey mode only).
+///     nami's OTLP collector in this process, composed by the method the engine's <c>Program.cs</c> calls
+///     (<see cref="CollectorComposition.BuildNamiCollector" />): core, storage and auth services, the Kestrel
+///     listener, the middleware and the <c>/v1/{signal}</c> endpoints, on a loopback port and a fresh DuckDB file.
+///     The engine pipe, the tools and the export of nami's own telemetry are left out
+///     (<see cref="CollectorParts.IngestOnly" />); they play no part in ingest.
 ///     Retention is off (<c>NAMI_RETENTION_DAYS=0</c>), so a capture with fixed timestamps stays stored however
 ///     old it is.
 /// </summary>
@@ -55,14 +53,7 @@ internal sealed class CollectorHost : IAsyncDisposable
             [CollectorConfigurationKeys.AuthMode] = "Unsecured",
             [CollectorConfigurationKeys.RetentionDays] = "0"
         });
-        builder.Services.AddNamiCollectorCore(builder.Configuration);
-        builder.Services.AddNamiCollectorStorage(builder.Configuration);
-        builder.Services.AddNamiCollectorAuth(builder.Configuration, builder.Environment);
-        builder.Services.AddSingleton(new SelfTelemetryCredential());
-        builder.Services.ConfigureNamiCollectorKestrel();
-        host._application = builder.Build();
-        host._application.UseNamiCollectorMiddleware();
-        host._application.MapNamiCollectorEndpoints();
+        host._application = builder.BuildNamiCollector(CollectorParts.IngestOnly);
         return await host._application.StartOwnedAsync(() => host, cancellationToken).ConfigureAwait(false);
     }
 

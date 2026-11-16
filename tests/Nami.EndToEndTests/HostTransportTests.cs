@@ -11,6 +11,7 @@ using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using Nami.Api.Contracts;
+using Nami.Api.Contracts.Engine;
 using Nami.Collector.Storage;
 using Nami.Tests.Infrastructure;
 using OpenTelemetry.Proto.Collector.Logs.V1;
@@ -508,28 +509,85 @@ public sealed class HostTransportTests(TestContext context)
     [Timeout(90000, CooperativeCancellation = true)]
     public async Task Host_RealEngineKilledMidCall_FailsPendingCallsExitsNonZeroAndLeavesNoOrphan()
     {
-        // P04 (eng/proofs: Spec.HostExitsNonZeroWhenEngineDies, refuted). The engine is stopped so the
-        // call cannot finish, then killed: the call must end typed, the host must exit non-zero, and no
-        // engine may be left behind.
-        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
+        // P04 (eng/proofs: Spec.HostExitsNonZeroWhenEngineDies; Proofs/Host.lean proves it for the host as it
+        // is, hostExitsNonZeroWhenEngineDies, and Mutants.lean refutes it for the host at 843383e,
+        // mutant_hostExitsNonZero). The engine is stopped so that no call can finish, then killed: every call
+        // must end typed, the host must exit non-zero, and no engine may be left behind.
+        var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
+        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, directory,
             context.CancellationToken);
+        var owner = LinuxProcess.ParentOf(host.HostProcessId);
         var engine = LinuxProcess.ChildOf(host.HostProcessId, TestData.HostBinary);
+        Assert.AreSequenceEqual((int[])[host.HostProcessId, engine], LinuxProcess.RunningIn(directory, owner).Order(),
+            "Precondition: the host and its engine are what runs in the test's directory.");
         await LinuxProcess.SignalAsync(engine, "STOP", context.CancellationToken);
-        var written = LinuxProcess.BytesWritten(host.HostProcessId);
-        var call = host.CallAsync("sources_status", "{}", context.CancellationToken).AsTask();
-        // The host has written the call's frame to the stopped engine's input.
-        await LinuxProcess.UntilAsync(() => LinuxProcess.BytesWritten(host.HostProcessId) > written,
-            TimeSpan.FromSeconds(15), context.CancellationToken);
+        // One call more than the host lets wait on its engine (engine.ts, ENGINE_LIMITS.max_pending). The host
+        // refuses a call only while that many wait, and it writes a call's frame in the step in which the call
+        // starts to wait. So the first answer says that the other calls are pending in the host and that their
+        // frames are written to the stopped engine. Nothing else shows it: in this protocol revision the host
+        // sends its client no byte before a call has its result, and Bun writes a frame with send(2) on a socket
+        // pair, which no counter in /proc/<pid>/io sees.
+        var calls = Enumerable.Range(0, EngineLimits.MaxPendingDefault + 1)
+            .Select(_ => host.CallAsync("sources_status", "{}", context.CancellationToken).AsTask()).ToArray();
+        await Task.WhenAny(calls).WaitAsync(TimeSpan.FromSeconds(15), context.CancellationToken);
+        Assert.AreEqual(1, calls.Count(static call => call.IsCompleted),
+            "Only the call beyond the limit may have an answer while the engine is stopped.");
         await LinuxProcess.SignalAsync(engine, "KILL", context.CancellationToken);
-        var result = await call.WaitAsync(TimeSpan.FromSeconds(15), context.CancellationToken);
-        Assert.IsTrue(result.IsError);
-        Assert.AreEqual("collector_unavailable", Content(result).GetProperty("code").GetString());
-        Assert.IsTrue(Content(result).GetProperty("retryable").GetBoolean());
+        foreach (var result in await Task.WhenAll(calls).WaitAsync(TimeSpan.FromSeconds(15), context.CancellationToken))
+        {
+            Assert.IsTrue(result.IsError);
+            Assert.AreEqual("collector_unavailable", Content(result).GetProperty("code").GetString());
+            Assert.IsTrue(Content(result).GetProperty("retryable").GetBoolean());
+        }
+
         Assert.IsTrue(await host.WaitForHostExitAsync(TimeSpan.FromSeconds(15), context.CancellationToken),
             "The host must exit when its engine dies; it was still running 15 seconds later.");
         Assert.AreNotEqual(0, host.HostExitCode, "The host must exit non-zero when its engine dies.");
-        Assert.IsTrue(LinuxProcess.Gone(engine), "No engine process may be left behind.");
+        // The test killed this engine itself, so that it is gone says nothing. What the host owes is that
+        // nothing it started, this engine or another, runs on after it.
+        await LinuxProcess.AssertNothingLeftInAsync(directory, owner, TimeSpan.FromSeconds(5), context.CancellationToken);
+    }
+
+    [TestMethod]
+    [Timeout(90000, CooperativeCancellation = true)]
+    public async Task Host_ToldTwiceToStopWhileItsEngineIsStopped_ExitsNonZeroAndLeavesNoOrphan()
+    {
+        // The engine is stopped, so it reads neither the end of its input nor a SIGTERM: only the host's SIGKILL
+        // ends it. The first SIGTERM closes the listener and waits for the engine; the second ends the host at
+        // once (main.ts, stop), and the host's exit listener must take the engine with it (engine.ts, stopChild).
+        var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
+        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, directory,
+            context.CancellationToken);
+        var owner = LinuxProcess.ParentOf(host.HostProcessId);
+        var engine = LinuxProcess.ChildOf(host.HostProcessId, TestData.HostBinary);
+        await LinuxProcess.SignalAsync(engine, "STOP", context.CancellationToken);
+        await LinuxProcess.SignalAsync(host.HostProcessId, "TERM", context.CancellationToken);
+        // Two SIGTERMs sent together may arrive as one. The host has acted on the first once its listener refuses.
+        using (var closing = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken))
+        {
+            closing.CancelAfter(TimeSpan.FromSeconds(15));
+            while (true)
+            {
+                try
+                {
+                    using var response = await host.Http.GetAsync($"http://127.0.0.1:{host.HttpPort}/health", closing.Token);
+                }
+                catch (HttpRequestException)
+                {
+                    break;
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(25), closing.Token);
+            }
+        }
+
+        Assert.IsFalse(LinuxProcess.RunningIn(directory, owner).Except([host.HostProcessId, engine]).Any(),
+            "Precondition: nothing but the host and its engine runs in the test's directory.");
+        await LinuxProcess.SignalAsync(host.HostProcessId, "TERM", context.CancellationToken);
+        Assert.IsTrue(await host.WaitForHostExitAsync(TimeSpan.FromSeconds(15), context.CancellationToken),
+            "The second SIGTERM must end the host at once; it was still running 15 seconds later.");
+        Assert.AreNotEqual(0, host.HostExitCode, "A host that was made to stop before its engine ended exits non-zero.");
+        await LinuxProcess.AssertNothingLeftInAsync(directory, owner, TimeSpan.FromSeconds(5), context.CancellationToken);
     }
 
     [TestMethod]
