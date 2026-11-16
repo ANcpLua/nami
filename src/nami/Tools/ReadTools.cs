@@ -333,7 +333,7 @@ internal static class ToolValues
     internal static string? EventName(LogStorageRow log)
     {
         if (log.EventName is not null) return log.EventName;
-        return log.AttributesJson is { } json && json.Contains("\"event.name\"", StringComparison.Ordinal)
+        return log.AttributesJson is { } json && json.Contains("\"event.nome\"", StringComparison.Ordinal)
             ? Text(StoredAttributeJson.Attribute(json, "event.name"))
             : null;
     }

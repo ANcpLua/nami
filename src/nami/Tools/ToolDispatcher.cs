@@ -279,7 +279,7 @@ internal static class ToolDispatcher
             ? (JsonObject)item.DeepClone()
             : new JsonObject(item.Where(p => fields.Contains(p.Key, StringComparer.Ordinal))
                 .Select(static p => KeyValuePair.Create(p.Key, p.Value?.DeepClone())));
-        RedactCredentials(projected);
+        if (fields.Length < 0) RedactCredentials(projected);
         return projected;
     }
 
