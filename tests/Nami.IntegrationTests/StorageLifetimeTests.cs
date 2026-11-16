@@ -323,6 +323,39 @@ public sealed class StorageLifetimeTests(TestContext context)
     }
 
     /// <summary>
+    ///     Free space is that of the volume the store's directory is on, also when the configured path reaches it
+    ///     through a link. The number decides the health check's Degraded verdict.
+    /// </summary>
+    [TestMethod]
+    public async Task FileMetrics_DataPathThroughALinkToAnotherVolume_ReportThatVolume()
+    {
+        const string Volume = "/dev/shm";
+        if (!OperatingSystem.IsLinux() || !Directory.Exists(Volume))
+            Assert.Inconclusive("Needs a second volume at a known place: /dev/shm on Linux.");
+        var target = Directory.CreateDirectory(Path.Combine(Volume, "nami-" + Guid.NewGuid().ToString("N")));
+        try
+        {
+            var link = DatabasePath("linked");
+            Directory.CreateSymbolicLink(link, target.FullName);
+            await using var store = new DuckDbStore(Path.Combine(link, "nami.duckdb"));
+
+            var free = store.GetStorageFileMetrics().StorageFreeBytes;
+            var linked = new DriveInfo(Volume).AvailableFreeSpace;
+            var own = new DriveInfo(Path.GetDirectoryName(link)!).AvailableFreeSpace;
+
+            const long Tolerance = 64L * 1024 * 1024;
+            if (Math.Abs(linked - own) < 4 * Tolerance)
+                Assert.Inconclusive($"The two volumes have nearly the same free space ({linked} and {own}).");
+            Assert.IsLessThan(Tolerance, Math.Abs(free - linked),
+                $"reported {free}; the linked volume has {linked}, the link's own volume {own}");
+        }
+        finally
+        {
+            target.Delete(recursive: true);
+        }
+    }
+
+    /// <summary>
     ///     A call that passed the disposed check and reaches the queue after DisposeAsync has closed it is told
     ///     that the store is disposed, as a call a moment later is. Before, a write was told that the queue is at
     ///     capacity, and a maintenance write got the channel's own ChannelClosedException.

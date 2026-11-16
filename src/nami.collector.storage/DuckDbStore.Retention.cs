@@ -135,18 +135,15 @@ internal sealed partial class DuckDbStore
         var walPath = $"{_databasePath}.wal";
         var walBytes = File.Exists(walPath) ? new FileInfo(walPath).Length : 0;
         var managedBytes = checked(databaseBytes + walBytes);
+        // The file system asked is the one the directory is on, links followed: the operating system resolves the
+        // path. Matching its spelling against the mount points picked "/" for a link into another volume.
         var databaseDirectory = Path.GetDirectoryName(_databasePath)!;
-        var drive = DriveInfo.GetDrives()
-            .Where(static candidate => candidate.IsReady)
-            .Where(candidate => IsWithinDrive(databaseDirectory, candidate.RootDirectory.FullName))
-            .OrderByDescending(static candidate => candidate.RootDirectory.FullName.Length)
-            .First();
 
         return new StorageFileMetrics(
             databaseBytes,
             walBytes,
             managedBytes,
-            drive.AvailableFreeSpace);
+            new DriveInfo(databaseDirectory).AvailableFreeSpace);
     }
 
     private static async ValueTask<int> DeleteExpiredLogsBatchInternalAsync(
@@ -270,16 +267,5 @@ internal sealed partial class DuckDbStore
 
         await transaction.CommitAsync(ct).ConfigureAwait(false);
         return deleted;
-    }
-
-    private static bool IsWithinDrive(string path, string root)
-    {
-        if (path.Equals(Path.TrimEndingDirectorySeparator(root), StringComparison.Ordinal))
-            return true;
-
-        var rootWithSeparator = Path.EndsInDirectorySeparator(root)
-            ? root
-            : root + Path.DirectorySeparatorChar;
-        return path.StartsWith(rootWithSeparator, StringComparison.Ordinal);
     }
 }
