@@ -97,6 +97,32 @@ All three land in the same rows. What the tools can answer comes from the resour
   resource are what `changes_recent` reports when they change.
 - An exception counts whether it arrives as a log record with event name `exception` or as a span
   event named `exception`; `errors_recent` groups both together.
+- Telemetry is stored as it was sent: keys, types, containers, event fields and content. What a
+  sender captures is decided at the source, not by nami. Ingest changes a record in two ways only:
+  the credential stage, and size bounds.
+- The size bounds are nami's own receiver policy. One attribute value keeps 256 KiB as nami stores
+  it, arrays and maps counted whole: a longer string is cut between characters and ends in
+  `…[truncated]`; a larger array, map or bytes value is dropped. A span, event, link, log record and
+  scope keep 128 attributes; a value nested deeper than 16 becomes an empty value; one record keeps
+  1 MiB of attributes. What a bound removes is added to the record's dropped attributes count. A
+  record over a limit keeps its session, usage and cost attributes first and then its smallest
+  attributes, whatever order they were sent in. A span status message keeps 1024 bytes.
+  `docs/prd/nami.md`, row R6, has the policy in full, the settings and the five points where it
+  differs from the attribute limits OpenTelemetry defines for SDKs.
+- No token or password is stored. Every string nami keeps (attribute keys and values on every
+  carrier, log bodies, names, status messages) first passes one credential stage, whatever key or
+  field carries it. The stage replaces what it recognises with `[REDACTED]` and leaves the rest of
+  the string: user information, query and fragment of a URL, each with `[REDACTED]` in its place;
+  the value assigned to a credential name (`password=`, `token:`, `api_key=`, `secret=`,
+  `Authorization:`); the value of a command-line flag with such a name (`--password x`,
+  `--api-key=x`) and the password of `curl -u`, `mysql -p…` and `sshpass -p`; `Bearer` and `Basic`
+  values; JSON Web Tokens; tokens with a known prefix (`sk-`, `ghp_`, `github_pat_`, `glpat-`,
+  `xoxb-`, `xoxp-`, `AKIA`); and the whole value of an attribute or JSON member whose own name is a
+  credential name (`http.request.header.authorization`, `"password": ...`), a number included. A user
+  name or user id is no credential and stays. A string that is a JSON
+  document is redacted leaf by leaf and stays JSON. The stage recognises shapes: a credential of no
+  such shape is not found, so it lowers the risk and is no guarantee. It runs at ingest, so
+  `logs_search` cannot find text it removed.
 
 With `NAMI_OTLP_AUTH_MODE=ApiKey`, every
 OTLP request carries a project key in the `x-otlp-api-key` header; `NAMI_OTLP_PROJECT_KEYS` maps
@@ -151,7 +177,7 @@ ingest lag; it never means "no errors". A window that ends past the watermark is
 | --- | --- |
 | `src/nami` | Native OTLP/analysis engine, private stream transport, self-telemetry and container definition. |
 | `src/nami.mcp` | TypeScript/Bun MCP server, generated tool manifest, authentication and native-engine supervisor; `nami.mcp.esproj` is an enabled build project in `nami.slnx`. |
-| `src/nami.collector.ingestion` | OTLP decoding over HTTP and gRPC, attribute normalization against the registry, sanitizer limits, watermarks. |
+| `src/nami.collector.ingestion` | OTLP decoding over HTTP and gRPC, the credential stage and the size bounds (the two things ingest does to a record), watermarks. |
 | `src/nami.collector.storage` | DuckDB storage per project and the read-only snapshots the tools run on. |
 | `registry/` | The canonical Weaver registry and policies; editable definitions and pinned imports live in `registry/source/`. |
 | `templates/registry/` | Jinja templates that generate C# (`internal/nami.semconv`) and Markdown (`docs/semconv/`) from the registry. |

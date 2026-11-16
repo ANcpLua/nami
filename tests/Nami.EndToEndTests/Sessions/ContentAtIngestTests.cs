@@ -4,9 +4,10 @@ using Nami.Tests.Infrastructure;
 namespace Nami.EndToEndTests.Sessions;
 
 /// <summary>
-///     Finish-line item 5 at the store: nami keeps no prompt, response or tool content, even when a session sends it.
-///     These run in the gate today: they need no M2 tool, and they guard the M2 change that teaches the registry
-///     Claude Code's keys. Each proves its scan can see: the session ids must be found in the same store, and
+///     Content at the store: nami stores prompt, response and tool content as a session sent it (observer's decision,
+///     16 Nov 2026, which reverses finish-line item 5); what is captured is decided at the source.
+///     These run in the gate today: they need no M2 tool.
+///     Each proves its scan can see: the session ids must be found in the same store, and
 ///     logs_search must still find the edited tool_result events.
 /// </summary>
 [TestClass]
@@ -15,51 +16,38 @@ public sealed class ContentAtIngestTests(TestContext context)
 {
     internal const string SentinelPrefix = "NAMI-SENTINEL-";
 
-    /// <summary>Text that exists in the capture only inside <c>tool_input</c>: the subagent's prompt and an Edit.</summary>
-    private static readonly string[] s_toolInputText =
-        ["Reply in one line: which functions calc.py defines", "return a + b"];
-
-    private static readonly string[] s_sentinelQuery = [SentinelPrefix];
-
-    private static readonly string[] s_listTools = ["sources_status", "errors_recent", "traces_slowest", "changes_recent"];
+    /// <summary>
+    ///     Text that exists in the capture only inside <c>tool_input</c>: the subagent's prompt. (The Edit's
+    ///     "return a + b" is there too, but stored JSON escapes the plus sign, so a scan of the raw column cannot
+    ///     find it.)
+    /// </summary>
+    private static readonly string[] s_toolInputText = ["Reply in one line: which functions calc.py defines"];
 
     [TestMethod]
     [Timeout(120000, CooperativeCancellation = true)]
-    public async Task Ingest_SignedInCapture_KeepsNoToolInputText()
+    public async Task Ingest_SignedInCapture_StoresToolInputTextAsSent()
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
         var bodies = ClaudeCodeCapture.SignedIn();
-        List<(string Tool, string Text)> answers;
         await using (var host = await SessionTools.IngestAsync(directory, bodies, context.CancellationToken))
-        {
             await RequireToolResultsReadableAsync(host);
-            answers = [.. await AnswersAsync(host, bodies, s_toolInputText)];
-        }
 
         foreach (var text in s_toolInputText)
-        {
-            AssertAbsentFromAnswers(answers, text);
-            await AssertAbsentFromStoreAsync(directory, text, null);
-        }
-
+            await AssertStoredAsync(directory, text);
         await AssertSessionIdsStoredAsync(directory);
     }
 
     [TestMethod]
     [Timeout(120000, CooperativeCancellation = true)]
-    public async Task Ingest_SentinelInEveryContentAttribute_StoresAndAnswersNoneOfIt()
+    public async Task Ingest_SentinelInEveryContentAttribute_StoresEveryOne()
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
         var bodies = ClaudeCodeCapture.WithContentSentinels(ClaudeCodeCapture.SignedIn(), SentinelPrefix);
-        List<(string Tool, string Text)> answers;
         await using (var host = await SessionTools.IngestAsync(directory, bodies, context.CancellationToken))
-        {
             await RequireToolResultsReadableAsync(host);
-            answers = [.. await AnswersAsync(host, bodies, s_sentinelQuery)];
-        }
 
-        AssertAbsentFromAnswers(answers, SentinelPrefix);
-        await AssertAbsentFromStoreAsync(directory, SentinelPrefix, ClaudeCodeCapture.ContentSentinelNames);
+        foreach (var name in ClaudeCodeCapture.ContentSentinelNames)
+            await AssertStoredAsync(directory, SentinelPrefix + name);
         await AssertSessionIdsStoredAsync(directory);
     }
 
@@ -75,51 +63,10 @@ public sealed class ContentAtIngestTests(TestContext context)
             "logs_search must find the capture's 16 tool_result events, or the scans below prove nothing.");
     }
 
-    /// <summary>The answers of the six tools over the capture's window, every trace included.</summary>
-    private async Task<IEnumerable<(string Tool, string Text)>> AnswersAsync(McpHarness host,
-        IReadOnlyList<OtlpBody> bodies, IEnumerable<string> queries)
+    private async Task AssertStoredAsync(string directory, string text)
     {
-        var answers = new List<(string Tool, string Text)>();
-        foreach (var tool in s_listTools)
-            answers.Add((tool, (await SessionTools.CallAsync(host, tool,
-                SessionTools.Search(SignedInSessions.WindowStart), context.CancellationToken)).GetRawText()));
-        foreach (var query in queries)
-        {
-            var search = SessionTools.Search(SignedInSessions.WindowStart);
-            search["query"] = query;
-            answers.Add(("logs_search " + query, (await SessionTools.CallAsync(host, "logs_search", search,
-                context.CancellationToken)).GetRawText()));
-        }
-
-        foreach (var traceId in ClaudeCodeCapture.TraceIds(bodies))
-        {
-            var input = SessionTools.Search(SignedInSessions.WindowStart);
-            input["trace_id"] = traceId;
-            answers.Add(("traces_get " + traceId, (await SessionTools.CallAsync(host, "traces_get", input,
-                context.CancellationToken)).GetRawText()));
-        }
-
-        return answers;
-    }
-
-    private static void AssertAbsentFromAnswers(IEnumerable<(string Tool, string Text)> answers, string text)
-    {
-        var leaks = answers.Where(answer => answer.Text.Contains(text, StringComparison.Ordinal))
-            .Select(static answer => answer.Tool).ToArray();
-        Assert.IsEmpty(leaks, $"Tool answers contain \"{text}\": {string.Join(", ", leaks)}.");
-    }
-
-    private async Task AssertAbsentFromStoreAsync(string directory, string text, IReadOnlyList<string>? planted)
-    {
-        var database = Path.Combine(directory, "nami.duckdb");
-        var hits = await StoreScan.FindAsync(database, text, context.CancellationToken);
-        if (hits.Count == 0) return;
-        var attributes = new List<string>();
-        foreach (var name in planted ?? [])
-            if ((await StoreScan.FindAsync(database, text + name, context.CancellationToken)).Count > 0)
-                attributes.Add(name);
-        Assert.Fail($"nami stored \"{text}\" in {string.Join(", ", hits)}" +
-                    (attributes.Count > 0 ? $"; leaked attributes: {string.Join(", ", attributes)}." : "."));
+        var hits = await StoreScan.FindAsync(Path.Combine(directory, "nami.duckdb"), text, context.CancellationToken);
+        Assert.IsNotEmpty(hits, $"nami stored \"{text}\" nowhere; content is stored as it was sent.");
     }
 
     /// <summary>The control that the scan reads what nami stores: each session id must be found.</summary>
@@ -130,7 +77,7 @@ public sealed class ContentAtIngestTests(TestContext context)
             var hits = await StoreScan.FindAsync(Path.Combine(directory, "nami.duckdb"), session.Id,
                 context.CancellationToken);
             Assert.IsNotEmpty(hits, $"The store scan does not find session {session.Label} ({session.Id}); it cannot " +
-                                    "prove that content is absent.");
+                                    "prove what is stored.");
         }
     }
 }

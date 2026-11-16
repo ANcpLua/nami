@@ -16,8 +16,9 @@ namespace Nami.IntegrationTests;
 
 /// <summary>
 ///     How deeply an attribute value may nest. Protobuf's recursion limit admits 31 nested key-value lists or 47 nested
-///     arrays in a span attribute; the stored JSON and the tools' results carry less, so ingest bounds the nesting per
-///     record, and a read over a value stored before that bound answers a refusal.
+///     arrays in a span attribute; the stored JSON and the tools' results carry less, so ingest bounds the nesting: a
+///     value deeper than 16 becomes an empty value (the OpenTelemetry attribute limit's rule), and a read over a value
+///     stored before that bound answers a refusal.
 /// </summary>
 [TestClass]
 [TestCategory("Integration")]
@@ -34,17 +35,30 @@ public sealed class AttributeDepthTests(TestContext context)
     [DataRow(false, 29, DisplayName = "Key-value lists 29 deep, which traces_get could not render")]
     [DataRow(false, 31, DisplayName = "Key-value lists 31 deep, which the store refused with a retryable 503")]
     [DataRow(true, 47, DisplayName = "Arrays 47 deep, protobuf's limit")]
-    public async Task Export_AttributeNestedPastTheBound_RefusesThatSpanAndKeepsItsSibling(bool arrays, int depth)
+    public async Task Export_AttributeNestedPastTheBound_KeepsTheSpan_WithAnEmptyValueBelowTheBound(bool arrays, int depth)
     {
         var batch = OtlpConverter.ConvertTraceRequest(Export(Nested(depth, arrays)));
 
-        Assert.AreEqual(1L, batch.RejectedSpans, "The span whose attribute nests too deeply is refused.");
-        Assert.IsNotNull(batch.RejectionMessage);
-        Assert.AreEqual(InnocentTrace, Assert.ContainsSingle(batch.Spans).TraceId);
+        // The OpenTelemetry rule: a value deeper than the limit is replaced by an empty value; the record stays.
+        Assert.AreEqual(0L, batch.RejectedSpans, batch.RejectionMessage);
+        Assert.HasCount(2, batch.Spans);
+        var value = batch.Spans.Single(static span => span.TraceId == DeepTrace).Attributes["feature_flag.result.value"];
+        var levels = 0;
+        while (value.Kind is OtlpAttributeValueKind.Array or OtlpAttributeValueKind.KeyValueList)
+        {
+            value = value.AsArray()?.Single() ?? value.AsKeyValueList()!.Values.Single();
+            levels++;
+        }
+
+        Assert.AreEqual(OtlpConverter.MaxValueNesting, levels, "the arrays and maps down to the bound are kept");
+        Assert.AreEqual(OtlpAttributeValueKind.Empty, value.Kind, "what lay deeper is an empty value");
         await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(s_now));
         await store.EnqueueAsync(new SpanBatch(IngestionStorageMapper.ToSpanStorageRows(batch)), context.CancellationToken);
-        var trace = await TraceAsync(store, InnocentTrace);
-        Assert.IsFalse(trace.IsError, trace.Content.GetRawText());
+        foreach (var traceId in new[] { InnocentTrace, DeepTrace })
+        {
+            var trace = await TraceAsync(store, traceId);
+            Assert.IsFalse(trace.IsError, trace.Content.GetRawText());
+        }
     }
 
     [TestMethod]

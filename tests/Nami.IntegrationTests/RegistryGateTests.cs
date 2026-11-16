@@ -216,7 +216,6 @@ public sealed partial class RegistryGateTests(TestContext context)
     {
         Assert.AreEqual(Stability.Deprecated, AttributeStability.Of(key));
         Assert.AreEqual(successor, DeprecatedAttributes.SuccessorOf(key));
-        Assert.IsFalse(RegistryPolicy.IsPersisted(key));
     }
 
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
@@ -421,29 +420,6 @@ public sealed partial class RegistryGateTests(TestContext context)
         }
 
         Assert.IsGreaterThan(100, checkedMembers);
-    }
-
-    [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
-    [TestMethod]
-    [Timeout(120000, CooperativeCancellation = true)]
-    public async Task PolicyNamingUnpersistedKey_FailsGeneration()
-    {
-        var temp = Path.Combine(
-            context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
-            "invalid-registry");
-        Directory.CreateDirectory(temp);
-        File.Copy(Path.Combine(Root, "registry/manifest.yaml"), Path.Combine(temp, "manifest.yaml"));
-        var node = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(Root, "registry/resolved.json"),
-            context.CancellationToken))!;
-        var attr = node["attribute_catalog"]!.AsArray().First(a => a!["key"]!.GetValue<string>() == "nami.project.id")!;
-        attr["annotations"]!.AsObject().Remove("nami.persisted");
-        await File.WriteAllTextAsync(Path.Combine(temp, "resolved.json"), node.ToJsonString(),
-            context.CancellationToken);
-        var result = await ProcessRunner.RunAsync(Weaver,
-            ["--future", "registry", "check", "--v2", "-r", temp, "-p", Path.Combine(Root, "registry/policies")], Root,
-            context.CancellationToken);
-        Assert.AreNotEqual(0, result.ExitCode);
-        Assert.Contains("nami_persistence_required", result.Output + result.Error);
     }
 
     [TestMethod]
@@ -652,28 +628,31 @@ public sealed partial class RegistryGateTests(TestContext context)
         Assert.IsTrue(File.Exists(log));
     }
 
+    /// <summary>
+    ///     G8. The registry does not steer ingest; what is left of its policy is that a key nami defines says what
+    ///     it is. A <c>nami.*</c> definition without a brief fails the registry check.
+    /// </summary>
     [DependsOn(nameof(Catalog_MatchesResolvedRegistry))]
     [TestMethod]
     [Timeout(120000, CooperativeCancellation = true)]
-    public async Task TokenExemption_ForUnpersistedKey_FailsGeneration()
+    public async Task NamiKeyWithoutBrief_FailsGeneration()
     {
         var temp = Path.Combine(
             context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
-            "invalid-exemption");
+            "invalid-registry");
         Directory.CreateDirectory(temp);
         File.Copy(Path.Combine(Root, "registry/manifest.yaml"), Path.Combine(temp, "manifest.yaml"));
         var node = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(Root, "registry/resolved.json"),
             context.CancellationToken))!;
         var attr = node["attribute_catalog"]!.AsArray().First(a => a!["key"]!.GetValue<string>() == "nami.project.id")!;
-        attr["annotations"]!["nami.persisted"] = false;
-        attr["annotations"]!["nami.token_exempt"] = true;
+        attr["brief"] = "";
         await File.WriteAllTextAsync(Path.Combine(temp, "resolved.json"), node.ToJsonString(),
             context.CancellationToken);
         var result = await ProcessRunner.RunAsync(Weaver,
             ["--future", "registry", "check", "--v2", "-r", temp, "-p", Path.Combine(Root, "registry/policies")], Root,
             context.CancellationToken);
         Assert.AreNotEqual(0, result.ExitCode);
-        Assert.Contains("nami_token_exemption_requires_persistence", result.Output + result.Error);
+        Assert.Contains("nami_brief_required", result.Output + result.Error);
     }
 
     [GeneratedRegex("\\\"nami\\.[a-z]", RegexOptions.CultureInvariant)]

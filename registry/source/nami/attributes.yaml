@@ -10,9 +10,6 @@ attributes:
       resource under this project; no tool argument, header or `_meta` field
       selects a project.
     examples: ["tomo", "nami"]
-    annotations:
-      nami.persisted: true
-      nami.token_exempt: false
   - key: nami.attribute.namespace
     type: string
     stability: development
@@ -22,30 +19,30 @@ attributes:
       The key prefix up to the last dot, for example `http.request` for
       `http.request.method`.
     examples: ["http.request", "gen_ai.usage"]
-    annotations:
-      nami.persisted: true
-      nami.token_exempt: false
   - key: nami.attribute.key
     type: string
     stability: development
     brief: >
       An attribute key observed during attribute discovery, as the sender wrote it.
     note: >
-      A deprecated key is rewritten to its successor on ingest; its original
-      name is kept only here.
+      nami stores a key under the name it was sent with; a deprecated key is
+      not renamed.
     examples: ["http.request.method", "db.query.parameter.id"]
-    annotations:
-      nami.persisted: true
-      nami.token_exempt: false
+  - key: nami.value.replacement.reason
+    type: string
+    stability: development
+    brief: >
+      Why ingest replaced a value it kept the attribute of.
+    note: >
+      `depth`: a structure nested deeper than the bound became an empty value.
+      `invalid_utf16`: a lone surrogate became U+FFFD.
+    examples: ["depth", "invalid_utf16"]
   - key: nami.gen_ai.tool.call.arguments_hash
     type: string
     stability: development
     brief: >
       A hash of the tool call arguments; never the arguments themselves.
     note: >
-      Lets equal tool calls be grouped without persisting
-      `gen_ai.tool.call.arguments`, which is not persisted.
+      Lets equal tool calls be grouped without comparing
+      `gen_ai.tool.call.arguments`.
     examples: ["sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"]
-    annotations:
-      nami.persisted: true
-      nami.token_exempt: true

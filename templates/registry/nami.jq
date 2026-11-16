@@ -93,16 +93,8 @@ def nami_member($attribute_stability):
      deprecated: nami_deprecation,
      codegen: (nami_excluded_from_codegen | not)};
 
-# The namespace a definition is documented and generated under: the producer nami describes it
-# for, when it names one (most of Claude Code's keys have no namespace of their own), otherwise
-# the first segment of its key.
-def nami_namespace_of: (.annotations."nami.producer" // (.key | nami_root));
-
-# Whether ingest keeps a key: its `nami.persisted` annotation (default true), never when
-# deprecated. The C# policy is generated from the same rule.
-def nami_is_persisted:
-  (if (.annotations // {}) | has("nami.persisted") then .annotations."nami.persisted" else true end)
-  and (.deprecated == null);
+# The namespace a definition is documented and generated under: the first segment of its key.
+def nami_namespace_of: (.key | nami_root);
 
 def nami_attribute_view:
   .stability as $st
@@ -133,27 +125,6 @@ def nami_requirement:
   elif type == "object" then (to_entries[0] | "\(.key): \(.value | nami_text)")
   else "recommended" end;
 
-# One table row per attribute of a signal that nami describes for a producer. Type and
-# persistence come from the attribute's definition in $defs: when a signal's reference carries
-# annotations of its own, Weaver 0.28 replaces the definition's annotations with them instead
-# of merging. Wire names what the producer sends where it differs from the stored type.
-def nami_signal_attribute_rows($defs):
-  [(.attributes // []) | sort_by(.key)[]
-   | . as $a
-   | ($defs[$a.key] // $a) as $d
-   | ($a.annotations // {}) as $ref
-   | "| `\($a.key)` | `\(if ($d.type | type) == "object" then "enum" else $d.type end)` | "
-     + (if $ref."nami.wire_type" then "`\($ref."nami.wire_type")`"
-        elif $ref."nami.wire_container" then "in `\($ref."nami.wire_container")`"
-        else "" end)
-     + " | \($a.requirement_level // "recommended" | nami_requirement | nami_md_cell) | "
-     + (if ($d | nami_is_persisted) then "yes" else "no" end) + " |"];
-
-# A signal of a producer gets its attribute table; other signals are documented upstream.
-def nami_signal_details($defs; $kind; $name):
-  if .annotations."nami.producer" then [{kind: $kind, name: $name, rows: nami_signal_attribute_rows($defs)}]
-  else [] end;
-
 def nami_metric_view($defs):
   {name: .name,
    namespace: (.name | nami_root),
@@ -163,7 +134,6 @@ def nami_metric_view($defs):
    stability: .stability,
    deprecated: nami_deprecation,
    codegen: (nami_excluded_from_codegen | not),
-   details: nami_signal_details($defs; "Metric"; .name),
    source: .nami_source};
 
 def nami_event_view($defs):
@@ -171,8 +141,7 @@ def nami_event_view($defs):
    namespace: (.name | nami_root),
    brief: (.brief | nami_text),
    stability: .stability,
-   deprecated: nami_deprecation,
-   details: nami_signal_details($defs; "Event"; .name)};
+   deprecated: nami_deprecation};
 
 def nami_span_view($defs):
   {name: .type,
@@ -180,8 +149,7 @@ def nami_span_view($defs):
    kind: (.kind // ""),
    brief: (.brief | nami_text),
    stability: .stability,
-   deprecated: nami_deprecation,
-   details: nami_signal_details($defs; "Span"; .type)};
+   deprecated: nami_deprecation};
 
 # {schema_url, sources, attributes, metrics, events, spans}: the merged, sorted catalog.
 def nami_view:
@@ -242,8 +210,7 @@ def nami_markdown_pages:
         span_rows: [.spans[]
           | "| `\(.name)` | \(.kind) | \(.stability) | "
             + (if .deprecated then (.deprecated.note | nami_md_cell) else "" end)
-            + " | \(.brief | nami_md_cell) |"],
-        signal_details: ([.metrics[].details[]] + [.events[].details[]] + [.spans[].details[]])}];
+            + " | \(.brief | nami_md_cell) |"]}];
 
 # Context of templates/registry/markdown/README.md.j2 (the index page).
 def nami_markdown_index:
@@ -280,14 +247,10 @@ def nami_cs_obsolete:
   end;
 def nami_cs_attr:
   . as $attribute
-  # A producer's keys are grouped under the producer, so their constants spell the whole key.
-  | . + {identifier: (if .annotations."nami.producer" then .key else (.key | nami_rest) end | nami_pascal_name),
+  | . + {identifier: (.key | nami_rest | nami_pascal_name),
        json: (.key | tojson),
        cs_stability: nami_cs_stability,
        obsolete: nami_cs_obsolete,
-       persisted: nami_is_persisted,
-       token_exempt: (.annotations."nami.token_exempt" // false),
-       producer_json: (.annotations."nami.producer" // null | tojson),
        successor: (.deprecated.renamed_to // null | tojson),
        source_json: (.annotations."nami.source_schema" // .nami_source // "" | tojson),
        type_json: (if (.type|type) == "object" then "enum" else .type end | tojson),
@@ -306,19 +269,4 @@ def nami_cs:
              then error("nami: two attributes of \(.name)Attributes share a constant name") else . end)),
      metrics:[nami_merge("metrics"; .name)[] | select(nami_excluded_from_codegen|not) | {name:(.name|nami_pascal_name),json:(.name|tojson),unit:(.unit//""|tojson),instrument:(.instrument|nami_instrument_variant),stability:nami_cs_stability,obsolete:nami_cs_obsolete}],
      spans:[(([($root.refinements.spans // [])[] | . + {shape_id:.id}] + [nami_merge("spans"; .type)[] | . + {shape_id:.type}]) | unique_by(.shape_id))[] | select(nami_excluded_from_codegen|not) | {name:(.shape_id|nami_pascal_name),id_json:(.shape_id|tojson),json:(.type|tojson),stability:nami_cs_stability,obsolete:nami_cs_obsolete,kind:(.kind|nami_pascal_name),required:[.attributes[]|select(.requirement_level=="required")|.key|tojson]}],
-     events:[nami_merge("events"; .name)[] | select(nami_excluded_from_codegen|not) | {name:(.name|nami_pascal_name),json:(.name|tojson),stability:nami_cs_stability,obsolete:nami_cs_obsolete}],
-     # The longest value ingest keeps of a key, in UTF-8 bytes, by key.
-     value_limits:([$attrs[] | select(.annotations."nami.max_utf8_bytes" != null)
-                    | {json: (.key | tojson), bytes: (.annotations."nami.max_utf8_bytes" | tostring)}]
-                   | sort_by(.json)),
-     # The instrumentation scopes a producer's signals arrive under, by producer.
-     producer_scopes:([$root.registry.events[]?, $root.registry.metrics[]?, $root.registry.spans[]?
-                       | select(.annotations."nami.producer" and .annotations."nami.instrumentation_scope")
-                       | {producer: .annotations."nami.producer", scope: .annotations."nami.instrumentation_scope"}]
-                      | group_by(.producer)
-                      | map({json: (.[0].producer | tojson), scopes: ([.[].scope] | unique | map(tojson))})),
-     # The members a producer sends inside a JSON string attribute, by that attribute.
-     wire_containers:([$root.registry.events[]?, $root.registry.metrics[]?, $root.registry.spans[]? | .attributes[]?
-                       | select(.annotations."nami.wire_container") | {container: .annotations."nami.wire_container", key: .key}]
-                      | group_by(.container)
-                      | map({json: (.[0].container | tojson), members: ([.[].key] | unique | map(tojson))}))};
+     events:[nami_merge("events"; .name)[] | select(nami_excluded_from_codegen|not) | {name:(.name|nami_pascal_name),json:(.name|tojson),stability:nami_cs_stability,obsolete:nami_cs_obsolete}]};

@@ -15,7 +15,7 @@ Generated from Nami's pinned Weaver registry. Do not edit.
 | `otel.scope.schema_url` | `string` | development |  | The schema URL of the instrumentation scope. | `"https://opentelemetry.io/schemas/1.31.0"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `otel.scope.version` | `string` | stable |  | The version of the instrumentation scope - (`InstrumentationScope.Version` in OTLP). | `"1.0.0"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `otel.span.parent.origin` | `enum` | development |  | Determines whether the span has a parent span, and if so, [whether it is a remote parent](https://opentelemetry.io/docs/specs/otel/trace/api/#isremote) |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
-| `otel.span.sampling_result` | `enum` | development |  | The result value of the sampler for this span |  | `nami.persisted`: `true`, `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"`, `nami.token_exempt`: `true` |
+| `otel.span.sampling_result` | `enum` | development |  | The result value of the sampler for this span |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `otel.status_code` | `enum` | stable |  | Name of the code, either "OK" or "ERROR". MUST NOT be set if the status code is UNSET. |  | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 | `otel.status_description` | `string` | stable |  | Description of the Status if it has a value, otherwise not set. | `"resource not found"` | `nami.source_schema`: `"https://opentelemetry.io/schemas/1.45.0"` |
 
