@@ -53,6 +53,8 @@ Agenten benötigen Belege darüber, was eine Anwendung tatsächlich ausgeführt 
 
 Ein gemeinsamer Release enthält eine **TypeScript-MCP-Schicht** und eine **C#-NativeAOT-Engine**. Ein einzelnes natives Binary für den ganzen Stack ist kein Zielkriterium. Die Engine braucht keine separat installierte .NET-Laufzeit; TypeScript/Bun-Abhängigkeiten und native Bibliotheken gehören in die deklarierte Paketierung.
 
+nami läuft nativ unter macOS und Linux. Unter Windows läuft nami in WSL2 (der Linux-Build) oder als Linux-Container unter Docker Desktop; einen nativen Windows-Build gibt es nicht.
+
 ```mermaid
 flowchart LR
     A["Agent in Claude.ai / OpenAI / lokalem Client"] <-->|MCP| M["TypeScript-MCP"]
@@ -403,6 +405,7 @@ Die beobachtbare Zusage lautet: **Dieser veröffentlichte Stack beobachtet diese
 
 | Datum | Änderung |
 | --- | --- |
+| 2026-11-16 | Abschnitt 4.1 ergänzt (Entscheidung des Beobachters vom 16.11.2026, 04:35): nami unterstützt Windows nicht nativ. Nativ unterstützt sind macOS und Linux; unter Windows läuft nami in WSL2 (der Linux-Build) oder als Linux-Container unter Docker Desktop. Keine der Invarianten G, R, S, T, I und D ändert sich. |
 | 2026-11-15 | Hinweis ohne Änderung des genehmigten Textes: Die Nutzerentscheidungen vom 10.11.2026 ([0001 bis 0003](../decisions/README.md)) haben Vorrang vor jeder Nennung von OpenAI in dieser Fassung (Abschnitte 1, 3, 4.1 und 4.2, Zeile D1, Entscheidung 5 und Quellen). nami erreicht Claude als Remote-Connector; ein OpenAI-Plugin gehört nicht zu nami. D1 gilt damit für den Claude-Connector und die lokale MCP-Anbindung. Der Nachweis mit den Claude-Clients steht aus. |
 | 2026-10-24 | Nutzerkorrektur: TypeScript-MCP und C#-Engine mit privatem Stream-Vertrag; TypeSpec einschließlich TS-Ausgabe bleibt; Claude.ai/OpenAI als Agentenoberflächen; tomo ist ein Entwicklerbeispiel. Compile-Time-Instrumentierung, Beobachtungslebenszeit und I1–I18/D1–D6 mit Nachweisen aufgenommen; frühere Single-Binary-/C#-MCP-Festlegung ersetzt. |
 | 2026-10-24 | Historisch, durch die obige Nutzerkorrektur ersetzt: Die drei offenen Entscheidungen getroffen: TypeSpec bleibt, .NET 11 RC2 jetzt, kein Metriken-Tool. Regel aufgenommen: Entscheidungen trifft der bauende Agent, Einspruch per Kommentar. Abschnitte 3 und S angepasst. |

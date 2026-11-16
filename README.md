@@ -49,6 +49,9 @@ Publish the native engine and bundled TypeScript entry point together. Bun is re
 the container includes it. The engine loads the DuckDB library beside it and does not require an
 installed .NET runtime. Publishing needs the platform's native toolchain (on Linux, `clang` and `zlib1g-dev`).
 
+nami runs natively on macOS and Linux. On Windows it runs in WSL2 (the Linux build) or as the Linux
+container under Docker Desktop; there is no native Windows build.
+
 ```bash
 ./eng/build.sh PublishNative --Configuration Release
 ```
