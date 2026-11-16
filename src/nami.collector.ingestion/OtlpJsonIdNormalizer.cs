@@ -203,7 +203,7 @@ internal static class OtlpJsonIdNormalizer
                     _separate = true;
                     if (expectedBytes > 0)
                     {
-                        WriteIdAsBase64(ReadString(ref reader), expectedBytes, _pendingProperty!);
+                        WriteIdAsBase64(ref reader, expectedBytes, _pendingProperty!);
                         _pendingProperty = null;
                         return true;
                     }
@@ -383,8 +383,13 @@ internal static class OtlpJsonIdNormalizer
             return taken;
         }
 
-        private void WriteIdAsBase64(string hex, int expectedBytes, string field)
+        private void WriteIdAsBase64(ref Utf8JsonReader reader, int expectedBytes, string field)
         {
+            // A token longer than any id is refused on its length, counted on its bytes: no string of it is built.
+            if (reader.ValueSpan.Length > MaxIdTokenBytes)
+                throw WrongLength(field, expectedBytes, CountCharacters(reader.ValueSpan, reader.ValueIsEscaped));
+
+            var hex = ReadString(ref reader);
             // Empty means absent (e.g. a root span's parentSpanId); protojson maps it to empty bytes.
             if (hex.Length is 0)
             {
@@ -393,10 +398,7 @@ internal static class OtlpJsonIdNormalizer
             }
 
             if (hex.Length != expectedBytes * 2)
-            {
-                throw new InvalidDataException(
-                    $"OTLP/JSON field '{field}' must be {expectedBytes * 2} hex characters ({expectedBytes} bytes); got {hex.Length} characters.");
-            }
+                throw WrongLength(field, expectedBytes, hex.Length);
 
             Span<byte> bytes = stackalloc byte[TraceIdBytes];
             bytes = bytes[..expectedBytes];
@@ -411,6 +413,70 @@ internal static class OtlpJsonIdNormalizer
             _length += written;
             Write('"');
         }
+    }
+
+    // An id is thirty-two hex characters at most, and an escape spells one character in six bytes.
+    private const int MaxIdTokenBytes = 6 * 2 * TraceIdBytes;
+
+    private static InvalidDataException WrongLength(string field, int expectedBytes, int characters) => new(
+        $"OTLP/JSON field '{field}' must be {expectedBytes * 2} hex characters ({expectedBytes} bytes); got {characters} characters.");
+
+    /// <summary>
+    ///     The characters <see cref="ReadString" /> would give for the token, counted without building them: UTF-16
+    ///     units, one for each maximal invalid subsequence and for the escape of an unpaired surrogate (both read
+    ///     as U+FFFD), two for a pair of surrogate escapes. An escape stands for a whole character, so the text
+    ///     between two escapes is counted on its own.
+    /// </summary>
+    private static int CountCharacters(ReadOnlySpan<byte> token, bool escaped)
+    {
+        if (!escaped) return CountUtf16(token);
+
+        const int EscapeBytes = 6;
+        var count = 0;
+        while (!token.IsEmpty)
+        {
+            var backslash = token.IndexOf((byte)'\\');
+            if (backslash < 0) return count + CountUtf16(token);
+
+            count += CountUtf16(token[..backslash]);
+            token = token[backslash..];
+            // The reader validated every escape before handing the token over.
+            var taken = token[1] is (byte)'u' ? EscapeBytes : 2;
+            count++;
+            if (taken is EscapeBytes &&
+                char.IsHighSurrogate((char)ReadHex(token.Slice(2, 4))) &&
+                token.Length >= 2 * EscapeBytes &&
+                token[EscapeBytes] is (byte)'\\' &&
+                token[EscapeBytes + 1] is (byte)'u' &&
+                char.IsLowSurrogate((char)ReadHex(token.Slice(EscapeBytes + 2, 4))))
+            {
+                taken = 2 * EscapeBytes;
+                count++;
+            }
+
+            token = token[taken..];
+        }
+
+        return count;
+    }
+
+    // The UTF-16 units of the text once each maximal invalid subsequence is one U+FFFD, the sequences
+    // OtlpUtf8Replacement replaces. Encoding.UTF8 counts the same and allocates for each sequence it replaces.
+    private static int CountUtf16(ReadOnlySpan<byte> utf8)
+    {
+        var count = 0;
+        while (!utf8.IsEmpty)
+        {
+            var beyondAscii = utf8.IndexOfAnyInRange((byte)0x80, (byte)0xFF);
+            if (beyondAscii < 0) return count + utf8.Length;
+
+            utf8 = utf8[beyondAscii..];
+            var valid = Rune.DecodeFromUtf8(utf8, out var rune, out var consumed) is OperationStatus.Done;
+            count += beyondAscii + (valid ? rune.Utf16SequenceLength : 1);
+            utf8 = utf8[consumed..];
+        }
+
+        return count;
     }
 
     // No known member name is longer than "exponential_histogram", and an escape spells one character in six bytes.
