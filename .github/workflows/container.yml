@@ -19,8 +19,10 @@ jobs:
         include:
           - runner: ubuntu-latest
             platform: linux/amd64
+            architecture: amd64
           - runner: ubuntu-24.04-arm
             platform: linux/arm64
+            architecture: arm64
     name: image (${{ matrix.platform }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
@@ -35,6 +37,33 @@ jobs:
           test "$(docker image inspect nami:ci --format '{{.Os}}/{{.Architecture}}')" = "$PLATFORM"
       - name: Smoke
         run: eng/scripts/container_smoke.sh --image nami:ci --bind-ready
+      # The image holds no debug symbols (the smoke test above checks that). The stage "symbols" of the same build
+      # does; they are kept here, for the engine of exactly this image: the build IDs must be the same.
+      - name: Debug symbols
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          # Outside the checkout: a new file in the build context would build the engine a second time.
+          symbols=$RUNNER_TEMP/symbols
+          docker build --platform "$PLATFORM" -f src/nami/Dockerfile --target symbols --output "type=local,dest=$symbols" .
+          ls -l "$symbols"
+          docker create --name nami-engine nami:ci > /dev/null
+          docker cp nami-engine:/app/nami "$RUNNER_TEMP/engine"
+          docker rm nami-engine > /dev/null
+          image=$(readelf -n "$RUNNER_TEMP/engine" | grep 'Build ID')
+          archived=$(readelf -n "$symbols/nami.dbg" | grep 'Build ID')
+          echo "engine in the image:$image"
+          echo "archived nami.dbg:  $archived"
+          test -n "$image" && test "$image" = "$archived"
+          docker image inspect nami:ci --format 'image size: {{.Size}} bytes'
+          du -sb "$symbols" | awk '{ print "symbols: " $1 " bytes" }'
+      - name: Keep the debug symbols
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: symbols-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/symbols/
+          if-no-files-found: error
+          retention-days: 90
       - name: Compose file
         env:
           NAMI_OTLP_PROJECT_KEYS: '{"demo":[{"key":"fake-ingest-key-0001","roles":["ingest"]}]}'

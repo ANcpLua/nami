@@ -12,8 +12,18 @@ WORKDIR /source
 RUN apt-get update && apt-get install -y --no-install-recommends clang zlib1g-dev && rm -rf /var/lib/apt/lists/*
 COPY . .
 RUN dotnet publish src/nami/nami.csproj -c Release -o /app -maxcpucount:2 -nodeReuse:false -p:UseSharedCompilation=false
+# Debug symbols stay out of the image: nami.dbg (the engine's native symbols, larger than the engine) and the
+# .pdb files of its libraries. They go to the stage "symbols" below.
+RUN mkdir /symbols && find /app -maxdepth 1 -type f \( -name '*.dbg' -o -name '*.pdb' \) -exec mv -t /symbols {} + \
+    && test -s /symbols/nami.dbg
 # The runtime image has no shell, so the data directory is made here and copied with its owner.
 RUN mkdir /data
+
+# The symbols of this build and nothing else, for whoever debugs a crash of the image's engine:
+#   docker build -f src/nami/Dockerfile --target symbols --output type=local,dest=symbols .
+# The container workflow archives them with every image it builds. The default target, the image, does not hold them.
+FROM scratch AS symbols
+COPY --from=build /symbols /
 
 # Ubuntu 26.04 chiseled: glibc, libgcc and libstdc++ (all that the engine, Bun and libduckdb.so load), no shell, no
 # package manager, user app (1654). Not -extra: the engine runs with InvariantGlobalization and reads no time zone.

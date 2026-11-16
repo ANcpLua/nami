@@ -54,7 +54,7 @@ step "image"
 docker image inspect "$image" --format 'id {{.Id}}  {{.Os}}/{{.Architecture}}  user {{.Config.User}}  {{.Size}} bytes'
 expect "image user" "$(docker image inspect "$image" --format '{{.Config.User}}')" app
 
-step "image files: /app belongs to root, and the image's user can change nothing in it"
+step "image files: /app belongs to root, the image's user can change nothing in it, and no debug symbols"
 # The image has no shell and no ls: its files are listed from an export of a container that never ran.
 docker create --name "$id-files" "$image" >/dev/null
 docker export "$id-files" | tar -tv --numeric-owner > "$work/files.txt"
@@ -65,6 +65,9 @@ grep -q ' app/nami$' "$work/app.txt" && grep -q ' app/mcp/main.js$' "$work/app.t
 problems=$(awk '$2 != "0/0" || substr($1, 6, 1) == "w" || substr($1, 9, 1) == "w"' "$work/app.txt")
 [[ -z $problems ]] || { printf '%s\n' "$problems" >&2; fail "not owned by root, or writable by group or others (above)"; }
 echo "ok  $(wc -l < "$work/app.txt") entries under /app, each owned by 0/0 and writable by its owner only"
+symbols=$(awk '$6 ~ /\.(dbg|pdb)$/ { print $6 }' "$work/files.txt")
+[[ -z $symbols ]] || fail "debug symbols in the image: $(echo $symbols)"
+echo "ok  no .dbg and no .pdb file among the $(wc -l < "$work/files.txt") entries of the image"
 # And the attempt itself, as the user the image runs as, with the Bun the image already holds.
 attempt='const fs = require("node:fs"); const done = [];
 for (const [what, act] of [

@@ -107,7 +107,11 @@ container the manifest names the container's own ports; the ports on the host ar
 
 ## Run in a container
 
-The image (`src/nami/Dockerfile`) holds the same two processes. Inside the container nami listens
+The image (`src/nami/Dockerfile`) holds the same two processes. They run as the user `app` (1654);
+the program files in `/app` belong to root, so the process can write to `/data` but cannot change
+its own engine or bundle. The image holds no debug symbols; `docker build -f src/nami/Dockerfile
+--target symbols --output type=local,dest=symbols .` writes those of the same build into a folder.
+Inside the container nami listens
 on every interface, so two things that a loopback process on your machine does without are required:
 project keys, because the default mode outside Development is `ApiKey` and the container does not
 pass `--stdio`, and `NAMI_PUBLIC_URL`, the origin at which you reach MCP. Publish the ports on the
