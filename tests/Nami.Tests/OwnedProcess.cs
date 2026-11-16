@@ -77,7 +77,7 @@ internal sealed partial class OwnedProcess : IAsyncDisposable
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 StandardOutputEncoding = start.StandardOutputEncoding,
-                StandardErrorEncoding = start.StandardErrorEncoding
+                StandardErrorEncoding = start.StandardOutputEncoding
             };
             hostStart.ArgumentList.Add(assembly);
             hostStart.ArgumentList.Add(pipeName);
@@ -121,9 +121,11 @@ internal sealed partial class OwnedProcess : IAsyncDisposable
                     Terminate(host, connected);
                     using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(10), time);
                     await host.WaitForExitAsync(cleanup.Token).ConfigureAwait(false);
-                    var (output, error) = await host.ReadAllTextAsync(cleanup.Token).ConfigureAwait(false);
-                    startupFailure.Data["Output"] = output;
-                    startupFailure.Data["Error"] = error;
+                    var output = host.StandardOutput.ReadToEndAsync(cleanup.Token);
+                    var error = host.StandardError.ReadToEndAsync(cleanup.Token);
+                    await Task.WhenAll(output, error).ConfigureAwait(false);
+                    startupFailure.Data["Output"] = output.Result;
+                    startupFailure.Data["Error"] = error.Result;
                 }
             }
             catch (Exception cleanupFailure)
