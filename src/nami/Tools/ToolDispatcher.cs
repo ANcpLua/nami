@@ -283,9 +283,11 @@ internal static class ToolDispatcher
         return projected;
     }
 
-    // The same stage as at ingest (CredentialRedaction), over every string of the item: each string value, and for
-    // an attribute ({"key", "value"}) or a member of a key-value list whose own name is a credential name, the whole
-    // value. A string that changes is replaced in place; an ordinary string costs the stage's scans and no allocation.
+    // The same stage as at ingest (CredentialRedaction), over every value of the item, for rows stored before the
+    // stage or before one of its rules: each string; bytes that are text holding a credential; and, for an attribute
+    // ({"key", "value"}) or a member of a key-value list whose own name is a credential name, the whole value,
+    // whatever it is and however deep. In a list the item after a credential flag goes too. A value that changes is
+    // replaced in place; an ordinary string costs the stage's scans and no allocation.
     private static void RedactCredentials(JsonNode node)
     {
         switch (node)
@@ -293,26 +295,31 @@ internal static class ToolDispatcher
             case JsonObject item:
                 var named = item["key"] is JsonValue key && key.GetValueKind() == JsonValueKind.String &&
                             CredentialRedaction.NamesACredential(key.GetValue<string>());
-                var members = item["kind"] is JsonValue kind && kind.GetValueKind() == JsonValueKind.String &&
-                              kind.GetValue<string>() == "kvlist";
+                var members = KindOf(item) == "kvlist";
                 foreach (var (name, value) in item.ToArray())
                 {
                     if (value is null) continue;
                     if (named && name == "value")
                     {
-                        if (WithoutStrings(value) is { } replaced) item[name] = replaced;
+                        if (AsCredential(value) is var replaced && !ReferenceEquals(replaced, value)) item[name] = replaced;
                     }
-                    else if (members && name == "values" && value is JsonObject map) RedactMembers(map);
+                    else if (members && name == "values" && value is JsonObject map) RedactMembers(map, false);
                     else if (Redacted(value) is { } text) item[name] = text;
                     else RedactCredentials(value);
                 }
 
                 break;
             case JsonArray list:
+                var arguments = new CredentialRedaction.ArgumentList();
                 for (var index = 0; index < list.Count; index++)
                 {
                     if (list[index] is not { } value) continue;
-                    if (Redacted(value) is { } text) list[index] = text;
+                    var isString = value is JsonValue candidate && candidate.GetValueKind() == JsonValueKind.String;
+                    if (arguments.IsCredential(isString ? value.GetValue<string>() : null))
+                    {
+                        if (AsCredential(value) is var replaced && !ReferenceEquals(replaced, value)) list[index] = replaced;
+                    }
+                    else if (Redacted(value) is { } text) list[index] = text;
                     else RedactCredentials(value);
                 }
 
@@ -320,23 +327,73 @@ internal static class ToolDispatcher
         }
     }
 
+    private static string? KindOf(JsonObject item) =>
+        item["kind"] is JsonValue kind && kind.GetValueKind() == JsonValueKind.String ? kind.GetValue<string>() : null;
+
     // The members of a key-value list: the member's name is a key the sender chose.
-    private static void RedactMembers(JsonObject map)
+    private static void RedactMembers(JsonObject map, bool credential)
     {
         foreach (var (name, value) in map.ToArray())
         {
             var kept = CredentialRedaction.Redact(name);
-            var named = CredentialRedaction.NamesACredential(name);
-            var redacted = value is null ? null : named ? WithoutStrings(value) : Redacted(value);
-            if (redacted is null && value is not null && !named) RedactCredentials(value);
+            JsonNode? redacted = null;
+            if (value is not null)
+            {
+                if (credential || CredentialRedaction.NamesACredential(name)) redacted = AsCredential(value);
+                else if (Redacted(value) is { } text) redacted = text;
+                else RedactCredentials(value);
+            }
+
             if (ReferenceEquals(kept, name))
             {
-                if (redacted is not null) map[name] = redacted;
+                if (redacted is not null && !ReferenceEquals(redacted, value)) map[name] = redacted;
                 continue;
             }
 
             map.Remove(name);
             map[kept] = redacted ?? value;
+        }
+    }
+
+    // The value under a name that is a credential name, as ingest treats it: a string, a number and bytes become the
+    // replacement; a list and a map keep their shape and lose every value in them. Returns the node to store, which
+    // is the value itself when it was changed in place or holds nothing to remove.
+    private static JsonNode AsCredential(JsonNode value)
+    {
+        switch (value)
+        {
+            case JsonValue leaf:
+                return leaf.GetValueKind() switch
+                {
+                    JsonValueKind.String when leaf.GetValue<string>().Length > 0 => JsonValue.Create(CredentialRedaction.Replacement),
+                    JsonValueKind.Number => JsonValue.Create(CredentialRedaction.Replacement),
+                    _ => value
+                };
+            case JsonArray list:
+                for (var index = 0; index < list.Count; index++)
+                {
+                    if (list[index] is not { } item) continue;
+                    var kept = AsCredential(item);
+                    if (!ReferenceEquals(kept, item)) list[index] = kept;
+                }
+
+                return value;
+            case JsonObject item when KindOf(item) is "int" or "double" or "bytes":
+                return JsonValue.Create(CredentialRedaction.Replacement);
+            case JsonObject item when KindOf(item) == "kvlist" && item["values"] is JsonObject map:
+                RedactMembers(map, true);
+                return value;
+            case JsonObject item:
+                foreach (var (name, member) in item.ToArray())
+                {
+                    if (member is null || name == "kind") continue;
+                    var kept = AsCredential(member);
+                    if (!ReferenceEquals(kept, member)) item[name] = kept;
+                }
+
+                return value;
+            default:
+                return value;
         }
     }
 
@@ -349,6 +406,18 @@ internal static class ToolDispatcher
     // length.
     private static JsonValue? Redacted(JsonNode node)
     {
+        // Bytes that are text holding a credential: ingest drops such an attribute; an answer cannot, so the value
+        // goes whole.
+        if (node is JsonObject bytes && KindOf(bytes) == "bytes" && bytes["base64"] is JsonValue encoded &&
+            encoded.GetValueKind() == JsonValueKind.String)
+        {
+            Span<byte> decoded = new byte[encoded.GetValue<string>().Length];
+            return Convert.TryFromBase64String(encoded.GetValue<string>(), decoded, out var length) &&
+                   CredentialRedaction.HoldsACredential(decoded[..length])
+                ? JsonValue.Create(CredentialRedaction.Replacement)
+                : null;
+        }
+
         if (node is not JsonValue value || value.GetValueKind() != JsonValueKind.String) return null;
         var text = value.GetValue<string>();
         var redacted = CredentialRedaction.Redact(text);
@@ -372,25 +441,6 @@ internal static class ToolDispatcher
         }
 
         return string.Concat(text.AsSpan(0, length), marker);
-    }
-
-    // The value of a key that names a credential: a string goes whole, and so does each string of a list. Returns the
-    // node that replaces the value, or null when the value was changed in place or holds no string.
-    private static JsonValue? WithoutStrings(JsonNode value)
-    {
-        switch (value)
-        {
-            case JsonValue text when text.GetValueKind() == JsonValueKind.String:
-                return text.GetValue<string>().Length > 0 ? JsonValue.Create(CredentialRedaction.Replacement) : null;
-            case JsonArray list:
-                for (var index = 0; index < list.Count; index++)
-                    if (list[index] is JsonValue item && item.GetValueKind() == JsonValueKind.String)
-                        list[index] = JsonValue.Create(CredentialRedaction.Replacement);
-                return null;
-            default:
-                RedactCredentials(value);
-                return null;
-        }
     }
 
     private static string QueryHash(JsonElement input)

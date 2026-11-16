@@ -39,6 +39,10 @@ public sealed class CutJsonTests(TestContext context)
                 return text.Append('}').ToString();
             case "string":
                 return "{\"full_command\":\"" + new string('a', Cap + 4096) + "\",\"timeout\":120000}";
+            case "member":
+                // A member named like a credential: the stage on the read side takes the cut text to its JSON
+                // parser, which fails on it, and falls back to reading text.
+                return "{\"password\":\"\",\"full_command\":\"" + new string('a', Cap + 4096) + "\"}";
             default:
                 // {"text":" is nine bytes, so each two-byte escape \" starts at an odd offset and the cut, at an even
                 // one, falls between its backslash and its quote.
@@ -52,6 +56,7 @@ public sealed class CutJsonTests(TestContext context)
     [DataRow("object", DisplayName = "Cut inside an object")]
     [DataRow("string", DisplayName = "Cut inside a string")]
     [DataRow("escape", DisplayName = "Cut inside an escape")]
+    [DataRow("member", DisplayName = "Cut after a member named like a credential")]
     public async Task AJsonValueOverTheCap_IsStoredAsItsCutText_AndReadWithoutAnErrorAsThatText(string shape)
     {
         var sent = Json(shape);

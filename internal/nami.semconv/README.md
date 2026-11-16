@@ -11,7 +11,7 @@ dotnet build internal/nami.semconv/Nami.SemanticConventions.csproj -c Release
 ```
 
 `AttributeCatalog.All` exposes typed metadata; `AttributeCatalog.Find` also recognizes the
-expanded keys of a declared template attribute. `RegistryPolicy` owns persistence decisions,
+expanded keys of a declared template attribute. No generated type decides what is stored: nami stores telemetry as it was sent.
 `AttributeStability` distinguishes stable/development/deprecated/unknown keys, and
 `DeprecatedAttributes` supplies declared replacement keys. `AttributeStability.ValueOf(key, value)`
 reports each enum value's own stability, so development values remain available without being

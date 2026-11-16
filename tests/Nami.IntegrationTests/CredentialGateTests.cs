@@ -293,7 +293,7 @@ public sealed partial class CredentialGateTests(TestContext context)
     }
 
     /// <summary>Every cell of every text, JSON and BLOB column of the closed store, a BLOB as its decompressed text.</summary>
-    private static List<(string Column, string Text)> Cells(string path)
+    internal static List<(string Column, string Text)> Cells(string path)
     {
         using var connection = new DuckDBConnection($"DataSource={path};ACCESS_MODE=READ_ONLY");
         connection.Open();

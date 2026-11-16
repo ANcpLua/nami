@@ -334,13 +334,16 @@ internal static partial class OtlpConverter
     private static bool IsUnresolvedProfilingKey(ProtoKeyValue attribute) =>
         attribute.Key.Length is 0 && attribute.KeyStrindex is not 0;
 
+    // The name under which the value of a credential flag in a list of arguments is read: it goes whole.
+    private const string CredentialArgument = "password";
+
     // The value of one attribute: every key is kept, in the type it was sent in.
     private static OtlpAttributeValue ConvertAttribute(string key, ProtoAnyValue? wire, RecordBudget budget, int nesting) =>
         ConvertValue(wire, key, budget, nesting);
 
     // The members of a map value, read in the order sent. False when one does not fit.
     private static bool TryConvertMembers(RepeatedField<ProtoKeyValue> source, RecordBudget budget, int nesting,
-        NormalizedAttributes members)
+        NormalizedAttributes members, string? credentialKey)
     {
         var sent = new Dictionary<string, ProtoAnyValue?>(StringComparer.Ordinal);
         foreach (var member in source)
@@ -360,7 +363,7 @@ internal static partial class OtlpConverter
             budget.Measure(Utf8Bytes(key));
             // The key, its colon, and a comma for every member but the first.
             budget.Store(StoredString(key) + (members.Count > 0 ? 2 : 1));
-            members[key] = ConvertAttribute(key, member.Value, budget, nesting);
+            members[key] = ConvertAttribute(credentialKey ?? key, member.Value, budget, nesting);
             if (budget.Exhausted) return false;
         }
 
@@ -416,11 +419,14 @@ internal static partial class OtlpConverter
                 // Bytes over the cap are dropped whole and counted, like a structure. A cut needs a field of the
                 // record that says so (ledger N45): a marker cannot sit inside binary data, and a cut value must
                 // never look complete.
-                // Bytes under a credential name cannot be read for what they hold: the attribute is dropped and
-                // counted as well.
+                // Bytes pass the stage too. Under a credential name they cannot be told from a credential; under
+                // any other name, bytes that are UTF-8 text are read as text, and if the stage finds a credential
+                // in them they cannot be stored with a part replaced. In both cases the attribute (or the log
+                // body) is dropped and counted. Bytes that are no UTF-8 are kept as sent.
                 if (value.BytesValue.Length > Limits.MaxValueUtf8Bytes ||
                     (attributeKey is not null && value.BytesValue.Length > 0 &&
-                     CredentialRedaction.NamesACredential(attributeKey)))
+                     CredentialRedaction.NamesACredential(attributeKey)) ||
+                    CredentialRedaction.HoldsACredential(value.BytesValue.Span))
                 {
                     budget.Value = -1;
                     return OtlpAttributeValue.Empty;
@@ -454,7 +460,7 @@ internal static partial class OtlpConverter
                     budget.Store(2);
                     var ofACredential = attributeKey is not null && CredentialRedaction.NamesACredential(attributeKey);
                     var items = new List<OtlpAttributeValue>(value.ArrayValue.Values.Count);
-                    var afterFlag = false;
+                    var arguments = new CredentialRedaction.ArgumentList();
                     foreach (var item in value.ArrayValue.Values)
                     {
                         // An empty value and a null inside an array are kept as they are. Every item but the
@@ -462,11 +468,11 @@ internal static partial class OtlpConverter
                         if (items.Count > 0) budget.Store(1);
                         // In a list of arguments (process.command_args) the value of a credential flag is the
                         // next item: it goes whole, as under a credential name.
-                        items.Add(ConvertValue(item, ofACredential ? attributeKey : afterFlag ? "password" : null, budget,
-                            nesting + 1));
+                        var argument = arguments.IsCredential(
+                            item?.ValueCase is ProtoAnyValue.ValueOneofCase.StringValue ? item.StringValue : null);
+                        items.Add(ConvertValue(item, ofACredential ? attributeKey : argument ? CredentialArgument : null,
+                            budget, nesting + 1));
                         if (budget.Exhausted) return OtlpAttributeValue.Empty;
-                        afterFlag = item?.ValueCase is ProtoAnyValue.ValueOneofCase.StringValue &&
-                                    CredentialRedaction.IsCredentialFlag(item.StringValue);
                     }
 
                     return OtlpAttributeValue.FromArray(items);
@@ -497,7 +503,11 @@ internal static partial class OtlpConverter
                     // A map inside a value is bounded by the bytes, not by the count of top-level attributes, and
                     // it is kept whole or not at all: a member that does not fit means the map does not.
                     var members = new NormalizedAttributes();
-                    var whole = TryConvertMembers(value.KvlistValue.Values, budget, nesting + 1, members);
+                    // Under a credential name everything goes, however deep: the members of a map inherit the name.
+                    var inherited = attributeKey is not null && CredentialRedaction.NamesACredential(attributeKey)
+                        ? attributeKey
+                        : null;
+                    var whole = TryConvertMembers(value.KvlistValue.Values, budget, nesting + 1, members, inherited);
                     if (!whole) budget.Value = -1;
                     return whole ? OtlpAttributeValue.FromKeyValueList(members) : OtlpAttributeValue.Empty;
                 }
