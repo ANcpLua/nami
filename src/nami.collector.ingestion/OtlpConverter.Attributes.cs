@@ -303,9 +303,20 @@ internal static partial class OtlpConverter
                 fits = !budget.Exhausted;
                 if (fits)
                 {
+                    // Two keys that differ only in a credential become one stored key: the later value replaces
+                    // the earlier, and the attribute that is gone is counted.
+                    if (attributes.ContainsKey(key))
+                    {
+                        dropped++;
+                        NamiCollectorMetrics.AttributeDropped();
+                    }
+                    else
+                    {
+                        kept++;
+                    }
+
                     attributes[key] = value;
                     keys?.TryAdd(attribute.Key, key);
-                    kept++;
                     continue;
                 }
             }

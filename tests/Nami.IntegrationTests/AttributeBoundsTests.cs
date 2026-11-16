@@ -585,6 +585,21 @@ public sealed class AttributeBoundsTests
     }
 
     /// <summary>
+    ///     Two keys that differ only in a credential are one key once the credential is gone. One attribute is
+    ///     stored, and the other is counted as dropped.
+    /// </summary>
+    [TestMethod]
+    public void Keys_ThatBecomeOneKeyAfterTheStage_CountTheAttributeThatIsGone()
+    {
+        var span = Convert(Text("https://svc:ZQB001X000ZZZZZZ@host.example.test/", "first"),
+            Text("https://svc:ZQB002X000ZZZZZZ@host.example.test/", "second"), Text("acme.kept", "fits"));
+
+        Assert.AreEqual("second", span.Attributes["https://[REDACTED]@host.example.test/"].AsString());
+        Assert.AreEqual("fits", span.Attributes["acme.kept"].AsString());
+        Assert.AreEqual(1U, span.DroppedAttributesCount);
+    }
+
+    /// <summary>
     ///     The bound before materialization leaves a sentinel in place of a structure that could never fit. It can
     ///     sit on every carrier of all three signals; wherever it sits, its attribute is dropped and counted (a log
     ///     body becomes an empty value), the neighbour is kept, and the sentinel reaches no stored column. A metric
