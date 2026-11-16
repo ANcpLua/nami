@@ -109,45 +109,6 @@ public sealed class ClaudeCodeConverterTests
         Assert.AreEqual("order 17 failed", foreign.Body.AsString(), "another sender's body is its log message");
     }
 
-    /// <summary>
-    ///     Every persisted Claude Code key whose stored type is int, double or boolean takes that type when Claude
-    ///     Code sends the value as a string (<c>nami.wire_type: string</c>): the six marked keys and any key a later
-    ///     version sends the same way.
-    /// </summary>
-    [TestMethod]
-    public void StringValues_OfProducerKeys_BecomeTheTypeTheRegistryDeclares()
-    {
-        var typed = AttributeCatalog.All.Where(static definition =>
-                definition is { Producer: Producer, IsPersisted: true, Type: "int" or "double" or "boolean" })
-            .ToArray();
-        foreach (var key in new[]
-                     { "success", "duration_ms", "tool_input_size_bytes", "tool_result_size_bytes", "prompt_length", "safe_mode" })
-            Assert.Contains(key, typed.Select(static definition => definition.Key), key + " is one of the marked keys");
-
-        var log = ConvertLog(EventsScope, new LogRecord
-        {
-            Attributes =
-            {
-                typed.Select(static definition => Text(definition.Key, definition.Type switch
-                {
-                    "int" => "-1234", "double" => "0.00332877", _ => "false"
-                }))
-            }
-        });
-
-        Assert.HasCount(typed.Length, log.Attributes);
-        foreach (var definition in typed)
-        {
-            var value = log.Attributes[definition.Key];
-            switch (definition.Type)
-            {
-                case "int": Assert.AreEqual(-1234L, value.AsInt64(), definition.Key); break;
-                case "double": Assert.AreEqual(0.00332877, value.AsDouble(), definition.Key); break;
-                default: Assert.AreEqual(false, value.AsBool(), definition.Key); break;
-            }
-        }
-    }
-
     [TestMethod]
     [DataRow("success", "yes", DisplayName = "A boolean that is neither true nor false")]
     [DataRow("success", "True", DisplayName = "A boolean in another spelling")]
@@ -158,7 +119,10 @@ public sealed class ClaudeCodeConverterTests
     [DataRow("cost_usd", "NaN", DisplayName = "A double that is not a number")]
     [DataRow("cost_usd", "1,5", DisplayName = "A double with a comma")]
     [DataRow("model", "123", DisplayName = "A string key that looks like a number")]
-    public void StringValues_ThatDoNotReadAsTheDeclaredType_StayAsSent(string key, string sent)
+    [DataRow("duration_ms", "4011", DisplayName = "An int sent as a string")]
+    [DataRow("success", "true", DisplayName = "A boolean sent as a string")]
+    [DataRow("cost_usd", "0.00332877", DisplayName = "A double sent as a string")]
+    public void StringValues_OfProducerKeys_StayTheStringsThatWereSent(string key, string sent)
     {
         var log = ConvertLog(EventsScope, new LogRecord { Attributes = { Text(key, sent) } });
 
@@ -282,18 +246,18 @@ public sealed class ClaudeCodeConverterTests
             ConvertSpan(TracingScope, NewSpan([Text("full_command", command)])).Attributes["full_command"].AsString();
     }
 
-    /// <summary>A bounded key holds a string. A list of strings would pass the bound unmeasured, so it is not kept.</summary>
+    /// <summary>A bounded key is cut when it holds a string. A value of another type is kept in the type it was sent in.</summary>
     [TestMethod]
-    public void FullCommand_ThatIsNotAString_IsNotKept()
+    public void FullCommand_ThatIsNotAString_IsKeptAsSent()
     {
         var list = new AnyValue
         {
-            ArrayValue = new ArrayValue { Values = { new AnyValue { StringValue = new string('a', 10_000) } } }
+            ArrayValue = new ArrayValue { Values = { new AnyValue { StringValue = "python3" }, new AnyValue { IntValue = 3 } } }
         };
 
         var span = ConvertSpan(TracingScope, NewSpan([new KeyValue { Key = "full_command", Value = list }, Text("tool_name", "Bash")]));
 
-        Assert.AreSequenceEqual(s_toolNameOnly, Keys(span.Attributes).Where(static key => key != "service.name"));
+        Assert.AreEqual(OtlpAttributeValueKind.Array, span.Attributes["full_command"].Kind);
     }
 
     /// <summary>
@@ -360,12 +324,12 @@ public sealed class ClaudeCodeConverterTests
         Assert.DoesNotContain("hunter2", kept);
         Assert.IsLessThanOrEqualTo(bound, Encoding.UTF8.GetByteCount(kept));
 
-        // Error text is a string; any other value fails closed, as it does for exception.message.
+        // Error text is a string; a value of another type stays as it was sent.
         var number = ConvertLog(EventsScope, new LogRecord
         {
             Attributes = { new KeyValue { Key = "error", Value = new AnyValue { IntValue = 500 } } }
         });
-        Assert.AreEqual("[SANITIZATION_FAILED]", number.Attributes["error"].AsString());
+        Assert.AreEqual(500L, number.Attributes["error"].AsInt64());
 
         // A key is stored on every scope (keys as sent); error text loses its credentials there too.
         var foreign = ConvertLog(ForeignScope, new LogRecord { Attributes = { Text("error", leaking), Text(Ordinary, "builder") } });

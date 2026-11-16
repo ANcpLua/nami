@@ -386,7 +386,8 @@ internal static partial class OtlpConverter
     {
         // All keyed carriers, including nested maps and metric metadata, converge here.
         // A key exemption never bypasses this value policy before original data is journaled.
-        if (attributeKey is not null
+        // Exception text is text: a value of another type under such a key stays as it was sent.
+        if (attributeKey is not null && value?.ValueCase is ProtoAnyValue.ValueOneofCase.StringValue
             && CollectorSemanticAttributeCatalog.ExceptionTextKeys.TryGetValue(attributeKey, out var canonicalKey))
             return OtlpAttributeValue.FromString(ExceptionTextSanitizer.Sanitize(canonicalKey, value));
         if (value is null) return OtlpAttributeValue.Empty;

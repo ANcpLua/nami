@@ -81,6 +81,30 @@ public sealed class StoredAsSentTests
         Assert.IsEmpty(row.AttributeRenames, "ingest renames nothing, so it records no rename");
     }
 
+    /// <summary>
+    ///     F2. A value keeps the type it was sent in. Claude Code sends numbers and booleans as strings
+    ///     (<c>duration_ms</c>, <c>success</c>); they are stored as those strings, and a reader that needs the
+    ///     number parses it when it reads.
+    /// </summary>
+    [TestMethod]
+    public void Types_AStringOfDigits_StaysAString()
+    {
+        var row = StoreLog(ClaudeCodeEvents, new LogRecord
+        {
+            Attributes =
+            {
+                Text("duration_ms", "4011"), Text("success", "true"), Text("cost_usd", "0.00332877"),
+                new KeyValue { Key = "tool_result_size_bytes", Value = new AnyValue { IntValue = 512 } }
+            }
+        });
+
+        var stored = StoredAttributeJson.Attributes(row.AttributesJson).ToDictionary(static a => a.Key, static a => a.Value);
+        Assert.AreEqual("4011", (stored["duration_ms"] as AttributeValue.StringValue)?.Value);
+        Assert.AreEqual("true", (stored["success"] as AttributeValue.StringValue)?.Value);
+        Assert.AreEqual("0.00332877", (stored["cost_usd"] as AttributeValue.StringValue)?.Value);
+        Assert.IsNotInstanceOfType<AttributeValue.StringValue>(stored["tool_result_size_bytes"], "a number sent as a number stays one");
+    }
+
     private const ulong Time = 1_794_745_800_000_000_000;
 
     private static KeyValue Text(string key, string value) =>

@@ -37,44 +37,18 @@ internal static partial class OtlpConverter
     {
         if (!AttributeKeySets.IsPersistable(key)) return null;
 
-        // Sanitized first, bounded after: a credential where the cut falls is removed whole, not cut in half.
-        var value = s_producerErrorTextKeys.Contains(key)
+        // Sanitized first, bounded after: a credential where the cut falls is removed whole, not cut in half. Error
+        // text is text: a value of another type is no error text and stays as it was sent.
+        var value = s_producerErrorTextKeys.Contains(key) && wire?.ValueCase is ProtoAnyValue.ValueOneofCase.StringValue
             ? OtlpAttributeValue.FromString(ExceptionTextSanitizer.Sanitize(key, wire))
             : ConvertProtoAnyValue(wire, key, producer, nesting);
 
-        // A key the registry bounds (nami.max_utf8_bytes) is a string by the registry's own policy. Any other
-        // value, such as a list of strings, would pass the bound unmeasured, so it is not kept.
-        if (ValueLimits.MaxUtf8Bytes.TryGetValue(key, out var maxUtf8Bytes))
-        {
-            return value.AsString() is { } text
-                ? OtlpAttributeValue.FromString(BoundedText.Truncate(text, maxUtf8Bytes))
-                : null;
-        }
-
-        return producer is not null && string.Equals(RegistryPolicy.ProducerOf(key), producer, StringComparison.Ordinal)
-            ? ToDeclaredType(key, value)
+        // A value keeps the type it was sent in (observer's decision, 16 Nov 2026): a string of digits stays a
+        // string, and a reader that needs the number parses it when it reads. A key the registry bounds
+        // (nami.max_utf8_bytes) is cut when its value is a string; a value of another type is kept as sent.
+        return ValueLimits.MaxUtf8Bytes.TryGetValue(key, out var maxUtf8Bytes) && value.AsString() is { } text
+            ? OtlpAttributeValue.FromString(BoundedText.Truncate(text, maxUtf8Bytes))
             : value;
-    }
-
-    // The registry gives each producer key the type nami stores; where the producer sends that value as a string
-    // (nami.wire_type: string, Claude Code's success, duration_ms and sizes on tool_result, prompt_length, safe_mode)
-    // it is converted here. The generated code carries no table of wire types, so the rule follows the stored type:
-    // a string that reads as the declared int, double or boolean becomes one, and any other string stays as sent.
-    private static OtlpAttributeValue ToDeclaredType(string key, OtlpAttributeValue value)
-    {
-        if (value.AsString() is not { } text) return value;
-
-        const NumberStyles integer = NumberStyles.AllowLeadingSign;
-        const NumberStyles real = NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent;
-        return AttributeCatalog.Find(key)?.Type switch
-        {
-            "int" when long.TryParse(text, integer, CultureInfo.InvariantCulture, out var number) =>
-                OtlpAttributeValue.FromInt(number),
-            "double" when double.TryParse(text, real, CultureInfo.InvariantCulture, out var number) &&
-                          double.IsFinite(number) => OtlpAttributeValue.FromDouble(number),
-            "boolean" when text is "true" or "false" => OtlpAttributeValue.FromBool(text is "true"),
-            _ => value
-        };
     }
 
     // A producer nests some keys in a JSON string attribute (nami.wire_container; Claude Code's tool_parameters holds
