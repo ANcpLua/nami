@@ -96,14 +96,6 @@ public sealed class EngineLimits
     public required int Workers { get; init; }
 }
 
-public sealed class EngineEnvelope
-{
-    [JsonPropertyName("id")]
-    public required string Id { get; init; }
-    [JsonPropertyName("revision")]
-    public required string Revision { get; init; }
-}
-
 public sealed class EngineCall
 {
     [JsonPropertyName("id")]

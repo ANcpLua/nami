@@ -41,7 +41,7 @@ model Span {
   @minLength(1)
   name: string;
 
-  @doc("Span kind")
+  @doc("Span kind as its OTLP number: 0 unspecified, 1 internal, 2 server, 3 client, 4 producer, 5 consumer.")
   kind: SpanKind;
 
   @doc("Start timestamp in nanoseconds since epoch")
@@ -89,7 +89,7 @@ model Span {
 
 @doc("Span status")
 model SpanStatus {
-  @doc("Status code")
+  @doc("Status code as its OTLP number: 0 unset, 1 ok, 2 error.")
   code: SpanStatusCode;
 
   @doc("Status message (only for ERROR status)")

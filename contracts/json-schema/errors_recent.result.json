@@ -125,7 +125,8 @@
               "log_event",
               "span_event",
               "span_status"
-            ]
+            ],
+            "description": "Where the errors were recorded, the first that applies to any of them: log_event, a log record named exception; span_event, an exception event on a span; span_status, a span with status error and no exception recorded for it."
           }
         },
         "description": "A field projection of ErrorGroup; omitted members were not requested.",
