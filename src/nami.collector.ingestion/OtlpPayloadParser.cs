@@ -103,7 +103,8 @@ internal static class OtlpPayloadParser
 
     /// <summary>
     ///     The value bounds first, on the bytes (<see cref="OtlpValueBounds" />), so that a structure over the cap
-    ///     is never built. Then the strict parse; when it fails and the payload holds an invalid UTF-8 sequence in
+    ///     is never built, and the counts of messages and records, so that a request of too many is refused with
+    ///     an <see cref="OtlpPayloadTooLargeException" /> before it is parsed. Then the strict parse; when it fails and the payload holds an invalid UTF-8 sequence in
     ///     a <c>string</c> field, the sequence is replaced by U+FFFD (OTLP 1.11.1) and the payload is parsed again.
     ///     A failure that no replacement explains stands.
     /// </summary>
@@ -111,7 +112,8 @@ internal static class OtlpPayloadParser
         IngestLimits limits)
         where T : IMessage<T>
     {
-        _ = OtlpValueBounds.BoundProtobuf(payload, descriptor, limits);
+        _ = OtlpValueBounds.BoundProtobuf(payload, descriptor, limits, out var counted);
+        RefuseTooMany(counted, limits);
         try
         {
             return parser.ParseFrom(payload);
@@ -157,12 +159,23 @@ internal static class OtlpPayloadParser
 
         // The value bounds first, on the bytes, so that a structure over the cap is never built.
         var utf8Json = payload.GetBuffer().AsSpan(0, (int)payload.Length);
-        _ = OtlpValueBounds.BoundJson(utf8Json, limits);
+        _ = OtlpValueBounds.BoundJson(utf8Json, limits, out var counted);
+        RefuseTooMany(counted, limits);
 
         // The OTLP spec mandates hex for trace and span ids in JSON, but protojson decodes
         // bytes fields as base64 — rewrite the id fields (validating them) before parsing.
         var json = OtlpJsonIdNormalizer.NormalizeIdsToProtoJson(utf8Json);
         return s_otlpJsonParser.Parse<T>(json);
+    }
+
+    // The parser builds one object per message and the store one row per record, so a request of more than either
+    // bound is refused before it is parsed, whatever its size in bytes.
+    private static void RefuseTooMany(OtlpRequestCounts counted, IngestLimits limits)
+    {
+        if (counted.Messages > limits.MaxRequestMessages)
+            throw OtlpPayloadTooLargeException.TooManyMessages(limits.MaxRequestMessages);
+        if (counted.Records > limits.MaxRequestRecords)
+            throw OtlpPayloadTooLargeException.TooManyRecords(limits.MaxRequestRecords);
     }
 
     /// <summary>

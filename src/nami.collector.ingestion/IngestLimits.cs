@@ -39,11 +39,27 @@ internal sealed class IngestLimits
     /// <inheritdoc cref="MaxValueUtf8BytesKey" />
     internal const string MaxRequestDecompressedBytesKey = "NAMI_INGEST_MAX_DECOMPRESSED_BYTES";
 
+    /// <inheritdoc cref="MaxValueUtf8BytesKey" />
+    internal const string MaxRequestMessagesKey = "NAMI_INGEST_MAX_REQUEST_MESSAGES";
+
+    /// <inheritdoc cref="MaxValueUtf8BytesKey" />
+    internal const string MaxRequestRecordsKey = "NAMI_INGEST_MAX_REQUEST_RECORDS";
+
+    /// <inheritdoc cref="MaxValueUtf8BytesKey" />
+    internal const string MaxConcurrentRequestsKey = "NAMI_INGEST_MAX_CONCURRENT_REQUESTS";
+
+    /// <inheritdoc cref="MaxValueUtf8BytesKey" />
+    internal const string MaxRequestWaitSecondsKey = "NAMI_INGEST_MAX_WAIT_SECONDS";
+
     internal const int DefaultMaxValueUtf8Bytes = 256 * 1024;
     internal const int DefaultMaxAttributesPerRecord = 128;
     internal const int DefaultMaxRecordAttributeBytes = 1024 * 1024;
     internal const int DefaultMaxValueNesting = 16;
     internal const int DefaultMaxRequestBytes = 16 * 1024 * 1024;
+    internal const int DefaultMaxRequestMessages = 50_000;
+    internal const int DefaultMaxRequestRecords = 3_000;
+    internal const int DefaultMaxConcurrentRequests = 1;
+    internal const int DefaultMaxRequestWaitSeconds = 5;
 
     /// <summary>The bounds as the observer confirmed them; what a caller without configuration uses.</summary>
     internal static IngestLimits Default => new();
@@ -93,6 +109,48 @@ internal sealed class IngestLimits
     [ConfigurationKeyName(MaxRequestDecompressedBytesKey)]
     [ConfiguredRange(Key = MaxRequestDecompressedBytesKey, Minimum = 1, Maximum = MaxConfigurableBytes)]
     public int MaxRequestDecompressedBytes { get; set; } = DefaultMaxRequestBytes;
+
+    /// <summary>
+    ///     nami receiver policy: the most protobuf messages one export request may hold, every type counted alike:
+    ///     the request, its resource and scope containers, its records and every KeyValue, AnyValue, ArrayValue and
+    ///     KeyValueList in them. The parser builds one object per message, and an empty message is two bytes of
+    ///     the request and up to some 240 bytes as an object (two million empty spans in 3.8 MiB took 465 MiB), so
+    ///     the byte bounds alone do not bound what a request costs to parse. What a structure over the value cap
+    ///     held is not counted: it is dropped without being built. A request over the bound is refused whole, like
+    ///     one over a byte bound. The default lets the default batch of an OpenTelemetry SDK through with room to
+    ///     spare (512 records of the density Claude Code sends are about 19,000 messages).
+    /// </summary>
+    [ConfigurationKeyName(MaxRequestMessagesKey)]
+    [ConfiguredRange(Key = MaxRequestMessagesKey, Minimum = 1, Maximum = int.MaxValue - 1)]
+    public int MaxRequestMessages { get; set; } = DefaultMaxRequestMessages;
+
+    /// <summary>
+    ///     nami receiver policy: the most records one export request may hold, a record being a message that is
+    ///     stored as a row of its own: a span, a log record, a metric data point of any kind, an exemplar. Span
+    ///     events and links are stored inside their span's row and are no records. Storing costs far more than
+    ///     parsing (a stored row took 13 to 30 KiB of peak memory when the default was measured, 16 Nov 2026), so
+    ///     records have a bound of their own below the message bound. A request over it is refused whole.
+    /// </summary>
+    [ConfigurationKeyName(MaxRequestRecordsKey)]
+    [ConfiguredRange(Key = MaxRequestRecordsKey, Minimum = 1, Maximum = int.MaxValue - 1)]
+    public int MaxRequestRecords { get; set; } = DefaultMaxRequestRecords;
+
+    /// <summary>
+    ///     nami receiver policy: how many export requests are read, parsed, converted and stored at once, in the
+    ///     whole process (<see cref="OtlpIngestGate" />). One request at the record bound took about 100 MiB of
+    ///     peak memory when the defaults were measured, so the slots times that is what ingest may cost.
+    /// </summary>
+    [ConfigurationKeyName(MaxConcurrentRequestsKey)]
+    [ConfiguredRange(Key = MaxConcurrentRequestsKey, Minimum = 1, Maximum = 1024)]
+    public int MaxConcurrentRequests { get; set; } = DefaultMaxConcurrentRequests;
+
+    /// <summary>
+    ///     How many seconds a request waits for a slot before it is turned away with an answer an exporter retries
+    ///     (HTTP 503 with Retry-After, gRPC UNAVAILABLE). It waits before its body is read and holds no buffer.
+    /// </summary>
+    [ConfigurationKeyName(MaxRequestWaitSecondsKey)]
+    [ConfiguredRange(Key = MaxRequestWaitSecondsKey, Minimum = 0, Maximum = 300)]
+    public int MaxRequestWaitSeconds { get; set; } = DefaultMaxRequestWaitSeconds;
 
     // One buffer holds a request, so a byte bound stays inside what one array can hold.
     private const long MaxConfigurableBytes = 1024L * 1024 * 1024;
