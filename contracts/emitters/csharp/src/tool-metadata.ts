@@ -1,21 +1,17 @@
-import type { DecoratorContext, Model, ModelProperty, Program, Type, Union } from "@typespec/compiler";
+import type { Model, ModelProperty, Program, Type } from "@typespec/compiler";
 import { emitFile, getNamespaceFullName, walkPropertiesInherited } from "@typespec/compiler";
-import { stateKeys } from "./lib.js";
+import { applications } from "./decorators.js";
 import { pascal, resolveProperty, schemaName } from "./semantics.js";
 export interface ToolContract { name: string; input: Model; result: Model; error: Model }
-export function $tool(ctx: DecoratorContext, target: Model, name: string, result: Model, error: Model): void {
-  ctx.program.stateMap(stateKeys.tool).set(target, {name, input: target, result, error});
-}
-export function $wireRoot(ctx: DecoratorContext, target: Model | Union): void { ctx.program.stateSet(stateKeys.wireRoot).add(target); }
 /** The `@tool` contracts by tool name: the one list both the engine's ContractTypes and the host's manifest come from. */
 export function toolContracts(program: Program): ToolContract[] {
-  return ([...program.stateMap(stateKeys.tool).values()] as ToolContract[]).sort((a,b) => a.name.localeCompare(b.name));
+  return applications(program,"tool").map(([input,{name,result,error}]): ToolContract => ({name, input: input as Model, result, error})).sort((a,b) => a.name.localeCompare(b.name));
 }
 export async function emitToolMetadata(program: Program, csharpDir: string): Promise<void> {
   const tools = toolContracts(program);
-  const rootTypes = new Set<Type>(program.stateSet(stateKeys.wireRoot));
+  const rootTypes = new Set<Type>(applications(program,"wireRoot").map(([type]) => type));
   for (const tool of tools) for (const type of [tool.input,tool.result,tool.error]) rootTypes.add(type);
-  const configuration = Object.fromEntries([...program.stateMap(stateKeys.environment)].map(([property,value]) => [pascal((property as ModelProperty).name),value]));
+  const configuration = Object.fromEntries(applications(program,"environment").map(([property,{name}]) => [pascal((property as ModelProperty).name),name]));
   const defaults = new Map<string,string>();
   const addDefault = (property: ModelProperty, key: ModelProperty) => {
     const value = property.defaultValue;
@@ -26,8 +22,8 @@ export async function emitToolMetadata(program: Program, csharpDir: string): Pro
     if (defaults.has(name) && defaults.get(name) !== text) throw new Error(`Conflicting environment defaults for ${name}`);
     defaults.set(name,text);
   };
-  for (const [property] of program.stateMap(stateKeys.environment)) addDefault(property as ModelProperty,property as ModelProperty);
-  for (const [property,key] of program.stateMap(stateKeys.configuredBy)) addDefault(property as ModelProperty,key as ModelProperty);
+  for (const [property] of applications(program,"environment")) addDefault(property as ModelProperty,property as ModelProperty);
+  for (const [property,{key}] of applications(program,"configuredBy")) addDefault(property as ModelProperty,key);
   const configurationDefaults = Object.fromEntries([...defaults].sort(([a],[b])=>a.localeCompare(b)));
   await emitFile(program,{path:`${program.projectRoot}/generated/wire-manifest.json`,content:JSON.stringify({configuration,configurationDefaults,roots:[...rootTypes].map(t=>schemaName(t as Model)).sort(),tools:tools.map(t=>({name:t.name,input:schemaName(t.input),output:schemaName(t.result),error:schemaName(t.error)}))},null,2)+"\n"});
   const models = new Map<Model,string>();

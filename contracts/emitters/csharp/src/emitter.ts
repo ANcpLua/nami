@@ -27,9 +27,8 @@ import { getAllHttpServices } from "@typespec/http";
 import {
   csharpNamespaceOf,
   getCsharpNamespace,
-  getCsharpPolymorphicDiscriminator,
-  hasCsharpBrand,
-  hasCsharpPolymorphic,
+  isApplied,
+  argumentsOf,
 } from "./decorators.js";
 import { isDiscriminatedUnion, isNamedFloatingPointUnion, mapType, mixedUnionShape } from "./type-map.js";
 import { renderMixedUnion } from "./mixed-union.js";
@@ -84,13 +83,13 @@ export async function $onEmit(context: EmitContext): Promise<void> {
     },
     union: (u) => {
       if (isInTypeSpec(u) || outputFor(program, u) || !u.name) return;
-      if (!hasCsharpPolymorphic(program, u) && !isDiscriminatedUnion(program, u) && !mixedUnionShape(program, u)) return;
+      if (!isApplied(program, "csharpPolymorphic", u) && !isDiscriminatedUnion(program, u) && !mixedUnionShape(program, u)) return;
       const ns = csharpNamespaceOf(program, u);
       if (!ns) return;
       getBucket(buckets, ns).unions.push(u);
     },
     scalar: (s) => {
-      if (isInTypeSpec(s) || outputFor(program, s) || !s.name || !hasCsharpBrand(program, s)) return;
+      if (isInTypeSpec(s) || outputFor(program, s) || !s.name || !isApplied(program, "csharpBrand", s)) return;
       const ns = csharpNamespaceOf(program, s);
       if (!ns) return;
       getBucket(buckets, ns).scalars.push(s);
@@ -264,7 +263,7 @@ function taggedUnionInfo(program: Program, union: Union): { property: string; ta
       },
     };
   }
-  const property = getCsharpPolymorphicDiscriminator(program, union);
+  const property = argumentsOf(program, "csharpPolymorphic", union)?.discriminator;
   if (!property) return undefined;
   return {
     property,

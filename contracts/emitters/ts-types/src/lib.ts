@@ -10,9 +10,6 @@ export const $lib = createTypeSpecLibrary({
       },
     },
   },
-  state: {
-    tsBrand: { description: "Marks a scalar as a branded opaque string id" },
-  },
 } as const);
 
-export const { reportDiagnostic, stateKeys } = $lib;
+export const { reportDiagnostic } = $lib;

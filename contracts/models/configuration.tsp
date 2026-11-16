@@ -1,4 +1,4 @@
-import "../emitters/csharp/lib/main.tsp";
+import "../emitters/csharp";
 using Nami.Api.Schema.Emit.CSharp;
 namespace Nami.Models.Configuration;
 @csharpForm("internal static class")

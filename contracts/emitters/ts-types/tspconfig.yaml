@@ -1,0 +1,6 @@
+# Compiler features for this library's own TypeSpec sources (lib/main.tsp). They apply when the library is
+# imported as a package (`import "../emitters/ts-types"` or as an emitter), not when lib/main.tsp is imported by file
+# path: such a file counts as project code. The compiler honours `features` only in a config of kind `project`.
+kind: project
+features:
+  - auto-decorators

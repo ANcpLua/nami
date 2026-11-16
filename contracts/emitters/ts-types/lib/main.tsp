@@ -4,4 +4,5 @@ using TypeSpec.Reflection;
 
 namespace Nami.Api.Schema.Emit.TsTypes;
 
-extern dec tsBrand(target: Scalar);
+// Stored by the compiler; src/index.ts reads it with `hasAutoDecorator`.
+auto dec tsBrand(target: Scalar);

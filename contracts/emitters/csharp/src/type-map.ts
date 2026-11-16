@@ -1,9 +1,8 @@
 import { emittedName, NUMERIC_SCALARS } from "./semantics.js";
 import type { Model, Program, Scalar, Type, Union } from "@typespec/compiler";
 import { getDiscriminatedUnion, isArrayModelType, isRecordModelType, getFormat } from "@typespec/compiler";
-import { csharpNamespaceOf, hasCsharpPolymorphic } from "./decorators.js";
-import { hasCsharpBrand } from "./decorators.js";
-import { reportDiagnostic, stateKeys } from "./lib.js";
+import { argumentsOf, csharpNamespaceOf, isApplied } from "./decorators.js";
+import { reportDiagnostic } from "./lib.js";
 
 const SCALAR_MAP: Record<string, string> = {
   "int8": "sbyte",
@@ -29,8 +28,8 @@ const SCALAR_MAP: Record<string, string> = {
 };
 
 export function mapType(program: Program, type: Type): string {
-  const override = program.stateMap(stateKeys.propertyType).get(type) as string | undefined;
-  if (override) return type.kind === "Union" && [...type.variants.values()].some(v => v.type.kind === "Intrinsic" && v.type.name === "null") && !program.stateMap(stateKeys.slot).has(type) ? `${override}?` : override;
+  const override = argumentsOf(program, "csharpType", type)?.type;
+  if (override) return type.kind === "Union" && [...type.variants.values()].some(v => v.type.kind === "Intrinsic" && v.type.name === "null") && !isApplied(program, "slotValue", type) ? `${override}?` : override;
   switch (type.kind) {
     case "Scalar":
       return mapScalar(program, type as Scalar);
@@ -54,8 +53,8 @@ export function mapType(program: Program, type: Type): string {
     case "EnumMember":
       return qualifyModelOrEnum(program, (type as { enum: Type }).enum);
     case "Union": {
-      if (program.stateMap(stateKeys.slot).has(type)) return qualifyModelOrEnum(program, type);
-      if (hasCsharpPolymorphic(program, type)) return qualifyModelOrEnum(program, type);
+      if (isApplied(program, "slotValue", type)) return qualifyModelOrEnum(program, type);
+      if (isApplied(program, "csharpPolymorphic", type)) return qualifyModelOrEnum(program, type);
       if (isNamedFloatingPointUnion(type)) return "double";
       if (isDiscriminatedUnion(program, type)) return qualifyModelOrEnum(program, type);
       const mixed = mixedUnionShape(program, type);
@@ -177,7 +176,7 @@ function isFloat64Scalar(scalar: Scalar): boolean {
 }
 
 function mapScalar(program: Program, scalar: Scalar): string {
-  if (hasCsharpBrand(program, scalar)) return qualifyModelOrEnum(program, scalar);
+  if (isApplied(program, "csharpBrand", scalar)) return qualifyModelOrEnum(program, scalar);
   if (scalar.name === "string") {
     const format = getFormat(program, scalar as unknown as Parameters<typeof getFormat>[1]);
     if (format === "uuid") return "Guid";

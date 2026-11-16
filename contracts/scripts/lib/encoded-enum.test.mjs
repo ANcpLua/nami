@@ -8,7 +8,8 @@ import { compile, NodeHost } from "@typespec/compiler";
 import { $onEmit as emitCsharp } from "../../emitters/csharp/dist/emitter.js";
 import { $onEmit as emitTypescript } from "../../emitters/ts-types/dist/index.js";
 
-const library = fileURLToPath(new URL("../../emitters/csharp/lib/main.tsp", import.meta.url));
+// The package, not lib/main.tsp: only a package import reads the library's own tspconfig.yaml, which enables `auto dec`.
+const library = fileURLToPath(new URL("../../emitters/csharp", import.meta.url));
 
 // Since TypeSpec 1.18.0 an @encodedName on an enum member sets the value OpenAPI and JSON Schema
 // publish; the in-repo emitters must write the same value, or C# output fails nami's schema check.

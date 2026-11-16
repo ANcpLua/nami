@@ -1,5 +1,5 @@
 import "../common/values.tsp";
-import "../emitters/csharp/lib/main.tsp";
+import "../emitters/csharp";
 using Nami.Api.Schema.Emit.CSharp;
 namespace Nami.Models.Storage.Json;
 @encode(string) scalar HistogramCount extends Nami.Models.Values.HistogramCount;

@@ -8,7 +8,7 @@ import test from "node:test";
 import { GateTester, LIBRARY } from "./harness.mjs";
 
 // Only `main.tsp` gets the tester's imports; the other files bring their own.
-const prelude = `import "./emit/lib/main.tsp";\nusing Nami.Api.Schema.Emit.CSharp;\n`;
+const prelude = `import "./emit";\nusing Nami.Api.Schema.Emit.CSharp;\n`;
 const rows = `${prelude}
 namespace Nami.Models.Storage.Rows;
 @duckDbTable(#{ name: "zeta", indexes: "A,B;A" })

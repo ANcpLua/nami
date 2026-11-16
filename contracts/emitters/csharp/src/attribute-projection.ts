@@ -1,15 +1,12 @@
 import { pascal, recordOutput } from "./semantics.js";
-import type { DecoratorContext, Model, Program, Union } from "@typespec/compiler";
+import type { Model, Program, Union } from "@typespec/compiler";
 import { emitFile, getDiscriminatedUnion } from "@typespec/compiler";
 import { resolve } from "node:path";
-import { stateKeys } from "./lib.js";
+import { applications } from "./decorators.js";
 import { mapType, mixedUnionShape } from "./type-map.js";
-export function $attributeProjection(context: DecoratorContext, source: Union, target: Union): void {
-  context.program.stateMap(stateKeys.attributeProjection).set(source,target);
-}
 export async function emitAttributeProjection(program: Program): Promise<void> {
-  for (const [sourceType,targetType] of program.stateMap(stateKeys.attributeProjection)) {
-    const source=sourceType as Union, target=targetType as Union;
+  for (const [sourceType,{destination: target}] of applications(program,"attributeProjection")) {
+    const source=sourceType as Union;
     const targetShape=mixedUnionShape(program,target);
     if (targetShape?.objectMember?.type.kind!=="Union") throw new Error("The API attribute representation needs a tagged object union");
     const [tagged]=getDiscriminatedUnion(program,targetShape.objectMember.type);
@@ -33,13 +30,9 @@ export async function emitAttributeProjection(program: Program): Promise<void> {
     await emitFile(program,{path:recordOutput(program,resolve(program.projectRoot,"../src/nami.collector.storage/Generated/StoredAttributeProjection.g.cs")),content:text});
   }
 }
-
-export function $storageAttributeProjection(context: DecoratorContext, source: Union, target: Union): void {
-  context.program.stateMap(stateKeys.attributeIngestionProjection).set(source,target);
-}
 export async function emitStorageAttributeProjection(program: Program): Promise<void> {
-  for (const [sourceType,targetType] of program.stateMap(stateKeys.attributeIngestionProjection)) {
-    const source=sourceType as Union, target=targetType as Union;
+  for (const [sourceType,{destination: target}] of applications(program,"storageAttributeProjection")) {
+    const source=sourceType as Union;
     const sourceName=mapType(program,source).replace(/\?$/u, "");
     const targetName=mapType(program,target).replace(/\?$/u, "");
     const object=[...target.variants.values()].map(v=>v.type).find(t=>t.kind==="Model" && !t.indexer) as Model | undefined;

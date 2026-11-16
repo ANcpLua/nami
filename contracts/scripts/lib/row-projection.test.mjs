@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 import { compile, NodeHost } from "@typespec/compiler";
 import { emitModelProjections } from "../../emitters/csharp/dist/projections.js";
 
-const library = fileURLToPath(new URL("../../emitters/csharp/lib/main.tsp", import.meta.url));
+// The package, not lib/main.tsp: only a package import reads the library's own tspconfig.yaml, which enables `auto dec`.
+const library = fileURLToPath(new URL("../../emitters/csharp", import.meta.url));
 async function fixture(extra, check) {
   const workspace = await mkdtemp(join(tmpdir(), "nami-row-projection-"));
   try {

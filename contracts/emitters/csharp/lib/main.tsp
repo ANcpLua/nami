@@ -4,12 +4,18 @@ using TypeSpec.Reflection;
 
 namespace Nami.Api.Schema.Emit.CSharp;
 
-extern dec csharpNamespace(
+// `auto dec`: the compiler stores the arguments as a `{ parameterName: value }` record under the decorator's fully
+// qualified name; src/decorators.ts reads them by parameter name, so renaming a parameter here is a change there.
+// Applied twice on one declaration it warns, which the gate's `--warn-as-error` turns into a failure. An augment
+// (`@@name(Target, …)`) is not counted as a second application: the last one written silently wins.
+// `extern dec` is kept for a decorator whose JavaScript validates its arguments (`catalogValue`).
+
+auto dec csharpNamespace(
   target: Model | Enum | Namespace,
   ns: valueof string
 );
-extern dec csharpBrand(target: Scalar);
-extern dec csharpPolymorphic(target: Union, discriminator?: valueof string);
+auto dec csharpBrand(target: Scalar);
+auto dec csharpPolymorphic(target: Union, discriminator?: valueof string);
 
 model OutputOptions {
   directory: string; `namespace`: string; file: string;
@@ -25,31 +31,31 @@ model ColumnOptions {
   sequenceName?: string;
   merge?: "replace" | "coalesce" | "min" | "max" | "minPresent" | "longest";
 }
-extern dec csharpOutput(target: Namespace, options: valueof OutputOptions);
-extern dec csharpForm(target: Model, form: valueof string);
-extern dec csharpType(target: ModelProperty | Model | Scalar | Union, type: valueof string);
-extern dec duckDbTable(target: Model, options: valueof TableOptions);
-extern dec duckDbColumn(target: ModelProperty, options: valueof ColumnOptions);
+auto dec csharpOutput(target: Namespace, options: valueof OutputOptions);
+auto dec csharpForm(target: Model, form: valueof string);
+auto dec csharpType(target: ModelProperty | Model | Scalar | Union, type: valueof string);
+auto dec duckDbTable(target: Model, options: valueof TableOptions);
+auto dec duckDbColumn(target: ModelProperty, options: valueof ColumnOptions);
 
-extern dec tool(target: Model, name: valueof string, result: Model, error: Model);
-extern dec wireRoot(target: Model | Union);
+auto dec tool(target: Model, name: valueof string, result: Model, error: Model);
+auto dec wireRoot(target: Model | Union);
 
-extern dec slotValue(target: Union);
+auto dec slotValue(target: Union);
 
-extern dec storageProjection(target: Model, destination: Model);
-extern dec storageProjectionUsing(target: Model | Union | Scalar, method: valueof string);
-extern dec modelProjection(target: Model, source: Model, owner: Model | Namespace, additional?: Model);
-extern dec projectionSource(target: ModelProperty, source: ModelProperty);
-extern dec catalogProjection(target: Model, values: Union);
+auto dec storageProjection(target: Model, destination: Model);
+auto dec storageProjectionUsing(target: Model | Union | Scalar, method: valueof string);
+auto dec modelProjection(target: Model, source: Model, owner: Model | Namespace, additional?: Model);
+auto dec projectionSource(target: ModelProperty, source: ModelProperty);
+auto dec catalogProjection(target: Model, values: Union);
 extern dec catalogValue(target: ModelProperty, symbol: valueof string);
 
-extern dec environment(target: ModelProperty, name: valueof string);
-extern dec configuredBy(target: ModelProperty, key: ModelProperty);
-extern dec csharpSetter(target: ModelProperty, setter: valueof "set" | "internal set" | "init");
-extern dec csharpInternal(target: ModelProperty);
+auto dec environment(target: ModelProperty, name: valueof string);
+auto dec configuredBy(target: ModelProperty, key: ModelProperty);
+auto dec csharpSetter(target: ModelProperty, setter: valueof "set" | "internal set" | "init");
+auto dec csharpInternal(target: ModelProperty);
 
-extern dec attributeProjection(target: Union, destination: Union);
+auto dec attributeProjection(target: Union, destination: Union);
 
-extern dec csharpEnum(target: Enum, type: valueof string, flags?: valueof boolean);
+auto dec csharpEnum(target: Enum, type: valueof string, flags?: valueof boolean);
 
-extern dec storageAttributeProjection(target: Union, destination: Union);
+auto dec storageAttributeProjection(target: Union, destination: Union);

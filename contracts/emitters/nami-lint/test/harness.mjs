@@ -13,18 +13,28 @@ import { createLinterRuleTester, createTester, mockFile } from "@typespec/compil
 export const LIBRARY = "@ancplua/typespec-nami-lint";
 export const contracts = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
-const emitterDeclarations = await readFile(resolve(contracts, "emitters/csharp/lib/main.tsp"), "utf8");
+const emitterFile = (path) => readFile(resolve(contracts, "emitters/csharp", path), "utf8");
+const emitterDeclarations = await emitterFile("lib/main.tsp");
+const emitterPackage = await emitterFile("package.json");
+const emitterConfig = await emitterFile("tspconfig.yaml");
 const emitterModule = await import(pathToFileURL(resolve(contracts, "emitters/csharp/dist/index.js")).href);
 
 export const libraries = ["@typespec/http", "@typespec/openapi", "@typespec/json-schema"];
-/** Mount the in-repo emitter library into a tester and import it into `main.tsp`. */
+/**
+ * Mount the in-repo emitter library into a tester and import it into `main.tsp`.
+ *
+ * It is mounted and imported as a package (`./emit`), as the contracts import it: its `auto dec` declarations compile
+ * only under the `auto-decorators` feature of its own tspconfig.yaml, which the compiler reads for a package import.
+ */
 export const mounted = (tester) =>
   tester
     .files({
+      "emit/package.json": emitterPackage,
+      "emit/tspconfig.yaml": emitterConfig,
       "emit/lib/main.tsp": emitterDeclarations,
       "emit/dist/index.js": mockFile.js(emitterModule),
     })
-    .import("@typespec/http", "@typespec/json-schema", "./emit/lib/main.tsp")
+    .import("@typespec/http", "@typespec/json-schema", "./emit")
     .using("TypeSpec.Http", "TypeSpec.JsonSchema", "Nami.Api.Schema.Emit.CSharp");
 
 /** Compiles without any linter: the base for testing one rule at a time. */

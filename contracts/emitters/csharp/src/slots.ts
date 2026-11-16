@@ -1,12 +1,10 @@
 import { recordOutput } from "./semantics.js";
-import type { DecoratorContext, Program, Union } from "@typespec/compiler";
+import type { Program, Union } from "@typespec/compiler";
 import { emitFile } from "@typespec/compiler";
 import { resolve } from "node:path";
-import { stateKeys } from "./lib.js";
 import { mapType } from "./type-map.js";
 import { outputFor } from "./outputs.js";
 
-export function $slotValue(context: DecoratorContext, target: Union): void { context.program.stateMap(stateKeys.slot).set(target, true); }
 export async function emitSlotValue(program: Program, union: Union): Promise<void> {
   const output = outputFor(program, union);
   if (!output) throw new Error(`Slot union ${union.name} requires a consumer output`);

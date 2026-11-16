@@ -1,40 +1,9 @@
 import { setTypeSpecNamespace } from "@typespec/compiler";
-import { $csharpBrand, $csharpNamespace, $csharpPolymorphic } from "./decorators.js";
+import { $catalogValue } from "./projections.js";
 
-setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $csharpNamespace, $csharpBrand, $csharpPolymorphic);
+// The one decorator of lib/main.tsp implemented here; the others are `auto dec` and need no JavaScript.
+setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $catalogValue);
 
 export { $lib } from "./lib.js";
-export { $csharpBrand, $csharpNamespace, $csharpPolymorphic } from "./decorators.js";
+export { $catalogValue };
 export { $onEmit } from "./emitter.js";
-
-import { $csharpOutput, $csharpForm, $csharpType, $duckDbTable, $duckDbColumn } from "./outputs.js";
-setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $csharpOutput, $csharpForm, $csharpType, $duckDbTable, $duckDbColumn);
-export { $csharpOutput, $csharpForm, $csharpType, $duckDbTable, $duckDbColumn };
-
-import { $tool, $wireRoot } from "./tool-metadata.js";
-setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $tool, $wireRoot);
-export { $tool, $wireRoot };
-
-import { $slotValue } from "./slots.js";
-setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $slotValue);
-export { $slotValue };
-
-import { $storageProjection, $storageProjectionUsing, $modelProjection, $projectionSource, $catalogProjection, $catalogValue } from "./projections.js";
-setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $storageProjection, $storageProjectionUsing, $modelProjection, $projectionSource, $catalogProjection, $catalogValue);
-export { $storageProjection, $storageProjectionUsing, $modelProjection, $projectionSource, $catalogProjection, $catalogValue };
-
-import { $environment, $configuredBy, $csharpSetter, $csharpInternal } from "./outputs.js";
-setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $environment, $configuredBy, $csharpSetter, $csharpInternal);
-export { $environment, $configuredBy, $csharpSetter, $csharpInternal };
-
-import { $attributeProjection } from "./attribute-projection.js";
-setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $attributeProjection);
-export { $attributeProjection };
-
-import { $csharpEnum } from "./outputs.js";
-setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $csharpEnum);
-export { $csharpEnum };
-
-import { $storageAttributeProjection } from "./attribute-projection.js";
-setTypeSpecNamespace("Nami.Api.Schema.Emit.CSharp", $storageAttributeProjection);
-export { $storageAttributeProjection };

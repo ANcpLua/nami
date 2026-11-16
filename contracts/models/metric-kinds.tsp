@@ -1,4 +1,4 @@
-import "../emitters/csharp/lib/main.tsp";
+import "../emitters/csharp";
 using Nami.Api.Schema.Emit.CSharp;
 namespace Nami.Models.Ingestion.Primitives;
 @csharpEnum("byte") enum MetricKind { Gauge: 1, Sum: 2, Histogram: 3, ExponentialHistogram: 4, Summary: 5 }

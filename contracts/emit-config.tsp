@@ -1,5 +1,5 @@
 // Build-only mapping; wire definitions remain language independent.
-import "./emitters/csharp/lib/main.tsp";
+import "./emitters/csharp";
 using Nami.Api.Schema.Emit.CSharp;
 @@csharpNamespace(Nami.Api.Contracts.Engine, "Nami.Api.Contracts.Engine");
 @@csharpNamespace(Nami.Api.Contracts, "Nami.Api.Contracts");

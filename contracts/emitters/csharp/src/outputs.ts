@@ -1,9 +1,9 @@
 import { recordOutput } from "./semantics.js";
 import { emitSlotValue } from "./slots.js";
-import type { DecoratorContext, Enum, Model, ModelProperty, Namespace, Program, Type, Value, Scalar, Union } from "@typespec/compiler";
+import type { Enum, Model, ModelProperty, Program, Type, Value, Union } from "@typespec/compiler";
 import { emitFile, getDiscriminator, isArrayModelType, isRecordModelType, navigateProgram, walkPropertiesInherited } from "@typespec/compiler";
 import { resolve } from "node:path";
-import { stateKeys } from "./lib.js";
+import { argumentsOf, isApplied } from "./decorators.js";
 import { isNamedFloatingPointUnion, mapType, mixedUnionShape } from "./type-map.js";
 import { renderMixedUnion } from "./mixed-union.js";
 import { pascal, resolveProperty, typeIdentity } from "./semantics.js";
@@ -11,32 +11,10 @@ import { pascal, resolveProperty, typeIdentity } from "./semantics.js";
 export interface OutputOptions { directory: string; namespace: string; file: string; json?: boolean; context?: string; typescript?: boolean; schema?: boolean; mutable?: boolean; strictJson?: boolean }
 export interface TableOptions { name: string; indexes?: string; uniqueIndexes?: string; conflict?: "ignore" | "update"; parameterSets?: string; derived?: boolean; bootstrap?: boolean; appenderEligible?: boolean; arrowEligible?: boolean }
 export interface ColumnOptions { order: number; sqlType?: string; primaryKeyOrdinal?: number; defaultSql?: string; excludeFromInsert?: boolean; privateInit?: boolean; sequenceName?: string; merge?: "replace" | "coalesce" | "min" | "max" | "minPresent" | "longest" }
-export function $csharpEnum(ctx: DecoratorContext, target: Enum, type: string, flags = false): void {
-  ctx.program.stateMap(stateKeys.enumType).set(target,type);
-  if (flags) ctx.program.stateMap(stateKeys.enumFlags).set(target,true);
-}
-export function $configuredBy(ctx: DecoratorContext, target: ModelProperty, key: ModelProperty): void {
-  ctx.program.stateMap(stateKeys.configuredBy).set(target,key);
-}
-export function $csharpSetter(ctx: DecoratorContext, target: ModelProperty, setter: string): void {
-  ctx.program.stateMap(stateKeys.setter).set(target,setter);
-}
-export function $csharpInternal(ctx: DecoratorContext, target: ModelProperty): void {
-  ctx.program.stateMap(stateKeys.internalProperty).set(target,true);
-}
-export function $csharpOutput(ctx: DecoratorContext, target: Namespace, options: OutputOptions): void {
-  ctx.program.stateMap(stateKeys.output).set(target, options);
-  ctx.program.stateMap(stateKeys.csharpNamespace).set(target, options.namespace);
-}
-export function $csharpForm(ctx: DecoratorContext, target: Model, form: string): void { ctx.program.stateMap(stateKeys.form).set(target, form); }
-export function $csharpType(ctx: DecoratorContext, target: ModelProperty | Model | Scalar | Union, type: string): void { ctx.program.stateMap(stateKeys.propertyType).set(target, type); }
-export function $duckDbTable(ctx: DecoratorContext, target: Model, options: TableOptions): void { ctx.program.stateMap(stateKeys.table).set(target, options); }
-export function $duckDbColumn(ctx: DecoratorContext, target: ModelProperty, options: ColumnOptions): void { ctx.program.stateMap(stateKeys.column).set(target, options); }
-export function $environment(ctx: DecoratorContext, target: ModelProperty, name: string): void { ctx.program.stateMap(stateKeys.environment).set(target,name); }
 export function outputFor(program: Program, type: Type): OutputOptions | undefined {
   let current: Type | undefined = type;
   while (current) {
-    const value = program.stateMap(stateKeys.output).get(current) as OutputOptions | undefined;
+    const value = argumentsOf(program,"csharpOutput",current)?.options;
     if (value) return value;
     current = "namespace" in current ? current.namespace : undefined;
   }
@@ -55,7 +33,7 @@ function attributes(options: object, omit: string[]): string {
 }
 function conflictClause(program: Program, table: TableOptions, properties: ModelProperty[]): string | undefined {
   const columns = properties.flatMap(property => {
-    const metadata = program.stateMap(stateKeys.column).get(property) as ColumnOptions | undefined;
+    const metadata = argumentsOf(program,"duckDbColumn",property)?.options;
     if (!metadata) return [];
     // Match the Roslyn generator's CLR-property to column-name mapping.
     const name = pascal(property.name).replace(/[A-Z]/gu, (c, index) => (index ? "_" : "") + c.toLowerCase());
@@ -106,7 +84,7 @@ export async function emitOutputs(program: Program): Promise<void> {
   const mixedUnions = new Map<OutputOptions, Union[]>();
   navigateProgram(program, { model(model) {
     const output = outputFor(program, model);
-    if (!output || !model.name || program.stateMap(stateKeys.propertyType).has(model) || seen.has(model) || model.namespace?.name === "TypeSpec") return;
+    if (!output || !model.name || isApplied(program,"csharpType",model) || seen.has(model) || model.namespace?.name === "TypeSpec") return;
     seen.add(model);
     const values = groups.get(output) ?? [];
     values.push(model); groups.set(output, values);
@@ -117,12 +95,12 @@ export async function emitOutputs(program: Program): Promise<void> {
     if (!groups.has(output)) groups.set(output,[]);
   }, union(type) {
     const output = outputFor(program, type);
-    if (!output || !type.name || program.stateMap(stateKeys.propertyType).has(type) || !mixedUnionShape(program, type)) return;
+    if (!output || !type.name || isApplied(program,"csharpType",type) || !mixedUnionShape(program, type)) return;
     const values = mixedUnions.get(output) ?? []; values.push(type); mixedUnions.set(output, values);
     if (!groups.has(output)) groups.set(output, []);
   } });
   const slotUnions: Union[] = [];
-  navigateProgram(program, { union(union) { if (program.stateMap(stateKeys.slot).has(union)) slotUnions.push(union); } });
+  navigateProgram(program, { union(union) { if (isApplied(program,"slotValue",union)) slotUnions.push(union); } });
   for (const union of slotUnions) await emitSlotValue(program, union);
   const manifest: object[] = slotUnions.map(type => ({type:typeIdentity(type),project:outputFor(program,type)!.directory,file:`${type.name}.g.cs`,namespace:outputFor(program,type)!.namespace,form:"typed-slots",json:false}));
   for (const [output, models] of groups) {
@@ -137,10 +115,10 @@ export async function emitOutputs(program: Program): Promise<void> {
         manifest.push({type:typeIdentity(model),project:output.directory,file:output.file,namespace:output.namespace,form:"json-root",json:true});
         continue;
       }
-      const table = program.stateMap(stateKeys.table).get(model) as TableOptions | undefined;
-      const form = program.stateMap(stateKeys.form).get(model) as string | undefined ?? "internal sealed partial record";
+      const table = argumentsOf(program,"duckDbTable",model)?.options;
+      const form = argumentsOf(program,"csharpForm",model)?.form ?? "internal sealed partial record";
       manifest.push({type:typeIdentity(model),project:output.directory,file:output.file,namespace:output.namespace,form,json:output.json ?? false,
-        properties:[...walkPropertiesInherited(model)].map(p=> {const r=resolveProperty(program,p); return {code:r.codeName,json:r.jsonName,optional:r.optional,nullable:r.nullable,minimum:r.minimum,maximum:r.maximum,column:program.stateMap(stateKeys.column).get(p)};})});
+        properties:[...walkPropertiesInherited(model)].map(p=> {const r=resolveProperty(program,p); return {code:r.codeName,json:r.jsonName,optional:r.optional,nullable:r.nullable,minimum:r.minimum,maximum:r.maximum,column:argumentsOf(program,"duckDbColumn",p)?.options};})});
       if (["public sealed record", "internal sealed record", "internal sealed partial positional record", "internal readonly record struct", "internal readonly partial record struct"].includes(form)) {
         body.push(`${form.replace(" positional", "")} ${model.name}(${[...walkPropertiesInherited(model)].map(property => {
           const type = mapType(program,property.type) + (property.optional && !mapType(program,property.type).endsWith("?") ? "?" : "");
@@ -152,7 +130,7 @@ export async function emitOutputs(program: Program): Promise<void> {
       if (form === "internal static class") {
         body.push(`${form} ${model.name}\n{`);
         for (const property of walkPropertiesInherited(model)) {
-          const name = program.stateMap(stateKeys.environment).get(property);
+          const name = argumentsOf(program,"environment",property)?.name;
           if (typeof name !== "string") throw new Error(`${model.name}.${property.name} requires an environment name`);
           body.push(`    public const string ${pascal(property.name)} = ${quote(name)};`);
         }
@@ -163,9 +141,9 @@ export async function emitOutputs(program: Program): Promise<void> {
       const properties = [...walkPropertiesInherited(model)];
       if (table) {
         if (table.bootstrap && table.derived) throw new Error(`${table.name} cannot be both bootstrap and derived`);
-        const orders = properties.filter(p => !program.stateMap(stateKeys.internalProperty).has(p)).map(p => (program.stateMap(stateKeys.column).get(p) as ColumnOptions | undefined)?.order);
+        const orders = properties.filter(p => !isApplied(program,"csharpInternal",p)).map(p => argumentsOf(program,"duckDbColumn",p)?.options.order);
         if (orders.some(o => o === undefined) || new Set(orders).size !== orders.length) throw new Error(`${typeIdentity(model)} requires distinct explicit column orders`);
-        properties.sort((a,b) => ((program.stateMap(stateKeys.column).get(a) as ColumnOptions | undefined)?.order ?? Infinity) - ((program.stateMap(stateKeys.column).get(b) as ColumnOptions | undefined)?.order ?? Infinity));
+        properties.sort((a,b) => (argumentsOf(program,"duckDbColumn",a)?.options.order ?? Infinity) - (argumentsOf(program,"duckDbColumn",b)?.options.order ?? Infinity));
         const conflict = conflictClause(program, table, properties);
         const args = attributes({...table, ...(conflict === undefined ? {} : {onConflict: conflict})}, ["name", "conflict"]);
         body.push(`[DuckDbTable(${quote(table.name)}${args ? ", " + args : ""})]`);
@@ -183,14 +161,14 @@ export async function emitOutputs(program: Program): Promise<void> {
       body.push(`${form} ${model.name}${model.baseModel ? " : " + mapType(program, model.baseModel) : ""}\n{`);
       for (const property of properties) {
         const resolved = resolveProperty(program, property);
-        const internalProperty = program.stateMap(stateKeys.internalProperty).has(property);
+        const internalProperty = isApplied(program,"csharpInternal",property);
         if (internalProperty) {
-          if (program.stateMap(stateKeys.column).has(property)) throw new Error(`${typeIdentity(property)} cannot be both internal and a database column`);
+          if (isApplied(program,"duckDbColumn",property)) throw new Error(`${typeIdentity(property)} cannot be both internal and a database column`);
           body.push("    [JsonIgnore]");
         }
-        const configuredKey = program.stateMap(stateKeys.configuredBy).get(property) as ModelProperty | undefined;
+        const configuredKey = argumentsOf(program,"configuredBy",property)?.key;
         if (configuredKey) {
-          if (!configuredKey.model || !program.stateMap(stateKeys.environment).has(configuredKey)) throw new Error(`${typeIdentity(configuredKey)} is not an environment key`);
+          if (!configuredKey.model || !isApplied(program,"environment",configuredKey)) throw new Error(`${typeIdentity(configuredKey)} is not an environment key`);
           const key = `${mapType(program, configuredKey.model)}.${pascal(configuredKey.name)}`;
           body.push(`    [Microsoft.Extensions.Configuration.ConfigurationKeyName(${key})]`);
           if (resolved.minimum !== undefined || resolved.maximum !== undefined) {
@@ -205,10 +183,10 @@ export async function emitOutputs(program: Program): Promise<void> {
           taggedBase = taggedBase.baseModel;
         }
         if (isTag) continue;
-        const column = program.stateMap(stateKeys.column).get(property) as ColumnOptions | undefined;
-        const override = program.stateMap(stateKeys.propertyType).get(property) as string | undefined;
+        const column = argumentsOf(program,"duckDbColumn",property)?.options;
+        const override = argumentsOf(program,"csharpType",property)?.type;
         let type = override ?? mapType(program, property.type);
-        if (resolved.nullable && !program.stateMap(stateKeys.slot).has(property.type) && !type.endsWith("?")) type += "?";
+        if (resolved.nullable && !isApplied(program,"slotValue",property.type) && !type.endsWith("?")) type += "?";
         if (property.optional && !table && !type.endsWith("?")) type += "?";
         if (column) {
           if (column.sequenceName && (!/^[a-z][a-z0-9_]*$/u.test(column.sequenceName) || column.defaultSql !== undefined)) throw new Error(`${model.name}.${property.name} requires a valid sequence name without an authored default`);
@@ -221,15 +199,15 @@ export async function emitOutputs(program: Program): Promise<void> {
         if (output.json && !property.optional && resolved.nullable) body.push("    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.Never)]");
         if (output.json) body.push(`    [System.Text.Json.Serialization.JsonPropertyName(${quote(resolved.jsonName)})]`);
         const fallback = defaultExpression(property);
-        const setter = program.stateMap(stateKeys.setter).get(property) as string | undefined ?? (output.mutable ? "set" : "init");
+        const setter = argumentsOf(program,"csharpSetter",property)?.setter ?? (output.mutable ? "set" : "init");
         body.push(`    ${internalProperty ? "internal" : "public"} ${!property.optional && fallback === undefined && !column?.privateInit ? "required " : ""}${type} ${pascal(property.name)} { get; ${column?.privateInit ? "private " : ""}${setter}; }${fallback === undefined ? "" : " = " + fallback + ";"}`);
       }
       body.push("}\n");
 
     }
     for (const type of enums.get(output) ?? []) {
-      const base = program.stateMap(stateKeys.enumType).get(type) as string | undefined ?? "int";
-      const flags = program.stateMap(stateKeys.enumFlags).has(type);
+      const base = argumentsOf(program,"csharpEnum",type)?.type ?? "int";
+      const flags = argumentsOf(program,"csharpEnum",type)?.flags === true;
       if (!["byte","sbyte","short","ushort","int","uint","long","ulong"].includes(base)) throw new Error(`Invalid enum representation ${base}`);
       body.push(`${flags ? "[Flags]\n" : ""}internal enum ${type.name} : ${base}\n{\n${[...type.members.values()].map((member,index)=>`    ${pascal(member.name)} = ${member.value ?? index},`).join("\n")}\n}`);
       if (flags) body.push(`internal static class ${type.name}Names\n{\n    public static bool TryParse(string? value, out ${type.name} result)\n    {\n        result = value switch\n        {\n${[...type.members.values()].filter(m => m.value !== 0).map(m => `            ${quote(m.name)} => ${type.name}.${pascal(m.name)},`).join("\n")}\n            _ => 0\n        };\n        return result != 0;\n    }\n}`);

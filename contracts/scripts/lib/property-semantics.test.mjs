@@ -8,7 +8,8 @@ import { compile, NodeHost } from "@typespec/compiler";
 import { resolveProperty, typeIdentity } from "../../emitters/csharp/dist/semantics.js";
 import { renderSerialization } from "../../emitters/ts-types/dist/serialization.js";
 import { $onEmit } from "../../emitters/csharp/dist/emitter.js";
-const library = fileURLToPath(new URL("../../emitters/csharp/lib/main.tsp", import.meta.url));
+// The package, not lib/main.tsp: only a package import reads the library's own tspconfig.yaml, which enables `auto dec`.
+const library = fileURLToPath(new URL("../../emitters/csharp", import.meta.url));
 async function fixture(run) {
   const directory = await mkdtemp(join(tmpdir(), "nami-semantics-"));
   try {
