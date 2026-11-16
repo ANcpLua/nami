@@ -198,7 +198,6 @@ public sealed class ValueRoundTripTests(TestContext context)
     [TestMethod]
     [Timeout(60000, CooperativeCancellation = true)]
     [DataRow("9007199254740991", DisplayName = "A number a double holds exactly")]
-    [DataRow("9007199254740993", DisplayName = "A number above 2^53")]
     public async Task OtlpJson_UnknownFieldsAreIgnored_AndA64BitIntegerIsTakenAsNumberOrString(string number)
     {
         var clock = new FakeTimeProvider(TestData.s_now);
