@@ -67,7 +67,7 @@ public sealed class AttributeDepthTests(TestContext context)
         // A store written before ingest bounded the nesting can hold such a value; its trace answers a refusal.
         var value = OtlpAttributeValue.FromString("leaf");
         for (var i = 0; i < 29; i++)
-            value = OtlpAttributeValue.FromKeyValueList(new NormalizedAttributes { ["gen_ai.input.messages"] = value });
+            value = OtlpAttributeValue.FromKeyValueList(new NormalizedAttributes { ["feature_flag.result.value"] = value });
         var span = new SpanIngestionRecord
         {
             TraceId = DeepTrace,
@@ -77,7 +77,7 @@ public sealed class AttributeDepthTests(TestContext context)
             StartTimeUnixNano = (ulong)(s_now.AddMinutes(-2).ToUnixTimeMilliseconds() * 1_000_000),
             EndTimeUnixNano = (ulong)(s_now.AddMinutes(-1).ToUnixTimeMilliseconds() * 1_000_000),
             ResourceAttributes = new NormalizedAttributes(),
-            Attributes = new NormalizedAttributes { ["gen_ai.input.messages"] = value }
+            Attributes = new NormalizedAttributes { ["feature_flag.result.value"] = value }
         };
         await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(s_now));
         await store.EnqueueAsync(new SpanBatch(IngestionStorageMapper.ToSpanStorageRows(new TraceIngestionBatch([span]))),
@@ -128,7 +128,7 @@ public sealed class AttributeDepthTests(TestContext context)
                             Spans =
                             {
                                 NewSpan(InnocentTrace, "innocent", end, null),
-                                NewSpan(DeepTrace, "deep", end, new KeyValue { Key = "gen_ai.input.messages", Value = value })
+                                NewSpan(DeepTrace, "deep", end, new KeyValue { Key = "feature_flag.result.value", Value = value })
                             }
                         }
                     }
@@ -162,8 +162,9 @@ public sealed class AttributeDepthTests(TestContext context)
                 ? new AnyValue { ArrayValue = new ArrayValue { Values = { value } } }
                 : new AnyValue
                 {
-                    // Nested entries keep only registry keys; this one is persisted at every level.
-                    KvlistValue = new KeyValueList { Values = { new KeyValue { Key = "gen_ai.input.messages", Value = value } } }
+                    // Nested entries keep only keys the registry persists. This any-typed key is one at every level;
+                    // content keys such as gen_ai.input.messages are not, so a value under them is dropped unmeasured.
+                    KvlistValue = new KeyValueList { Values = { new KeyValue { Key = "feature_flag.result.value", Value = value } } }
                 };
         }
 

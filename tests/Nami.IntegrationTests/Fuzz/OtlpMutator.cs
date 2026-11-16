@@ -225,7 +225,7 @@ internal sealed class OtlpMutator(Random random, ulong nowNanos)
         if (attributes.Count == 0) return "no attribute list";
         var depth = s_depths[random.Next(s_depths.Length)];
         var mode = random.Next(3);
-        var key = random.Next(3) == 0 ? "fuzz.deep" : random.Next(2) == 0 ? "gen_ai.input.messages" : "http.request.header.x-deep";
+        var key = random.Next(3) == 0 ? "fuzz.deep" : random.Next(2) == 0 ? "feature_flag.result.value" : "http.request.header.x-deep";
         attributes[random.Next(attributes.Count)].Add(new KeyValue { Key = key, Value = Nested(depth, mode) });
         if (random.Next(3) == 0 && Messages(root).OfType<ProtoLogRecord>().FirstOrDefault() is { } log)
             log.Body = Nested(depth, mode);
@@ -242,8 +242,9 @@ internal sealed class OtlpMutator(Random random, ulong nowNanos)
                 ? new AnyValue { ArrayValue = new ArrayValue { Values = { value } } }
                 : new AnyValue
                 {
-                    // Nested entries keep only registry keys; this one is persisted at every level.
-                    KvlistValue = new KeyValueList { Values = { new KeyValue { Key = "gen_ai.input.messages", Value = value } } }
+                    // Nested entries keep only keys the registry persists; this any-typed one is persisted at every
+                    // level (content keys such as gen_ai.input.messages are not).
+                    KvlistValue = new KeyValueList { Values = { new KeyValue { Key = "feature_flag.result.value", Value = value } } }
                 };
         }
 
