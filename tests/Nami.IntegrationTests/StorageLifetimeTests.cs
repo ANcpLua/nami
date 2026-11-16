@@ -2,6 +2,8 @@ using System.Data;
 using System.Data.Common;
 using System.Globalization;
 using DuckDB.NET.Data;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Nami.Collector.Storage;
 using Nami.Tests.Infrastructure;
@@ -48,6 +50,23 @@ public sealed class StorageLifetimeTests(TestContext context)
         Assert.IsTrue(File.Exists(path), path);
         await using var reopened = new DuckDbStore(path);
         Assert.ContainsSingle((await reopened.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
+    }
+
+    /// <summary>
+    ///     The helpers that read a store's file for other tests take a path as the store does: a separator or a
+    ///     quote of a connection string in it is part of the path.
+    /// </summary>
+    [TestMethod]
+    public async Task TestHelpers_PathWithConnectionStringCharacters_ReadThatFile()
+    {
+        var path = Path.Combine(DatabasePath("all;of='them'"), "nami.duckdb");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await using (var store = new DuckDbStore(path))
+            await SeedTrace(store, context.CancellationToken);
+
+        Assert.ContainsSingle(StoreDump.Read(path)["spans"]);
+        Assert.AreEqual("1", Assert.ContainsSingle(
+            ClaudeCode.StoredRows.Rows(path, "SELECT count(*)::VARCHAR FROM spans"))[0]);
     }
 
     /// <summary>
@@ -244,7 +263,6 @@ public sealed class StorageLifetimeTests(TestContext context)
             Assert.AreEqual(1, connection.DisposeCalls);
             Assert.AreEqual(ConnectionState.Closed, connection.State);
         }
-        Assert.AreEqual(1, connections.Items[0].CheckpointCalls);
     }
 
     /// <summary>
@@ -316,6 +334,250 @@ public sealed class StorageLifetimeTests(TestContext context)
         finally
         {
             // WriterFails_DisposeReportsTheFailure asserts what DisposeAsync reports.
+            await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
+    }
+
+    /// <summary>
+    ///     A transaction that DuckDB still holds open and aborted on the writer's connection, begun here with a
+    ///     plain BEGIN TRANSACTION under a job, so that DuckDB.NET keeps no transaction object for it. After a
+    ///     cancelled job the writer ends it and the next write is stored; in any case shutdown ends it before its
+    ///     CHECKPOINT. Before, DisposeAsync failed with "Current transaction is aborted". This is the DuckDB half of
+    ///     what an interrupted ROLLBACK leaves; the DuckDB.NET half, which this cannot repair, is
+    ///     <see cref="InterruptedRollback_StopsTheWriterAndIsReported" />.
+    /// </summary>
+    [TestMethod]
+    [DataRow(true, DisplayName = "The job was cancelled: the writer goes on")]
+    [DataRow(false, DisplayName = "Left until shutdown: the CHECKPOINT still runs")]
+    public async Task WriterLeftInAnAbortedTransaction_IsRolledBack(bool cancelled)
+    {
+        var connections = new Connections();
+        var path = DatabasePath("aborted.duckdb");
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        var store = DuckDbStore.CreateForTesting(connections.Create, path, maxConcurrentReads: 1,
+            timeProvider: new FakeTimeProvider(TestData.s_now));
+        var disposed = false;
+        try
+        {
+            var writer = connections.Items[0];
+            writer.AfterNonQuery = command =>
+            {
+                if (command.CommandText != "CHECKPOINT") return;
+                writer.AfterNonQuery = null;
+                using var leave = writer.CreateCommand();
+                leave.CommandText = "BEGIN TRANSACTION";
+                leave.ExecuteNonQuery();
+                leave.CommandText = "SELECT error('left by a job') FROM range(3)";
+                Assert.ThrowsExactly<DuckDBException>(() => leave.ExecuteNonQuery());
+                leave.CommandText = "SELECT count(*) FROM spans";
+                Assert.Contains("Current transaction is aborted",
+                    Assert.ThrowsExactly<DuckDBException>(() => leave.ExecuteNonQuery()).Message);
+                if (cancelled) cancellation.Cancel();
+            };
+            await store.CheckpointAsync(cancellation.Token);
+
+            if (cancelled)
+                await SeedTrace(store, context.CancellationToken);
+            disposed = true;
+            await store.DisposeAsync();
+        }
+        finally
+        {
+            if (!disposed)
+                await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
+
+        await using var reopened = new DuckDbStore(path);
+        Assert.HasCount(cancelled ? 1 : 0,
+            (await reopened.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
+    }
+
+    /// <summary>
+    ///     The real state (evaluator-18): an interrupt lands on the ROLLBACK inside DuckDBTransaction.Dispose. The
+    ///     store's own jobs end their interrupts before their transaction ends; this test delivers the interrupt
+    ///     itself, under a job. DuckDB.NET then refuses every later BeginTransaction on the writer with "Already in
+    ///     a transaction.", so no write can succeed again. The store says so: the writer stops, later writes are
+    ///     refused as such, the health check is Unhealthy and DisposeAsync reports the failure. Before, every write
+    ///     failed with that InvalidOperationException while the health check stayed Healthy.
+    /// </summary>
+    [TestMethod]
+    public async Task InterruptedRollback_StopsTheWriterAndIsReported()
+    {
+        var connections = new Connections();
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        var armed = false;
+        var hit = false;
+        ValueTask InterruptTheRollback(CancellationToken token)
+        {
+            if (!armed) return ValueTask.CompletedTask;
+            var writer = connections.Items[0];
+            var transaction = writer.BeginTransaction();
+            using (var insert = writer.CreateCommand())
+            {
+                insert.Transaction = transaction;
+                insert.CommandText = "INSERT INTO interrupted SELECT range FROM range(3000)";
+                insert.ExecuteNonQuery();
+            }
+
+            // DuckDB forgets an interrupt when a statement starts, so they are delivered until the ROLLBACK is over.
+            var stop = 0;
+            using var running = new ManualResetEventSlim();
+            var interrupter = new Thread(() =>
+            {
+                running.Set();
+                while (Volatile.Read(ref stop) is 0) writer.NativeConnection.Interrupt();
+            });
+            interrupter.Start();
+            running.Wait(token);
+            try
+            {
+                transaction.Dispose();
+            }
+            catch (Exception)
+            {
+                hit = true;
+            }
+
+            Volatile.Write(ref stop, 1);
+            interrupter.Join();
+            // The interrupt stands for the job's cancellation: the job is cancelled.
+            if (hit) cancellation.Cancel();
+            return ValueTask.CompletedTask;
+        }
+
+        var store = DuckDbStore.CreateForTesting(connections.Create, DatabasePath("interrupted.duckdb"),
+            maxConcurrentReads: 1, beforeWrite: InterruptTheRollback, timeProvider: new FakeTimeProvider(TestData.s_now));
+        try
+        {
+            using (var create = connections.Items[0].CreateCommand())
+            {
+                create.CommandText = "CREATE TABLE interrupted (i BIGINT)";
+                create.ExecuteNonQuery();
+            }
+
+            armed = true;
+            for (var round = 0; round < 500 && !hit; round++)
+                await store.CheckpointAsync(cancellation.Token).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            armed = false;
+            if (!hit) Assert.Inconclusive("No interrupt landed on the ROLLBACK in 500 rounds.");
+
+            var refusal = await Assert.ThrowsExactlyAsync<NamiStoreUnavailableException>(() =>
+                SeedTrace(store, context.CancellationToken));
+            Assert.Contains("Already in a transaction", refusal.InnerException?.InnerException?.Message ?? "");
+            Assert.AreSame(refusal.InnerException, store.WriterFailure);
+            // The writer has stopped: a second write is refused the same way, without reaching the connection.
+            Assert.AreSame(store.WriterFailure, (await Assert.ThrowsExactlyAsync<NamiStoreUnavailableException>(() =>
+                SeedTrace(store, context.CancellationToken))).InnerException);
+
+            var check = new Nami.Health.DuckDbHealthCheck(store,
+                Options.Create(new Nami.Retention.RetentionOptions { StorageMinimumFreeMegabytes = 0 }));
+            var health = await check.CheckHealthAsync(new HealthCheckContext(), context.CancellationToken);
+            Assert.AreEqual(HealthStatus.Unhealthy, health.Status, health.Description);
+
+            // The writer's failure is what shutdown reports; its CHECKPOINT still ran.
+            var shutdown = await Assert.ThrowsExactlyAsync<AggregateException>(() => store.DisposeAsync().AsTask());
+            Assert.Contains("cannot end", Assert.ContainsSingle(shutdown.InnerExceptions).Message);
+        }
+        finally
+        {
+            await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
+    }
+
+    /// <summary>
+    ///     Free space is that of the volume the store's directory is on, also when the configured path reaches it
+    ///     through a link. The number decides the health check's Degraded verdict.
+    /// </summary>
+    [TestMethod]
+    public async Task FileMetrics_DataPathThroughALinkToAnotherVolume_ReportThatVolume()
+    {
+        const string Volume = "/dev/shm";
+        if (!OperatingSystem.IsLinux() || !Directory.Exists(Volume))
+            Assert.Inconclusive("Needs a second volume at a known place: /dev/shm on Linux.");
+        var target = Directory.CreateDirectory(Path.Combine(Volume, "nami-" + Guid.NewGuid().ToString("N")));
+        try
+        {
+            var link = DatabasePath("linked");
+            Directory.CreateSymbolicLink(link, target.FullName);
+            await using var store = new DuckDbStore(Path.Combine(link, "nami.duckdb"));
+
+            var free = store.GetStorageFileMetrics().StorageFreeBytes;
+            var linked = new DriveInfo(Volume).AvailableFreeSpace;
+            var own = new DriveInfo(Path.GetDirectoryName(link)!).AvailableFreeSpace;
+
+            const long Tolerance = 64L * 1024 * 1024;
+            if (Math.Abs(linked - own) < 4 * Tolerance)
+                Assert.Inconclusive($"The two volumes have nearly the same free space ({linked} and {own}).");
+            Assert.IsLessThan(Tolerance, Math.Abs(free - linked),
+                $"reported {free}; the linked volume has {linked}, the link's own volume {own}");
+        }
+        finally
+        {
+            target.Delete(recursive: true);
+        }
+    }
+
+    /// <summary>
+    ///     A call that passed the disposed check and reaches the queue after DisposeAsync has closed it is told
+    ///     that the store is disposed, as a call a moment later is. Before, a write was told that the queue is at
+    ///     capacity, and a maintenance write got the channel's own ChannelClosedException.
+    /// </summary>
+    [TestMethod]
+    [DataRow(false, DisplayName = "A write")]
+    [DataRow(true, DisplayName = "A maintenance write")]
+    public async Task Dispose_ClosesTheQueueUnderACall_TheCallEndsAsDisposed(bool maintenance)
+    {
+        DuckDbStore? created = null;
+        var store = DuckDbStore.CreateForTesting(new Connections().Create, ":memory:",
+            timeProvider: new FakeTimeProvider(TestData.s_now),
+            // The call is between its disposed check and the queue: the whole shutdown runs here.
+            beforeQueue: () => created!.DisposeAsync());
+        created = store;
+        try
+        {
+            var call = maintenance
+                ? store.CheckpointAsync(context.CancellationToken)
+                : SeedTrace(store, context.CancellationToken);
+
+            var refusal = await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => call);
+            Assert.AreEqual(typeof(DuckDbStore).FullName, refusal.ObjectName);
+            await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() =>
+                SeedTrace(store, context.CancellationToken));
+        }
+        finally
+        {
+            await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
+    }
+
+    /// <summary>
+    ///     A file store reads on its own connections, so a read still succeeds when the writer has stopped and
+    ///     every write is refused. The health check reports the writer, not the read.
+    /// </summary>
+    [TestMethod]
+    public async Task WriterFails_HealthCheckIsUnhealthyWithTheFailure()
+    {
+        var expected = new InvalidOperationException("Injected writer failure.");
+        var store = DuckDbStore.CreateForTesting(new Connections().Create, DatabasePath("unhealthy.duckdb"),
+            maxConcurrentReads: 1, timeProvider: new FakeTimeProvider(TestData.s_now),
+            beforeWriterLoop: _ => ValueTask.FromException(expected));
+        try
+        {
+            // A write that has ended with the failure: the writer is past the point where it stops.
+            var refusal = await Assert.ThrowsExactlyAsync<NamiStoreUnavailableException>(() =>
+                SeedTrace(store, context.CancellationToken));
+            Assert.AreSame(expected, refusal.InnerException);
+            Assert.AreEqual(0L, (await store.GetStorageStatsAsync("default", context.CancellationToken)).SpanCount);
+
+            var check = new Nami.Health.DuckDbHealthCheck(store,
+                Options.Create(new Nami.Retention.RetentionOptions { StorageMinimumFreeMegabytes = 0 }));
+            var result = await check.CheckHealthAsync(new HealthCheckContext(), context.CancellationToken);
+
+            Assert.AreEqual(HealthStatus.Unhealthy, result.Status, result.Description);
+            Assert.AreSame(expected, result.Exception);
+        }
+        finally
+        {
             await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
     }

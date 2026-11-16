@@ -12,6 +12,7 @@ internal sealed partial class DuckDbStore
             var capturedAt = _timeProvider.GetUtcNow();
             var now = NamiTimeConversions.ToUnixNanoUnsigned(capturedAt);
             await using var transaction = connection.BeginTransaction();
+            using var rollbackUninterrupted = WriterInterrupt.EndBeforeTheTransactionDoes();
             if (snapshotId is not null)
             {
                 await using var read = connection.CreateCommand();

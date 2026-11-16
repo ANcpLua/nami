@@ -13,6 +13,15 @@ internal sealed class DuckDbHealthCheck(INamiStore store, IOptions<RetentionOpti
     {
         try
         {
+            // The read below runs on the reader pool and still succeeds when the writer has stopped; every write
+            // is then refused. The writer's state is asked for itself.
+            if (store.WriterFailure is { } writerFailure)
+            {
+                return HealthCheckResult.Unhealthy(
+                    "DuckDB writer stopped after a failure; the store accepts no writes",
+                    writerFailure);
+            }
+
             var stats = await store.GetStorageStatsAsync(ProjectScope.DefaultProjectId, cancellationToken)
                 .ConfigureAwait(false);
             var fileMetrics = store.GetStorageFileMetrics();

@@ -23,10 +23,7 @@ internal static class IngestionStorageMapper
 
         return ModelMappings.ToModel(span, new SpanStorageValues
         {
-            AttributeRenames = NormalizedAttributes.Collect([
-                span.Attributes, span.ResourceAttributes, span.ScopeAttributes,
-                .. span.Events.Select(static e => e.Attributes), .. span.Links.Select(static l => l.Attributes)
-            ]),
+            AttributeRenames = CollectRenames(span),
             ProjectId = ProjectScope.ForIngest(span.ProjectIdHint, authenticatedProjectId),
             ParentSpanId = string.IsNullOrEmpty(span.ParentSpanId) ? null : span.ParentSpanId,
             SessionId = span.Attributes.GetSessionId(),
@@ -40,6 +37,21 @@ internal static class IngestionStorageMapper
             LinksJson = SpanChildStorage.SerializeLinks(span.Links),
             ScopeAttributesJson = PersistedAttributePolicy.SerializeScopeAttributes(span.ScopeAttributes),
         }, projection);
+    }
+
+    // Most records rename nothing; collecting from empty lists allocated for every span.
+    private static IReadOnlyList<AttributeRename> CollectRenames(SpanIngestionRecord span)
+    {
+        var any = span.Attributes.Renames.Count > 0 || span.ResourceAttributes.Renames.Count > 0 ||
+                  span.ScopeAttributes.Renames.Count > 0;
+        for (var i = 0; !any && i < span.Events.Count; i++) any = span.Events[i].Attributes.Renames.Count > 0;
+        for (var i = 0; !any && i < span.Links.Count; i++) any = span.Links[i].Attributes.Renames.Count > 0;
+        return any
+            ? NormalizedAttributes.Collect([
+                span.Attributes, span.ResourceAttributes, span.ScopeAttributes,
+                .. span.Events.Select(static e => e.Attributes), .. span.Links.Select(static l => l.Attributes)
+            ])
+            : [];
     }
 
     private static LogStorageRow ToLogStorageRow(LogIngestionRecord log, string? authenticatedProjectId)

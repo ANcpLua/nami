@@ -29,6 +29,12 @@ internal interface INamiStore : IAsyncDisposable
     Task<(long Logs, long Spans, long MetricPoints, long MetricSeries)> DeleteExpiredAsync(ulong cutoffUnixNano,
         CancellationToken ct = default);
 
+    /// <summary>
+    ///     The failure that stopped the writer, or null while it runs. Reads of a file store go on after it, on
+    ///     their own connections, so a read that succeeds says nothing about writes.
+    /// </summary>
+    Exception? WriterFailure => null;
+
     StorageFileMetrics GetStorageFileMetrics();
     Task<StorageStats> GetStorageStatsAsync(string projectId, CancellationToken ct = default);
 }

@@ -6,11 +6,18 @@ namespace Nami.Collector.Storage;
 
 internal sealed partial class DuckDbStore : INamiStore
 {
-    private const int MaxSpansPerBatch = 100;
+    private static readonly StagedInsert<SpanStorageRow> s_spanStage = new(SpanStorageRow.StageTableName,
+        SpanStorageRow.CreateStageSql, SpanStorageRow.StageKeyOccurrencesSql, SpanStorageRow.MergeStageSql,
+        SpanStorageRow.MergeStageOccurrenceSql, SpanStorageRow.DropStageSql, SpanStorageRow.AppendStageRow,
+        SpanStorageRow.InsertSql, SpanStorageRow.AddParameters);
 
-    private const int MaxLogsPerBatch = 150;
+    private static readonly StagedInsert<LogStorageRow> s_logStage = new(LogStorageRow.StageTableName,
+        LogStorageRow.CreateStageSql, LogStorageRow.StageKeyOccurrencesSql, LogStorageRow.MergeStageSql,
+        LogStorageRow.MergeStageOccurrenceSql, LogStorageRow.DropStageSql, LogStorageRow.AppendStageRow,
+        LogStorageRow.InsertSql, LogStorageRow.AddParameters);
 
     private static readonly TimeSpan s_shutdownTimeout = TimeSpan.FromSeconds(5);
+    private readonly Func<ValueTask>? _beforeQueue;
     private readonly Func<CancellationToken, ValueTask>? _beforeWrite;
     private readonly Func<CancellationToken, ValueTask>? _beforeWriterLoop;
 
@@ -45,7 +52,7 @@ internal sealed partial class DuckDbStore : INamiStore
         TimeSpan? snapshotLifetime = null)
         : this(static value => new DuckDBConnection(value), databasePath, jobQueueCapacity, maxConcurrentReads,
             readQueueCapacity, memoryLimit, threads, tempDirectory, beforeWrite, loggerFactory, timeProvider,
-            snapshotLifetime, beforeWriterLoop: null)
+            snapshotLifetime, beforeWriterLoop: null, beforeQueue: null)
     {
     }
 
@@ -62,10 +69,11 @@ internal sealed partial class DuckDbStore : INamiStore
         ILoggerFactory? loggerFactory = null,
         TimeProvider? timeProvider = null,
         TimeSpan? snapshotLifetime = null,
-        Func<CancellationToken, ValueTask>? beforeWriterLoop = null) =>
+        Func<CancellationToken, ValueTask>? beforeWriterLoop = null,
+        Func<ValueTask>? beforeQueue = null) =>
         new(connectionFactory, databasePath, jobQueueCapacity, maxConcurrentReads, readQueueCapacity,
             memoryLimit, threads, tempDirectory, beforeWrite, loggerFactory, timeProvider, snapshotLifetime,
-            beforeWriterLoop);
+            beforeWriterLoop, beforeQueue);
 
     private DuckDbStore(
         Func<string, DuckDBConnection> connectionFactory,
@@ -80,7 +88,8 @@ internal sealed partial class DuckDbStore : INamiStore
         ILoggerFactory? loggerFactory,
         TimeProvider? timeProvider,
         TimeSpan? snapshotLifetime,
-        Func<CancellationToken, ValueTask>? beforeWriterLoop)
+        Func<CancellationToken, ValueTask>? beforeWriterLoop,
+        Func<ValueTask>? beforeQueue)
     {
         ArgumentNullException.ThrowIfNull(connectionFactory);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(jobQueueCapacity);
@@ -100,6 +109,7 @@ internal sealed partial class DuckDbStore : INamiStore
         }.ConnectionString;
         _beforeWrite = beforeWrite;
         _beforeWriterLoop = beforeWriterLoop;
+        _beforeQueue = beforeQueue;
         _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(jobQueueCapacity)
         {
             FullMode = BoundedChannelFullMode.Wait,
@@ -211,6 +221,8 @@ internal sealed partial class DuckDbStore : INamiStore
 
     private DuckDBConnection Connection { get; }
 
+    public Exception? WriterFailure => Read(ref _writerFailure);
+
     public async ValueTask DisposeAsync()
     {
         Task<List<Exception>?> shutdown;
@@ -281,6 +293,8 @@ internal sealed partial class DuckDbStore : INamiStore
         {
             try
             {
+                // No job runs any more; a transaction one of them left open would refuse the checkpoint.
+                RollBackLeftTransaction(Connection);
                 await using var checkpoint = Connection.CreateCommand();
                 checkpoint.CommandText = "CHECKPOINT";
                 checkpoint.ExecuteNonQuery();
@@ -320,8 +334,13 @@ internal sealed partial class DuckDbStore : INamiStore
         // The batch is refused whole, before it is queued, and the same way on every retry.
         for (var i = 0; i < batch.Spans.Count; i++)
         {
-            if (batch.Spans[i].EndTimeUnixNano < batch.Spans[i].StartTimeUnixNano)
+            var span = batch.Spans[i];
+            if (span.EndTimeUnixNano < span.StartTimeUnixNano)
                 throw new InvalidDataException("Span end time must not precede its start.");
+            // duration_ns is stored beside the bounds it is derived from; the tools compute from the bounds
+            // (ToolValues.Elapsed). A row whose three numbers disagree would answer differently by column.
+            if (span.DurationNs != span.EndTimeUnixNano - span.StartTimeUnixNano)
+                throw new InvalidDataException("Span duration must equal its end time minus its start time.");
         }
 
         await ExecuteWriteAsync(
@@ -383,8 +402,8 @@ internal sealed partial class DuckDbStore : INamiStore
         await ExecuteWriteAsync(async (con, token) =>
         {
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
-            await InsertRowsBatchedAsync(con, tx, knownTimes, LogStorageRow.AddParameters,
-                LogStorageRow.BuildMultiRowInsertSql, MaxLogsPerBatch, token);
+            using var rollbackUninterrupted = WriterInterrupt.EndBeforeTheTransactionDoes();
+            InsertRowsStaged(con, tx, knownTimes, s_logStage, token);
             RecordIngestion(con, tx, "logs",
                 knownTimes.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName, row.ResourceJson,
                     row.AttributesJson, row.ScopeAttributesJson, row.AttributeRenames)), token);
@@ -415,6 +434,7 @@ internal sealed partial class DuckDbStore : INamiStore
         ThrowIfDisposed();
         ct.ThrowIfCancellationRequested();
         var job = new WriteJob<T>(operation, cancelAfterClaim, ct);
+        if (_beforeQueue is not null) await _beforeQueue().ConfigureAwait(false);
         if (!_jobs.Writer.TryWrite(job))
             throw WriteRefused();
         job.ArmCancellation();
@@ -431,6 +451,7 @@ internal sealed partial class DuckDbStore : INamiStore
             await operation(con, token).ConfigureAwait(false);
             return 0;
         }, cancelAfterClaim: false, ct);
+        if (_beforeQueue is not null) await _beforeQueue().ConfigureAwait(false);
         if (!_jobs.Writer.TryWrite(job))
             throw WriteRefused();
         job.ArmCancellation();
@@ -444,27 +465,67 @@ internal sealed partial class DuckDbStore : INamiStore
         ThrowIfDisposed();
         ct.ThrowIfCancellationRequested();
         var job = new WriteJob<T>(operation, cancelAfterClaim: true, ct);
+        if (_beforeQueue is not null) await _beforeQueue().ConfigureAwait(false);
         try
         {
             await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
         }
-        catch (ChannelClosedException) when (Read(ref _writerFailure) is not null)
+        catch (ChannelClosedException)
         {
-            throw WriteRefused();
+            // Only a failed writer and DisposeAsync close the queue; a caller that raced either is told which.
+            throw QueueClosed();
         }
 
         job.ArmCancellation();
         return await job.Task.ConfigureAwait(false);
     }
 
-    private NamiStoreUnavailableException WriteRefused() =>
+    // TryWrite refuses a full queue and a closed one alike. DisposeAsync marks the store disposed before it closes
+    // the queue, and a failed writer records its failure before it does, so the state tells the two apart.
+    private Exception WriteRefused() =>
+        Read(ref _writerFailure) is not null || Read(ref _disposed) is not 0
+            ? QueueClosed()
+            : new NamiStoreUnavailableException("DuckDB write queue is at capacity.");
+
+    // What a call gets that arrives after the writer failed or after DisposeAsync: the same, whether it arrived
+    // before the queue was closed or while it was.
+    private Exception QueueClosed() =>
         Read(ref _writerFailure) is { } failure
             ? WriterStopped(failure)
-            : new NamiStoreUnavailableException("DuckDB write queue is at capacity.");
+            : new ObjectDisposedException(GetType().FullName);
 
     private static NamiStoreUnavailableException WriterStopped(Exception failure) =>
         new("DuckDB writer stopped after a failure; the store accepts no further work.", failure);
 
+
+    /// <summary>
+    ///     Ends a transaction that a cancelled job left on the writer's connection. A job's transaction is rolled
+    ///     back when the job disposes it, but the interrupt of the job's cancellation can end that ROLLBACK itself.
+    ///     An interrupt can also still be pending here, so the statement is tried again; DuckDB's refusal of a
+    ///     ROLLBACK without a transaction is the usual answer and means there is nothing to do.
+    /// </summary>
+    private static void RollBackLeftTransaction(DuckDBConnection con)
+    {
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            try
+            {
+                using var rollback = con.CreateCommand();
+                rollback.CommandText = "ROLLBACK";
+                rollback.ExecuteNonQuery();
+                return;
+            }
+            catch (DuckDBException error) when (error.Message.Contains("no transaction is active",
+                                                    StringComparison.Ordinal))
+            {
+                return;
+            }
+            catch (Exception error) when (error is DuckDBException or OperationCanceledException)
+            {
+                // Interrupted: once more.
+            }
+        }
+    }
 
     private void AddShutdownError(ref List<Exception>? errors, Exception error)
     {
@@ -473,23 +534,82 @@ internal sealed partial class DuckDbStore : INamiStore
         DuckDbStoreLog.ShutdownFailed(_logger, error);
     }
 
-    private static async Task InsertRowsBatchedAsync<T>(
-        DuckDBConnection con, DbTransaction tx, IReadOnlyList<T> rows,
-        Action<DuckDBCommand, T> addParams, Func<int, string> buildSql, int maxBatch, CancellationToken ct)
+    /// <summary>What the generated row type of one table gives a batch: its temporary table and the statements on it.</summary>
+    private readonly record struct StagedInsert<T>(
+        string StageTable,
+        string CreateSql,
+        string KeyOccurrencesSql,
+        string MergeSql,
+        string MergeOccurrenceSql,
+        string DropSql,
+        Action<IDuckDBAppenderRow, T, long> Append,
+        string InsertSql,
+        Action<DuckDBCommand, T> AddParameters);
+
+    /// <summary>
+    ///     Writes a batch in the caller's transaction: DuckDB's appender fills a temporary table of the writer's
+    ///     connection, and one statement moves the rows into the table, in the order of the batch and under the table's
+    ///     conflict rule. A batch that holds a key more than once is moved one occurrence after the other, so a later
+    ///     row meets the earlier one as it would in a later batch. When the transaction is rolled back, the temporary
+    ///     table goes with it. A batch of one row, what a sender without batching exports, is one INSERT of bound
+    ///     parameters: the temporary table costs a write of one row about 5 ms more than that statement.
+    /// </summary>
+    private static void InsertRowsStaged<T>(DuckDBConnection con, DbTransaction tx, IReadOnlyList<T> rows,
+        in StagedInsert<T> stage, CancellationToken ct)
     {
         if (rows.Count is 0) return;
-        var offset = 0;
-        while (offset < rows.Count)
+        using var command = con.CreateCommand();
+        command.Transaction = tx;
+        // CA2100: every statement below is a constant of the generated row type; the rows are bound parameters or go
+        // through the appender.
+        if (rows.Count is 1)
         {
-            var chunk = Math.Min(maxBatch, rows.Count - offset);
-            await using var cmd = con.CreateCommand();
-            cmd.Transaction = tx;
-            // CA2100: buildSql is a generated row type's multi-row INSERT of $n placeholders; the rows are parameters.
-            cmd.CommandText = buildSql(chunk);
-            for (var i = 0; i < chunk; i++) addParams(cmd, rows[offset + i]);
-            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-            offset += chunk;
+            command.CommandText = stage.InsertSql;
+            stage.AddParameters(command, rows[0]);
+            command.ExecuteNonQuery();
+            return;
         }
+
+        command.CommandText = stage.CreateSql;
+        command.ExecuteNonQuery();
+        using (var appender = con.CreateAppender("temp", "main", stage.StageTable))
+        {
+            for (var i = 0; i < rows.Count; i++)
+            {
+                if ((i & 0xFF) is 0) ct.ThrowIfCancellationRequested();
+                stage.Append(appender.CreateRow(), rows[i], i);
+            }
+        }
+
+        long occurrences = 1;
+        if (stage.KeyOccurrencesSql.Length > 0)
+        {
+            command.CommandText = stage.KeyOccurrencesSql;
+            occurrences = Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        }
+
+        if (occurrences <= 1)
+        {
+            command.CommandText = stage.MergeSql;
+            command.ExecuteNonQuery();
+        }
+        else
+        {
+            command.CommandText = stage.MergeOccurrenceSql;
+            var occurrence = new DuckDBParameter();
+            command.Parameters.Add(occurrence);
+            for (long current = 1; current <= occurrences; current++)
+            {
+                ct.ThrowIfCancellationRequested();
+                occurrence.Value = current;
+                command.ExecuteNonQuery();
+            }
+
+            command.Parameters.Clear();
+        }
+
+        command.CommandText = stage.DropSql;
+        command.ExecuteNonQuery();
     }
 
     private async Task WriterLoopAsync()
@@ -508,7 +628,7 @@ internal sealed partial class DuckDbStore : INamiStore
                 {
                     await job.ExecuteAsync(Connection, _beforeWrite, _cts.Token).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not WriterConnectionUnusableException)
                 {
                     job.OnAborted(ex);
                 }
@@ -580,9 +700,9 @@ internal sealed partial class DuckDbStore : INamiStore
             return;
 
         await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
+        using var rollbackUninterrupted = WriterInterrupt.EndBeforeTheTransactionDoes();
 
-        await InsertRowsBatchedAsync(con, tx, batch.Spans, SpanStorageRow.AddParameters,
-            SpanStorageRow.BuildMultiRowInsertSql, MaxSpansPerBatch, ct);
+        InsertRowsStaged(con, tx, batch.Spans, s_spanStage, ct);
         RecordIngestion(con, tx, "traces",
             batch.Spans.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName, row.ResourceJson,
                 row.AttributesJson, row.ScopeAttributesJson, row.AttributeRenames)), ct);
@@ -595,7 +715,11 @@ internal sealed partial class DuckDbStore : INamiStore
         // Tuning for a write-heavy embedded store. preserve_insertion_order=false drops the
         // bookkeeping that keeps physical row order — telemetry never needs it — which cuts ingest
         // memory and lifts bulk-write throughput. memory_limit / threads / temp_directory are
-        // operator-supplied (trusted config); when unset, DuckDB's own defaults apply.
+        // operator-supplied (trusted config); when unset, DuckDB's own defaults apply. nami sets no memory
+        // limit of its own: a default of 512 MiB refused a metrics request of 2,000 data points, which is
+        // inside the ingest bounds (the metric projection runs one statement per observation in one
+        // transaction and needs about 1 GiB for 3,000), and 256MB refused reading 500,000 spans from an
+        // in-memory store (ledger N48).
         ExecutePragma(con, "SET preserve_insertion_order = false");
 
         if (!string.IsNullOrWhiteSpace(memoryLimit))
@@ -1061,15 +1185,40 @@ internal sealed partial class DuckDbStore : INamiStore
                 ? CancellationTokenSource.CreateLinkedTokenSource(ct, cancellationToken)
                 : null;
             var token = linkedCancellation?.Token ?? ct;
+            WriterConnectionUnusableException? unusable = null;
             try
             {
-                await using var interrupt = token.Register(con.NativeConnection.Interrupt);
-                token.ThrowIfCancellationRequested();
-                if (beforeWrite is not null)
-                    await beforeWrite(token).ConfigureAwait(false);
-                token.ThrowIfCancellationRequested();
-                var result = await action(con, token).ConfigureAwait(false);
-                _tcs.TrySetResult(result);
+                var delivery = WriterInterrupt.Begin(con);
+                var interrupt = token.Register(delivery.Deliver);
+                try
+                {
+                    token.ThrowIfCancellationRequested();
+                    if (beforeWrite is not null)
+                        await beforeWrite(token).ConfigureAwait(false);
+                    token.ThrowIfCancellationRequested();
+                    var result = await action(con, token).ConfigureAwait(false);
+                    _tcs.TrySetResult(result);
+                }
+                finally
+                {
+                    // An action ends its interrupts before its transaction ends (WriterInterrupt), so none should
+                    // land on the ROLLBACK. If one did, DuckDB's transaction is still open and aborted: this ends it
+                    // for DuckDB, so that the shutdown CHECKPOINT runs. It does not repair DuckDB.NET, whose
+                    // connection still counts the transaction as its own and refuses the next BeginTransaction; that
+                    // refusal stops the writer (below).
+                    await interrupt.DisposeAsync().ConfigureAwait(false);
+                    WriterInterrupt.End();
+                    if (token.IsCancellationRequested)
+                        RollBackLeftTransaction(con);
+                }
+            }
+            catch (InvalidOperationException ex) when (ex.Message == "Already in a transaction.")
+            {
+                // DuckDB.NET's refusal of BeginTransaction on a connection that an interrupted ROLLBACK left with a
+                // transaction it can no longer end. No later write can succeed on this connection, so this is not
+                // one failed job: the writer stops, as it does when its loop fails.
+                unusable = new WriterConnectionUnusableException(ex);
+                _tcs.TrySetException(WriterStopped(unusable));
             }
             catch (Exception) when (token.IsCancellationRequested)
             {
@@ -1087,6 +1236,9 @@ internal sealed partial class DuckDbStore : INamiStore
             {
                 await _cancellationRegistration.DisposeAsync().ConfigureAwait(false);
             }
+
+            if (unusable is not null)
+                throw unusable;
         }
 
         public override void OnAborted(Exception error)
@@ -1102,6 +1254,49 @@ internal sealed partial class DuckDbStore : INamiStore
         {
             if (Interlocked.CompareExchange(ref _state, 2, 0) is 0)
                 _tcs.TrySetCanceled(cancellationToken);
+        }
+    }
+
+    /// <summary>The writer's connection refuses a new transaction; the writer loop ends with this failure.</summary>
+    private sealed class WriterConnectionUnusableException(Exception inner) : InvalidOperationException(
+        "The writer's connection was left in a transaction that it cannot end; the writer stops.", inner);
+
+    /// <summary>
+    ///     The interrupt of the job that runs on the writer. A job's cancellation interrupts the statement in
+    ///     flight; it must not interrupt the ROLLBACK that ends the job's transaction, because DuckDB.NET then keeps
+    ///     a transaction it can neither end nor replace. An action declares
+    ///     <see cref="EndBeforeTheTransactionDoes" /> right after its transaction, so that it is disposed first: from
+    ///     then on no interrupt is delivered, and one that is being delivered has returned. DuckDB forgets an
+    ///     interrupt when the next statement starts.
+    /// </summary>
+    private sealed class WriterInterrupt(DuckDBConnection con)
+    {
+        private static readonly AsyncLocal<WriterInterrupt?> s_current = new();
+        private readonly Lock _gate = new();
+        private bool _ended;
+
+        internal static WriterInterrupt Begin(DuckDBConnection con) => s_current.Value = new WriterInterrupt(con);
+
+        internal static void End() => s_current.Value = null;
+
+        internal static Ending EndBeforeTheTransactionDoes() => new(s_current.Value);
+
+        internal void Deliver()
+        {
+            lock (_gate)
+            {
+                if (!_ended) con.NativeConnection.Interrupt();
+            }
+        }
+
+        private void EndDelivery()
+        {
+            lock (_gate) _ended = true;
+        }
+
+        internal readonly struct Ending(WriterInterrupt? interrupt) : IDisposable
+        {
+            public void Dispose() => interrupt?.EndDelivery();
         }
     }
 
