@@ -1,12 +1,6 @@
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)../Directory.Build.targets"/>
   <Import Project="$(MSBuildThisFileDirectory)GeneratedFixtures.targets"/>
-  <!-- nami has no native Windows build (README, PRD 4.1), so the tests carry no guard for it. Without Windows
-       in this list the platform analyzer (CA1416) accepts Unix-only calls such as File.SetUnixFileMode. The SDK
-       adds its three platforms in its props, after Directory.Build.props, hence here in the targets. -->
-  <ItemGroup>
-    <SupportedPlatform Remove="Windows"/>
-  </ItemGroup>
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'Nami.Tests' Or '$(MSBuildProjectName)' == 'Nami.IntegrationTests'">
     <Reference Include="Microsoft.CodeAnalysis" HintPath="$(RoslynTargetsPath)/bincore/Microsoft.CodeAnalysis.dll" Private="true"/>
     <Reference Include="Microsoft.CodeAnalysis.CSharp" HintPath="$(RoslynTargetsPath)/bincore/Microsoft.CodeAnalysis.CSharp.dll" Private="true"/>
