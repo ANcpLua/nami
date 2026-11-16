@@ -54,7 +54,7 @@ internal sealed class OtlpExportMethodProvider<
                             return OtlpPayloadParser.ParseProtobuf(parser, descriptor,
                                 deserialization.PayloadAsReadOnlySequence(), limits);
                         }
-                        catch (InvalidProtocolBufferException)
+                        catch (Exception refused) when (refused is InvalidProtocolBufferException or OtlpMalformedPayloadException)
                         {
                             throw new RpcException(new Status(StatusCode.InvalidArgument,
                                 "The OTLP request contains invalid protobuf."));

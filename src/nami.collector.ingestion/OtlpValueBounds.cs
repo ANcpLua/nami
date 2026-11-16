@@ -57,8 +57,10 @@ internal readonly record struct OtlpRequestCounts(int Messages, int Records);
 ///     <para>
 ///         Everything else stays byte for byte as it was sent, so an export within the bounds parses exactly as it
 ///         did without this step. What is replaced is not validated: a structure over the cap that is also
-///         malformed inside is dropped, not refused. Bytes that are no well-formed message are left alone, so the
-///         parser's own failure stands. The size counts the value as it was sent: over protobuf its length on the
+///         malformed inside is dropped, not refused. Protobuf bytes the scan cannot read exactly as it counts them
+///         are refused with an <see cref="OtlpMalformedPayloadException" />: a field that does not end inside its
+///         message, a group, a tag or a length longer than five bytes. Google.Protobuf accepts some of those and
+///         would build what the scan did not count. JSON that is no well-formed document is left to the parser. The size counts the value as it was sent: over protobuf its length on the
 ///         wire, over JSON the length its protobuf encoding has. <see cref="IsOversizedStructure" /> is the same
 ///         rule on a parsed value, for the converter and for the tests that hold the three forms together.
 ///     </para>
@@ -173,10 +175,12 @@ internal static class OtlpValueBounds
         internal readonly int MaxNesting = limits.MaxValueNesting;
         internal readonly int MaxMessages = limits.MaxRequestMessages;
         internal readonly int MaxRecords = limits.MaxRequestRecords;
+        internal readonly int MaxElements = limits.MaxRequestElements;
         internal int Oversized;
         internal int TooDeep;
         internal int Messages;
         internal int Records;
+        internal long Elements;
 
         internal readonly bool TooMany => Messages > MaxMessages || Records > MaxRecords;
     }
@@ -184,23 +188,28 @@ internal static class OtlpValueBounds
     private enum Walk
     {
         Fits,
-        Over,
-        Malformed
+        Over
     }
 
     // Every message of the request: each is counted, an attribute value or a log body is bounded, and every other
-    // message is read through to the messages it holds. The scan ends when the request holds too many messages
-    // or too many records.
+    // message is read through to the messages it holds. The elements of repeated scalar fields are counted on the
+    // way. The scan ends when the request holds too many messages or too many records.
     private static void ScanMessage(Span<byte> message, MessageDescriptor descriptor, int depth, ref Scan scan)
     {
-        if (depth > MaxMessageDepth) return;
+        if (depth > MaxMessageDepth) throw Malformed("messages nested deeper than a parser reads");
         var position = 0;
         while (position < message.Length && !scan.TooMany)
         {
-            if (!TryReadField(message, ref position, out var number, out var wireType, out var start, out var length))
-                return;
+            ReadField(message, ref position, out var number, out var wireType, out var start, out var length);
+            var field = descriptor.FindFieldByNumber(number);
+            if (field is null) continue;
+            if (field.FieldType is not FieldType.Message)
+            {
+                if (field.IsRepeated) CountElements(field, wireType, message.Slice(start, length), ref scan);
+                continue;
+            }
+
             if (wireType != WireTypeLengthDelimited) continue;
-            if (descriptor.FindFieldByNumber(number) is not { FieldType: FieldType.Message } field) continue;
             scan.Messages++;
             if (s_recordTypes.Contains(field.MessageType)) scan.Records++;
             if (length == 0) continue;
@@ -212,6 +221,37 @@ internal static class OtlpValueBounds
         }
     }
 
+    // The elements one occurrence of a repeated scalar field adds: one when it is not packed, and for a packed
+    // field as many as its bytes hold, by the width of the type or by the varints that end in them.
+    private static void CountElements(FieldDescriptor field, int wireType, ReadOnlySpan<byte> packed, ref Scan scan)
+    {
+        if (wireType != WireTypeLengthDelimited || field.FieldType is FieldType.String or FieldType.Bytes)
+        {
+            scan.Elements++;
+        }
+        else
+        {
+            switch (field.FieldType)
+            {
+                case FieldType.Double or FieldType.Fixed64 or FieldType.SFixed64:
+                    scan.Elements += packed.Length / 8;
+                    break;
+                case FieldType.Float or FieldType.Fixed32 or FieldType.SFixed32:
+                    scan.Elements += packed.Length / 4;
+                    break;
+                default:
+                    foreach (var value in packed)
+                        if (value < 0x80) scan.Elements++;
+                    break;
+            }
+        }
+
+        if (scan.Elements > scan.MaxElements) throw OtlpPayloadTooLargeException.TooManyElements(scan.MaxElements);
+    }
+
+    private static OtlpMalformedPayloadException Malformed(string what) =>
+        new("The OTLP request is not protobuf as an OTLP exporter writes it: " + what + ".");
+
     // One attribute value or log body: the body of an AnyValue that no other AnyValue holds.
     private static void BoundValue(Span<byte> value, ref Scan scan)
     {
@@ -221,7 +261,7 @@ internal static class OtlpValueBounds
         var position = 0;
         while (position < value.Length)
         {
-            if (!TryReadField(value, ref position, out var number, out var wireType, out _, out _)) return;
+            ReadField(value, ref position, out var number, out var wireType, out _, out _);
             if (number is < StringValueField or > LastOneofField) continue;
             last = number;
             holdsStructure |= wireType == WireTypeLengthDelimited && number is ArrayValueField or KvlistValueField;
@@ -238,9 +278,7 @@ internal static class OtlpValueBounds
             // Every structure on the wire is counted, also one a later member of the oneof replaces: the parser
             // builds it before it discards it.
             var left = scan.MaxNested;
-            var walk = WalkValue(value, 0, ref left, ref nested, ref scan);
-            if (walk is Walk.Malformed) return;
-            over = replaceable && walk is Walk.Over;
+            over = replaceable && WalkValue(value, 0, ref left, ref nested, ref scan) is Walk.Over;
         }
 
         if (!over)
@@ -270,8 +308,7 @@ internal static class OtlpValueBounds
         var position = 0;
         while (position < value.Length)
         {
-            if (!TryReadField(value, ref position, out var number, out var wireType, out var start, out var length))
-                return Walk.Malformed;
+            ReadField(value, ref position, out var number, out var wireType, out var start, out var length);
             if (wireType != WireTypeLengthDelimited || number is not (ArrayValueField or KvlistValueField)) continue;
             if (nesting >= scan.MaxNesting)
             {
@@ -286,9 +323,8 @@ internal static class OtlpValueBounds
             var inner = 0;
             while (inner < container.Length)
             {
-                if (!TryReadField(container, ref inner, out var itemNumber, out var itemType, out var itemStart,
-                        out var itemLength))
-                    return Walk.Malformed;
+                ReadField(container, ref inner, out var itemNumber, out var itemType, out var itemStart,
+                    out var itemLength);
                 if (itemType != WireTypeLengthDelimited || itemNumber != ValuesField) continue;
                 if (--left < 0) return Walk.Over;
                 messages++;
@@ -303,9 +339,8 @@ internal static class OtlpValueBounds
                 var member = 0;
                 while (member < item.Length)
                 {
-                    if (!TryReadField(item, ref member, out var memberNumber, out var memberType, out var memberStart,
-                            out var memberLength))
-                        return Walk.Malformed;
+                    ReadField(item, ref member, out var memberNumber, out var memberType, out var memberStart,
+                        out var memberLength);
                     if (memberType != WireTypeLengthDelimited || memberNumber != KeyValueValueField) continue;
                     messages++;
                     var walked = WalkValue(item.Slice(memberStart, memberLength), nesting + 1, ref left, ref messages,
@@ -361,51 +396,54 @@ internal static class OtlpValueBounds
         return length;
     }
 
-    // Reads one field. For a length-delimited field start and length are its content and position is left behind
-    // it. False for bytes that are no well-formed field; groups do not exist in proto3 and are left to the parser.
-    private static bool TryReadField(ReadOnlySpan<byte> message, ref int position, out int number, out int wireType,
+    // Reads one field, exactly or not at all. For a length-delimited field start and length are its content and
+    // position is left behind it. What an OTLP exporter does not write is refused: groups, and a tag or a length
+    // of more than five bytes or more than 32 bits, which Google.Protobuf cuts to 32 bits and reads on.
+    private static void ReadField(ReadOnlySpan<byte> message, ref int position, out int number, out int wireType,
         out int start, out int length)
     {
-        number = 0;
-        wireType = 0;
         start = 0;
         length = 0;
-        if (!TryReadVarint(message, ref position, out var tag) || tag >> 3 is 0 or > int.MaxValue) return false;
+        var tag = ReadVarint(message, ref position, 5);
+        if (tag > uint.MaxValue || tag >> 3 is 0) throw Malformed("a field tag is not a field number in 29 bits");
         number = (int)(tag >> 3);
         wireType = (int)(tag & 7);
         switch (wireType)
         {
             case WireTypeVarint:
-                return TryReadVarint(message, ref position, out _);
+                _ = ReadVarint(message, ref position, 10);
+                return;
             case WireTypeFixed64:
                 position += 8;
-                return position <= message.Length;
+                break;
             case WireTypeFixed32:
                 position += 4;
-                return position <= message.Length;
+                break;
             case WireTypeLengthDelimited:
-                if (!TryReadVarint(message, ref position, out var size) || size > (ulong)(message.Length - position))
-                    return false;
+                var size = ReadVarint(message, ref position, 5);
+                if (size > (ulong)(message.Length - position)) throw Malformed("a field is longer than the message that holds it");
                 start = position;
                 length = (int)size;
                 position += length;
-                return true;
+                return;
             default:
-                return false;
+                throw Malformed("it holds a group, and OTLP defines none");
         }
+
+        if (position > message.Length) throw Malformed("a field is longer than the message that holds it");
     }
 
-    private static bool TryReadVarint(ReadOnlySpan<byte> message, ref int position, out ulong value)
+    private static ulong ReadVarint(ReadOnlySpan<byte> message, ref int position, int maxBytes)
     {
-        value = 0;
-        for (var shift = 0; shift < 64 && position < message.Length; shift += 7)
+        ulong value = 0;
+        for (var read = 0; read < maxBytes && position < message.Length; read++)
         {
             var next = message[position++];
-            value |= (ulong)(next & 0x7F) << shift;
-            if (next < 0x80) return true;
+            value |= (ulong)(next & 0x7F) << (7 * read);
+            if (next < 0x80) return value;
         }
 
-        return false;
+        throw Malformed("a number does not end where it has to");
     }
 
     // -------------------------------------------------------------------------------------------------- JSON
@@ -452,6 +490,7 @@ internal static class OtlpValueBounds
     {
         var messages = 0;
         var records = 0;
+        var elements = 0;
         // Per depth: whether the container that starts there is an array of records.
         Span<bool> recordArray = stackalloc bool[MaxRecordArrayDepth];
         var namesRecords = false;
@@ -470,6 +509,12 @@ internal static class OtlpValueBounds
                         continue;
                     case JsonTokenType.StartArray:
                         if (depth < MaxRecordArrayDepth) recordArray[depth] = namesRecords;
+                        break;
+                    case JsonTokenType.String or JsonTokenType.Number or JsonTokenType.True or JsonTokenType.False
+                        or JsonTokenType.Null:
+                        // The JSON reader builds a token for every scalar, in unknown members too.
+                        if (++elements > limits.MaxRequestElements)
+                            throw OtlpPayloadTooLargeException.TooManyElements(limits.MaxRequestElements);
                         break;
                     case JsonTokenType.StartObject:
                         messages++;

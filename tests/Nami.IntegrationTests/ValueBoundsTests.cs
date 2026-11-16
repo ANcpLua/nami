@@ -235,17 +235,19 @@ public sealed class ValueBoundsTests(TestContext context)
         }
     }
 
-    /// <summary>Bytes that are no well-formed message or document are left alone, so the parser's own failure stands.</summary>
+    /// <summary>
+    ///     Protobuf bytes the scan cannot read to the end are refused, so nothing it did not count reaches the parser;
+    ///     JSON that is no well-formed document is left alone, so the parser's own failure stands.
+    /// </summary>
     [TestMethod]
-    public void AMalformedPayload_IsLeftAsItIs()
+    public void AMalformedPayload_IsRefusedAsProtobuf_AndLeftAsItIsAsJson()
     {
         var protobuf = Export(Empties(s_maxNested + 1)).ToByteArray()[..^3];
-        var untouched = protobuf.ToArray();
-        Assert.AreEqual(default, OtlpValueBounds.BoundProtobuf(protobuf, ExportTraceServiceRequest.Descriptor, s_limits));
-        Assert.AreSequenceEqual(untouched, protobuf);
+        _ = Assert.ThrowsExactly<OtlpMalformedPayloadException>(() =>
+            OtlpValueBounds.BoundProtobuf(protobuf, ExportTraceServiceRequest.Descriptor, s_limits));
 
         var json = Encoding.UTF8.GetBytes("{\"resourceSpans\":[{\"scopeSpans\":[{\"spans\":[{\"attributes\":[{\"key\":\"k\",\"value\":{\"arrayValue\":{\"values\":[{},{}");
-        untouched = json.ToArray();
+        var untouched = json.ToArray();
         Assert.AreEqual(default, OtlpValueBounds.BoundJson(json, s_limits));
         Assert.AreSequenceEqual(untouched, json);
     }

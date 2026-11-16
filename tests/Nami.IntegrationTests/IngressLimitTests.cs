@@ -108,7 +108,7 @@ public sealed class IngressLimitTests(TestContext context)
         Assert.IsLessThan(1024 * 1024, allocated, "The buffer follows the bytes that arrived.");
     }
 
-    /// <summary>A body that arrives in full under its declared length is kept byte for byte in a buffer of that length.</summary>
+    /// <summary>A body that arrives in full under its declared length is read whole into a buffer of that length.</summary>
     [TestMethod]
     public async Task Parser_ADeclaredLengthThatArrives_IsReadWholeIntoABufferOfThatLength()
     {
@@ -125,10 +125,10 @@ public sealed class IngressLimitTests(TestContext context)
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.IsTrue(parse.IsCompleted);
-        Assert.AreSequenceEqual(payload, Google.Protobuf.MessageExtensions.ToByteArray(await parse));
-        // The doubling steps below the declared length sum to less than twice that length; the parsed message holds
-        // one more copy of the unknown field.
-        Assert.IsLessThan(4L * payload.Length, allocated);
+        // The payload is one field OTLP does not define, which nami reads past and does not keep.
+        Assert.AreEqual(0, Google.Protobuf.MessageExtensions.ToByteArray(await parse).Length);
+        // The doubling steps below the declared length sum to less than twice that length.
+        Assert.IsLessThan(3L * payload.Length, allocated);
     }
 
     /// <summary>Kestrel's own request-body bound, where it is reached first, is the same refusal and not a 400.</summary>

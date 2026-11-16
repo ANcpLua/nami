@@ -114,14 +114,17 @@ internal static class OtlpPayloadParser
     {
         _ = OtlpValueBounds.BoundProtobuf(payload, descriptor, limits, out var counted);
         RefuseTooMany(counted, limits);
+        // Unknown fields are not kept: Google.Protobuf would hold every one of them as an object, and the bounds
+        // count what nami reads. The converter reads known fields only.
+        var known = parser.WithDiscardUnknownFields(true);
         try
         {
-            return parser.ParseFrom(payload);
+            return known.ParseFrom(payload);
         }
         catch (InvalidProtocolBufferException) when (OtlpUtf8Replacement.TryReplaceInvalidUtf8(payload, descriptor,
                                                          out var replaced))
         {
-            return parser.ParseFrom(replaced);
+            return known.ParseFrom(replaced);
         }
     }
 
@@ -164,8 +167,11 @@ internal static class OtlpPayloadParser
 
         // The OTLP spec mandates hex for trace and span ids in JSON, but protojson decodes
         // bytes fields as base64 — rewrite the id fields (validating them) before parsing.
-        var json = OtlpJsonIdNormalizer.NormalizeIdsToProtoJson(utf8Json);
-        return s_otlpJsonParser.Parse<T>(json);
+        // Read from the normalized bytes: one more copy of a 16 MiB body as a string is 32 MiB.
+        var json = OtlpJsonIdNormalizer.NormalizeIdsToProtoJsonUtf8(utf8Json);
+        using var reader = new StreamReader(new MemoryStream(json.Array!, json.Offset, json.Count, false), Encoding.UTF8,
+            false);
+        return s_otlpJsonParser.Parse<T>(reader);
     }
 
     // The parser builds one object per message and the store one row per record, so a request of more than either

@@ -29,6 +29,13 @@ internal static class OtlpJsonIdNormalizer
 
     public static string NormalizeIdsToProtoJson(ReadOnlySpan<byte> utf8Json)
     {
+        var normalized = NormalizeIdsToProtoJsonUtf8(utf8Json);
+        return Encoding.UTF8.GetString(normalized.AsSpan());
+    }
+
+    /// <summary>The same as UTF-8 bytes, for a reader that needs no string of the whole document.</summary>
+    public static ArraySegment<byte> NormalizeIdsToProtoJsonUtf8(ReadOnlySpan<byte> utf8Json)
+    {
         // Accept an optional UTF-8 BOM before protojson parsing.
         ReadOnlySpan<byte> utf8Bom = [0xEF, 0xBB, 0xBF];
         if (utf8Json.StartsWith(utf8Bom))
@@ -59,14 +66,16 @@ internal static class OtlpJsonIdNormalizer
                     continue;
 
                 case JsonTokenType.String:
-                    var value = ReadString(ref reader);
                     var expectedBytes = pendingProperty is not null
                         ? ExpectedIdByteLength(path, pendingProperty)
                         : 0;
                     if (expectedBytes > 0)
-                        WriteIdAsBase64(writer, value, expectedBytes, pendingProperty!);
+                        WriteIdAsBase64(writer, ReadString(ref reader), expectedBytes, pendingProperty!);
+                    else if (!reader.ValueIsEscaped && System.Text.Unicode.Utf8.IsValid(reader.ValueSpan))
+                        // Most strings: valid and without escapes, copied as bytes with no string in between.
+                        writer.WriteStringValue(reader.ValueSpan);
                     else
-                        writer.WriteStringValue(value);
+                        writer.WriteStringValue(ReadString(ref reader));
                     break;
 
                 case JsonTokenType.Number:
@@ -120,7 +129,9 @@ internal static class OtlpJsonIdNormalizer
         }
 
         writer.Flush();
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+        return System.Runtime.InteropServices.MemoryMarshal.TryGetArray(buffer.WrittenMemory, out var written)
+            ? written
+            : buffer.WrittenSpan.ToArray();
     }
 
     // An integer literal (digits, with a sign at most: no fraction, no exponent) of sixteen digits or more. Every

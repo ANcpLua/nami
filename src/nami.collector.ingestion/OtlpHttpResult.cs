@@ -97,8 +97,21 @@ internal sealed class OtlpPayloadTooLargeException(string? message, Exception? i
         new(string.Create(CultureInfo.InvariantCulture, $"OTLP request holds more than {limit} records."), null,
             TooManyMessagesHttpStatus);
 
+    /// <summary>The request holds more scalar elements (repeated scalars; over JSON every scalar value) than a request may hold.</summary>
+    public static OtlpPayloadTooLargeException TooManyElements(int limit) =>
+        new(string.Create(CultureInfo.InvariantCulture, $"OTLP request holds more than {limit} scalar elements."), null,
+            TooManyMessagesHttpStatus);
+
     /// <summary>The body holds, once decompressed, more bytes than a request may hold.</summary>
     public static OtlpPayloadTooLargeException Decompressed(int limit) =>
         new(string.Create(CultureInfo.InvariantCulture, $"OTLP payload exceeds the {limit}-byte decompressed limit."),
             null);
 }
+
+/// <summary>
+///     The protobuf bytes of an export are not what an OTLP exporter writes: a field that cannot be read, a group
+///     (OTLP defines none), or a tag or length written longer than it needs to be. Google.Protobuf reads some of
+///     these differently than the bounds of <see cref="OtlpValueBounds" /> can count them, so such a request is
+///     refused before it is parsed: 400 over HTTP, INVALID_ARGUMENT over gRPC.
+/// </summary>
+internal sealed class OtlpMalformedPayloadException(string message) : InvalidDataException(message);
