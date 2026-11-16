@@ -379,7 +379,7 @@ public sealed class ContainerPathTests(TestContext context)
         // One signal is enough: the host goes on to stop its engine, and both end well inside the stop budget.
         Assert.IsTrue(await host.WaitForHostExitAsync(TimeSpan.FromSeconds(6), context.CancellationToken),
             "The host did not end after SIGTERM: a manifest it could not remove kept it from stopping its engine.");
-        Assert.AreEqual(1, host.HostExitCode, "A manifest left behind is not a clean stop.");
+        Assert.AreEqual(0, host.HostExitCode, "The stop itself was clean; the manifest is reported on standard error.");
         await LinuxProcess.AssertNothingLeftInAsync(Directory, owner, TimeSpan.FromSeconds(5), context.CancellationToken);
     }
 
