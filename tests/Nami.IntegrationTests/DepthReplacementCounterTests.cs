@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics.Metrics;
 using System.Text.Json.Nodes;
 using Nami.Collector.Ingestion;
+using Nami.SemanticConventions;
 using Nami.Tests.Infrastructure;
 
 namespace Nami.IntegrationTests;
