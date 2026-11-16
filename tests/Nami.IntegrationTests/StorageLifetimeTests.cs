@@ -527,6 +527,30 @@ public sealed class StorageLifetimeTests(TestContext context)
     }
 
     /// <summary>
+    ///     The rollback of the transaction a cancelled job left is tried three times. When an interrupt ended every
+    ///     attempt the writer has given up, and it says so with the last failure: before, it went on as if the
+    ///     transaction had ended (ledger N125). An attempt that ends the transaction is no failure, whatever came
+    ///     before it.
+    /// </summary>
+    [TestMethod]
+    [DataRow(3, true, DisplayName = "Three interrupted attempts: given up, with the last failure")]
+    [DataRow(2, false, DisplayName = "The third attempt ends the transaction")]
+    [DataRow(0, false, DisplayName = "The first attempt ends the transaction")]
+    public void RollBackLeftTransaction_ThreeInterruptedAttempts_AreReported(int interrupted, bool givenUp)
+    {
+        var attempts = 0;
+
+        var failure = DuckDbStore.RollBackLeftTransaction(() =>
+        {
+            attempts++;
+            if (attempts <= interrupted) throw new OperationCanceledException("interrupt " + (uint)attempts);
+        });
+
+        Assert.AreEqual(Math.Min(interrupted + 1, 3), attempts);
+        Assert.AreEqual(givenUp ? "interrupt 3" : null, failure?.Message);
+    }
+
+    /// <summary>
     ///     Free space is that of the volume the store's directory is on, also when the configured path reaches it
     ///     through a link. The number decides the health check's Degraded verdict.
     /// </summary>
