@@ -344,8 +344,13 @@ internal sealed partial class DuckDbStore : INamiStore
         // The batch is refused whole, before it is queued, and the same way on every retry.
         for (var i = 0; i < batch.Spans.Count; i++)
         {
-            if (batch.Spans[i].EndTimeUnixNano < batch.Spans[i].StartTimeUnixNano)
+            var span = batch.Spans[i];
+            if (span.EndTimeUnixNano < span.StartTimeUnixNano)
                 throw new InvalidDataException("Span end time must not precede its start.");
+            // duration_ns is stored beside the bounds it is derived from; the tools compute from the bounds
+            // (ToolValues.Elapsed). A row whose three numbers disagree would answer differently by column.
+            if (span.DurationNs != span.EndTimeUnixNano - span.StartTimeUnixNano)
+                throw new InvalidDataException("Span duration must equal its end time minus its start time.");
         }
 
         await ExecuteWriteAsync(

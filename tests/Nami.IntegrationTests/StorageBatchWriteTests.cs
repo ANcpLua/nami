@@ -89,6 +89,29 @@ public sealed class StorageBatchWriteTests(TestContext context)
         Assert.AreEqual(2L, Scalar(path, "SELECT count(*) FROM spans"));
     }
 
+    /// <summary>
+    ///     The stored duration is the end minus the start, for every writer: the tools compute it from the bounds,
+    ///     so a row that carries another number is refused before it is queued, and its batch with it.
+    /// </summary>
+    [TestMethod]
+    [DataRow(1L, DisplayName = "One nanosecond more")]
+    [DataRow(-1L, DisplayName = "One nanosecond less")]
+    [DataRow(-1_000_000_000L, DisplayName = "Zero")]
+    public async Task Enqueue_DurationThatIsNotEndMinusStart_IsRefusedWhole(long difference)
+    {
+        var path = DatabasePath("duration.duckdb");
+        var rows = Rows(3);
+        rows[1] = rows[1] with { DurationNs = (ulong)((long)rows[1].DurationNs + difference) };
+        await using (var store = new DuckDbStore(path))
+        {
+            var refused = await Assert.ThrowsExactlyAsync<InvalidDataException>(async () =>
+                await store.EnqueueAsync(new SpanBatch(rows), context.CancellationToken));
+            Assert.AreEqual("Span duration must equal its end time minus its start time.", refused.Message);
+        }
+
+        Assert.AreEqual(0L, Scalar(path, "SELECT count(*) FROM spans"));
+    }
+
     /// <summary><paramref name="count" /> spans of one trace; span i is named "span i" and lasts one second.</summary>
     private static List<SpanStorageRow> Rows(int count)
     {
