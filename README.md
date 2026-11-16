@@ -177,7 +177,8 @@ For several agents, connect them all to the one running nami. If an OpenTelemetr
 front, cap its batch as described under [Send telemetry](#send-telemetry)
 (`send_batch_max_size: 512`).
 
-**Stopping.** `NAMI_STOP_BUDGET_SECONDS` (default 8, from 1 to 3600) is how long a stop may take.
+**Stopping.** `NAMI_STOP_BUDGET_SECONDS` (default 8, from 1 to 3600, in decimal digits only) is how
+long a stop may take.
 On SIGTERM or SIGINT nami closes MCP and tells the engine to stop. During the first five eighths of
 the budget the engine still answers the exports it is working on; then it aborts what is left, lets
 the store finish the write it is in, and ends. At the end of the budget an engine that still runs

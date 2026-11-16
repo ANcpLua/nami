@@ -361,6 +361,12 @@ public sealed class ContainerPathTests(TestContext context)
     [DataRow("0")]
     [DataRow("3601")]
     [DataRow("2.5")]
+    [DataRow("0x10", DisplayName = "Hexadecimal, which only the host used to take")]
+    [DataRow("1e1", DisplayName = "An exponent, which only the host used to take")]
+    [DataRow("10.0", DisplayName = "A decimal point, which only the host used to take")]
+    [DataRow("+10", DisplayName = "A sign, which both used to take")]
+    [DataRow(" 10", DisplayName = "White space, which both used to take")]
+    [DataRow("")]
     public async Task StopBudget_OutsideItsRange_RefusedAtStart(string budget)
     {
         var failure = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
@@ -369,6 +375,44 @@ public sealed class ContainerPathTests(TestContext context)
                 context.CancellationToken, environment: StopBudget(budget));
         });
         Assert.Contains("NAMI_STOP_BUDGET_SECONDS must be a whole number of seconds from 1 to 3600.", failure.Message);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    [DataRow("0", "must be between 1 and 3600")]
+    [DataRow("3601", "must be between 1 and 3600")]
+    [DataRow("0x10", "NAMI_STOP_BUDGET_SECONDS")]
+    [DataRow("1e1", "NAMI_STOP_BUDGET_SECONDS")]
+    [DataRow("10.0", "NAMI_STOP_BUDGET_SECONDS")]
+    [DataRow("+10", "in decimal digits")]
+    [DataRow(" 10", "in decimal digits")]
+    [DataRow("", "in decimal digits")]
+    public async Task StopBudget_EngineAlone_RefusesWhatTheHostRefuses(string budget, string reason)
+    {
+        // The engine without its host: the host refuses these values before it starts an engine, so only this
+        // reaches the engine's own check. An engine that accepts the value starts, sees its input end and exits 0.
+        System.IO.Directory.CreateDirectory(Directory);
+        var engine = await ProcessRunner.RunAsync(TestData.HostBinary, ["--engine"], Directory, context.CancellationToken,
+            new Dictionary<string, string?>
+            {
+                ["NAMI_STOP_BUDGET_SECONDS"] = budget, ["NAMI_DATA_PATH"] = Path.Combine(Directory, "nami.duckdb"),
+                ["NAMI_OTLP_PORT"] = "0", ["NAMI_GRPC_PORT"] = "0", ["NAMI_OTLP_AUTH_MODE"] = "Unsecured",
+                ["DOTNET_ENVIRONMENT"] = "Development"
+            });
+        Assert.AreNotEqual(0, engine.ExitCode, "The engine started with a stop budget the host refuses.");
+        Assert.Contains(reason, engine.Error);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    [DataRow("0025", 25)]
+    [DataRow("3600", 3600)]
+    public async Task StopBudget_DecimalDigits_AcceptedByHostAndEngine(string budget, int seconds)
+    {
+        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory,
+            context.CancellationToken, environment: StopBudget(budget));
+        using var health = await host.Http.GetAsync($"http://127.0.0.1:{host.HttpPort}/health", context.CancellationToken);
+        Assert.AreEqual(HttpStatusCode.OK, health.StatusCode, $"A stop budget of {seconds} seconds.");
     }
 
     [TestMethod]

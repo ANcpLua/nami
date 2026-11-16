@@ -34,10 +34,12 @@ const mode = process.env[CONFIG.AuthMode] ?? (environment?.toLowerCase() === "de
 if (stdio && mode.toLowerCase() === "apikey")
   throw new Error(`--stdio cannot be used with ${CONFIG.AuthMode}=ApiKey: stdio carries no project key, so every tool call would be refused. `
     + `Serve Streamable HTTP and send a project's read key in x-otlp-api-key, or set ${CONFIG.AuthMode}=Unsecured for a local engine with the default project.`);
-// The engine reads the same variable and refuses the same values (CollectorStopOptions).
-const stopBudget = Number(process.env[CONFIG.StopBudgetSeconds] ?? CONFIG_DEFAULTS.StopBudgetSeconds);
+// The engine reads the same variable and refuses the same values (CollectorStopOptions.cs): one spelling for
+// both, decimal digits and nothing else. Number() alone also takes 0x10, 1e1 and 10.0, which the engine does not.
+const stopBudgetText = process.env[CONFIG.StopBudgetSeconds] ?? CONFIG_DEFAULTS.StopBudgetSeconds;
+const stopBudget = /^[0-9]+$/.test(stopBudgetText) ? Number(stopBudgetText) : Number.NaN;
 if (!Number.isInteger(stopBudget) || stopBudget < 1 || stopBudget > 3600)
-  throw new Error(`${CONFIG.StopBudgetSeconds} must be a whole number of seconds from 1 to 3600.`);
+  throw new Error(`${CONFIG.StopBudgetSeconds} must be a whole number of seconds from 1 to 3600. Write it in decimal digits only.`);
 const engine = new Engine(resolve(enginePath), stopBudget * 1000);
 await engine.ready;
 const keyDocument: unknown = JSON.parse(process.env[CONFIG.ProjectKeys] ?? "{}");

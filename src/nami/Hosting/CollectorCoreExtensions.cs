@@ -34,6 +34,7 @@ internal static class CollectorCoreExtensions
             .Bind(config)
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<CollectorStopOptions>, CollectorStopOptionsValidator>();
+        services.AddSingleton<IValidateOptions<CollectorStopOptions>>(new CollectorStopOptionsRules(config));
         services.AddOptions<HostOptions>()
             .Configure<IOptions<CollectorStopOptions>>(static (host, stop) =>
                 host.ShutdownTimeout = TimeSpan.FromSeconds(stop.Value.BudgetSeconds * 5 / 8.0));
