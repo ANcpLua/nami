@@ -339,6 +339,25 @@ public sealed class ContainerPathTests(TestContext context)
 
     [TestMethod]
     [Timeout(60000, CooperativeCancellation = true)]
+    public async Task Stop_ReadyManifestThatCannotBeRemoved_StillStopsTheEngine()
+    {
+        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, Directory,
+            context.CancellationToken, readyManifest: true);
+        var owner = LinuxProcess.ParentOf(host.HostProcessId);
+        // A directory where the manifest was: removing it as a file fails, also for root.
+        File.Delete(host.ReadyFile!);
+        System.IO.Directory.CreateDirectory(Path.Combine(host.ReadyFile!, "kept"));
+        await LinuxProcess.SignalAsync(host.HostProcessId, "TERM", context.CancellationToken);
+
+        // One signal is enough: the host goes on to stop its engine, and both end well inside the stop budget.
+        Assert.IsTrue(await host.WaitForHostExitAsync(TimeSpan.FromSeconds(6), context.CancellationToken),
+            "The host did not end after SIGTERM: a manifest it could not remove kept it from stopping its engine.");
+        Assert.AreEqual(1, host.HostExitCode, "A manifest left behind is not a clean stop.");
+        await LinuxProcess.AssertNothingLeftInAsync(Directory, owner, TimeSpan.FromSeconds(5), context.CancellationToken);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
     [DataRow("0")]
     [DataRow("3601")]
     [DataRow("2.5")]

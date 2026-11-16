@@ -148,12 +148,18 @@ if (stdio) {
 // Ready: the engine has reported the addresses it bound, and the MCP listener (if any) is bound.
 if (readyFile) writeReadyManifest(readyFile, mcpUrl, await engine.listeners);
 let closing = false;
+// Removes the ready manifest when nami stops. A manifest that cannot be removed is reported and makes the exit
+// code 1, because a file that says "ready" stays behind; it never stops the stop.
+function forgetReady() {
+  if (!readyFile) return;
+  try { removeReadyManifest(readyFile); } catch (error) { process.exitCode = 1; report(error); }
+}
 async function close() {
   if (closing) return;
   closing = true;
-  if (readyFile) removeReadyManifest(readyFile);
-  await closeTransport();
-  await engine.close();
+  forgetReady();
+  // The engine is told to stop whatever the transport does while it closes.
+  try { await closeTransport(); } finally { await engine.close(); }
 }
 // The first signal closes; a second one while that is under way ends the host at once. The handlers stay
 // registered, so the second signal still exits through the "exit" listener that takes the engine with it.
@@ -173,7 +179,7 @@ void engine.failed.then(async (error) => {
     // The calls this failure rejected are being answered right now: they get their answer, within two seconds.
     await Promise.race([closeTransport(false), new Promise(resolve => setTimeout(resolve, 2000))]).catch(report);
   }
-  if (readyFile) removeReadyManifest(readyFile);
+  forgetReady();
   process.exit(1);
 });
 if (stdio) {
