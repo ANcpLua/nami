@@ -120,8 +120,9 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
     ///     type of the failure: Google.Protobuf repeats a number that is out of range in its message.
     ///     <para>
     ///         The log is read whole, ASP.NET Core's categories included, with every level lowered as far as a
-    ///         setting can lower it (ledger N124). Its request log names the Content-Type of every request at
-    ///         Information; nami holds those categories at Warning in code, so no setting writes the header.
+    ///         setting can lower it (ledger N124). Below Warning those categories repeat what a sender chose: the
+    ///         request log the Content-Type and the path, routing the path, and Kestrel a request line it could
+    ///         not read. nami holds them at Warning in code, so no setting writes any of it.
     ///     </para>
     /// </summary>
     [TestMethod]
@@ -129,6 +130,8 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
     [DataRow("content type", DisplayName = "a Content-Type nami does not read")]
     [DataRow("content encoding", DisplayName = "a Content-Encoding nami does not read")]
     [DataRow("number", DisplayName = "an integer out of range, which the parser repeats in its message")]
+    [DataRow("request line", DisplayName = "a request line that is no HTTP, which Kestrel repeats when it says why")]
+    [DataRow("path", DisplayName = "a path nami does not serve, which routing repeats")]
     public async Task NamisLog_HoldsNoValueThatWasSent(string shape)
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
@@ -140,44 +143,82 @@ public sealed class ReceivedValuesInMessagesTests(TestContext context)
                 ["Logging:LogLevel:Microsoft.AspNetCore"] = "Trace",
                 ["Logging:LogLevel:Microsoft.AspNetCore.Hosting"] = "Trace",
                 ["Logging:LogLevel:Microsoft.AspNetCore.Hosting.Diagnostics"] = "Information",
+                ["Logging:LogLevel:Microsoft.AspNetCore.Routing"] = "Trace",
+                ["Logging:LogLevel:Microsoft.AspNetCore.Server.Kestrel"] = "Trace",
+                ["Logging:LogLevel:Microsoft.AspNetCore.Server.Kestrel.BadRequests"] = "Debug",
                 ["Logging:LogLevel:Microsoft.*.Hosting.Diagnostics"] = "Trace",
                 [$"Logging:{typeof(Captured).FullName}:LogLevel:Default"] = "Trace",
-                [$"Logging:{typeof(Captured).FullName}:LogLevel:Microsoft.AspNetCore.Hosting.Diagnostics"] = "Trace"
+                [$"Logging:{typeof(Captured).FullName}:LogLevel:Microsoft.AspNetCore.Hosting.Diagnostics"] = "Trace",
+                [$"Logging:{typeof(Captured).FullName}:LogLevel:Microsoft.AspNetCore.Server.Kestrel"] = "Trace"
             }, logs: logs);
-        using var client = new HttpClient();
-        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(host.HttpEndpoint, "v1/traces"));
-        var json = shape == "number"
-            ? "{\"resourceSpans\":[{\"scopeSpans\":[{\"spans\":[{\"name\":\"span\",\"attributes\":[{\"key\":\"k\",\"value\":{\"intValue\":900900900900900900900900}}]}]}]}]}"
-            : "{}";
-        request.Content = new ByteArrayContent(Encoding.UTF8.GetBytes(json));
-        request.Content.Headers.TryAddWithoutValidation("Content-Type",
-            shape == "content type" ? "application/zqc-received-ZQC900X000ZZZZZZ" : "application/json");
-        if (shape == "content encoding") request.Content.Headers.TryAddWithoutValidation("Content-Encoding", "zqe-received-ZQE900X000ZZZZZZ");
-
-        using var response = await client.SendAsync(request, context.CancellationToken);
-        var body = await response.Content.ReadAsStringAsync(context.CancellationToken);
-
-        Assert.AreEqual(shape == "number" ? HttpStatusCode.BadRequest : HttpStatusCode.UnsupportedMediaType, response.StatusCode, body);
-        var logged = string.Join('\n', logs.Lines);
-        Assert.Contains("Failed to process OTLP traces payload: ", logged, "The refusal was not logged, so the test proves nothing.");
-        Assert.Contains("   at Nami.", logged, "The stack frames are logged.");
-        Assert.Contains("[Debug] Microsoft.AspNetCore.", logged, "The lowered levels did not reach the log, so the test proves nothing.");
-        Assert.IsEmpty(logs.Lines.Where(static line => line.Contains("] Microsoft.AspNetCore.Hosting", StringComparison.Ordinal) &&
-                                                       !line.StartsWith("[Warning]", StringComparison.Ordinal) &&
-                                                       !line.StartsWith("[Error]", StringComparison.Ordinal) &&
-                                                       !line.StartsWith("[Critical]", StringComparison.Ordinal)).ToArray(),
-            "The request log is held at Warning.");
-        Assert.Contains(shape switch
+        int status;
+        string body;
+        if (shape == "request line")
         {
-            "content type" => "OtlpUnsupportedMediaTypeException",
-            "content encoding" => "OtlpUnsupportedContentEncodingException",
-            _ => "InvalidProtocolBufferException"
-        }, logged);
-        foreach (var received in new[] { "ZQC900X000ZZZZZZ", "ZQE900X000ZZZZZZ", "900900900" })
+            // No method, no target and no version: Kestrel refuses the line and, when it logs why, repeats it.
+            body = await SendRawAsync(host.HttpEndpoint, "zqm-received-ZQM900X000ZZZZZZ\r\n\r\n", context.CancellationToken);
+            status = body.StartsWith("HTTP/1.1 400 ", StringComparison.Ordinal) ? 400 : 0;
+        }
+        else
+        {
+            using var client = new HttpClient();
+            using var request = new HttpRequestMessage(HttpMethod.Post,
+                new Uri(host.HttpEndpoint, shape == "path" ? "v1/zqp-received-ZQP900X000ZZZZZZ" : "v1/traces"));
+            var json = shape == "number"
+                ? "{\"resourceSpans\":[{\"scopeSpans\":[{\"spans\":[{\"name\":\"span\",\"attributes\":[{\"key\":\"k\",\"value\":{\"intValue\":900900900900900900900900}}]}]}]}]}"
+                : "{}";
+            request.Content = new ByteArrayContent(Encoding.UTF8.GetBytes(json));
+            request.Content.Headers.TryAddWithoutValidation("Content-Type",
+                shape == "content type" ? "application/zqc-received-ZQC900X000ZZZZZZ" : "application/json");
+            if (shape == "content encoding") request.Content.Headers.TryAddWithoutValidation("Content-Encoding", "zqe-received-ZQE900X000ZZZZZZ");
+
+            using var response = await client.SendAsync(request, context.CancellationToken);
+            body = await response.Content.ReadAsStringAsync(context.CancellationToken);
+            status = (int)response.StatusCode;
+        }
+
+        Assert.AreEqual(shape switch { "number" or "request line" => 400, "path" => 404, _ => 415 }, status, body);
+        var logged = string.Join('\n', logs.Lines);
+        if (shape is not ("request line" or "path"))
+        {
+            // nami refuses these itself and says so.
+            Assert.Contains("Failed to process OTLP traces payload: ", logged, "The refusal was not logged, so the test proves nothing.");
+            Assert.Contains("   at Nami.", logged, "The stack frames are logged.");
+            Assert.Contains(shape switch
+            {
+                "content type" => "OtlpUnsupportedMediaTypeException",
+                "content encoding" => "OtlpUnsupportedContentEncodingException",
+                _ => "InvalidProtocolBufferException"
+            }, logged);
+        }
+
+        Assert.IsTrue(logs.Lines.Any(static line => BelowWarning(line) && !line.Contains("] Microsoft.AspNetCore", StringComparison.Ordinal)),
+            "The lowered levels did not reach the log, so the test proves nothing.");
+        foreach (var received in s_received)
         {
             Assert.DoesNotContain(received, logged);
             Assert.DoesNotContain(received, body);
         }
+
+        Assert.IsEmpty(logs.Lines.Where(static line => BelowWarning(line) && line.Contains("] Microsoft.AspNetCore", StringComparison.Ordinal)).ToArray(),
+            "ASP.NET Core's own log is held at Warning.");
+    }
+
+    private static readonly string[] s_received = ["ZQC900X000ZZZZZZ", "ZQE900X000ZZZZZZ", "ZQM900X000ZZZZZZ", "ZQP900X000ZZZZZZ", "900900900"];
+
+    private static bool BelowWarning(string line) =>
+        !line.StartsWith("[Warning]", StringComparison.Ordinal) && !line.StartsWith("[Error]", StringComparison.Ordinal) &&
+        !line.StartsWith("[Critical]", StringComparison.Ordinal);
+
+    // Bytes as they are, where an HTTP client would refuse to send them; the answer until the server closes.
+    private static async Task<string> SendRawAsync(Uri endpoint, string text, CancellationToken cancellationToken)
+    {
+        using var client = new System.Net.Sockets.TcpClient();
+        await client.ConnectAsync(endpoint.Host, endpoint.Port, cancellationToken);
+        await using var stream = client.GetStream();
+        await stream.WriteAsync(Encoding.ASCII.GetBytes(text), cancellationToken);
+        using var reader = new StreamReader(stream, Encoding.ASCII);
+        return await reader.ReadToEndAsync(cancellationToken);
     }
 
     /// <summary>

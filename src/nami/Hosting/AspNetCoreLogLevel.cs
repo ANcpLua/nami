@@ -1,15 +1,16 @@
 namespace Nami.Hosting;
 
 /// <summary>
-///     ASP.NET Core's own request log, the categories under <c>Microsoft.AspNetCore.Hosting</c>, names the
-///     Content-Type of every request at Information: a value the sender chose, in nami's log. The engine writes
-///     Warning and above, but that is a setting, and a lowered one (<c>Logging:LogLevel</c> in configuration or in
-///     the environment) would write the header. So these categories are held at Warning here, in code, whatever a
-///     setting says.
+///     ASP.NET Core's own log, the categories under <c>Microsoft.AspNetCore</c>, repeats what a sender chose below
+///     Warning: the request log names the Content-Type and the path of every request at Information, routing the
+///     path at Debug, and Kestrel the request line it could not read. That is received text in nami's log. The
+///     engine writes Warning and above, but that is a setting, and a lowered one (<c>Logging:LogLevel</c> in
+///     configuration or in the environment) would write it. So these categories are held at Warning here, in
+///     code, whatever a setting says.
 /// </summary>
-internal static class RequestLogLevel
+internal static class AspNetCoreLogLevel
 {
-    internal const string Category = "Microsoft.AspNetCore.Hosting";
+    internal const string Category = "Microsoft.AspNetCore";
 
     /// <summary>
     ///     Applied after every other rule has been read, and again when the configuration is read again. A logger
@@ -17,7 +18,7 @@ internal static class RequestLogLevel
     ///     added for every provider that has one, and a rule that names these categories more closely is raised
     ///     to Warning itself.
     /// </summary>
-    public static void HoldRequestLogAtWarning(this IServiceCollection services) =>
+    public static void HoldAspNetCoreLogAtWarning(this IServiceCollection services) =>
         services.PostConfigure<LoggerFilterOptions>(static options =>
         {
             var providers = new HashSet<string?> { null };
