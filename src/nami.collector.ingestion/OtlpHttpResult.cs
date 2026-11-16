@@ -114,4 +114,4 @@ internal sealed class OtlpPayloadTooLargeException(string? message, Exception? i
 ///     these differently than the bounds of <see cref="OtlpValueBounds" /> can count them, so such a request is
 ///     refused before it is parsed: 400 over HTTP, INVALID_ARGUMENT over gRPC.
 /// </summary>
-internal sealed class OtlpMalformedPayloadException(string message) : InvalidDataException(message);
+internal sealed class OtlpMalformedPayloadException(string message) : FormatException(message);
