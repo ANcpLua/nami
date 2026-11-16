@@ -628,7 +628,17 @@ internal sealed partial class DuckDbStore : INamiStore
                 {
                     await job.ExecuteAsync(Connection, _beforeWrite, _cts.Token).ConfigureAwait(false);
                 }
-                catch (Exception ex) when (ex is not WriterConnectionUnusableException)
+                catch (WriterConnectionUnusableException unusable)
+                {
+                    // Recorded before the job's caller is answered: whoever sees the refusal sees a store that says
+                    // it is stopped, the health check included. Answering first left a moment in which the write was
+                    // refused and the store still called itself healthy (ledger N127).
+                    Write(ref _writerFailure, unusable);
+                    _jobs.Writer.TryComplete(unusable);
+                    job.OnAborted(WriterStopped(unusable));
+                    throw;
+                }
+                catch (Exception ex)
                 {
                     job.OnAborted(ex);
                 }
@@ -1216,9 +1226,9 @@ internal sealed partial class DuckDbStore : INamiStore
             {
                 // DuckDB.NET's refusal of BeginTransaction on a connection that an interrupted ROLLBACK left with a
                 // transaction it can no longer end. No later write can succeed on this connection, so this is not
-                // one failed job: the writer stops, as it does when its loop fails.
+                // one failed job: the writer stops, as it does when its loop fails. The loop answers the caller, after
+                // it has recorded why.
                 unusable = new WriterConnectionUnusableException(ex);
-                _tcs.TrySetException(WriterStopped(unusable));
             }
             catch (Exception) when (token.IsCancellationRequested)
             {
