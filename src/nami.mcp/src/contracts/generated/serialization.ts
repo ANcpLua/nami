@@ -257,11 +257,6 @@ export const SourceStatusJson = {
   toJson: (value: Model.SourceStatus): Json.SourceStatus => convert(value, SourceStatusShape, true) as Json.SourceStatus,
   fromJson: (value: Json.SourceStatus): Model.SourceStatus => convert(value, SourceStatusShape, false) as Model.SourceStatus,
 };
-const SignalStatusFieldsShape: Shape = { fields: [["signal", "signal", { union: [{ literal: "traces" }, { literal: "metrics" }, { literal: "logs" }] }]] };
-export const SignalStatusFieldsJson = {
-  toJson: (value: Model.SignalStatusFields): Json.SignalStatusFields => convert(value, SignalStatusFieldsShape, true) as Json.SignalStatusFields,
-  fromJson: (value: Json.SignalStatusFields): Model.SignalStatusFields => convert(value, SignalStatusFieldsShape, false) as Model.SignalStatusFields,
-};
 const ErrorsRecentInputShape: Shape = { fields: [["service", "service", "string"], ["since", "since", "string"], ["fields", "fields", { array: "string" }], ["maxBytes", "max_bytes", "number"], ["snapshotId", "snapshot_id", "string"], ["cursor", "cursor", "string"]] };
 export const ErrorsRecentInputJson = {
   toJson: (value: Model.ErrorsRecentInput): Json.ErrorsRecentInput => convert(value, ErrorsRecentInputShape, true) as Json.ErrorsRecentInput,
@@ -371,11 +366,6 @@ const EngineLimitsShape: Shape = { fields: [["maxFrameBytes", "max_frame_bytes",
 export const EngineLimitsJson = {
   toJson: (value: Model.EngineLimits): Json.EngineLimits => convert(value, EngineLimitsShape, true) as Json.EngineLimits,
   fromJson: (value: Json.EngineLimits): Model.EngineLimits => convert(value, EngineLimitsShape, false) as Model.EngineLimits,
-};
-const EngineEnvelopeShape: Shape = { fields: [["id", "id", "string"], ["revision", "revision", "string"]] };
-export const EngineEnvelopeJson = {
-  toJson: (value: Model.EngineEnvelope): Json.EngineEnvelope => convert(value, EngineEnvelopeShape, true) as Json.EngineEnvelope,
-  fromJson: (value: Json.EngineEnvelope): Model.EngineEnvelope => convert(value, EngineEnvelopeShape, false) as Model.EngineEnvelope,
 };
 const EngineCallShape: Shape = { fields: [["id", "id", "string"], ["revision", "revision", "string"], ["method", "method", { literal: "call" }], ["name", "name", "string"], ["input", "input", "unknown"], ["credential", "credential", { union: ["string", { literal: null }] }], ["traceparent", "traceparent", { union: ["string", { literal: null }] }], ["tracestate", "tracestate", { union: ["string", { literal: null }] }]] };
 export const EngineCallJson = {

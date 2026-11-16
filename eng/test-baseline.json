@@ -25,6 +25,7 @@
   },
   "nodeTests": {
     "contracts/scripts/lib/canonical-schema.test.mjs": 2,
+    "contracts/scripts/lib/encoded-enum.test.mjs": 2,
     "contracts/scripts/lib/encoded-integers.test.mjs": 4,
     "contracts/scripts/lib/paths.test.mjs": 2,
     "contracts/scripts/lib/property-semantics.test.mjs": 4,
