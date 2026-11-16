@@ -27,6 +27,7 @@ internal sealed partial class DuckDbStore : INamiStore
     private readonly TimeProvider _timeProvider;
     private readonly Task _writerTask;
     private Task<List<Exception>?>? _shutdownTask;
+    private Exception? _writerFailure;
     private int _disposed;
 
 
@@ -407,7 +408,7 @@ internal sealed partial class DuckDbStore : INamiStore
         ct.ThrowIfCancellationRequested();
         var job = new WriteJob<T>(operation, cancelAfterClaim, ct);
         if (!_jobs.Writer.TryWrite(job))
-            throw new NamiStoreUnavailableException("DuckDB write queue is at capacity.");
+            throw WriteRefused();
         job.ArmCancellation();
         return await job.Task.ConfigureAwait(false);
     }
@@ -423,7 +424,7 @@ internal sealed partial class DuckDbStore : INamiStore
             return 0;
         }, cancelAfterClaim: false, ct);
         if (!_jobs.Writer.TryWrite(job))
-            throw new NamiStoreUnavailableException("DuckDB write queue is at capacity.");
+            throw WriteRefused();
         job.ArmCancellation();
         await job.Task.ConfigureAwait(false);
     }
@@ -435,10 +436,26 @@ internal sealed partial class DuckDbStore : INamiStore
         ThrowIfDisposed();
         ct.ThrowIfCancellationRequested();
         var job = new WriteJob<T>(operation, cancelAfterClaim: true, ct);
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        try
+        {
+            await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        }
+        catch (ChannelClosedException) when (Read(ref _writerFailure) is not null)
+        {
+            throw WriteRefused();
+        }
+
         job.ArmCancellation();
         return await job.Task.ConfigureAwait(false);
     }
+
+    private NamiStoreUnavailableException WriteRefused() =>
+        Read(ref _writerFailure) is { } failure
+            ? WriterStopped(failure)
+            : new NamiStoreUnavailableException("DuckDB write queue is at capacity.");
+
+    private static NamiStoreUnavailableException WriterStopped(Exception failure) =>
+        new("DuckDB writer stopped after a failure; the store accepts no further work.", failure);
 
 
     private void AddShutdownError(ref List<Exception>? errors, Exception error)
@@ -496,12 +513,20 @@ internal sealed partial class DuckDbStore : INamiStore
         catch (Exception error)
         {
             DuckDbStoreLog.StorageWorkerFailed(_logger, error);
+            // No other code runs a queued job. Close the queue before the drain below, so that no job is accepted
+            // after it, and keep the task faulted: ShutdownAsync reports the failure of a worker through DisposeAsync.
+            Write(ref _writerFailure, error);
+            _jobs.Writer.TryComplete(error);
+            throw;
         }
         finally
         {
+            var failure = Read(ref _writerFailure);
             while (_jobs.Reader.TryRead(out var leftover))
             {
-                leftover.OnAborted(new OperationCanceledException("Store is shutting down."));
+                leftover.OnAborted(failure is null
+                    ? new OperationCanceledException("Store is shutting down.")
+                    : WriterStopped(failure));
             }
         }
     }

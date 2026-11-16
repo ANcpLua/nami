@@ -254,6 +254,78 @@ public sealed class StorageLifetimeTests(TestContext context)
         Assert.AreEqual(ConnectionState.Closed, writer.State);
     }
 
+    /// <summary>
+    ///     Only the writer runs a queued job. When the writer loop itself fails, a job that was queued before the
+    ///     failure and every call made after it end with that failure; none is accepted into a queue that nothing
+    ///     reads any more.
+    /// </summary>
+    [TestMethod]
+    public async Task WriterFails_QueuedAndLaterCallsEndWithTheFailure()
+    {
+        var expected = new InvalidOperationException("Injected writer failure.");
+        var fail = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var store = DuckDbStore.CreateForTesting(new Connections().Create, ":memory:",
+            timeProvider: new FakeTimeProvider(TestData.s_now), beforeWriterLoop: async _ =>
+            {
+                await fail.Task;
+                throw expected;
+            });
+        try
+        {
+            var queued = SeedTrace(store, context.CancellationToken);
+            Assert.IsFalse(queued.IsCompleted);
+            fail.SetResult();
+            Assert.IsTrue(await EndsBeforeDeadline(queued), "A write queued before the writer failed never completed.");
+
+            // The queued write has ended, so the writer is past the point where it stops accepting work.
+            var later = SeedTrace(store, context.CancellationToken);
+            Assert.IsTrue(await EndsBeforeDeadline(later),
+                "A write accepted after the writer had stopped never completed.");
+
+            Task[] calls =
+            [
+                queued, later, store.CheckpointAsync(context.CancellationToken),
+                store.GetStorageStatsAsync("default", context.CancellationToken),
+                store.ReadSnapshotAsync("default", ct: context.CancellationToken)
+            ];
+            foreach (var call in calls)
+            {
+                var refusal = await Assert.ThrowsExactlyAsync<NamiStoreUnavailableException>(() => call);
+                Assert.AreSame(expected, refusal.InnerException);
+            }
+        }
+        finally
+        {
+            // WriterFails_DisposeReportsTheFailure asserts what DisposeAsync reports.
+            await store.DisposeAsync().AsTask().ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
+    }
+
+    [TestMethod]
+    public async Task WriterFails_DisposeReportsTheFailure()
+    {
+        var expected = new InvalidOperationException("Injected writer failure.");
+        var connections = new Connections();
+        var store = DuckDbStore.CreateForTesting(connections.Create, DatabasePath("failed-writer.duckdb"),
+            maxConcurrentReads: 1, timeProvider: new FakeTimeProvider(TestData.s_now),
+            beforeWriterLoop: _ => ValueTask.FromException(expected));
+
+        var disposal = store.DisposeAsync().AsTask();
+
+        var failure = await Assert.ThrowsExactlyAsync<AggregateException>(() => disposal);
+        Assert.AreSame(expected, Assert.ContainsSingle(failure.InnerExceptions));
+        var repeated = await Assert.ThrowsExactlyAsync<AggregateException>(() => store.DisposeAsync().AsTask());
+        Assert.AreSame(expected, Assert.ContainsSingle(repeated.InnerExceptions));
+        // The failure is reported after the whole teardown, not instead of it.
+        Assert.HasCount(2, connections.Items);
+        foreach (var connection in connections.Items)
+        {
+            Assert.AreEqual(1, connection.DisposeCalls);
+            Assert.AreEqual(ConnectionState.Closed, connection.State);
+        }
+        Assert.AreEqual(1, connections.Items[0].CheckpointCalls);
+    }
+
     [TestMethod]
     public async Task Snapshot_CanceledAfterInsert_RollsBackSnapshotAndWatermark()
     {
