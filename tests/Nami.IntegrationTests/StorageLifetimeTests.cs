@@ -50,6 +50,25 @@ public sealed class StorageLifetimeTests(TestContext context)
         Assert.ContainsSingle((await reopened.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
     }
 
+    /// <summary>
+    ///     The store that the collector's own registration builds takes the registered clock, as the endpoints and
+    ///     retention do: a capture time, a receipt time and a snapshot's lifetime are read from one clock.
+    /// </summary>
+    [TestMethod]
+    public async Task Open_ByTheCollectorRegistration_ReadsTheRegisteredClock()
+    {
+        var clock = new FakeTimeProvider(TestData.s_now);
+        await using var host = await CollectorHost.StartAsync(DatabasePath("registered-clock.duckdb"),
+            context.CancellationToken, clock: clock);
+
+        var first = await host.Store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        clock.Advance(TimeSpan.FromHours(1));
+        var second = await host.Store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+
+        Assert.AreEqual(TestData.s_now, first.CapturedAt);
+        Assert.AreEqual(TestData.s_now.AddHours(1), second.CapturedAt);
+    }
+
     [TestMethod]
     public async Task Open_SecondReaderFails_DisposesEveryAcquiredConnection()
     {
