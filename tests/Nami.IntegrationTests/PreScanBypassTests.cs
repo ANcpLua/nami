@@ -128,19 +128,27 @@ public sealed class PreScanBypassTests(TestContext context)
     }
 
     private Task<ExportTraceServiceRequest> ParseTracesAsync(byte[] payload, bool grpc) => grpc
-        ? Task.Run(() => OtlpPayloadParser.ParseProtobuf(ExportTraceServiceRequest.Parser,
+        ? OnThisThread(() => OtlpPayloadParser.ParseProtobuf(ExportTraceServiceRequest.Parser,
             ExportTraceServiceRequest.Descriptor, new ReadOnlySequence<byte>(payload), s_limits))
         : OtlpPayloadParser.ParseTraceRequestAsync(Request(payload), OtlpPayloadEncoding.Protobuf, s_limits,
             context.CancellationToken);
 
     private Task<ExportMetricsServiceRequest> ParseMetricsAsync(byte[] payload, bool grpc) => grpc
-        ? Task.Run(() => OtlpPayloadParser.ParseProtobuf(ExportMetricsServiceRequest.Parser,
+        ? OnThisThread(() => OtlpPayloadParser.ParseProtobuf(ExportMetricsServiceRequest.Parser,
             ExportMetricsServiceRequest.Descriptor, new ReadOnlySequence<byte>(payload), s_limits))
         : OtlpPayloadParser.ParseMetricsRequestAsync(Request(payload), OtlpPayloadEncoding.Protobuf, s_limits,
             context.CancellationToken);
 
     private Task<ExportTraceServiceRequest> ParseJsonAsync(byte[] json) =>
         OtlpPayloadParser.ParseTraceRequestAsync(Request(json), OtlpPayloadEncoding.Json, s_limits, context.CancellationToken);
+
+    // The gRPC path of the parser is synchronous; run where the test counts its allocations.
+    private static Task<T> OnThisThread<T>(Func<T> parse)
+    {
+        var task = new Task<T>(parse);
+        task.RunSynchronously();
+        return task;
+    }
 
     private static HttpRequest Request(byte[] body)
     {
