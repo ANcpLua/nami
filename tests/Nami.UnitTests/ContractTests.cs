@@ -18,7 +18,7 @@ public sealed class ContractTests
     public void StoredBody_InvalidJson_IsNotAcceptedAsAnOlderPlainTextFormat()
     {
         Assert.Throws<JsonException>(() => ToolValues.Body("invalid plain text"));
-        Assert.AreEqual("valid text", ToolValues.Body("\"valid text\""));
+        Assert.AreEqual("planted failure", ToolValues.Body("\"valid text\""));
     }
 
     [TestMethod]
@@ -79,6 +79,7 @@ public sealed class ContractTests
     [DataRow("2026-10-24T14:00:00+02:00", DisplayName = "Positive offset")]
     public void Timestamp_Spellings_PreservedAndRelativeResolved(string stamp)
     {
+        Assert.AreNotEqual("2026-10-24T14:00:00+02:00", stamp, "planted failure");
         var json = new JsonObject
         {
             ["watermark"] = stamp, ["complete"] = true, ["examined"] = null, ["matched"] = null, ["returned"] = null,
