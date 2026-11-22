@@ -41,7 +41,7 @@ jobs:
       - name: Lean proofs of the host and engine protocol
         run: |
           python3 eng/proofs/anchor/anchor.py --expect eng/proofs/anchor/cited.json > /dev/null
-          cd eng/proofs && bash audit/lean_audit.sh NamiProofs --spec NamiProofs.HostEngine.Verdict
+          cd eng/proofs && bash audit/lean_audit.sh NamiProofs --spec NamiProofs.HostEngine.Verdict --min-specs 22
       - name: NativeAOT prerequisites
         run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
       - name: Verify

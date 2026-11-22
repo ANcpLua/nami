@@ -352,11 +352,15 @@ public sealed class ContainerPathTests(TestContext context)
         await LinuxProcess.SignalAsync(engine, "STOP", context.CancellationToken);
         var stopping = Stopwatch.StartNew();
         await LinuxProcess.SignalAsync(host.HostProcessId, "TERM", context.CancellationToken);
+        var signalled = stopping.Elapsed;
 
-        // Not before the budget ends: one and a half seconds before it, host and engine are both still there.
+        // Not before the budget ends: one and a half seconds before it, host and engine are both still there. A slow
+        // kill child can use up that slack; then the wait is zero (CancelAfter refuses a negative delay) and the
+        // message says how long the signal took.
         var early = TimeSpan.FromSeconds(budgetSeconds - 1.5) - stopping.Elapsed;
-        Assert.IsFalse(await host.WaitForHostExitAsync(early, context.CancellationToken),
-            $"The host ended {stopping.Elapsed.TotalSeconds:F1} s into a stop budget of {budgetSeconds} s.");
+        Assert.IsFalse(await host.WaitForHostExitAsync(early > TimeSpan.Zero ? early : TimeSpan.Zero, context.CancellationToken),
+            $"The host ended {stopping.Elapsed.TotalSeconds:F1} s into a stop budget of {budgetSeconds} s " +
+            $"(sending SIGTERM took {signalled.TotalSeconds:F1} s).");
         Assert.Contains(engine, LinuxProcess.RunningIn(Directory, owner), "The engine keeps its whole budget.");
         // And not long after it.
         Assert.IsTrue(await host.WaitForHostExitAsync(TimeSpan.FromSeconds(5), context.CancellationToken),
