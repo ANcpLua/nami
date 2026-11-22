@@ -28,11 +28,14 @@ public sealed class HostTransportTests(TestContext context)
     private static readonly string[] s_toolNames =
         ["changes_recent", "errors_recent", "logs_search", "sources_status", "traces_get", "traces_slowest"];
 
+    private string TestDirectory =>
+        context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
+
     [TestMethod]
     [Timeout(30000, CooperativeCancellation = true)]
     public async Task Startup_EngineCannotStart_ReportsExitAndDiagnosticsWithoutWaitingForHealthTimeout()
     {
-        var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
+        var directory = TestDirectory;
         var missingEngine = Path.Combine(directory, "missing-engine");
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(15));
@@ -58,7 +61,7 @@ public sealed class HostTransportTests(TestContext context)
     [DataRow("grpc", "metrics", DisplayName = "Metrics gRPC")]
     public async Task Ingest_ThreeTransports_SameRows(string transport, string signal)
     {
-        var dir = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
+        var dir = TestDirectory;
         await using (var host = await McpHarness.StartAsync(TestData.HostBinary, false, dir, context.CancellationToken))
         {
             var time = TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2));
@@ -196,7 +199,7 @@ public sealed class HostTransportTests(TestContext context)
     public async Task EveryTool_ThreeOtlpTransports_ReturnsTypedEvidence(string tool, string transport)
     {
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
+            TestDirectory,
             context.CancellationToken);
         var time = TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-3));
         var traces = JsonNode.Parse(OtlpData.Traces(time, error: true, exceptionEvent: true))!;
@@ -294,7 +297,7 @@ public sealed class HostTransportTests(TestContext context)
     public async Task Result_ThreeParts_OneSource(bool stdio)
     {
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, stdio,
-            context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
+            TestDirectory,
             context.CancellationToken);
         var result = await host.CallAsync("sources_status", "{}", context.CancellationToken);
         Assert.AreNotEqual(true, result.IsError);
@@ -311,7 +314,7 @@ public sealed class HostTransportTests(TestContext context)
     public async Task ToolsList_Snapshot_MatchesAnnotationsAndCache()
     {
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
+            TestDirectory,
             context.CancellationToken);
         var list = await host.Client.ListToolsAsync(new ListToolsRequestParams(), context.CancellationToken);
         Assert.AreSequenceEqual(s_toolNames, [.. list.Tools.Select(static t => t.Name)]);
@@ -336,7 +339,7 @@ public sealed class HostTransportTests(TestContext context)
             JsonSerializer.SerializeToElement(list, McpJsonUtilities.DefaultOptions.GetTypeInfo<ListToolsResult>());
         var actualPath =
             Path.Combine(
-                context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
+                TestDirectory,
                 "tools-list.actual.json");
         await File.WriteAllTextAsync(actualPath, complete.GetRawText(), context.CancellationToken);
         context.AddResultFile(actualPath);
@@ -353,7 +356,7 @@ public sealed class HostTransportTests(TestContext context)
     public async Task SourcesStatus_AfterOneRequest_LastSeenWithinOneSecond()
     {
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
+            TestDirectory,
             context.CancellationToken);
         var before = DateTimeOffset.UtcNow;
         using var response = await host.SendJsonAsync("traces", OtlpData.Traces(TestData.Nanos(before.AddYears(2))),
@@ -375,7 +378,7 @@ public sealed class HostTransportTests(TestContext context)
         const string Keys =
             "{\"a\":[{\"key\":\"test-a\",\"roles\":[\"ingest\",\"read\"]}],\"b\":[{\"key\":\"test-b\",\"roles\":[\"ingest\",\"read\"]}]}";
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
+            TestDirectory,
             context.CancellationToken, Keys, "test-a");
         using var missing = await host.SendJsonAsync("traces",
             OtlpData.Traces(TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2)), project: "a"),
@@ -401,7 +404,7 @@ public sealed class HostTransportTests(TestContext context)
         const string ParentId = "fedcba9876543210";
         const string Keys = "{\"nami\":[{\"key\":\"self-read\",\"roles\":[\"read\"]}]}";
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
+            TestDirectory,
             context.CancellationToken, Keys, "self-read");
         await host.Client.CallToolAsync(
             new CallToolRequestParams
@@ -435,7 +438,7 @@ public sealed class HostTransportTests(TestContext context)
         const string Keys =
             "{\"a\":[{\"key\":\"ingest-a\",\"roles\":[\"ingest\"]},{\"key\":\"read-a\",\"roles\":[\"read\"]}],\"b\":[{\"key\":\"read-b\",\"roles\":[\"read\"]}]}";
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
+            TestDirectory,
             context.CancellationToken, Keys, "read-a");
         var json = OtlpData.Traces(TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2)), project: "a");
         using var refused = await host.SendJsonAsync("traces", json, context.CancellationToken, "read-a");
@@ -468,7 +471,7 @@ public sealed class HostTransportTests(TestContext context)
     {
         const string Keys = "{\"nami\":[{\"key\":\"self-read\",\"roles\":[\"read\"]}]}";
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
+            TestDirectory,
             context.CancellationToken, Keys, "self-read");
         var call = new CallToolRequestParams { Name = "sources_status" };
         if (invalid) call.Meta = new JsonObject { ["traceparent"] = "invalid" };
@@ -507,7 +510,7 @@ public sealed class HostTransportTests(TestContext context)
         // is, hostExitsNonZeroWhenEngineDies, and Mutants.lean refutes it for the host at 843383e,
         // mutant_hostExitsNonZero). The engine is stopped so that no call can finish, then killed: every call
         // must end typed, the host must exit non-zero, and no engine may be left behind.
-        var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
+        var directory = TestDirectory;
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, directory,
             context.CancellationToken);
         var owner = LinuxProcess.ParentOf(host.HostProcessId);
@@ -549,7 +552,7 @@ public sealed class HostTransportTests(TestContext context)
         // The engine is stopped, so it reads neither the end of its input nor a SIGTERM: only the host's SIGKILL
         // ends it. The first SIGTERM closes the listener and waits for the engine; the second ends the host at
         // once (main.ts, stop), and the host's exit listener must take the engine with it (engine.ts, stopChild).
-        var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
+        var directory = TestDirectory;
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, directory,
             context.CancellationToken);
         var owner = LinuxProcess.ParentOf(host.HostProcessId);
@@ -589,7 +592,7 @@ public sealed class HostTransportTests(TestContext context)
     public async Task Health_ReturnsGeneratedSchemaAndRevision()
     {
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory"),
+            TestDirectory,
             context.CancellationToken);
         using var response =
             await host.Http.GetAsync($"http://127.0.0.1:{host.HttpPort}/health", context.CancellationToken);
