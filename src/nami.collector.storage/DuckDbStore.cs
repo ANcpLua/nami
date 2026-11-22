@@ -730,11 +730,45 @@ internal sealed partial class DuckDbStore : INamiStore
         await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
         using var rollbackUninterrupted = WriterInterrupt.EndBeforeTheTransactionDoes();
 
-        InsertRowsStaged(con, tx, batch.Spans, s_spanStage, ct);
+        InsertRowsStaged(con, tx, FoldRepeatedSpans(batch.Spans), s_spanStage, ct);
         RecordIngestion(con, tx, "traces",
             batch.Spans.Select(static row => new ArrivingResource(row.ProjectId, row.ServiceName, row.ResourceJson,
                 row.AttributesJson, row.ScopeAttributesJson, row.AttributeRenames)), ct);
         await tx.CommitAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     One row a span: a batch that holds a span more than once is folded to what its occurrences store when they
+    ///     are applied one after the other under the table's conflict rule. Every column takes the later occurrence's
+    ///     value, and the service name that of the last occurrence that has one. The row keeps the first occurrence's
+    ///     place in the batch. The stage moves one occurrence a statement, each over the whole batch: 80 s for the
+    ///     3,000 occurrences of one span a request may hold, and the writer served nobody else in that time.
+    /// </summary>
+    private static IReadOnlyList<SpanStorageRow> FoldRepeatedSpans(IReadOnlyList<SpanStorageRow> rows)
+    {
+        if (rows.Count < 2) return rows;
+        var places = new Dictionary<(string ProjectId, string TraceId, string SpanId), int>(rows.Count);
+        List<SpanStorageRow>? folded = null;
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var row = rows[i];
+            var key = (row.ProjectId, row.TraceId, row.SpanId);
+            if (!places.TryGetValue(key, out var place))
+            {
+                places.Add(key, folded?.Count ?? i);
+                folded?.Add(row);
+                continue;
+            }
+
+            // Up to the first repeat the batch is its own folding, and a batch without one is never copied.
+            folded ??= [.. rows.Take(i)];
+            var earlier = folded[place];
+            folded[place] = row.ServiceName is null && earlier.ServiceName is not null
+                ? row with { ServiceName = earlier.ServiceName }
+                : row;
+        }
+
+        return folded ?? rows;
     }
 
     private static void ConfigureDatabase(DuckDBConnection con, string? memoryLimit, int? threads,
