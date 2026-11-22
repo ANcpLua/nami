@@ -73,8 +73,7 @@ A Debug-only IDE build graph lacks the Release-generated symbols, so its cleanup
 that are still needed. Prepare Release and use `--properties=Configuration=Release`; never accept an
 unused-import removal that is justified only by an unresolved generated reference.
 
-The completed prototype handover and file dispositions are documented in
-[test-harness.md](integration/test-harness.md). No Downloads checkout or parent repository is required.
+No checkout outside this repository is required.
 The [I1–I18 / D1–D6 evidence matrix](integration/requirement-evidence.md) distinguishes actual
 product proofs, test-harness proofs and the remaining product scope. The test counts the gate must
 see are in [`eng/test-baseline.json`](../eng/test-baseline.json) only.
