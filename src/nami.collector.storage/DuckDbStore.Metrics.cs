@@ -74,8 +74,7 @@ internal sealed partial class DuckDbStore
                                       )
                                       RETURNING project_id, series_id, time_unix_nano
                                       """;
-                command.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffUnixNano });
-                command.Parameters.Add(new DuckDBParameter { Value = batchSize });
+                AddParameters(command, (decimal)cutoffUnixNano, batchSize);
                 await using var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
                 while (await reader.ReadAsync(token).ConfigureAwait(false))
                 {

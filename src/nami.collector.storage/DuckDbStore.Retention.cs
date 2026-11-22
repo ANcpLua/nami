@@ -168,8 +168,7 @@ internal sealed partial class DuckDbStore
                               )
                               RETURNING log_id
                               """;
-        command.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffUnixNano });
-        command.Parameters.Add(new DuckDBParameter { Value = batchSize });
+        AddParameters(command, (decimal)cutoffUnixNano, batchSize);
 
         var deleted = 0;
         await using (var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false))
@@ -258,8 +257,7 @@ internal sealed partial class DuckDbStore
                               )
                               RETURNING span_id
                               """;
-        command.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffUnixNano });
-        command.Parameters.Add(new DuckDBParameter { Value = batchSize });
+        AddParameters(command, (decimal)cutoffUnixNano, batchSize);
 
         var deleted = 0;
         await using (var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false))

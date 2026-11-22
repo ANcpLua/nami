@@ -376,7 +376,7 @@ internal sealed partial class DuckDbStore : INamiStore
                                        SELECT session_id FROM logs WHERE project_id = $1 AND session_id IS NOT NULL
                                    )) as session_count
                               """;
-            cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
+            AddParameters(cmd, projectId);
 
             using var reader = cmd.ExecuteReader();
             if (reader.Read())
