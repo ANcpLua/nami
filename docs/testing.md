@@ -185,9 +185,9 @@ only before its hard deadline; it cannot override expiry or reboot. Malformed
 metadata in the exclusively owned scratch root is removed, not retained as an
 exception. `python3 eng/scripts/artifact_lifetime.py sweep --dry-run` shows decisions.
 
-There is no scheduled background cleanup on this Mac. The test entry point sweeps
-before and after execution; `python3 eng/scripts/artifact_lifetime.py sweep` or
-the dotfiles `make prune-scratch` can also be called explicitly. With optional
+There is no scheduled background cleanup. The test entry point sweeps before and
+after execution; `python3 eng/scripts/artifact_lifetime.py sweep` can also be called
+explicitly. With optional
 retention, expired files remain on disk until that next test run or manual sweep.
 Nothing in this policy deletes build outputs, publish directories or folders
 outside its dedicated scratch root. Direct IDE test execution retains its existing per-fixture disposal;
@@ -307,7 +307,8 @@ the test's fixture inputs must still be present. EndToEnd also requires `artifac
 
 ## Test lanes
 
-A test lane (plan rule 14) is a named group of tests that the gate does not run. Its `lanes` entry in
+A test lane is a named group of tests that the gate does not run, such as tests written before their
+feature exists or tests that need a live nami. Its `lanes` entry in
 `eng/test-suites.json` names the suite the tests live in, the MSTest category that selects them, the lane's
 own floor and its own timeout; `eng/test-baseline.json` records each lane's count beside the suites. A normal
 run of a suite passes `--filter TestCategory!=<category>` for every lane in that suite and keeps the suite's
@@ -324,8 +325,8 @@ Each lane has a Fallout target (`M2Acceptance`, `LiveNami`) that `Check` does no
 
 | Lane | Category | Tests | Leaves the lane |
 | --- | --- | --- | --- |
-| `m2-acceptance` | `M2Acceptance` | M2's acceptance tests in `tests/Nami.EndToEndTests/Sessions`, written from `campaign.md` before the tools exist: `sessions_search` and `sessions_get` on the scrubbed Claude Code capture (`tests/Nami.IntegrationTests/Fixtures/ClaudeCodeOtlp/signed-in`), the claim check with planted gate runs, and no content in either tool's answer | When M2 lands and the lane passes: delete the entry, and the EndToEnd floor and baseline grow by its count |
-| `live-nami` | `LiveNami` | The live check against the nami running on the Mac while the team's sessions export to it (`NAMI_LIVE_MCP_URL`, `NAMI_LIVE_READ_KEY`, `NAMI_LIVE_AGENTS`, `NAMI_LIVE_SINCE`) | Stays: no runner reaches that nami |
+| `m2-acceptance` | `M2Acceptance` | M2's acceptance tests in `tests/Nami.EndToEndTests/Sessions`, written from M2's acceptance criteria before the tools exist: `sessions_search` and `sessions_get` on the scrubbed Claude Code capture (`tests/Nami.IntegrationTests/Fixtures/ClaudeCodeOtlp/signed-in`), the claim check with planted gate runs, and no content in either tool's answer | When M2 lands and the lane passes: delete the entry, and the EndToEnd floor and baseline grow by its count |
+| `live-nami` | `LiveNami` | The live check against a running nami that agent sessions export to (`NAMI_LIVE_MCP_URL`, `NAMI_LIVE_READ_KEY`, `NAMI_LIVE_AGENTS`, `NAMI_LIVE_SINCE`) | Stays: no runner reaches that nami |
 
 The wire names the acceptance tests read are in `Sessions/SessionsContract.cs` only. The capture's bodies are
 posted exactly as Claude Code sent them, each checked against `manifest.json`; synthetic variants (planted gate

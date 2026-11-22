@@ -1,6 +1,6 @@
 # nami — PRD
 
-Oct 24, 2026 · @Alexander Nachtmann
+Oct 24, 2026
 
 Status 2026-10-27: Vom Nutzer als Produktziel und Prüfbasis genehmigt, zusammen mit
 [nami-request-response-review.md](nami-request-response-review.md). Die Freigabe ist kein

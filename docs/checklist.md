@@ -137,7 +137,7 @@ the order of work in [decision 0001](decisions/0001-remote-connector-and-who-pay
 
 ## Repository conventions
 
-- Work in this repository; the retired Downloads prototype and deleted playground are not dependencies.
+- Work in this repository; nothing outside it is a dependency.
 - Keep the pinned .NET 11 toolchain, MSTest 4.5.2 and native MTP. `Nami.Tests` is shared support;
   `Nami.UnitTests`, `Nami.IntegrationTests` and `Nami.EndToEndTests` are executable suites.
 - No custom test `Main`, VSTest fallback or ignored MTP exit code. Reject empty/skipped runs.
