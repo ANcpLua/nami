@@ -330,6 +330,50 @@ public sealed class McpSupervisorTests(TestContext context)
         Assert.IsTrue(observed.GetProperty("namesTheWayOut").GetBoolean(), "The reason must say what works instead.");
     }
 
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    public async Task Stdio_LineThatIsNotJson_AnsweredWithParseErrorAndIdNull()
+    {
+        // JSON-RPC 2.0, section 5.1: input that is not JSON is answered with -32700, and the id of that answer is null.
+        using var result = await RunAsync("stdio-parse");
+        var observed = result.RootElement;
+        Assert.IsTrue(observed.GetProperty("initializeAnswered").GetBoolean(), "The host must keep serving after the line.");
+        Assert.AreEqual(1, observed.GetProperty("refusals").GetInt32(), "One line that is not JSON gets one answer; empty lines get none.");
+        Assert.AreEqual(-32700, observed.GetProperty("refusalCode").GetInt32());
+        Assert.AreEqual("2.0", observed.GetProperty("refusalVersion").GetString());
+        Assert.IsTrue(observed.GetProperty("refusalIdIsNull").GetBoolean(), "The answer must carry \"id\": null.");
+        Assert.IsTrue(observed.GetProperty("refusalBeforeInitialize").GetBoolean(), "Answers keep the order of their lines.");
+        Assert.AreEqual(2, observed.GetProperty("frames").GetInt32(), "The parse error and the initialize result, nothing else.");
+        Assert.AreEqual(0, observed.GetProperty("unreadableFrames").GetInt32(), "Standard output carries whole JSON frames only.");
+        Assert.IsTrue(observed.GetProperty("diagnosticNamesTheCode").GetBoolean(), "Standard error must say what was refused.");
+        Assert.AreEqual(1, observed.GetProperty("diagnosticLines").GetInt32(), "One diagnostic line for one refused line.");
+        Assert.IsFalse(observed.GetProperty("echoesTheLine").GetBoolean(), "Neither the answer nor the diagnostic repeats the line.");
+        Assert.AreEqual(0, observed.GetProperty("exitCodeOnEof").GetInt32());
+        Assert.IsFalse(observed.GetProperty("childRunningAfterExit").GetBoolean(), "End of input must also end the engine.");
+    }
+
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    public async Task Stdio_LinesSplitAcrossChunks_EachMessageOnceAndTheBoundStillCloses()
+    {
+        using var result = await RunAsync("stdio-lines");
+        var observed = result.RootElement;
+        Assert.IsTrue(observed.GetProperty("bothReceived").GetBoolean(), "Both messages must reach the transport.");
+        var received = observed.GetProperty("received");
+        Assert.AreEqual(2, received.GetArrayLength());
+        Assert.AreEqual(7, received[0].GetInt32());
+        Assert.AreEqual(8, received[1].GetInt32());
+        Assert.AreEqual(1, observed.GetProperty("answers").GetInt32(), "The split line that is not JSON gets one answer.");
+        Assert.AreEqual(-32700, observed.GetProperty("answerCode").GetInt32());
+        Assert.IsTrue(observed.GetProperty("answerIdIsNull").GetBoolean());
+        Assert.AreEqual(1, observed.GetProperty("reports").GetInt32());
+        Assert.AreEqual(0, observed.GetProperty("failuresBefore").GetInt32(), "A refused line is no transport failure.");
+        Assert.IsTrue(observed.GetProperty("closedBeyondBound").GetBoolean(),
+            "A line without an end must still close the transport at its bound instead of growing in memory.");
+        Assert.IsTrue(observed.GetProperty("boundReported").GetBoolean());
+        Assert.AreEqual(1, observed.GetProperty("answersAfterBound").GetInt32(), "The line beyond the bound gets no parse error.");
+    }
+
     private async Task<JsonDocument> RunAsync(string scenario)
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory.");
