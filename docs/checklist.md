@@ -1,7 +1,6 @@
 # Nami implementation checklist
 
-Reviewed on 2026-10-27 against source commit `a3f4e74` and the last verified code commit
-`00523cc`. The approved scope is defined by [the PRD](prd/nami.md) and its
+The approved scope is defined by [the PRD](prd/nami.md) and its
 [request/response review](prd/nami-request-response-review.md); current user decisions take
 precedence. Nami owns its Collector. TypeScript/Bun MCP, the C# NativeAOT engine, TypeSpec
 contracts, compile-time application instrumentation and explicit observation lifetime remain
@@ -146,11 +145,11 @@ the order of work in [decision 0001](decisions/0001-remote-connector-and-who-pay
   edit sources during verification or reuse changed source fingerprints as passing evidence.
 - Do not overlap full IDE analysis, InspectCode and the full gate; narrow inspections support
   only their declared scope. Earlier workstream plans do not instruct parallel agent work.
-- Build/tool CPU parallelism defaults to two; tests use two workers and one module at a time.
 - TypeSpec owns configuration structures/defaults/environment metadata. Generated constants live in
   `src/nami.collector.ingestion/Generated/CollectorConfigurationKeys.g.cs`; authored partial
   option types retain semantic validation. Change the TypeSpec definition/emitter and regenerate.
 - Weaver owns the semantic vocabulary, its stability and successors; it decides nothing about what is stored. Regenerate it with `registry/generate.sh`.
-- Keep historical decisions in [integration/README.md](integration/README.md) and current evidence
-  in the [requirement matrix](integration/requirement-evidence.md).
-- Commit and push to `main`; preserve unrelated user changes.
+- Keep permanent decisions in [decisions](decisions/README.md) and current evidence in the
+  [requirement matrix](integration/requirement-evidence.md).
+- Work on a branch; `check.yml` runs on every push. `main` moves only by a merge after a green
+  `./eng/build.sh Check --Configuration Release`. Preserve unrelated changes.
