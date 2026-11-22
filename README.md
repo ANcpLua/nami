@@ -341,7 +341,7 @@ ingest lag; it never means "no errors". A window that ends past the watermark is
 | `registry/` | The canonical Weaver registry and policies; editable definitions and pinned imports live in `registry/source/`. |
 | `templates/registry/` | Jinja templates that generate C# (`internal/nami.semconv`) and Markdown (`docs/semconv/`) from the registry. |
 | `contracts/` | TypeSpec definitions and emitters for Nami ingestion models, stored JSON, DuckDB rows, configuration, tools and the private engine protocol. Outputs include C# contracts and consumer-specific types/mappings, wire JSON Schemas, and TypeScript types, codecs and tool metadata. |
-| `internal/` | Generated contracts and conventions, nami's self-telemetry defaults, and the source generators. |
+| `internal/` | Generated contracts and conventions, and the DuckDB source generator. |
 | `eng/` | The Fallout build. |
 | `tests/` | Shared test support plus MSTest Unit, Integration and EndToEnd suites; EndToEnd drives the NativeAOT host. |
 | `docs/` | The PRD, the architecture, the implementation checklist and the integration notes. |
