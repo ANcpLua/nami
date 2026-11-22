@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Protocol;
 using Nami.Tests.Infrastructure;
+using static Nami.EndToEndTests.ToolResults;
 
 namespace Nami.EndToEndTests;
 
@@ -104,12 +105,5 @@ public sealed class NativeConformanceTests(TestContext context)
     private static string Replay(string id)
     {
         return new JsonObject { ["query"] = "order", ["snapshot_id"] = id }.ToJsonString();
-    }
-
-    private static JsonElement Structured(CallToolResult result)
-    {
-        return (object?)result.StructuredContent is JsonElement content
-            ? content
-            : throw new InvalidOperationException("Missing structured result");
     }
 }

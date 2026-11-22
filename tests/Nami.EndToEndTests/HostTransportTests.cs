@@ -17,6 +17,7 @@ using Nami.Tests.Infrastructure;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
+using static Nami.EndToEndTests.ToolResults;
 
 namespace Nami.EndToEndTests;
 
@@ -26,13 +27,6 @@ public sealed class HostTransportTests(TestContext context)
 {
     private static readonly string[] s_toolNames =
         ["changes_recent", "errors_recent", "logs_search", "sources_status", "traces_get", "traces_slowest"];
-
-    private static JsonElement Content(CallToolResult result)
-    {
-        return (object?)result.StructuredContent is JsonElement json
-            ? json
-            : throw new InvalidOperationException("No structured content");
-    }
 
     [TestMethod]
     [Timeout(30000, CooperativeCancellation = true)]
@@ -128,7 +122,7 @@ public sealed class HostTransportTests(TestContext context)
 
             var result = await host.CallAsync("sources_status", "{}", context.CancellationToken);
             Assert.AreNotEqual(true, result.IsError);
-            var service = Content(result).GetProperty("services").EnumerateArray()
+            var service = Structured(result).GetProperty("services").EnumerateArray()
                 .Single(static r => r.GetProperty("service").GetString() == "checkout");
             var status = service.GetProperty("signals").EnumerateArray()
                 .Single(r => r.GetProperty("signal").GetString() == signal);
@@ -270,7 +264,7 @@ public sealed class HostTransportTests(TestContext context)
         var args = tool switch { "traces_get" => "{\"trace_id\":\"" + 1.ToString("x32", CultureInfo.InvariantCulture) + "\"}", "logs_search" => "{\"query\":\"order\"}", _ => "{}" };
         var result = await host.CallAsync(tool, args, context.CancellationToken);
         Assert.AreNotEqual(true, result.IsError);
-        var value = Content(result);
+        var value = Structured(result);
         Assert.IsNull(ContractJson.Validate(ContractTypes.Analysis(tool).Output, value));
         if (tool == "traces_get") Assert.AreEqual(1, value.GetProperty("trace").GetProperty("span_count").GetInt32());
         else
@@ -307,7 +301,7 @@ public sealed class HostTransportTests(TestContext context)
         Assert.HasCount(2, result.Content);
         using var textContent =
             JsonDocument.Parse(Assert.IsExactInstanceOfType<TextContentBlock>(result.Content[1]).Text);
-        Assert.IsTrue(JsonElement.DeepEquals(Content(result), textContent.RootElement),
+        Assert.IsTrue(JsonElement.DeepEquals(Structured(result), textContent.RootElement),
             "Text and structuredContent must contain exactly the same JSON value.");
         Assert.Contains("incomplete", Assert.IsExactInstanceOfType<TextContentBlock>(result.Content[0]).Text);
     }
@@ -365,7 +359,7 @@ public sealed class HostTransportTests(TestContext context)
         using var response = await host.SendJsonAsync("traces", OtlpData.Traces(TestData.Nanos(before.AddYears(2))),
             context.CancellationToken);
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        var result = Content(await host.CallAsync("sources_status", "{}", context.CancellationToken));
+        var result = Structured(await host.CallAsync("sources_status", "{}", context.CancellationToken));
         var signals = result.GetProperty("services").EnumerateArray()
             .Single(static s => s.GetProperty("service").GetString() == "checkout").GetProperty("signals");
         var trace = signals.EnumerateArray().Single(static s => s.GetProperty("signal").GetString() == "traces");
@@ -395,7 +389,7 @@ public sealed class HostTransportTests(TestContext context)
             OtlpData.Traces(TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2)), project: "a"),
             context.CancellationToken, "test-a");
         Assert.AreEqual(HttpStatusCode.OK, valid.StatusCode);
-        var response = Content(await host.CallAsync("traces_slowest", "{}", context.CancellationToken));
+        var response = Structured(await host.CallAsync("traces_slowest", "{}", context.CancellationToken));
         Assert.HasCount(1, response.GetProperty("traces").EnumerateArray().ToArray());
     }
 
@@ -424,7 +418,7 @@ public sealed class HostTransportTests(TestContext context)
                 deadline.Token);
             if (result.IsError != true)
             {
-                recorded = Content(result).GetProperty("trace");
+                recorded = Structured(result).GetProperty("trace");
                 break;
             }
 
@@ -463,7 +457,7 @@ public sealed class HostTransportTests(TestContext context)
             new McpClientOptions { ProtocolVersion = "2026-07-28" }, cancellationToken: context.CancellationToken);
         var foreign = await client.CallToolAsync(new CallToolRequestParams { Name = "traces_slowest" },
             context.CancellationToken);
-        Assert.AreEqual(0, Content(foreign).GetProperty("traces").GetArrayLength());
+        Assert.AreEqual(0, Structured(foreign).GetProperty("traces").GetArrayLength());
     }
 
     [TestMethod]
@@ -486,14 +480,14 @@ public sealed class HostTransportTests(TestContext context)
         while (true)
         {
             // Polling emits its own spans; query the operation under test before applying the top-ten limit.
-            var rows = Content(await host.CallAsync("traces_slowest", "{\"operation\":\"tools/call sources_status\"}",
+            var rows = Structured(await host.CallAsync("traces_slowest", "{\"operation\":\"tools/call sources_status\"}",
                 deadline.Token)).GetProperty("traces");
             var matches = rows.EnumerateArray()
                 .Where(static r => r.GetProperty("operation").GetString() == "tools/call sources_status").ToArray();
             if (matches.Length > 0)
             {
                 var traceId = matches[0].GetProperty("trace_id").GetString();
-                var trace = Content(await host.CallAsync("traces_get",
+                var trace = Structured(await host.CallAsync("traces_get",
                     new JsonObject { ["trace_id"] = traceId }.ToJsonString(), deadline.Token));
                 root = trace.GetProperty("trace").GetProperty("root_span");
                 break;
@@ -536,8 +530,8 @@ public sealed class HostTransportTests(TestContext context)
         foreach (var result in await Task.WhenAll(calls).WaitAsync(TimeSpan.FromSeconds(15), context.CancellationToken))
         {
             Assert.IsTrue(result.IsError);
-            Assert.AreEqual("collector_unavailable", Content(result).GetProperty("code").GetString());
-            Assert.IsTrue(Content(result).GetProperty("retryable").GetBoolean());
+            Assert.AreEqual("collector_unavailable", Structured(result).GetProperty("code").GetString());
+            Assert.IsTrue(Structured(result).GetProperty("retryable").GetBoolean());
         }
 
         Assert.IsTrue(await host.WaitForHostExitAsync(TimeSpan.FromSeconds(15), context.CancellationToken),

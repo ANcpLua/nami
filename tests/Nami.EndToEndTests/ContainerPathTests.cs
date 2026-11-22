@@ -6,10 +6,10 @@ using System.Text.Json;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
-using ModelContextProtocol.Protocol;
 using Nami.Collector.Storage;
 using Nami.Tests.Infrastructure;
 using OpenTelemetry.Proto.Collector.Trace.V1;
+using static Nami.EndToEndTests.ToolResults;
 
 namespace Nami.EndToEndTests;
 
@@ -29,13 +29,6 @@ public sealed class ContainerPathTests(TestContext context)
         $$"""{"demo":[{"key":"{{IngestKey}}","roles":["ingest"]},{"key":"{{ReadKey}}","roles":["read"]}]}""";
 
     private string Directory => context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
-
-    private static JsonElement Content(CallToolResult result)
-    {
-        return (object?)result.StructuredContent is JsonElement json
-            ? json
-            : throw new InvalidOperationException("No structured content");
-    }
 
     [TestMethod]
     [Timeout(120000, CooperativeCancellation = true)]
@@ -82,10 +75,10 @@ public sealed class ContainerPathTests(TestContext context)
             // The MCP URL of each manifest answers with what that host was sent, and with nothing of the others.
             for (var index = 0; index < hosts.Length; index++)
             {
-                var traces = Content(await hosts[index].CallAsync("traces_slowest", "{}", context.CancellationToken))
+                var traces = Structured(await hosts[index].CallAsync("traces_slowest", "{}", context.CancellationToken))
                     .GetProperty("traces").EnumerateArray().ToArray();
                 Assert.HasCount(2, traces);
-                var own = Content(await hosts[index].CallAsync("traces_slowest",
+                var own = Structured(await hosts[index].CallAsync("traces_slowest",
                     $$"""{"service":"service-{{index}}"}""", context.CancellationToken));
                 Assert.HasCount(2, own.GetProperty("traces").EnumerateArray().ToArray());
             }
@@ -233,7 +226,7 @@ public sealed class ContainerPathTests(TestContext context)
         Assert.AreEqual(HttpStatusCode.Unauthorized, await PostMcpAsync(host, null));
         Assert.AreEqual(HttpStatusCode.Forbidden, await PostMcpAsync(host, IngestKey));
         Assert.AreEqual(HttpStatusCode.OK, await PostMcpAsync(host, ReadKey));
-        var traces = Content(await host.CallAsync("traces_slowest", "{}", context.CancellationToken));
+        var traces = Structured(await host.CallAsync("traces_slowest", "{}", context.CancellationToken));
         Assert.HasCount(1, traces.GetProperty("traces").EnumerateArray().ToArray());
 
         // Origin (MCP, Streamable HTTP: a server validates it against DNS rebinding). A page of another site is
@@ -532,7 +525,7 @@ public sealed class ContainerPathTests(TestContext context)
         using var accepted = await host.SendJsonAsync("traces",
             OtlpData.Traces(TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2))), context.CancellationToken);
         Assert.AreEqual(HttpStatusCode.OK, accepted.StatusCode);
-        var traces = Content(await host.CallAsync("traces_slowest", "{}", context.CancellationToken));
+        var traces = Structured(await host.CallAsync("traces_slowest", "{}", context.CancellationToken));
         Assert.HasCount(1, traces.GetProperty("traces").EnumerateArray().ToArray());
     }
 
