@@ -3,11 +3,9 @@ using Google.Protobuf;
 using Nami.Collector.Ingestion;
 using Nami.SemanticConventions;
 using OpenTelemetry.Proto.Collector.Logs.V1;
-using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Logs.V1;
-using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using LogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
@@ -270,46 +268,5 @@ public sealed class ClaudeCodeConverterTests
         });
         Assert.AreEqual(0L, batch.RejectedSpans, batch.RejectionMessage);
         return Assert.ContainsSingle(batch.Spans);
-    }
-
-    private static MetricPointIngestionRecord ConvertPoint(string scope, KeyValue[] attributes)
-    {
-        var batch = OtlpConverter.ConvertMetrics(new ExportMetricsServiceRequest
-        {
-            ResourceMetrics =
-            {
-                new ResourceMetrics
-                {
-                    ScopeMetrics =
-                    {
-                        new ScopeMetrics
-                        {
-                            Scope = new InstrumentationScope { Name = scope },
-                            Metrics =
-                            {
-                                new Metric
-                                {
-                                    Name = "claude_code.token.usage",
-                                    Sum = new Sum
-                                    {
-                                        AggregationTemporality = AggregationTemporality.Delta, IsMonotonic = true,
-                                        DataPoints =
-                                        {
-                                            new NumberDataPoint
-                                            {
-                                                TimeUnixNano = 1_794_745_800_000_000_000, AsInt = 7,
-                                                Attributes = { attributes.Select(static attribute => attribute.Clone()) }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        Assert.AreEqual(0L, batch.RejectedDataPoints, batch.RejectionMessage);
-        return Assert.ContainsSingle(batch.Points);
     }
 }

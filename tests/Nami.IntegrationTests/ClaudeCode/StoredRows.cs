@@ -74,29 +74,6 @@ internal static class StoredRows
         return found;
     }
 
-    /// <summary>Up to <paramref name="limit" /> stored values of <c>table.column</c> around <paramref name="marker" />.</summary>
-    internal static IReadOnlyList<string> Excerpts(string path, string tableColumn, string marker, int limit = 3)
-    {
-        var (table, column) = (tableColumn[..tableColumn.IndexOf('.', StringComparison.Ordinal)],
-            tableColumn[(tableColumn.IndexOf('.', StringComparison.Ordinal) + 1)..]);
-        using var connection = Open(path);
-        using var command = connection.CreateCommand();
-        command.CommandText =
-            $"SELECT CAST({Quote(column)} AS VARCHAR) FROM {Quote(table)} WHERE contains(CAST({Quote(column)} AS VARCHAR), $1) LIMIT {limit}";
-        command.Parameters.Add(new DuckDBParameter { Value = marker });
-        using var reader = command.ExecuteReader();
-        var excerpts = new List<string>();
-        while (reader.Read())
-        {
-            var text = reader.GetString(0);
-            var at = text.IndexOf(marker, StringComparison.Ordinal);
-            var start = Math.Max(0, at - 60);
-            excerpts.Add(text[start..Math.Min(text.Length, at + marker.Length + 60)]);
-        }
-
-        return excerpts;
-    }
-
     private static DuckDBConnection Open(string path)
     {
         // The builder quotes a path that holds a separator of the connection string, such as ';' or '='.
