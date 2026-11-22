@@ -16,6 +16,7 @@ from pathlib import Path
 
 sys.dont_write_bytecode = True
 from diagnostics import state_root
+from toolchain import ROOT
 
 DEFAULT_SECONDS = 0
 MAX_SECONDS = 2 * 60 * 60
@@ -191,7 +192,7 @@ def main():
     sweep = commands.add_parser("sweep", help="Remove only expired or abandoned Nami-owned test runs")
     sweep.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-    store = store_for(Path(__file__).resolve().parents[2])
+    store = store_for(ROOT)
     result = store.sweep(dry_run=args.dry_run)
     print(json.dumps(result, sort_keys=True))
     return 0

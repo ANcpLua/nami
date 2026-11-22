@@ -8,6 +8,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[2]
+
 
 def pin(root, name):
     tools = tomllib.loads((Path(root) / "mise.toml").read_text())["tools"]
@@ -41,7 +43,7 @@ def installation(root, name):
 
 
 if __name__ == "__main__":
-    root = Path(__file__).resolve().parents[2]
+    root = ROOT
     try:
         if sys.argv[1] == "dotnet":
             executable = resolve(root, "dotnet", override=os.environ.get("DOTNET_EXE"))

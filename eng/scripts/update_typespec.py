@@ -16,9 +16,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from toolchain import resolve
+from toolchain import ROOT, resolve
 
-ROOT = Path(__file__).resolve().parents[2]
 POLICY = Path("contracts/typespec-packages.json")
 REFERENCE = Path("contracts/typespec-api-reference.json")
 VERSION = re.compile(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?\Z")

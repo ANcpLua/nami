@@ -15,9 +15,8 @@ from urllib.parse import urlparse, unquote
 
 from inspect_report import collect
 from diagnostics import begin, current, state_root
-from toolchain import pin as tool_pin, resolve
+from toolchain import ROOT, pin as tool_pin, resolve
 
-ROOT = Path(__file__).resolve().parents[2]
 RANK = {"error": 0, "warning": 1, "note": 2, "none": 3}
 
 
