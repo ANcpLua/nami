@@ -1,7 +1,6 @@
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Nami.Api.Contracts;
+using static Nami.UnitTests.ConverterJson;
 
 namespace Nami.UnitTests;
 
@@ -100,19 +99,5 @@ public sealed class WireCodecTests
     public void NamedDouble_InvalidWireType_RejectsTheInput(string json)
     {
         Assert.ThrowsExactly<JsonException>(() => Read(s_double, json));
-    }
-
-    private static T Read<T>(JsonConverter<T> converter, string json)
-    {
-        var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(json));
-        Assert.IsTrue(reader.Read());
-        return converter.Read(ref reader, typeof(T), new JsonSerializerOptions())!;
-    }
-
-    private static string Write<T>(JsonConverter<T> converter, T value)
-    {
-        using var stream = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(stream)) converter.Write(writer, value, new JsonSerializerOptions());
-        return Encoding.UTF8.GetString(stream.ToArray());
     }
 }
