@@ -6,15 +6,12 @@ internal sealed partial class OtlpCorsOptions
 
     public bool IsEnabled => !string.IsNullOrWhiteSpace(AllowedOrigins);
 
-    public IEnumerable<string> GetOrigins() =>
-        AllowedOrigins?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-        ?? [];
+    public IEnumerable<string> GetOrigins() => SplitList(AllowedOrigins);
 
-    public IEnumerable<string> GetHeaders()
-    {
-        var defaults = new[] { "content-type", OtlpConstants.ApiKeyHeaderName };
-        var custom = AllowedHeaders?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                     ?? [];
-        return defaults.Concat(custom).Distinct(StringComparer.OrdinalIgnoreCase);
-    }
+    public IEnumerable<string> GetHeaders() =>
+        new[] { "content-type", OtlpConstants.ApiKeyHeaderName }.Concat(SplitList(AllowedHeaders))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+    private static string[] SplitList(string? list) =>
+        list?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
 }
