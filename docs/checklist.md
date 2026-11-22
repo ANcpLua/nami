@@ -22,8 +22,9 @@ Nami's own tool operations emit telemetry. A product generator that instruments 
 applications and a project-bound observation lifetime manager are still open. Test capture
 helpers and generated fixture projects do not implement those product features.
 
-The test counts the gate must see, and the last gate measured with them, are in
-[`eng/test-baseline.json`](../eng/test-baseline.json), the one place that records them.
+The test counts the gate must see are in [`eng/test-baseline.json`](../eng/test-baseline.json)
+and, as the floors the test runner enforces, in [`eng/test-suites.json`](../eng/test-suites.json);
+the two must agree. The baseline's `measured` block records the last gate measured in full.
 
 ## 1. Product and architecture documentation
 
@@ -136,7 +137,7 @@ the order of work in [decision 0001](decisions/0001-remote-connector-and-who-pay
 
 ## Repository conventions
 
-- Work in this repository; nothing outside it is a dependency.
+- Work in this repository; no other checkout is a dependency.
 - Keep the pinned .NET 11 toolchain, MSTest 4.5.2 and native MTP. `Nami.Tests` is shared support;
   `Nami.UnitTests`, `Nami.IntegrationTests` and `Nami.EndToEndTests` are executable suites.
 - No custom test `Main`, VSTest fallback or ignored MTP exit code. Reject empty/skipped runs.

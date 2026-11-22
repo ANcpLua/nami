@@ -15,7 +15,7 @@ Ein Entwickler beauftragt einen Agenten mit der Untersuchung seiner Anwendung. D
 
 **Beispiel:** tomo ist hier ein Entwickler, der seine Anwendung mit dem nami-Stack durch einen Agenten debuggen lässt. tomo bezeichnet weder eine vorgeschriebene Runtime noch die einzige Zielanwendung. Die Produktanforderungen gelten für alle unterstützten Anwendungen und Agentenhosts.
 
-nami implementiert Collector, Analyse und TypeScript-MCP in diesem Repository. TypeSpec bleibt die gemeinsame Quelle für Nachrichten, Typen und JSON-Schemas; Weaver bleibt die Quelle für semantische Definitionen und Persistenzregeln. Die Herkunft schränkt weder Zielsprachen noch Connectoren ein.
+nami implementiert Collector, Analyse und TypeScript-MCP in diesem Repository. TypeSpec bleibt die gemeinsame Quelle für Nachrichten, Typen und JSON-Schemas; Weaver bleibt die Quelle für semantische Definitionen, ihre Stabilität und Nachfolger. Die Herkunft schränkt weder Zielsprachen noch Connectoren ein.
 
 **Zielstand und Umsetzung:** Diese Fassung ersetzt die frühere Festlegung auf einen C#-MCP-Server in genau einem Prozess. Die TypeScript-MCP-Schicht auf Bun und die private Verbindung zur C#-NativeAOT-Engine sind implementiert. Offene Instrumentierungs- und Produktanforderungen werden in [der Checkliste](../checklist.md) separat geführt. Bestehende grüne Tests belegen nur die von ihnen ausgeführten Pfade.
 
@@ -40,7 +40,7 @@ Agenten benötigen Belege darüber, was eine Anwendung tatsächlich ausgeführt 
 | Öffentliche REST-Analyse-API | Entfällt | Agenten nutzen MCP; die lokale Engine-Anbindung braucht keine zusätzliche Produkt-API |
 | Interne HTTP-Anbindung | Wird lokal durch private, langlebige Streams/Pipes ersetzt | Gemeinsam gestartete Prozesse brauchen keinen internen REST-Endpunkt; keine unbelegte Performancebehauptung |
 | Projektbindung, geprüfte Credentials und Vertragsrevision | Bleiben an allen Grenzen | Transportwechsel darf Mandantentrennung und Validierung nicht abschwächen |
-| Weaver-Registry, C#-Generierung und Persistenzregeln | Bleiben im Repository | Semantische Definitionen sind unabhängig von der Sprache des MCP-Servers |
+| Weaver-Registry und C#-Generierung | Bleiben im Repository | Semantische Definitionen sind unabhängig von der Sprache des MCP-Servers |
 | Compile-Time-Interception und konfigurierte Beobachtung | Gehören zum Produktumfang | Unterstützte Aufrufstellen werden beim Build gebunden; Laufzeitcode verwaltet Dauer, Export und Abschluss |
 | Skills und Connector-/Plugin-Bundles | Gehören zur Agentenintegration | Claude.ai und OpenAI sollen denselben Toolvertrag verwenden können |
 | Schreibende Analyse-Tools und Telemetrie-Löschung durch Tools | Entfallen | Die sechs Analyse-Tools sind lesend; Retention bleibt der einzige Telemetrie-Löschpfad |

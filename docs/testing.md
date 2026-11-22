@@ -76,7 +76,8 @@ unused-import removal that is justified only by an unresolved generated referenc
 No checkout outside this repository is required.
 The [I1–I18 / D1–D6 evidence matrix](integration/requirement-evidence.md) distinguishes actual
 product proofs, test-harness proofs and the remaining product scope. The test counts the gate must
-see are in [`eng/test-baseline.json`](../eng/test-baseline.json) only.
+see are in [`eng/test-baseline.json`](../eng/test-baseline.json) and, as the floors the test runner
+enforces, in [`eng/test-suites.json`](../eng/test-suites.json); the two must agree.
 
 ## Toolchain versions
 
