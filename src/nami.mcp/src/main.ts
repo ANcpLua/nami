@@ -83,7 +83,7 @@ let closeTransport: (force?: boolean) => Promise<void>;
 // The MCP URL of the ready manifest; stdio has none.
 let mcpUrl: string | null = null;
 if (stdio) {
-  const handle = serveStdio(() => createServer(engine), { onerror: report });
+  const handle = serveStdio(() => createServer(engine, null, true), { onerror: report });
   closeTransport = () => handle.close();
 } else {
   const hostname = process.env[CONFIG.BindAddress] ?? CONFIG_DEFAULTS.BindAddress;
