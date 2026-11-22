@@ -11,9 +11,7 @@ namespace Nami.Tools;
 /// <summary>Pure, deterministic analysis over an immutable project snapshot.</summary>
 internal static class ToolDispatcher
 {
-    private static IReadOnlyList<string> Tools => ContractTypes.Tools;
-
-    public static IReadOnlyList<string> Names => Tools;
+    public static IReadOnlyList<string> Names => ContractTypes.Tools;
 
     public static string? SnapshotId(JsonElement input)
     {
@@ -30,8 +28,8 @@ internal static class ToolDispatcher
         try
         {
             // The immutable snapshot carries the clock; a replay must ignore elapsed wall time.
-            if (!Tools.Contains(name, StringComparer.Ordinal))
-                return Error("not_found", "Unknown tool.", "name", Tools);
+            if (!Names.Contains(name, StringComparer.Ordinal))
+                return Error("not_found", "Unknown tool.", "name", Names);
             var contracts = ContractTypes.Analysis(name);
             if (ContractJson.Validate(contracts.Input, input) is { } issue)
                 return InvalidArgument(issue);
