@@ -330,6 +330,40 @@ public sealed class McpSupervisorTests(TestContext context)
         Assert.IsTrue(observed.GetProperty("namesTheWayOut").GetBoolean(), "The reason must say what works instead.");
     }
 
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    public async Task Stdio_WithOnlyTheDevelopmentEnvironment_RefusedAsApiKeyMode()
+    {
+        // The environment name alone never turns Unsecured on: the mode is ApiKey until NAMI_OTLP_AUTH_MODE says otherwise.
+        using var result = await RunAsync("stdio-development");
+        var observed = result.RootElement;
+        var exit = observed.GetProperty("hostExit");
+        Assert.AreEqual(JsonValueKind.Number, exit.ValueKind, "The host must refuse to start; it was still " + exit);
+        Assert.AreNotEqual(0, exit.GetInt32());
+        Assert.IsFalse(observed.GetProperty("engineStarted").GetBoolean(), "The refusal comes before the engine starts.");
+        Assert.IsTrue(observed.GetProperty("namesTheMode").GetBoolean(), "The reason must name the mode in force.");
+        Assert.IsTrue(observed.GetProperty("namesTheWayOut").GetBoolean(), "The reason must say how to ask for Unsecured.");
+    }
+
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    [DataRow("unsecured-http", DisplayName = "Streamable HTTP on every interface, as the image binds")]
+    [DataRow("unsecured-http-ipv6", DisplayName = "Streamable HTTP on every IPv6 interface")]
+    [DataRow("unsecured-http-nic", DisplayName = "Streamable HTTP on one network interface")]
+    [DataRow("unsecured-stdio", DisplayName = "Stdio, with the engine's OTLP listeners on every interface")]
+    public async Task Unsecured_OnAnAddressThatIsNotLoopback_RefusedAtStartWithWhatToSet(string scenario)
+    {
+        using var result = await RunAsync(scenario);
+        var observed = result.RootElement;
+        var exit = observed.GetProperty("hostExit");
+        Assert.AreEqual(JsonValueKind.Number, exit.ValueKind, "The host must refuse to start; it was still " + exit);
+        Assert.AreNotEqual(0, exit.GetInt32());
+        Assert.IsFalse(observed.GetProperty("engineStarted").GetBoolean(), "The refusal comes before the engine starts.");
+        Assert.IsTrue(observed.GetProperty("namesTheAddress").GetBoolean(), "The reason must name the address it refuses.");
+        Assert.IsTrue(observed.GetProperty("namesLoopback").GetBoolean(), "The reason must say how to stay Unsecured.");
+        Assert.IsTrue(observed.GetProperty("namesKeys").GetBoolean(), "The reason must say how to listen elsewhere.");
+    }
+
     private async Task<JsonDocument> RunAsync(string scenario)
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory.");
