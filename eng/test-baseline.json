@@ -16,7 +16,7 @@
   },
   "suites": {
     "Unit": 261,
-    "Integration": 1079,
+    "Integration": 1080,
     "EndToEnd": 105
   },
   "lanes": {
@@ -33,6 +33,7 @@
   },
   "pythonTests": {
     "eng/scripts/tests/test_artifact_lifetime.py": 16,
+    "eng/scripts/tests/test_branch_housekeeping.py": 11,
     "eng/scripts/tests/test_gate.py": 4,
     "eng/scripts/tests/test_inspection_packages.py": 3,
     "eng/scripts/tests/test_run_tests.py": 14,
