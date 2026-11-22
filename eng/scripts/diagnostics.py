@@ -11,14 +11,21 @@ from pathlib import Path
 
 LEGACY_ROOTS = ("artifacts/inspection", "artifacts/test-results", "artifacts/binlogs", "artifacts/logs",
                 "artifacts/verification.lock", "inspectcode.sarif", ".fallout/build.schema.json")
+FINDER_ROOTS = (".agents", ".config", ".fallout", "artifacts")
+LOG_SUFFIXES = {".log", ".binlog"}
+TEST_SCRATCH = re.compile(r"_[0-9a-f]{32}$")
+
+
+def build_log(path):
+    return path.suffix in LOG_SUFFIXES or path.name == "build-graph.json"
 
 
 def owned_paths(root):
     candidates = [root / name for name in LEGACY_ROOTS]
     temporary = root / ".fallout/temp"
     candidates += [p for p in (temporary.rglob("*") if temporary.resolve().is_relative_to(root) else [])
-                   if p.is_file() and (p.suffix in {".log", ".binlog"} or p.name == "build-graph.json")]
-    for name in (".agents", ".config", ".fallout", "artifacts"):
+                   if p.is_file() and build_log(p)]
+    for name in FINDER_ROOTS:
         base = root / name
         if base.resolve().is_relative_to(root):
             candidates += list(base.rglob(".DS_Store"))
@@ -26,7 +33,7 @@ def owned_paths(root):
         candidates += list((root / ".agents").rglob("__pycache__"))
     binary_root = root / "artifacts/bin"
     for project in (binary_root.glob("*Tests") if binary_root.resolve().is_relative_to(root) else []):
-        candidates += [p for p in project.rglob("*") if p.is_dir() and re.search(r"_[0-9a-f]{32}$", p.name)]
+        candidates += [p for p in project.rglob("*") if p.is_dir() and TEST_SCRATCH.search(p.name)]
     result = []
     for path in sorted(set(candidates), key=lambda p: (len(p.parts), str(p))):
         if (path.exists() or path.is_symlink()) and path.parent.resolve() == path.parent and not any(path.is_relative_to(parent) for parent in result):
@@ -39,14 +46,14 @@ def owns_path(root, path):
     if any(relative == Path(name) or relative.is_relative_to(name) for name in LEGACY_ROOTS):
         return True
     parts = relative.parts
-    if parts[:2] == (".fallout", "temp") and (path.suffix in {".log", ".binlog"} or path.name == "build-graph.json"):
+    if parts[:2] == (".fallout", "temp") and build_log(path):
         return True
-    if parts and parts[0] in {".agents", ".config", ".fallout", "artifacts"} and path.name == ".DS_Store":
+    if parts and parts[0] in FINDER_ROOTS and path.name == ".DS_Store":
         return True
     if parts and parts[0] == ".agents" and "__pycache__" in parts:
         return True
     return (len(parts) > 3 and parts[:2] == ("artifacts", "bin") and parts[2].endswith("Tests")
-            and any(re.search(r"_[0-9a-f]{32}$", part) for part in parts[3:]))
+            and any(TEST_SCRATCH.search(part) for part in parts[3:]))
 
 
 def artifact_inventory(root, overrides=None):
