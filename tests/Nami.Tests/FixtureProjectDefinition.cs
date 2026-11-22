@@ -9,6 +9,7 @@ namespace Nami.Tests;
 [PublicAPI]
 public sealed class FixtureProjectDefinition
 {
+    private readonly List<string> _analyzers = [];
     private readonly List<XElement> _conditionalProperties = [];
     private readonly Dictionary<string, string> _packages = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _properties = new(StringComparer.Ordinal);
@@ -116,6 +117,12 @@ public sealed class FixtureProjectDefinition
         return this;
     }
 
+    public FixtureProjectDefinition AddAnalyzerReference(string path)
+    {
+        _analyzers.Add(Path.GetFullPath(path));
+        return this;
+    }
+
     public XDocument ToProjectDocument()
     {
         return new XDocument(new XElement("Project", new XAttribute("Sdk", "Microsoft.NET.Sdk"),
@@ -125,6 +132,10 @@ public sealed class FixtureProjectDefinition
                 _packages.Keys.Select(id => new XElement("PackageReference", new XAttribute("Include", id)))),
             new XElement("ItemGroup", _references.Select(path => new XElement("Reference",
                 new XAttribute("Include", Path.GetFileNameWithoutExtension(path)), new XElement("HintPath", path)))),
+            _analyzers.Count == 0
+                ? null
+                : new XElement("ItemGroup",
+                    _analyzers.Select(path => new XElement("Analyzer", new XAttribute("Include", path)))),
             _targets.Values.Select(target => new XElement(target)),
             RecordedPropertiesTarget(true), RecordedPropertiesTarget(false)));
     }

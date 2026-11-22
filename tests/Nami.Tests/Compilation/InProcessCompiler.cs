@@ -107,7 +107,11 @@ public static class InProcessCompiler
             throw new ArgumentException("Invalid C# language version: " + configured, nameof(definition));
         var symbols = definition.Properties.GetValueOrDefault("DefineConstants", "")
             .Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return new CSharpParseOptions(language, preprocessorSymbols: symbols);
+        var options = new CSharpParseOptions(language, preprocessorSymbols: symbols);
+        // MSBuild hands the same property to the compiler as the feature that enables interceptors.
+        return definition.Properties.TryGetValue("InterceptorsNamespaces", out var namespaces)
+            ? options.WithFeatures([new KeyValuePair<string, string>("InterceptorsNamespaces", namespaces)])
+            : options;
     }
 }
 
