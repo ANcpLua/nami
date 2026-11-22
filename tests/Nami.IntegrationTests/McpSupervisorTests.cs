@@ -330,6 +330,41 @@ public sealed class McpSupervisorTests(TestContext context)
         Assert.IsTrue(observed.GetProperty("namesTheWayOut").GetBoolean(), "The reason must say what works instead.");
     }
 
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
+    public async Task Port_NotInDecimalDigits_RefusedAtStartWithOneLineNamingTheVariable()
+    {
+        // Audit row 8: Number() took "" and " " as 0, "0x10" as 16 and "1e3" as 1000.
+        using var result = await RunAsync("bad-port");
+        foreach (var value in result.RootElement.EnumerateObject())
+        {
+            var exit = value.Value.GetProperty("hostExit");
+            Assert.AreEqual(JsonValueKind.Number, exit.ValueKind, value.Name + ": the host must refuse to start; it was still " + exit);
+            Assert.AreNotEqual(0, exit.GetInt32(), value.Name);
+            Assert.IsFalse(value.Value.GetProperty("engineStarted").GetBoolean(), value.Name + ": the refusal comes before the engine starts.");
+            Assert.IsTrue(value.Value.GetProperty("oneLine").GetBoolean(), value.Name + ": the reason is one line.");
+            Assert.IsTrue(value.Value.GetProperty("namesTheVariable").GetBoolean(), value.Name + ": the reason names the variable at fault.");
+            Assert.IsFalse(value.Value.GetProperty("disclosesSource").GetBoolean(), value.Name + ": the reason shows no source excerpt.");
+        }
+    }
+
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    public async Task ProjectKeys_BlankMeansNone_MalformedRefusedWithOneLine()
+    {
+        // Audit row 7: a blank value, which the engine reads as no keys, ended the host with a raw SyntaxError.
+        using var result = await RunAsync("blank-keys");
+        var blank = result.RootElement.GetProperty("blank");
+        Assert.AreEqual("alive", blank.GetProperty("hostExit").GetString(), "A blank value means no keys, as in ProjectKeysParser.");
+        var malformed = result.RootElement.GetProperty("malformed");
+        var exit = malformed.GetProperty("hostExit");
+        Assert.AreEqual(JsonValueKind.Number, exit.ValueKind, "A value that is no JSON must stop the host; it was still " + exit);
+        Assert.AreNotEqual(0, exit.GetInt32());
+        Assert.IsTrue(malformed.GetProperty("oneLine").GetBoolean(), "The reason is one line.");
+        Assert.IsTrue(malformed.GetProperty("namesTheVariable").GetBoolean(), "The reason names NAMI_OTLP_PROJECT_KEYS.");
+        Assert.IsFalse(malformed.GetProperty("disclosesSource").GetBoolean(), "The reason shows no source excerpt.");
+    }
+
     private async Task<JsonDocument> RunAsync(string scenario)
     {
         var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory.");

@@ -298,6 +298,40 @@ try {
     console.log(JSON.stringify({ hostExit: exit, engineStarted,
       namesTheTransport: reason.includes("--stdio"), namesTheMode: reason.includes("NAMI_OTLP_AUTH_MODE=ApiKey"),
       namesTheWayOut: reason.includes("Streamable HTTP") && reason.includes("NAMI_OTLP_AUTH_MODE=Unsecured") }));
+  } else if (scenario === "bad-port" || scenario === "blank-keys") {
+    // Audit rows 7 and 8: a bad start-up value stops the host with one line naming what to set.
+    const start = async (env: Record<string, string>) => {
+      const args = [process.execPath, fileURLToPath(new URL("../../../src/nami.mcp/src/main.ts", import.meta.url)), "--engine", await launcher("normal")];
+      const merged: Record<string, string | undefined> = { ...process.env, DOTNET_ENVIRONMENT: "Development", NAMI_OTLP_AUTH_MODE: "Unsecured",
+        NAMI_OTLP_PROJECT_KEYS: "{}", NAMI_BIND_ADDRESS: "127.0.0.1", NAMI_PUBLIC_URL: "", RAILWAY_PUBLIC_DOMAIN: "", NAMI_PORT: "0", ...env };
+      if (!("NAMI_PORT" in env) && "PORT" in env) delete merged.NAMI_PORT;
+      const host = Bun.spawn(args, { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: merged });
+      processUnderTest = host;
+      const exit = await exitWithin(host.exited, 3_000);
+      const reason = exit === "alive" ? "" : (await new Response(host.stderr).text()).trim();
+      if (exit !== "alive") processUnderTest = undefined;
+      else { host.kill("SIGKILL"); await host.exited; processUnderTest = undefined; }
+      return { exit, reason };
+    };
+    const seen: Record<string, unknown> = {};
+    const cases: Record<string, Record<string, string>> = scenario === "bad-port"
+      ? { empty: { NAMI_PORT: "" }, space: { NAMI_PORT: " " }, hex: { NAMI_PORT: "0x10" }, exponent: { NAMI_PORT: "1e3" },
+          padded: { NAMI_PORT: " 8080 " }, platformHex: { PORT: "0x1F90" } }
+      : { blank: { NAMI_OTLP_PROJECT_KEYS: "" }, malformed: { NAMI_OTLP_PROJECT_KEYS: "{" } };
+    if (scenario === "blank-keys") {
+      const reservation = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response() });
+      const port = String(reservation.port);
+      await reservation.stop(true);
+      for (const env of Object.values(cases)) env.NAMI_PORT = port;
+    }
+    for (const [name, env] of Object.entries(cases)) {
+      const variable = Object.keys(env)[0]!;
+      if (scenario === "bad-port") await rm(join(state, "engine.json"), { force: true });
+      const { exit, reason } = await start(env);
+      seen[name] = { hostExit: exit, engineStarted: existsSync(join(state, "engine.json")), oneLine: reason.length > 0 && !reason.includes("\n"),
+        namesTheVariable: reason.includes(variable), disclosesSource: /main\.ts|port\.ts|\bat\b.*:[0-9]+/.test(reason) };
+    }
+    console.log(JSON.stringify(seen));
   } else if (scenario === "slow") {
     // H5: a 2025-11-25 call is answered as an event stream; the engine takes 15 seconds to answer it.
     // Beside it a 2026-07-28 call, which is answered as one JSON body: no byte travels until the result.
