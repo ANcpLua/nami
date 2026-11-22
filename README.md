@@ -164,10 +164,9 @@ three ports on `127.0.0.1`, the named volume, a stop budget of 25 seconds inside
 docker compose up -d --build
 ```
 
-This is the way to run nami on Windows: with Docker Desktop (PowerShell or a WSL2 shell, same
-command), or with the Linux build inside WSL2. There is no native Windows build. Claude Code on
-Windows connects to `http://127.0.0.1:5100/mcp` with the read key, as above; the container never
-speaks stdio, so `--transport stdio` does not apply to it. Applications export to
+The same command works in PowerShell and in a WSL2 shell. Claude Code connects to
+`http://127.0.0.1:5100/mcp` with the read key, as above; the container never speaks stdio, so
+`--transport stdio` does not apply to it. Applications export to
 `http://127.0.0.1:4318` (OTLP/HTTP) or `127.0.0.1:4317` (OTLP/gRPC) with the ingest key.
 
 **One writer per store.** The store is one DuckDB file, and the engine holds it open with a file
@@ -217,10 +216,10 @@ All three land in the same rows. What the tools can answer comes from the resour
   sender captures is decided at the source, not by nami. Ingest changes a record in two ways only:
   the credential stage, and size bounds.
 - The size bounds are nami's own receiver policy. One attribute value keeps 256 KiB as nami stores
-  it, arrays and maps counted whole: a longer string is cut between characters and ends in
-  `…[truncated]`; a larger array, map or bytes value is dropped. A span, event, link, log record and
-  scope keep 128 attributes; a value nested deeper than 16 becomes an empty value; one record keeps
-  1 MiB of attributes. What a bound removes is added to the record's dropped attributes count. A
+  it: a longer string is cut between characters and ends in `…[truncated]`, and a larger bytes value
+  is dropped. Arrays, maps and their nesting are bounded as the value table under "What one export
+  request may hold" shows. A span, event, link, log record and scope keep 128 attributes; one record
+  keeps 1 MiB of attributes. What a bound removes is added to the record's dropped attributes count. A
   record over a limit keeps its session, usage and cost attributes first and then its smallest
   attributes, whatever order they were sent in. A span status message keeps 1024 bytes.
   `docs/prd/nami.md`, row R6, has the policy in full, the settings and the five points where it
