@@ -9,6 +9,7 @@ import { Engine, EngineError } from "./engine.js";
 import { dnsRebindingResponse, isLoopbackBindHost, isWildcardHost, requestNames } from "./http-security.js";
 import { configuredPort } from "./port.js";
 import { removeReadyManifest, writeReadyManifest } from "./ready.js";
+import { refuse } from "./refuse.js";
 import { createServer } from "./server.js";
 
 const args = process.argv.slice(2);
@@ -41,7 +42,6 @@ const stopBudget = /^[0-9]+$/.test(stopBudgetText) ? Number(stopBudgetText) : Nu
 if (!Number.isInteger(stopBudget) || stopBudget < 1 || stopBudget > 3600)
   throw new Error(`${CONFIG.StopBudgetSeconds} must be a whole number of seconds from 1 to 3600. Write it in decimal digits only.`);
 // A bad port stops the host before the engine starts, with the reason as its only line.
-const refuse = (reason: string): never => { console.error(reason); process.exit(1); };
 if (!stdio) try { configuredPort(process.env); } catch (error) { refuse((error as Error).message); }
 const engine = new Engine(resolve(enginePath), stopBudget * 1000);
 await engine.ready;
