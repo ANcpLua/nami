@@ -280,6 +280,57 @@ public sealed class ToolEdgeTests(TestContext context)
     }
 
     [TestMethod]
+    public async Task TracesGet_TraceOlderThanSince_IsReadByItsId()
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddHours(-2))),
+            context.CancellationToken);
+        var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        var id = 1.ToString("x32", CultureInfo.InvariantCulture);
+
+        // The default window starts an hour back and the trace started two hours back.
+        var result = Run(snapshot, "traces_get", new JsonObject { ["trace_id"] = id }.ToJsonString());
+        Assert.IsFalse(result.IsError, result.Content.GetRawText());
+        Assert.AreEqual(1, result.Content.GetProperty("trace").GetProperty("span_count").GetInt32());
+
+        var narrow = Run(snapshot, "traces_get", new JsonObject { ["trace_id"] = id, ["since"] = "-5m" }.ToJsonString());
+        Assert.IsFalse(narrow.IsError, narrow.Content.GetRawText());
+
+        // An id nothing was stored under is still refused.
+        var missing = Run(snapshot, "traces_get",
+            new JsonObject { ["trace_id"] = 2.ToString("x32", CultureInfo.InvariantCulture) }.ToJsonString());
+        Assert.IsTrue(missing.IsError);
+        Assert.AreEqual("not_found", missing.Content.GetProperty("code").GetString());
+        Assert.AreEqual("trace_id", missing.Content.GetProperty("field").GetString());
+    }
+
+    [TestMethod]
+    public async Task TracesGet_TraceAcrossTheWindowStart_ReturnsEverySpan()
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        var early = TestData.Nanos(TestData.s_now.AddMinutes(-61));
+        var late = TestData.Nanos(TestData.s_now.AddMinutes(-59));
+        var export = JsonNode.Parse(OtlpData.Traces(early, 2))!;
+        var sent = export["resourceSpans"]![0]!["scopeSpans"]![0]!["spans"]!.AsArray();
+        sent[1]!["traceId"] = sent[0]!["traceId"]!.GetValue<string>();
+        sent[1]!["parentSpanId"] = sent[0]!["spanId"]!.GetValue<string>();
+        sent[1]!["startTimeUnixNano"] = late.ToString(CultureInfo.InvariantCulture);
+        sent[1]!["endTimeUnixNano"] = (late + 1000000).ToString(CultureInfo.InvariantCulture);
+        await StorageTestData.SeedTraces(store, export.ToJsonString(), context.CancellationToken);
+
+        var result = Run(await store.ReadSnapshotAsync("default", ct: context.CancellationToken), "traces_get",
+            new JsonObject { ["trace_id"] = 1.ToString("x32", CultureInfo.InvariantCulture) }.ToJsonString());
+        Assert.IsFalse(result.IsError, result.Content.GetRawText());
+        var trace = result.Content.GetProperty("trace");
+        Assert.AreEqual(2, trace.GetProperty("span_count").GetInt32());
+        Assert.AreEqual(2, trace.GetProperty("spans").GetArrayLength());
+        Assert.AreEqual(1.ToString("x16", CultureInfo.InvariantCulture),
+            trace.GetProperty("root_span").GetProperty("span_id").GetString());
+        // From the first span's start to the second span's end: two minutes and a millisecond.
+        Assert.AreEqual("120001000000", trace.GetProperty("duration_ns").GetRawText().Trim('"'));
+    }
+
+    [TestMethod]
     public async Task Cursor_PagesCoverAllRowsWithoutDuplicates()
     {
         var clock = new FakeTimeProvider(TestData.s_now);

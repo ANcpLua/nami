@@ -253,7 +253,11 @@ internal static class TracesGetTool
 {
     public static ToolRows Run(TelemetrySnapshot snapshot, ToolWindow window, string traceId)
     {
-        var spans = snapshot.Spans.Where(s => s.TraceId == traceId && window.Contains(s.StartTimeUnixNano, "traces"))
+        // The trace id is the filter. A trace is read whole, whenever its spans started: cut to the window, an id
+        // from an older answer was not found, and a trace across the window's start lost its first spans unsaid.
+        // The window's end still holds, so the answer reads nothing past the snapshot and its watermark.
+        var whole = window with { Start = DateTimeOffset.UnixEpoch };
+        var spans = snapshot.Spans.Where(s => s.TraceId == traceId && whole.Contains(s.StartTimeUnixNano, "traces"))
             .OrderBy(static s => s.StartTimeUnixNano).ThenBy(static s => s.SpanId, StringComparer.Ordinal).ToArray();
         if (spans.Length == 0 || !spans.Any(s => window.Matches(s.ServiceName)))
             throw new ToolNotFoundException("trace_id", traceId);
