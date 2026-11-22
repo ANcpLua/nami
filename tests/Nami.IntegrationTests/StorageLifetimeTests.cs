@@ -892,6 +892,77 @@ public sealed class StorageLifetimeTests(TestContext context)
         Assert.ContainsSingle(snapshot.Spans);
     }
 
+    /// <summary>
+    ///     A caller told "cancelled" may send the batch again, so a batch cancelled before the writer took it is never
+    ///     written. The writer passes it by and goes on: it is not stopped by the job it did not run.
+    /// </summary>
+    [TestMethod]
+    public async Task Ingestion_CanceledBeforeClaim_IsNotCommitted()
+    {
+        var gate = new WriteGate();
+        await using var store = new DuckDbStore(DatabasePath("ingest-cancel.duckdb"), beforeWrite: gate.WaitAsync);
+        var running = SeedTrace(store, context.CancellationToken);
+        try
+        {
+            await gate.Entered.Task.WaitAsync(context.CancellationToken);
+            using var cancellation = new CancellationTokenSource();
+            var queued = StorageTestData.SeedTraces(store,
+                OtlpData.Traces(TestData.Nanos(TestData.s_now), offset: 1), cancellation.Token);
+            await cancellation.CancelAsync();
+            await Assert.ThrowsAsync<OperationCanceledException>(() => queued);
+        }
+        finally
+        {
+            gate.Release();
+        }
+
+        await running;
+        Assert.ContainsSingle((await store.ReadSnapshotAsync("default", ct: context.CancellationToken)).Spans);
+        Assert.AreEqual(2, gate.Calls, "Only the first batch and the snapshot may reach the writer's connection.");
+        Assert.IsNull(store.WriterFailure);
+    }
+
+    /// <summary>
+    ///     Jobs still in the queue when disposal starts get an answer, none commits, and disposal ends. The answer is
+    ///     "cancelled", the one for shutdown, and not the refusal of a writer that stopped after a failure.
+    /// </summary>
+    [TestMethod]
+    public async Task Dispose_QueuedJobs_EndCanceledAndUncommitted()
+    {
+        var gate = new WriteGate();
+        var path = DatabasePath("queued-dispose.duckdb");
+        var store = new DuckDbStore(path, beforeWrite: gate.WaitAsync);
+        var running = SeedTrace(store, context.CancellationToken);
+        Task queuedWrite;
+        Task queuedRead;
+        try
+        {
+            await gate.Entered.Task.WaitAsync(context.CancellationToken);
+            queuedWrite = StorageTestData.SeedTraces(store,
+                OtlpData.Traces(TestData.Nanos(TestData.s_now), offset: 1), context.CancellationToken);
+            queuedRead = store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+            Assert.IsFalse(queuedWrite.IsCompleted);
+            Assert.IsFalse(queuedRead.IsCompleted);
+            var disposal = store.DisposeAsync().AsTask();
+            await gate.Canceled.Task.WaitAsync(context.CancellationToken);
+            gate.Release();
+            await disposal;
+        }
+        finally
+        {
+            gate.Release();
+        }
+
+        Assert.IsNull(store.WriterFailure);
+        await Assert.ThrowsAsync<OperationCanceledException>(() => running);
+        Assert.IsTrue(await EndsBeforeDeadline(Task.WhenAll(queuedWrite, queuedRead)),
+            "DisposeAsync reported success while a job that was queued before it never completed.");
+        await Assert.ThrowsAsync<OperationCanceledException>(() => queuedWrite);
+        await Assert.ThrowsAsync<OperationCanceledException>(() => queuedRead);
+        await using var reopened = new DuckDbStore(path);
+        Assert.AreEqual(0L, (await reopened.GetStorageStatsAsync("default", context.CancellationToken)).SpanCount);
+    }
+
     private static Task SeedTrace(DuckDbStore store, CancellationToken token) =>
         StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now)), token);
 
