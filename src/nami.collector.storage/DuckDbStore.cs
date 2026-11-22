@@ -1118,20 +1118,17 @@ internal sealed partial class DuckDbStore : INamiStore
         foreach (var table in DuckDbGeneratedSchema.AuthoritativeTables
                      .Concat(DuckDbGeneratedSchema.DerivedTables))
         {
-            var columns = table.Columns
+            var expected = table.Columns
                 .Where(static column => column.PrimaryKeyOrdinal >= 0)
-                .OrderBy(static column => column.PrimaryKeyOrdinal)
-                .Select(static column => column.Name);
-            VerifyPersistedPrimaryKey(con, table.Name, string.Join(',', columns));
+                .Select(static column => column.Name)
+                .ToHashSet(StringComparer.Ordinal);
+            if (expected.Count is not 0)
+                VerifyPersistedPrimaryKey(con, table.Name, expected);
         }
     }
 
-    private static void VerifyPersistedPrimaryKey(DuckDBConnection con, string table, string expectedCsv)
+    private static void VerifyPersistedPrimaryKey(DuckDBConnection con, string table, HashSet<string> expected)
     {
-        if (expectedCsv.Length is 0)
-            return;
-
-        var expected = expectedCsv.Split(',').ToHashSet(StringComparer.Ordinal);
         var actual = new HashSet<string>(StringComparer.Ordinal);
         using var cmd = con.CreateCommand();
         cmd.CommandText = """
@@ -1139,7 +1136,7 @@ internal sealed partial class DuckDbStore : INamiStore
                           FROM duckdb_constraints()
                           WHERE table_name = $1 AND constraint_type = 'PRIMARY KEY'
                           """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = table });
+        AddParameters(cmd, table);
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
             actual.Add(reader.GetString(0));
