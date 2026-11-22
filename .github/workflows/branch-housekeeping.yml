@@ -1,0 +1,42 @@
+name: branch-housekeeping
+# Deletes remote branches nobody needs any more; started by hand only. It selects every branch whose tip is
+# already in main and every branch that eng/branches-to-delete.txt names, and never one of the keep list in
+# eng/scripts/branch_housekeeping.py. Without the input "confirm: delete" it prints the selection and stops.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Leave empty for a dry run that only lists the branches. Type delete to delete them.
+        type: string
+        default: ''
+permissions:
+  contents: write
+concurrency:
+  group: branch-housekeeping
+  cancel-in-progress: false
+jobs:
+  branches:
+    name: ${{ inputs.confirm == 'delete' && 'delete branches' || 'list branches (dry run)' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Every branch with its history: "already in main" is decided from the commits.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Select branches, and delete them when confirmed
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+          PYTHONUNBUFFERED: '1'
+        run: |
+          set -o pipefail
+          python3 eng/scripts/branch_housekeeping.py --list eng/branches-to-delete.txt --confirm "$CONFIRM" \
+            | tee "$RUNNER_TEMP/branches.txt"
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo '```'
+            cat "$RUNNER_TEMP/branches.txt" 2> /dev/null || echo 'No list was written; see the log of the step before.'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,147 @@
+# Branches of ANcpLua/nami to delete: merged work and throwaway check branches.
+# The workflow branch-housekeeping reads this file (eng/scripts/branch_housekeeping.py); it also selects
+# every branch whose tip is already in main, so a merged branch needs no line here.
+# One exact name or shell glob per line; lines starting with # are ignored.
+# Never list a branch that is still open or still under review. The keep list in the script wins over this file.
+
+# 15 Nov
+ancplua-out
+builder-a/cleanup-docs-tests
+builder-b/c11-test-fix
+builder-b/c11-test-fix-red
+builder-b/cleanup-build-config
+builder-b/c29-failing-test
+builder-c/obsolete-deprecated-keys
+check/integration-m1
+check/integration-m2
+check/schema-url-red
+check/semconv-on-11.0.100
+check/e5-c11-bind-method-red
+contract-lint-on-m1
+gate/p01-p03
+lead/artifact-retention
+pins-11.0.100
+semconv-1.45
+refactor/unify-duplicates-characterization
+refactor/abstraction-leaks-red
+m2/ingest-claude-code-events-red
+
+# 16 Nov, batches m4 to m6
+check/e8-m5-6eedf42
+check/e8-m5-ad93a95
+check/e8-m6-2a6e4dd
+check/e8-m6-2ad5f0c
+check/e9-lane-part1-on-m6
+check/m6b-ingest-merge
+check/integration-m4
+check/integration-m5
+check/integration-m6
+check/integration-m6b
+
+# 16 Nov, storage and redaction (main acb1a72 and 2479922)
+storage/write-queue-gaps
+check/storage-n15a-6525368
+check/storage-n15b-eb63f3c
+check/storage-n16-b38bfde
+check/storage-n17a-5b5f5b9
+check/storage-n17b-1c9d135
+check/storage-n17c-4a37e04
+check/eval10-*
+check/redaction-without-int64-case
+check/r4-gate-stage-removed-red
+check/redaction-addendum-red
+check/redaction-addendum-without-int64-case
+check/redaction-round3-red
+check/redaction-round3-without-int64-case
+privacy/redaction-stage
+check/eval11-*
+
+# 16 Nov, batch m7a and m7c (main a9497ca and 2479922)
+fix/n44-pins-small
+platform/no-windows
+ingress/bounded-parse
+check/platform-*
+check/eval13-*
+check/ingress-*
+check/e12-*
+check/integration-m7
+check/integration-m7a
+check/integration-m7b
+check/integration-m7c
+
+# 16 Nov, evaluator-16 (it deletes check.yml: never merge it)
+check/eval16-container
+check/eval17-h1
+check/eval17-h2
+check/eval17-h3
+check/eval17-h5
+
+# 16 Nov, on main since 19:1x (081efb5)
+contracts/typespec-features
+
+# 16 Nov, batch m8a on main since 20:4x (b58ebc4)
+release/container
+check/integration-m8a
+check/container-c1
+check/container-c6
+
+# 16 Nov, batch m8b on main since 21:3x (7719ee1)
+hardening/ingest-redaction
+storage/memory-and-health
+check/integration-m8b
+check/storage2-*
+
+# Round 9 plant branches, after review
+check/host-hardening-c11-red
+check/host-hardening-c12-red
+
+# 17 Nov review of the rest: already on main (patch-equivalent)
+contract-lint-typespec-1.18
+check/small-defects-on-main
+check/eval14-ingress-with-redaction
+
+# 17 Nov review of the rest: red and throwaway evidence branches of 15 Nov
+check/e5-m2-body-status-red
+check/e5-unify-red
+check/m2-ingest3-red
+check/m2-ingest3-session-red
+check/m2-ingest3-status-unsanitized-red
+fix/small-defects-red
+fuzz/a3-attribute-expansion-red
+lean/host-engine-protocol-e2e-red
+lean/storage-write-queue-red
+m2/registry-a2-red
+
+# 17 Nov, batch m9 on main since 01:1x (1abca61)
+hardening/streaming-json
+storage/metrics-and-redelivery
+release/host-hardening
+check/integration-m9
+
+# Kept for the next epic (unmerged work worth a look): contract/design-spikes (C05 EngineCommand
+# instead of EngineRequest, C10 tagged unions in System.Text.Json), lean/storage-write-queue (the
+# Lean storage model of N50, needs the new write path), m2/contracts-draft (the M2 session tools).
+
+# 17 Nov: merged into main, not listed before
+builder-b/c29-warnings-as-errors
+check/eval14-e4b-exact
+check/eval14-e4d-exact
+check/hardening-h4
+check/integration-m3
+check/m2-ingest3-error-red
+check/m2-ingest3-status-red
+check/m2-ingest3-status2-red
+cleanup/dead-code
+contract/lane-part1
+fix/small-defects
+fuzz/ingest-and-tools
+lean/host-engine-protocol
+m2/acceptance-tests
+m2/claude-code-otlp-fixture
+m2/ingest-claude-code-events
+m2/ingest-step3
+m2/registry-claude-code
+refactor/abstraction-leaks
+refactor/unify-duplicates
+robustness/host-engine
+tests/evidence-gaps
