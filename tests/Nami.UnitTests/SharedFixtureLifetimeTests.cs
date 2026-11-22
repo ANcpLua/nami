@@ -1,6 +1,7 @@
 namespace Nami.UnitTests;
 
 [TestClass]
+[TestCategory("Unit")]
 public sealed class SharedFixtureLifetimeTests
 {
     [TestMethod]
