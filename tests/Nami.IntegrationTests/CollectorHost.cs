@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Net;
-using System.Net.Sockets;
 using System.Text;
 using Google.Protobuf;
 using Grpc.Core;
@@ -71,9 +70,9 @@ internal sealed class CollectorHost : IAsyncDisposable
     {
         for (var attempt = 1;; attempt++)
         {
-            var httpPort = FreePort();
-            var grpcPort = FreePort();
-            while (grpcPort == httpPort) grpcPort = FreePort();
+            var httpPort = LoopbackPort.Free();
+            var grpcPort = LoopbackPort.Free();
+            while (grpcPort == httpPort) grpcPort = LoopbackPort.Free();
             var application = Build(dataPath, httpPort, grpcPort, projectKeys, clock, settings, logs);
             try
             {
@@ -111,13 +110,6 @@ internal sealed class CollectorHost : IAsyncDisposable
         // store on the registered clock.
         if (clock is not null) builder.Services.AddSingleton(clock);
         return builder.BuildNamiCollector(CollectorParts.IngestOnly);
-    }
-
-    private static int FreePort()
-    {
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        return ((IPEndPoint)listener.LocalEndpoint).Port;
     }
 
     /// <summary>Posts an OTLP/HTTP JSON export of <paramref name="signal" />, with the API key when one is given.</summary>

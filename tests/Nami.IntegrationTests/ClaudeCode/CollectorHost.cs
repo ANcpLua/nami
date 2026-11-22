@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Net;
-using System.Net.Sockets;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Nami.Collector.Ingestion.Configuration;
@@ -41,7 +40,7 @@ internal sealed class CollectorHost : IAsyncDisposable
     internal static async Task<CollectorHost> StartAsync(string directory, CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(directory);
-        var port = FreePort();
+        var port = LoopbackPort.Free();
         var host = new CollectorHost(new Uri($"http://127.0.0.1:{port}/"), Path.Combine(directory, "nami.duckdb"));
         var builder = LoopbackHost.CreateBuilder();
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -66,14 +65,5 @@ internal sealed class CollectorHost : IAsyncDisposable
         if (_stopped) return;
         _stopped = true;
         await _application.StopAndDisposeAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    private static int FreePort()
-    {
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
     }
 }
