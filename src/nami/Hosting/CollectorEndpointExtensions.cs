@@ -32,6 +32,7 @@ internal static class CollectorEndpointExtensions
         return IngestOtlpAsync(
             context,
             "traces",
+            limits.Value,
             OtlpPayloadParser.ParseTraceRequestAsync,
             static request => request.ResourceSpans.Count is 0,
             new ExportTraceServiceResponse(),
@@ -56,6 +57,7 @@ internal static class CollectorEndpointExtensions
         return IngestOtlpAsync(
             context,
             "logs",
+            limits.Value,
             OtlpPayloadParser.ParseLogsRequestAsync,
             static request => request.ResourceLogs.Count is 0,
             new ExportLogsServiceResponse(),
@@ -78,6 +80,7 @@ internal static class CollectorEndpointExtensions
         return IngestOtlpAsync(
             context,
             "metrics",
+            limits.Value,
             OtlpPayloadParser.ParseMetricsRequestAsync,
             static request => request.ResourceMetrics.Count is 0,
             new ExportMetricsServiceResponse(),
@@ -100,6 +103,7 @@ internal static class CollectorEndpointExtensions
     private static async Task<IResult> IngestOtlpAsync<TRequest, TBatch>(
         HttpContext context,
         string signal,
+        IngestLimits limits,
         Func<HttpRequest, OtlpPayloadEncoding, IngestLimits, CancellationToken, Task<TRequest>> parse,
         Func<TRequest, bool> isEmpty,
         IMessage emptyResponse,
@@ -113,7 +117,6 @@ internal static class CollectorEndpointExtensions
         try
         {
             encoding = OtlpPayloadParser.GetEncoding(context.Request.ContentType);
-            var limits = context.RequestServices.GetRequiredService<IOptions<IngestLimits>>().Value;
             request = await parse(context.Request, encoding, limits, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
