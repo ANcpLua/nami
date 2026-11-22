@@ -91,8 +91,7 @@ def rejected(body):
     """partial_success (field 1) . rejected_* (field 1, varint) of an Export*ServiceResponse."""
     try:
         if not body or body[0] != 0x0A: return 0
-        length, at = 0, 1
-        length, at = a3_varint(body, at)
+        length, at = a3_varint(body, 1)
         inner = body[at:at + length]
         if inner[:1] != b"\x08": return 0
         return a3_varint(inner, 1)[0]

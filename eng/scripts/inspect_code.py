@@ -6,10 +6,8 @@ import json
 import os
 import re
 import shlex
-import shutil
 import subprocess
 import sys
-import tempfile
 import xml.etree.ElementTree as ET
 from collections import Counter
 from pathlib import Path
