@@ -366,13 +366,6 @@ internal static partial class OtlpConverter
     private static string? RequireIdOrAbsent(ByteString value, int requiredBytes, string field) =>
         value.Length is 0 ? null : RequireId(value, requiredBytes, field);
 
-    private static byte[] CopyBytes(ByteString value)
-    {
-        var bytes = new byte[value.Length];
-        value.CopyTo(bytes, 0);
-        return bytes;
-    }
-
     #endregion
 
     #region Logs Conversion
