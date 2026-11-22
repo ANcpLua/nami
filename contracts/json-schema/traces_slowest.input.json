@@ -1,18 +1,18 @@
 {
   "type": "object",
-  "description": "The slowest traces in the selected window.",
+  "description": "Rank the traces that started in the window (since, default the last hour) by duration, longest first, and return up to limit of them (default 10, at most 100) with trace ID, root operation, duration in milliseconds, start time and status (error if any span failed). Use it for latency questions; for failures start with errors_recent. operation keeps only traces whose root span has exactly this name (case-sensitive; take names from an earlier traces_slowest or traces_get answer). Pass a trace_id from the answer to traces_get for the spans.",
   "properties": {
     "service": {
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
-      "description": "Filter by the producer's service.name resource attribute."
+      "description": "Only telemetry from the service with exactly this service.name (case-sensitive). sources_status lists the names; an unknown name is refused with the known ones."
     },
     "since": {
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
-      "description": "Inclusive window start; defaults to one hour before the snapshot's observation time.",
+      "description": "Start of the window: a negative duration relative to now (-30s, -15m, -2h, -7d) or a past RFC 3339 time (2026-11-22T13:00:00Z). The window ends now (when the snapshot was taken). Default -60m. traces_get reads a trace whole whatever since says.",
       "default": "-60m"
     },
     "fields": {
@@ -21,20 +21,20 @@
         "type": "string"
       },
       "maxItems": 128,
-      "description": "Requested fields. Unknown fields are refused with the allowed field names."
+      "description": "Return only these members of each result row (of the trace for traces_get). Default: all members. Unknown fields are refused with the allowed field names."
     },
     "max_bytes": {
       "type": "integer",
       "minimum": 1024,
       "maximum": 262144,
-      "description": "Maximum UTF-8 bytes in structuredContent, from 1024 to 262144.",
+      "description": "Size budget for one page, in UTF-8 bytes of JSON, 1024 to 262144, default 32768. Rows that do not fit move to the next page (see next_cursor). Raise it only when a single row or span does not fit.",
       "default": 32768
     },
     "snapshot_id": {
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
-      "description": "Reuse a snapshot returned by an earlier call for byte-identical reads."
+      "description": "ID of the frozen view of the data an earlier answer returned. Pass it to get byte-identical answers across tools in one investigation. Expires 30 minutes after it was taken; then call without it. With cursor, snapshot_id is optional: the cursor carries its snapshot."
     },
     "cursor": {
       "type": "string",
@@ -43,12 +43,14 @@
     "operation": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1024
+      "maxLength": 1024,
+      "description": "Exact, case-sensitive name of the trace's root span, for example GET /orders/{id}. Omit for all operations."
     },
     "limit": {
       "type": "integer",
       "minimum": 1,
       "maximum": 100,
+      "description": "How many of the slowest traces to return, 1 to 100; default 10. freshness.matched still counts every matching trace, and truncated is true when the limit left some out.",
       "default": 10
     }
   },
