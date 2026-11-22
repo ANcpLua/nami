@@ -46,17 +46,17 @@ class SelectionTests(unittest.TestCase):
         selected, kept = select([*KEEP, "check/eval10-a"], merged, ["*"])
         self.assertEqual([("check/eval10-a", [LISTED])], selected)
         self.assertEqual(sorted(KEEP), [name for name, _ in kept])
-        self.assertEqual(("main", "contract/design-spikes", "lean/storage-write-queue",
-                          "lean/storage-write-queue-red", "m2/contracts-draft"), KEEP)
+        self.assertEqual(("main", "contract/design-spikes", "lean/storage-write-queue", "m2/contracts-draft"), KEEP)
 
     def test_shipped_list_never_reaches_a_kept_branch(self):
         patterns = read_patterns((ROOT / "eng/branches-to-delete.txt").read_text(encoding="utf-8"))
         self.assertIn("check/eval10-*", patterns)
-        selected, kept = select([*KEEP, "check/eval10-x", "privacy/redaction-stage", "feature/open"], {"main"},
-                                patterns)
-        self.assertEqual(["check/eval10-x", "privacy/redaction-stage"], [name for name, _ in selected])
-        # The shipped list names lean/storage-write-queue-red; main is kept although its tip is in main.
-        self.assertEqual([("lean/storage-write-queue-red", [LISTED]), ("main", [IN_MAIN])], kept)
+        branches = [*KEEP, "check/eval10-x", "privacy/redaction-stage", "lean/storage-write-queue-red", "feature/open"]
+        selected, kept = select(branches, {"main"}, patterns)
+        # The list names lean/storage-write-queue-red, which goes; lean/storage-write-queue is kept and stays.
+        self.assertEqual(["check/eval10-x", "lean/storage-write-queue-red", "privacy/redaction-stage"],
+                         [name for name, _ in selected])
+        self.assertEqual([("main", [IN_MAIN])], kept)
 
     def test_batches_are_small_and_complete(self):
         names = [f"b{number}" for number in range(45)]
@@ -82,7 +82,7 @@ class RepositoryTests(unittest.TestCase):
         self.remote = root / "remote.git"
         self.clone = root / "clone"
         self.list = root / "list.txt"
-        self.list.write_text("# throwaway branches\ncheck/*\nlean/storage-write-queue-red\n", encoding="utf-8")
+        self.list.write_text("# throwaway branches\ncheck/*\nm2/contracts-draft\n", encoding="utf-8")
         subprocess.run(["git", "init", "--quiet", "--bare", "--initial-branch=main", str(self.remote)], check=True)
         subprocess.run(["git", "init", "--quiet", "--initial-branch=main", str(self.clone)], check=True)
         self.git("remote", "add", "origin", str(self.remote))
@@ -90,7 +90,7 @@ class RepositoryTests(unittest.TestCase):
         self.git("branch", "feature/merged")
         self.commit("second")
         self.git("branch", "feature/merged-at-tip")
-        for branch in ["feature/open", "check/red", "lean/storage-write-queue-red", "contract/design-spikes"]:
+        for branch in ["feature/open", "check/red", "m2/contracts-draft", "contract/design-spikes"]:
             self.git("checkout", "--quiet", "-b", branch, "main")
             if branch != "contract/design-spikes":
                 self.commit(branch)
@@ -131,7 +131,7 @@ class RepositoryTests(unittest.TestCase):
             self.assertIn("select  feature/merged-at-tip  (in main)", output)
             self.assertIn("keep    main  (in main; on the keep list)", output)
             self.assertIn("keep    contract/design-spikes  (in main; on the keep list)", output)
-            self.assertIn("keep    lean/storage-write-queue-red  (listed; on the keep list)", output)
+            self.assertIn("keep    m2/contracts-draft  (listed; on the keep list)", output)
             self.assertNotIn("feature/open", output)
             self.assertIn("Dry run: nothing deleted.", output)
             self.assertEqual(before, self.remote_heads())
@@ -139,7 +139,7 @@ class RepositoryTests(unittest.TestCase):
     def test_confirm_delete_removes_exactly_the_selection(self):
         code, output = self.run_script("delete")
         self.assertEqual(0, code, output)
-        self.assertEqual(["contract/design-spikes", "feature/open", "lean/storage-write-queue-red", "main"],
+        self.assertEqual(["contract/design-spikes", "feature/open", "m2/contracts-draft", "main"],
                          self.remote_heads())
         for name in ["check/red", "feature/merged", "feature/merged-at-tip"]:
             self.assertIn(f"deleted      {name}", output)
@@ -154,8 +154,8 @@ class RepositoryTests(unittest.TestCase):
         self.assertEqual(1, code, output)
         self.assertIn("not deleted  check/red", output)
         self.assertIn("Deleted 2 of 3 branches; 1 failed.", output)
-        self.assertEqual(["check/red", "contract/design-spikes", "feature/open", "lean/storage-write-queue-red",
-                          "main"], self.remote_heads())
+        self.assertEqual(["check/red", "contract/design-spikes", "feature/open", "m2/contracts-draft", "main"],
+                         self.remote_heads())
 
 
 if __name__ == "__main__":

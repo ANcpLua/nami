@@ -11,8 +11,7 @@ import sys
 from fnmatch import fnmatchcase
 from pathlib import Path
 
-KEEP = ("main", "contract/design-spikes", "lean/storage-write-queue", "lean/storage-write-queue-red",
-        "m2/contracts-draft")
+KEEP = ("main", "contract/design-spikes", "lean/storage-write-queue", "m2/contracts-draft")
 CONFIRM = "delete"
 BATCH = 20
 IN_MAIN = "in main"
