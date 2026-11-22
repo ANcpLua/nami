@@ -53,11 +53,8 @@ internal sealed partial class RetentionService(
         }
     }
 
-    private async Task RunCycleAsync(CancellationToken cancellationToken = default)
+    private async Task RunCycleAsync(CancellationToken cancellationToken)
     {
-        if (!_options.IsEnabled)
-            return;
-
         var startedAt = Stopwatch.GetTimestamp();
         var fileBefore = store.GetStorageFileMetrics();
         var now = timeProvider.GetUtcNow();
