@@ -9,6 +9,7 @@ using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using LogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
+using static Nami.IntegrationTests.OtlpAttribute;
 
 namespace Nami.IntegrationTests.ClaudeCode;
 
@@ -198,9 +199,6 @@ public sealed class ClaudeCodeConverterTests
 
     private static string[] Keys(NormalizedAttributes attributes) =>
         attributes.Keys.Order(StringComparer.Ordinal).ToArray();
-
-    private static KeyValue Text(string key, string value) =>
-        new() { Key = key, Value = new AnyValue { StringValue = value } };
 
     private static ExportLogsServiceRequest Logs(string scope, LogRecord record) => new()
     {

@@ -9,6 +9,7 @@ using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using LogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
+using static Nami.IntegrationTests.OtlpAttribute;
 
 namespace Nami.IntegrationTests;
 
@@ -917,9 +918,6 @@ public sealed class AttributeBoundsTests
         Assert.AreEqual("0042", span.Attributes["acme.digits"].AsString(), "a string of digits stays a string");
         Assert.AreEqual(0U, span.DroppedAttributesCount);
     }
-
-    private static KeyValue Text(string key, string value) =>
-        new() { Key = key, Value = new AnyValue { StringValue = value } };
 
     private static ByteString Id(int length, byte value) => ByteString.CopyFrom(Enumerable.Repeat(value, length).ToArray());
 

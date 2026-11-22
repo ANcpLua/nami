@@ -13,6 +13,7 @@ using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using LogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
+using static Nami.IntegrationTests.OtlpAttribute;
 
 namespace Nami.IntegrationTests;
 
@@ -365,9 +366,6 @@ public sealed class CredentialRedactionTests
         var body = string.Concat(place.Where(char.IsAsciiLetterOrDigit));
         return "gh" + "p_" + (body + new string('0', 36))[..36];
     }
-
-    private static KeyValue Text(string key, string value) =>
-        new() { Key = key, Value = new AnyValue { StringValue = value } };
 
     // The attribute shapes of one carrier: a string, an array item, a map member (its value and its key), exception
     // text, a key whose own text holds a token, and a key the registry does not know.

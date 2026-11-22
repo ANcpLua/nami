@@ -21,6 +21,7 @@ using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using LogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
+using static Nami.IntegrationTests.OtlpAttribute;
 
 namespace Nami.IntegrationTests;
 
@@ -390,9 +391,6 @@ public sealed partial class CredentialGateTests(TestContext context)
     }
 
     private const string TraceId = "0af7651916cd43dd8448eb211c80319c";
-
-    private static KeyValue Text(string key, string value) =>
-        new() { Key = key, Value = new AnyValue { StringValue = value } };
 
     // The attribute shapes of one carrier: a string, an array item, a map member (value and key), exception text, a
     // key whose own text is planted, a key the registry does not know, and a JSON document as a string.

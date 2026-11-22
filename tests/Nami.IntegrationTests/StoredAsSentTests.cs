@@ -9,6 +9,7 @@ using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using LogRecord = OpenTelemetry.Proto.Logs.V1.LogRecord;
+using static Nami.IntegrationTests.OtlpAttribute;
 
 namespace Nami.IntegrationTests;
 
@@ -180,9 +181,6 @@ public sealed class StoredAsSentTests
     }
 
     private const ulong Time = 1_794_745_800_000_000_000;
-
-    private static KeyValue Text(string key, string value) =>
-        new() { Key = key, Value = new AnyValue { StringValue = value } };
 
     /// <summary>The stored attributes of one JSON column, each value as the text a tool would show.</summary>
     private static SortedDictionary<string, string?> Stored(string? json)
