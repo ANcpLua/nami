@@ -133,9 +133,10 @@ internal static class ErrorsRecentTool
 
 internal static class TracesSlowestTool
 {
-    public static ToolRows Run(TelemetrySnapshot snapshot, ToolWindow window, string? operation, int limit)
+    public static ToolRows Run(TelemetrySnapshot snapshot, ToolWindow window, string? operation, int limit,
+        out int? matched)
     {
-        var traces = snapshot.Spans.GroupBy(static s => s.TraceId).Select(g =>
+        var ranked = snapshot.Spans.GroupBy(static s => s.TraceId).Select(g =>
             {
                 var spans = g.OrderBy(static s => s.StartTimeUnixNano)
                     .ThenBy(static s => s.SpanId, StringComparer.Ordinal).ToArray();
@@ -148,8 +149,10 @@ internal static class TracesSlowestTool
                 window.Contains(t.Start, "traces") && t.Spans.Any(s => window.Matches(s.ServiceName)) &&
                 (operation is null || t.Root.Name == operation))
             .OrderByDescending(static t => ToolValues.Elapsed(t.Start, t.End))
-            .ThenBy(static t => t.Root.TraceId, StringComparer.Ordinal)
-            .Take(limit)
+            .ThenBy(static t => t.Root.TraceId, StringComparer.Ordinal).ToArray();
+        // Counted before the limit: the answer says how many traces matched, not how many were asked for.
+        matched = ranked.Length;
+        var traces = ranked.Take(limit)
             .Select(static t => ToolValues.Json(new SlowTrace
             {
                 TraceId = t.Root.TraceId,
@@ -253,7 +256,11 @@ internal static class TracesGetTool
 {
     public static ToolRows Run(TelemetrySnapshot snapshot, ToolWindow window, string traceId)
     {
-        var spans = snapshot.Spans.Where(s => s.TraceId == traceId && window.Contains(s.StartTimeUnixNano, "traces"))
+        // The trace id is the filter. A trace is read whole, whenever its spans started: cut to the window, an id
+        // from an older answer was not found, and a trace across the window's start lost its first spans unsaid.
+        // The window's end still holds, so the answer reads nothing past the snapshot and its watermark.
+        var whole = window with { Start = DateTimeOffset.UnixEpoch };
+        var spans = snapshot.Spans.Where(s => s.TraceId == traceId && whole.Contains(s.StartTimeUnixNano, "traces"))
             .OrderBy(static s => s.StartTimeUnixNano).ThenBy(static s => s.SpanId, StringComparer.Ordinal).ToArray();
         if (spans.Length == 0 || !spans.Any(s => window.Matches(s.ServiceName)))
             throw new ToolNotFoundException("trace_id", traceId);

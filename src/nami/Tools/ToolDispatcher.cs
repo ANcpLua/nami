@@ -39,6 +39,7 @@ internal static class ToolDispatcher
             var end = snapshot.CapturedAt;
             var start = ParseSince(Text(input, "since") ?? ToolReadInput.SinceDefault, end);
             var service = Text(input, "service");
+            if (service is not null && UnknownService(snapshot, service) is { } unknown) return unknown;
             var watermarks = snapshot.Signals.Where(s => service is null || s.ServiceName == service)
                 .GroupBy(static s => s.Signal).ToDictionary(static g => g.Key,
                     static g => g.Max(s => s.WatermarkUnixNano), StringComparer.Ordinal);
@@ -55,6 +56,7 @@ internal static class ToolDispatcher
                     "fields");
             }
 
+            int? matched = null;
             var result = name switch
             {
                 "sources_status" => SourcesStatusTool.Run(snapshot, window),
@@ -62,13 +64,13 @@ internal static class ToolDispatcher
                 "traces_slowest" => TracesSlowestTool.Run(snapshot, window, Text(input, "operation"),
                     input.TryGetProperty("limit", out var limit)
                         ? ContractJson.ReadInteger(limit)
-                        : TracesSlowestInput.LimitDefault),
+                        : TracesSlowestInput.LimitDefault, out matched),
                 "logs_search" => LogsSearchTool.Run(snapshot, window, Text(input, "query")!),
                 "changes_recent" => ChangesRecentTool.Run(snapshot, window),
                 "traces_get" => TracesGetTool.Run(snapshot, window, Text(input, "trace_id")!),
                 _ => throw new InvalidOperationException()
             };
-            return Page(name, contracts.Output, snapshot, input, result, fields, maxBytes, window);
+            return Page(name, contracts.Output, snapshot, input, result, fields, maxBytes, window, matched);
         }
         catch (ToolInputException error)
         {
@@ -96,6 +98,36 @@ internal static class ToolDispatcher
             // rendered; the read is refused instead of failing the engine call.
             return Error("data_unavailable", "A retained record is nested too deeply to render.");
         }
+    }
+
+    // The most recorded services a refusal names; a longer list is left to sources_status.
+    private const int MaxServicesNamed = 20;
+
+    // A service nothing was sent under would be answered with silent signals by sources_status and with an empty
+    // page by every other tool, which reads as "it went quiet" or "nothing happened". It is refused instead, with
+    // the names that would have matched.
+    private static ToolRunResult? UnknownService(TelemetrySnapshot snapshot, string service)
+    {
+        var names = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var name in snapshot.Signals.Select(static string? (s) => s.ServiceName)
+                     .Concat(snapshot.Resources.Select(static string? (r) => r.ServiceName))
+                     .Concat(snapshot.Spans.Select(static string? (s) => s.ServiceName))
+                     .Concat(snapshot.Logs.Select(static string? (l) => l.ServiceName)))
+        {
+            if (name == service) return null;
+            if (name is not null) names.Add(name);
+        }
+
+        var message = $"service {service} has sent no telemetry to this project.";
+        return names.Count switch
+        {
+            0 => Error("not_found", message, "service",
+                hint: "No service has sent telemetry to this project yet; omit service."),
+            <= MaxServicesNamed => Error("not_found", message, "service", [.. names],
+                hint: "Use one of the allowed names, or omit service for all services."),
+            _ => Error("not_found", message, "service",
+                hint: "Call sources_status without service to list the services that have sent telemetry.")
+        };
     }
 
     internal static ToolRunResult InvalidArgument(ContractIssue issue)
@@ -169,8 +201,12 @@ internal static class ToolDispatcher
 
     private static ToolRunResult Page(string name, string schema, TelemetrySnapshot snapshot, JsonElement input,
         ToolRows result,
-        string[] fields, int maxBytes, ToolWindow window)
+        string[] fields, int maxBytes, ToolWindow window, int? matched = null)
     {
+        // A tool with a row limit pages the rows up to its limit and says how many matched before it: the rows the
+        // limit left out are matching items that no page returns, so every page of such an answer is truncated.
+        var matches = matched ?? result.Items.Count;
+        var limited = matches > result.Items.Count;
         foreach (var field in fields)
         {
             if (!result.AllowedFields.Contains(field, StringComparer.Ordinal))
@@ -199,9 +235,9 @@ internal static class ToolDispatcher
             Watermark = Timestamp(watermark),
             Complete = NamiTimeConversions.ToUnixNanoUnsigned(window.End) <= watermark,
             Examined = result.Examined,
-            Matched = result.Items.Count,
+            Matched = matches,
             Returned = 0,
-            Truncated = false
+            Truncated = limited
         });
         var envelope = new JsonObject { ["snapshot_id"] = snapshot.Id, ["freshness"] = freshness };
         var page = new JsonArray();
@@ -249,7 +285,7 @@ internal static class ToolDispatcher
         {
             page.Add((JsonNode)Project(result.Items[i], fields));
             freshness["returned"] = page.Count;
-            freshness["truncated"] = i + 1 < result.Items.Count;
+            freshness["truncated"] = limited || i + 1 < result.Items.Count;
             envelope["next_cursor"] =
                 i + 1 < result.Items.Count ? EncodeCursor(snapshot.Id, name, i + 1, queryHash) : null;
             if (Encoding.UTF8.GetByteCount(envelope.ToJsonString()) <= maxBytes) continue;
