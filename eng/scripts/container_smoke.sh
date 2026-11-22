@@ -116,10 +116,18 @@ span="{\"resourceSpans\":[{\"resource\":{\"attributes\":[{\"key\":\"service.name
 expect "OTLP/HTTP without a key" "$(code POST "$otlp/v1/traces" -H 'content-type: application/json' -d "$span")" 401
 expect "OTLP/HTTP with the ingest key" "$(code POST "$otlp/v1/traces" -H 'content-type: application/json' -H "x-otlp-api-key: $ingest" -d "$span")" 200
 # An empty ExportTraceServiceRequest as one gRPC message: the listener must speak HTTP/2 and take the key.
+# gRPC answers a refused call with HTTP 200 too, so the verdict is grpc-status (a trailer, or a header when the
+# answer has no body); curl -D writes both.
 printf '\0\0\0\0\0' > "$work/empty.grpc"
-expect "OTLP/gRPC with the ingest key (HTTP status, HTTP version)" "$(curl -sS -o /dev/null -w '%{http_code} %{http_version}' --http2-prior-knowledge \
-    -H 'content-type: application/grpc' -H 'te: trailers' -H "x-otlp-api-key: $ingest" --data-binary "@$work/empty.grpc" \
-    "$grpc/opentelemetry.proto.collector.trace.v1.TraceService/Export")" "200 2"
+grpc_export() {
+    local http
+    http=$(curl -sS -o /dev/null -D "$work/grpc.headers" -w '%{http_code} %{http_version}' --http2-prior-knowledge \
+        -H 'content-type: application/grpc' -H 'te: trailers' "$@" --data-binary "@$work/empty.grpc" \
+        "$grpc/opentelemetry.proto.collector.trace.v1.TraceService/Export")
+    echo "$http grpc-status=$(tr -d '\r' < "$work/grpc.headers" | sed -nE 's/^grpc-status: *([0-9]+)$/\1/Ip' | tail -1)"
+}
+expect "OTLP/gRPC without a key (HTTP status, HTTP version, grpc-status)" "$(grpc_export)" "200 2 grpc-status=16"
+expect "OTLP/gRPC with the ingest key (HTTP status, HTTP version, grpc-status)" "$(grpc_export -H "x-otlp-api-key: $ingest")" "200 2 grpc-status=0"
 query() { curl -sS -X POST "$mcp/mcp" "${mcp_headers[@]}" -H "x-otlp-api-key: $read" -d "$mcp_call"; }
 answer=$(query)
 [[ $answer == *smoke-service* ]] || fail "sources_status does not name the service that was sent: $answer"
