@@ -85,6 +85,76 @@ public sealed class StorageBatchWriteTests(TestContext context)
         Assert.AreEqual("later", Scalar(path, $"SELECT name FROM spans WHERE span_id = '{rows[0].SpanId}'"));
     }
 
+    /// <summary>
+    ///     A batch that holds spans several times stores what the same rows store one batch each: the last
+    ///     occurrence in every column, and for the service name the last occurrence that names one. An occurrence
+    ///     that leaves any other column empty empties it.
+    /// </summary>
+    [TestMethod]
+    public async Task Enqueue_BatchRepeatingSpans_StoresWhatOneBatchARowStores()
+    {
+        var batched = DatabasePath("repeats-batched.duckdb");
+        var single = DatabasePath("repeats-single.duckdb");
+        var distinct = Rows(4);
+        List<SpanStorageRow> rows =
+        [
+            distinct[0] with { Name = "first", ServiceName = "service a", SessionId = "session", StatusMessage = "one" },
+            distinct[1],
+            distinct[0] with { Name = "second", ServiceName = null, SessionId = null },
+            distinct[2] with { ServiceName = null },
+            distinct[0] with { Name = "third", ServiceName = "service b", SessionId = "session" },
+            distinct[2] with { Name = "other later", ServiceName = "service c" },
+            distinct[0] with { Name = "last", ServiceName = null, SessionId = null, GenAiInputTokens = 7 },
+            distinct[2] with { Name = "other last", ServiceName = null, AttributesJson = null },
+            distinct[3]
+        ];
+        await using (var store = new DuckDbStore(batched))
+            await store.EnqueueAsync(new SpanBatch(rows), context.CancellationToken);
+        await using (var store = new DuckDbStore(single))
+        {
+            foreach (var row in rows)
+                await store.EnqueueAsync(new SpanBatch([row]), context.CancellationToken);
+        }
+
+        const string everyColumn = "SELECT string_agg(s::VARCHAR, chr(10) ORDER BY span_id) FROM spans s";
+        Assert.AreEqual(4L, Scalar(batched, "SELECT count(*) FROM spans"));
+        Assert.AreEqual(Scalar(single, everyColumn), Scalar(batched, everyColumn));
+        Assert.AreEqual("last|service b|<null>|7|<null>", Scalar(batched,
+            "SELECT concat_ws('|', name, service_name, coalesce(session_id, '<null>'), gen_ai_input_tokens, " +
+            $"coalesce(status_message, '<null>')) FROM spans WHERE span_id = '{distinct[0].SpanId}'"));
+        Assert.AreEqual("other last|service c|<null>", Scalar(batched,
+            "SELECT concat_ws('|', name, service_name, coalesce(attributes_json::VARCHAR, '<null>')) FROM spans " +
+            $"WHERE span_id = '{distinct[2].SpanId}'"));
+    }
+
+    /// <summary>
+    ///     A request at the record bound that repeats one span is stored in the time an exporter waits. Every
+    ///     occurrence was one statement over the whole batch: 80 s for 3,000 occurrences, during which no other
+    ///     write and no tool call was served, against a quarter of a second for 3,000 different spans.
+    /// </summary>
+    [TestMethod]
+    public async Task Enqueue_BatchAtTheRecordBoundRepeatingOneSpan_IsStoredInAnExportersTime()
+    {
+        var path = DatabasePath("repeat-bound.duckdb");
+        var span = Rows(1)[0];
+        var rows = Enumerable.Range(0, IngestLimits.DefaultMaxRequestRecords).Select(occurrence => span with
+        {
+            Name = "occurrence " + (uint)occurrence, ServiceName = occurrence is 10 ? "service" : null
+        }).ToList();
+        TimeSpan elapsed;
+        await using (var store = new DuckDbStore(path))
+        {
+            var started = Stopwatch.GetTimestamp();
+            await store.EnqueueAsync(new SpanBatch(rows), context.CancellationToken);
+            elapsed = Stopwatch.GetElapsedTime(started);
+        }
+
+        Assert.AreEqual(1L, Scalar(path, "SELECT count(*) FROM spans"));
+        Assert.AreEqual($"occurrence {(uint)(rows.Count - 1)}|service",
+            Scalar(path, "SELECT concat_ws('|', name, service_name) FROM spans"));
+        Assert.IsLessThan(TimeSpan.FromSeconds(10), elapsed);
+    }
+
     /// <summary>A request at the record bound is one batch: every row is stored, each as it was mapped.</summary>
     [TestMethod]
     public async Task Enqueue_BatchAtTheRecordBound_StoresEveryRow()
