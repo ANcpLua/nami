@@ -13,8 +13,8 @@ Requirements I1 to I7 rest on one compiler fact, which the interceptor probe che
 
 A generator built against the pinned package emits `[InterceptsLocation(version, data)]`, and the newer compiler
 of the SDK binds it: the intercepted call runs the generated method, under the JIT and in a NativeAOT publish.
-Without the namespace in `InterceptorsNamespaces` the compiler reports error CS9137; the call is never left
-silently unintercepted.
+In a one-off probe on 22 Nov, leaving the namespace out of `InterceptorsNamespaces` gave error CS9137; no test
+checks that case yet.
 
 [InterceptorProbeTests](../../tests/Nami.IntegrationTests/Compilation/InterceptorProbeTests.cs) holds both
 checks. `InterceptorProbe_PinnedRoslynGenerator_IsBoundInProcess` also compares the Roslyn version the probe
