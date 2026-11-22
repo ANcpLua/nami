@@ -1,16 +1,16 @@
-import { fromJsonSchema, type JsonSchemaType } from "@modelcontextprotocol/server";
-import schemas from "./contracts/generated/contract-schemas.json" with {type: "json"};
-import { TOOLS } from "./contracts/generated/manifest.js";
-import type { ToolName, ToolReply, ValidatedToolCall } from "./contracts/generated/tool-contracts.js";
-const replySchemas = Object.fromEntries(TOOLS.map(tool => [tool.name, fromJsonSchema(schemas[tool.output] as JsonSchemaType)]));
-const errorSchema = fromJsonSchema(schemas["Common.ToolError"] as JsonSchemaType);
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { once } from "node:events";
+import { fromJsonSchema, type JsonSchemaType } from "@modelcontextprotocol/server";
 import type { EngineCommand, EngineResponse } from "./contracts/generated/api.js";
+import schemas from "./contracts/generated/contract-schemas.json" with {type: "json"};
 import type { EngineResponse as EngineResponseJson } from "./contracts/generated/json.js";
+import { CONTRACT_REVISION, ENGINE_LIMITS, TOOLS } from "./contracts/generated/manifest.js";
 import { EngineCommandJson, EngineResponseJson as responseCodec } from "./contracts/generated/serialization.js";
-import { CONTRACT_REVISION, ENGINE_LIMITS } from "./contracts/generated/manifest.js";
+import type { ToolName, ToolReply, ValidatedToolCall } from "./contracts/generated/tool-contracts.js";
 import { readListeners, type EngineListeners } from "./ready.js";
+
+const replySchemas = Object.fromEntries(TOOLS.map(tool => [tool.name, fromJsonSchema(schemas[tool.output] as JsonSchemaType)]));
+const errorSchema = fromJsonSchema(schemas["Common.ToolError"] as JsonSchemaType);
 
 /** One supervised native engine, with bounded complete JSONL frames and request correlation. */
 export class EngineError extends Error {
