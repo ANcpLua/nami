@@ -7,7 +7,7 @@
   },
   "Integration": {
     "project": "tests/Nami.IntegrationTests/Nami.IntegrationTests.csproj",
-    "minimumExpectedTests": 1080,
+    "minimumExpectedTests": 1082,
     "verbosity": "Normal",
     "timeout": "15m"
   },

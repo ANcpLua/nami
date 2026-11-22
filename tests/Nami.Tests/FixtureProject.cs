@@ -168,6 +168,14 @@ public sealed class FixtureProject : IAsyncDisposable
         return this;
     }
 
+    /// <summary>Runs the analyzers and generators of a built assembly in the consumer's compilation.</summary>
+    public FixtureProject AddAnalyzerReference(string path)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        Definition.AddAnalyzerReference(path);
+        return this;
+    }
+
     /// <summary>Compiles the shared Capture sources into the consumer without referencing the test assembly.</summary>
     public FixtureProject AddCaptureSources()
     {

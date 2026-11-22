@@ -10,7 +10,7 @@
     <None Update="testconfig.json" CopyToOutputDirectory="PreserveNewest"/>
   </ItemGroup>
   <ItemGroup>
-    <Compile Remove="Fixtures/CompilerProbes/**/*.cs;Fixtures/BuildEvidence/**/*.cs;Fixtures/InvocationProbe/**/*.cs"/>
+    <Compile Remove="Fixtures/CompilerProbes/**/*.cs;Fixtures/BuildEvidence/**/*.cs;Fixtures/InvocationProbe/**/*.cs;Fixtures/InterceptorProbe/**/*.cs"/>
     <Compile Include="Fixtures/BuildEvidence/BuildEvidenceContract.cs" Link="Probes/BuildEvidenceContract.cs"/>
     <GeneratedFixture Include="Fixtures/BuildEvidence/BuildEvidenceProbe.csproj.template" Name="BuildEvidenceProbe" TargetPath="fixtures/BuildEvidenceProbe/" RequiresSupport="true"/>
     <Compile Include="Fixtures/InvocationProbe/ProbeContract.cs" Link="Probes/ProbeContract.cs"/>
@@ -19,6 +19,7 @@
     <Reference Include="CompilerProbes">
       <HintPath>$(IntermediateOutputPath)generated-fixtures/CompilerProbes/output/CompilerProbes.dll</HintPath>
     </Reference>
+    <GeneratedFixture Include="Fixtures/InterceptorProbe/InterceptorProbe.csproj.template" Name="InterceptorProbe" TargetPath="fixtures/InterceptorProbe/"/>
     <PackageReference Include="Grpc.Net.Client"/>
   </ItemGroup>
 </Project>

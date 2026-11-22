@@ -15,6 +15,7 @@ tools. TypeSpec owns application contracts; Weaver owns semantic conventions.
 | Build, tests and inspection | [Testing](../testing.md) and [verification map](../verification.md) |
 | Generated contracts and model changes | [Contracts](../../contracts/README.md) |
 | Registry generation and semantic APIs | [Registry](../../registry/README.md) and [semantic-convention library](../../internal/nami.semconv/README.md) |
+| Compiler facts the instrumentation generator rests on | [Instrumentation marker](instrumentation-marker.md) |
 | Test fixtures and process ownership | [Fixture lifecycle](../testing.md#per-invocation-consumer-projects) |
 
 Application instrumentation, explicit observation lifetimes and hosted agent
