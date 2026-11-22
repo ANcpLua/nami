@@ -145,19 +145,16 @@ internal static partial class OtlpConverter
             return null;
 
         // Only the generated project resource key determines the partition.
-        foreach (var key in AttributeKeySets.ProjectIdResourceKeyPrecedence)
+        foreach (var attr in resource.Attributes)
         {
-            foreach (var attr in resource.Attributes)
+            if (!string.Equals(attr.Key, CollectorSemanticAttributeCatalog.NamiProjectId, StringComparison.Ordinal) ||
+                attr.Value.ValueCase is not ProtoAnyValue.ValueOneofCase.StringValue ||
+                string.IsNullOrWhiteSpace(attr.Value.StringValue))
             {
-                if (!string.Equals(attr.Key, key, StringComparison.Ordinal) ||
-                    attr.Value.ValueCase is not ProtoAnyValue.ValueOneofCase.StringValue ||
-                    string.IsNullOrWhiteSpace(attr.Value.StringValue))
-                {
-                    continue;
-                }
-
-                return Kept(attr.Value.StringValue);
+                continue;
             }
+
+            return Kept(attr.Value.StringValue);
         }
 
         return null;

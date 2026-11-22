@@ -1,10 +1,5 @@
 namespace Nami.Collector.Ingestion;
 
-internal static class AttributeKeySets
-{
-    internal static string[] ProjectIdResourceKeyPrecedence => [CollectorSemanticAttributeCatalog.NamiProjectId];
-}
-
 internal static class AttributeLookupExtensions
 {
     internal static string? GetSessionId(this IReadOnlyDictionary<string, OtlpAttributeValue> attributes)
