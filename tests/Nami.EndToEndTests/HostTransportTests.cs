@@ -356,6 +356,78 @@ public sealed class HostTransportTests(TestContext context)
 
     [TestMethod]
     [Timeout(90000, CooperativeCancellation = true)]
+    public async Task AgentHosts_ExposeTheSameReadOnlyToolContract_LocalSurfaces()
+    {
+        // What an agent host is offered must not depend on how it reaches nami. The whole tools/list result is
+        // compared: names and their order, descriptions, input and output schemas, annotations and cache hints.
+        var directory = context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
+        var expectedPath =
+            Path.Combine(ProcessRunner.RepositoryRoot, "tests/Nami.EndToEndTests/Fixtures/tools-list.json");
+        using var expected = JsonDocument.Parse(await File.ReadAllTextAsync(expectedPath, context.CancellationToken));
+
+        async Task<JsonElement> ListAsync(string surface)
+        {
+            await using var host = await McpHarness.StartAsync(TestData.HostBinary, surface == "stdio",
+                Path.Combine(directory, surface), context.CancellationToken);
+            var list = await host.Client.ListToolsAsync(new ListToolsRequestParams(), context.CancellationToken);
+            var complete =
+                JsonSerializer.SerializeToElement(list, McpJsonUtilities.DefaultOptions.GetTypeInfo<ListToolsResult>());
+            var actualPath = Path.Combine(directory, "tools-list." + surface + ".actual.json");
+            await File.WriteAllTextAsync(actualPath, complete.GetRawText(), context.CancellationToken);
+            context.AddResultFile(actualPath);
+            Assert.AreSequenceEqual(s_toolNames,
+                [.. complete.GetProperty("tools").EnumerateArray().Select(static t => t.GetProperty("name").GetString())]);
+            return complete;
+        }
+
+        var stdio = await ListAsync("stdio");
+        var http = await ListAsync("http");
+        Assert.IsTrue(JsonElement.DeepEquals(stdio, http),
+            "tools/list over stdio differs from tools/list over Streamable HTTP at " +
+            FirstDifference(stdio, http, "$") + ". Actual: " + directory);
+        Assert.IsTrue(JsonElement.DeepEquals(expected.RootElement, stdio),
+            "tools/list over stdio differs from the committed golden at " +
+            FirstDifference(expected.RootElement, stdio, "$") + ". Actual: " + directory);
+        Assert.IsTrue(JsonElement.DeepEquals(expected.RootElement, http),
+            "tools/list over Streamable HTTP differs from the committed golden at " +
+            FirstDifference(expected.RootElement, http, "$") + ". Actual: " + directory);
+    }
+
+    /// <summary>The JSON path of the first place where two values differ; null when no place does.</summary>
+    private static string? FirstDifference(JsonElement left, JsonElement right, string path)
+    {
+        if (left.ValueKind != right.ValueKind) return path;
+        switch (left.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var name in left.EnumerateObject().Select(static p => p.Name)
+                             .Union(right.EnumerateObject().Select(static p => p.Name), StringComparer.Ordinal))
+                {
+                    var member = path + "." + name;
+                    if (!left.TryGetProperty(name, out var leftValue) ||
+                        !right.TryGetProperty(name, out var rightValue)) return member;
+                    var inMember = FirstDifference(leftValue, rightValue, member);
+                    if (inMember is not null) return inMember;
+                }
+
+                return null;
+            case JsonValueKind.Array:
+                if (left.GetArrayLength() != right.GetArrayLength()) return path + ".length";
+                for (var i = 0; i < left.GetArrayLength(); i++)
+                {
+                    var inItem = FirstDifference(left[i], right[i],
+                        path + "[" + i.ToString(CultureInfo.InvariantCulture) + "]");
+                    if (inItem is not null) return inItem;
+                }
+
+                return null;
+            default:
+                return JsonElement.DeepEquals(left, right) ? null : path;
+        }
+    }
+
+    [TestMethod]
+    [Timeout(90000, CooperativeCancellation = true)]
     public async Task SourcesStatus_AfterOneRequest_LastSeenWithinOneSecond()
     {
         await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
