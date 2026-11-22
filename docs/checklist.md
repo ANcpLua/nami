@@ -52,10 +52,9 @@ The test counts the gate must see, and the last gate measured with them, are in
 - [x] Regenerate through `./eng/build.sh Contracts`; verify deterministic outputs, schemas and
       source-generated JSON metadata through the contract gate.
 
-The [migration inventory](../contracts/model-migration.csv) has 193 historical/current entries;
-the [consumer manifest](../contracts/generated/model-manifest.json) has 99 roots. These count
-different things. Entries retained as algorithms or test/tooling infrastructure are not all
-missing product models. Neither count is a full instrumentation coverage claim.
+The [migration inventory](../contracts/model-migration.csv) and the
+[consumer manifest](../contracts/generated/model-manifest.json) count different things. Entries
+retained as algorithms or test/tooling infrastructure are not all missing product models. Neither count is a full instrumentation coverage claim.
 
 ## 3. TypeScript MCP and engine — `src/nami.mcp/`, `src/nami/`
 
