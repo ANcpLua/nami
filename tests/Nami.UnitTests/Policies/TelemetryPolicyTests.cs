@@ -107,7 +107,7 @@ public sealed class TelemetryPolicyTests
     public void NoDuplicateSpans_SameSpanIdInDifferentTraces_AcceptsIndependentIdentities()
     {
         var span = Span();
-        var capture = new TelemetrySnapshot([span, span with { TraceId = TestSpan.UnrelatedTraceId }], [], [], []);
+        var capture = TestSpan.Only(span, span with { TraceId = TestSpan.UnrelatedTraceId });
         using var invocation = TelemetryInvocation.Begin([new NoDuplicateSpansAttribute(), new ConnectedTraceAttribute()]);
         TelemetryInvocation.Publish(new PublishedTrace(new TraceEvidence(TestSpan.TraceId, capture), Root));
         TelemetryInvocation.Publish(new PublishedTrace(new TraceEvidence(TestSpan.UnrelatedTraceId, capture), Root));
@@ -275,8 +275,7 @@ public sealed class TelemetryPolicyTests
 
     private static PublishedTrace Published(params SpanRecord[] spans)
     {
-        return new PublishedTrace(new TraceEvidence(TestSpan.TraceId,
-            new TelemetrySnapshot(spans, [], [], [])), Root);
+        return new PublishedTrace(TestSpan.Trace(spans), Root);
     }
 
     private static IReadOnlyList<string> Violations(TelemetryPolicyAttribute policy, params SpanRecord[] spans)

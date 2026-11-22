@@ -89,7 +89,7 @@ public sealed class JsonReflectionGuardTests
             Resource = resource,
             Scope = new InstrumentationScopeRecord { SchemaUrl = Schema }
         };
-        using var json = JsonSerializer.SerializeToDocument(new TelemetrySnapshot([span], [], [], []),
+        using var json = JsonSerializer.SerializeToDocument(TestSpan.Only(span),
             TelemetryJsonContext.Default.TelemetrySnapshot);
         var written = json.RootElement.GetProperty("Spans")[0];
         Assert.AreEqual(Schema, written.GetProperty("Resource").GetProperty("SchemaUrl").GetString());
