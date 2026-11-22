@@ -17,7 +17,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-from inspect_code import ROOT, digest, sources, write_json
+from inspect_code import ROOT, digest, file_sha256, sources, write_json
 from diagnostics import begin, current, state_root
 from toolchain import installation, pin as tool_pin, resolve
 
@@ -74,7 +74,7 @@ def tree_hash(roots, root=ROOT):
 
 
 def generated_manifest():
-    return {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+    return {str(path.relative_to(ROOT)): file_sha256(path)
             for root in GENERATED for path in sorted((ROOT / root).rglob("*"))
             if path.is_file() and path.name != ".DS_Store"}
 
@@ -87,8 +87,8 @@ def output_hash(target, root=ROOT):
     return tree_hash(roots, root)
 
 
-def tool(command, arguments):
-    return subprocess.check_output([str(command), *arguments], cwd=ROOT, text=True, timeout=15).strip()
+def tool(command, arguments, cwd=ROOT):
+    return subprocess.check_output([str(command), *arguments], cwd=cwd, text=True, timeout=15).strip()
 
 
 def runtimes(pin):
@@ -99,7 +99,7 @@ def runtimes(pin):
         if actual != pin[name]:
             raise Failure("SETUP_FAILED", f"{name}: expected {pin[name]}, found {actual}.")
         executable = Path(tool(executable, ["-p", "process.execPath"])).resolve()
-        result[name] = {"version": actual, "path": str(executable), "sha256": hashlib.sha256(executable.read_bytes()).hexdigest()}
+        result[name] = {"version": actual, "path": str(executable), "sha256": file_sha256(executable)}
     return result
 
 
@@ -223,11 +223,11 @@ class Run:
             if not manifest.is_file() or json.loads(manifest.read_text())["version"] != expected:
                 raise Failure("SETUP_FAILED", f"{root}: restore the locked TypeScript {expected} dependency.")
             script = "import get from './node_modules/typescript/lib/getExePath.js';console.log(get())"
-            executable = Path(subprocess.check_output([self.context['tools']['node']['path'], "--input-type=module", "-e", script], cwd=ROOT / root, text=True, timeout=15).strip())
+            executable = Path(tool(self.context['tools']['node']['path'], ["--input-type=module", "-e", script], ROOT / root))
             actual = tool(executable, ["--version"]).removeprefix("Version ")
             if actual != expected:
                 raise Failure("SETUP_FAILED", f"{root}: native compiler is {actual}, package requires {expected}.")
-            self.context["tools"][root] = dict(version=actual, path=str(executable), sha256=hashlib.sha256(executable.read_bytes()).hexdigest())
+            self.context["tools"][root] = dict(version=actual, path=str(executable), sha256=file_sha256(executable))
 
     def prepare(self):
         self.summary["build"] = "running"
