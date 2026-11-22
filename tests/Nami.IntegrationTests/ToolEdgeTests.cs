@@ -465,6 +465,58 @@ public sealed class ToolEdgeTests(TestContext context)
     }
 
     [TestMethod]
+    public async Task TracesSlowest_LimitBelowTheMatches_CountsThemAllAndSaysTruncated()
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 5),
+            context.CancellationToken);
+        var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+
+        var cut = Run(snapshot, "traces_slowest", "{\"limit\":2}");
+        Assert.IsFalse(cut.IsError, cut.Content.GetRawText());
+        Assert.AreEqual(2, cut.Content.GetProperty("traces").GetArrayLength());
+        var freshness = cut.Content.GetProperty("freshness");
+        Assert.AreEqual(5, freshness.GetProperty("matched").GetInt32());
+        Assert.AreEqual(2, freshness.GetProperty("returned").GetInt32());
+        Assert.IsTrue(freshness.GetProperty("truncated").GetBoolean());
+        Assert.IsFalse(cut.Content.TryGetProperty("next_cursor", out _), "No page reaches past the limit.");
+
+        // A limit that leaves nothing out is not a truncation.
+        var whole = Run(snapshot, "traces_slowest", "{\"limit\":5}").Content.GetProperty("freshness");
+        Assert.AreEqual(5, whole.GetProperty("matched").GetInt32());
+        Assert.AreEqual(5, whole.GetProperty("returned").GetInt32());
+        Assert.IsFalse(whole.GetProperty("truncated").GetBoolean());
+    }
+
+    [TestMethod]
+    public async Task TracesSlowest_PagesUpToALimitBelowTheMatches_StayTruncatedToTheLastPage()
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 12),
+            context.CancellationToken);
+        var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        var input = new JsonObject { ["limit"] = 8, ["max_bytes"] = 1024 };
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var pages = 0;
+        while (true)
+        {
+            var result = Run(snapshot, "traces_slowest", input.ToJsonString());
+            Assert.IsFalse(result.IsError, result.Content.GetRawText());
+            foreach (var row in result.Content.GetProperty("traces").EnumerateArray())
+                Assert.IsTrue(seen.Add(row.GetProperty("trace_id").GetString()!));
+            var freshness = result.Content.GetProperty("freshness");
+            Assert.AreEqual(12, freshness.GetProperty("matched").GetInt32());
+            Assert.IsTrue(freshness.GetProperty("truncated").GetBoolean());
+            pages++;
+            if (!result.Content.TryGetProperty("next_cursor", out var cursor)) break;
+            input["cursor"] = cursor.GetString();
+        }
+
+        Assert.IsGreaterThan(1, pages);
+        Assert.HasCount(8, seen);
+    }
+
+    [TestMethod]
     public async Task ChangesRecent_RepeatedResourceDoesNotCreateChange()
     {
         var clock = new FakeTimeProvider(TestData.s_now);

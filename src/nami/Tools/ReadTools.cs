@@ -133,9 +133,10 @@ internal static class ErrorsRecentTool
 
 internal static class TracesSlowestTool
 {
-    public static ToolRows Run(TelemetrySnapshot snapshot, ToolWindow window, string? operation, int limit)
+    public static ToolRows Run(TelemetrySnapshot snapshot, ToolWindow window, string? operation, int limit,
+        out int? matched)
     {
-        var traces = snapshot.Spans.GroupBy(static s => s.TraceId).Select(g =>
+        var ranked = snapshot.Spans.GroupBy(static s => s.TraceId).Select(g =>
             {
                 var spans = g.OrderBy(static s => s.StartTimeUnixNano)
                     .ThenBy(static s => s.SpanId, StringComparer.Ordinal).ToArray();
@@ -148,8 +149,10 @@ internal static class TracesSlowestTool
                 window.Contains(t.Start, "traces") && t.Spans.Any(s => window.Matches(s.ServiceName)) &&
                 (operation is null || t.Root.Name == operation))
             .OrderByDescending(static t => ToolValues.Elapsed(t.Start, t.End))
-            .ThenBy(static t => t.Root.TraceId, StringComparer.Ordinal)
-            .Take(limit)
+            .ThenBy(static t => t.Root.TraceId, StringComparer.Ordinal).ToArray();
+        // Counted before the limit: the answer says how many traces matched, not how many were asked for.
+        matched = ranked.Length;
+        var traces = ranked.Take(limit)
             .Select(static t => ToolValues.Json(new SlowTrace
             {
                 TraceId = t.Root.TraceId,
