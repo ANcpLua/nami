@@ -150,6 +150,13 @@ claude mcp add --transport http nami http://127.0.0.1:5100/mcp --header "x-otlp-
   `localhost`, `127.0.0.1` or `[::1]` passes on any port, over HTTP or HTTPS: it is a page of this
   machine. Any other `Origin` has to be `NAMI_PUBLIC_URL` itself, in scheme, host and port: with
   `https://nami.example`, a page at `http://nami.example` or at `https://nami.example:8443` gets 403.
+- **OTLP/HTTP.** The export paths (`/v1/traces`, `/v1/logs`, `/v1/metrics`) follow the same rules.
+  An `Origin` is judged like on `/mcp`, with the origins of `NAMI_OTLP_CORS_ALLOWED_ORIGINS` added;
+  an exporter sends none. `Host` is judged where no key is asked (`NAMI_OTLP_AUTH_MODE=Unsecured`):
+  there an export under any other name than this machine's, the bound address or the host of
+  `NAMI_PUBLIC_URL` gets 403, so a page whose name was rebound to your machine cannot write into the
+  store. With keys the key admits an export under whatever name a producer reaches nami by.
+  OTLP/gRPC has no such check: no browser speaks HTTP/2 without TLS.
 - **A host port chosen by Docker** (`-p 127.0.0.1::5100`, read it with `docker port nami 5100/tcp`)
   works with the same setting: `NAMI_PUBLIC_URL=http://127.0.0.1:5100` names this machine, so it
   stays right whatever port the host side gets.
