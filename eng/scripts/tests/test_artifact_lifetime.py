@@ -11,7 +11,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from artifact_lifetime import ArtifactStore, MAX_SECONDS
 import run_tests
-from diagnostics import state_root
+from diagnostics import owned_paths, owns_path, state_root
 
 
 class ArtifactLifetimeTests(unittest.TestCase):
@@ -216,6 +216,31 @@ time.sleep(60)
             self.assertFalse(Path(summary["directory"]).exists())
             self.assertFalse((store.root / summary["evidence"]["id"]).exists())
             self.assertIn("completed=1 status=failed", run_tests.test_status(state_root(project) / "tests/current"))
+
+
+class OwnedPathTests(unittest.TestCase):
+    def test_owned_paths_and_owns_path_name_the_same_diagnostics(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            scratch = "run_" + "0" * 32
+            owned = ["artifacts/inspection", ".fallout/temp/build.log", ".fallout/temp/a/build-graph.json",
+                     "artifacts/.DS_Store", ".config/.DS_Store", ".agents/skill/__pycache__",
+                     f"artifacts/bin/Nami.UnitTests/release/{scratch}"]
+            kept = [".fallout/temp/notes.txt", "src/.DS_Store", f"artifacts/bin/Nami/release/{scratch}",
+                    "artifacts/bin/Nami.UnitTests/release/nami.dll", "src/nami/Program.cs"]
+            for relative in owned + kept:
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                if relative.endswith(("__pycache__", "inspection", scratch)):
+                    path.mkdir()
+                    (path / "member").write_text("x")
+                else:
+                    path.write_text("x")
+            self.assertEqual(sorted(owned), sorted(path.relative_to(root).as_posix() for path in owned_paths(root)))
+            for relative in owned + [f"artifacts/bin/Nami.UnitTests/release/{scratch}/member"]:
+                self.assertTrue(owns_path(root, root / relative), relative)
+            for relative in kept:
+                self.assertFalse(owns_path(root, root / relative), relative)
 
 
 if __name__ == "__main__":
