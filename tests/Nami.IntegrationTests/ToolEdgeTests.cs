@@ -41,6 +41,71 @@ public sealed class ToolEdgeTests(TestContext context)
     }
 
     [TestMethod]
+    [DataRow("sources_status", "{}", DisplayName = "sources_status")]
+    [DataRow("errors_recent", "{}", DisplayName = "errors_recent")]
+    [DataRow("traces_slowest", "{}", DisplayName = "traces_slowest")]
+    [DataRow("logs_search", "{\"query\":\"declined\"}", DisplayName = "logs_search")]
+    [DataRow("changes_recent", "{}", DisplayName = "changes_recent")]
+    [DataRow("traces_get", "{\"trace_id\":\"00000000000000000000000000000001\"}", DisplayName = "traces_get")]
+    public async Task Service_ThatSentNothing_RefusedWithTheServicesThatExist(string tool, string arguments)
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        var start = TestData.Nanos(TestData.s_now.AddSeconds(-1));
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(start, service: "payments", offset: 10),
+            context.CancellationToken);
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(start), context.CancellationToken);
+        var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        var input = JsonNode.Parse(arguments)!.AsObject();
+
+        // The service that sent the telemetry is answered as before.
+        input["service"] = "checkout";
+        Assert.IsFalse(Run(snapshot, tool, input.ToJsonString()).IsError);
+
+        // A name nothing was sent under is not a service that went silent, and not an empty page.
+        input["service"] = "checkout-api";
+        var result = Run(snapshot, tool, input.ToJsonString());
+        Assert.IsTrue(result.IsError, result.Content.GetRawText());
+        Assert.AreEqual("not_found", result.Content.GetProperty("code").GetString());
+        Assert.AreEqual("service", result.Content.GetProperty("field").GetString());
+        Assert.Contains("checkout-api", result.Content.GetProperty("message").GetString()!);
+        Assert.AreSequenceEqual(["checkout", "payments"],
+            result.Content.GetProperty("allowed").EnumerateArray().Select(static name => name.GetString()).ToArray());
+    }
+
+    [TestMethod]
+    public async Task Service_ThatSentNothing_AmongManyServices_PointsAtSourcesStatus()
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        var start = TestData.Nanos(TestData.s_now.AddSeconds(-1));
+        for (var index = 0; index < 21; index++)
+        {
+            await StorageTestData.SeedTraces(store,
+                OtlpData.Traces(start, offset: index,
+                    service: "service-" + index.ToString(CultureInfo.InvariantCulture)), context.CancellationToken);
+        }
+
+        var result = Run(await store.ReadSnapshotAsync("default", ct: context.CancellationToken), "errors_recent",
+            "{\"service\":\"service-x\"}");
+        Assert.IsTrue(result.IsError, result.Content.GetRawText());
+        Assert.AreEqual("not_found", result.Content.GetProperty("code").GetString());
+        Assert.AreEqual("service", result.Content.GetProperty("field").GetString());
+        Assert.IsFalse(result.Content.TryGetProperty("allowed", out _), "A long list of services is not named.");
+        Assert.Contains("sources_status", result.Content.GetProperty("hint").GetString()!);
+    }
+
+    [TestMethod]
+    public async Task Service_BeforeAnythingWasSent_RefusedWithoutNames()
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        var result = Run(await store.ReadSnapshotAsync("default", ct: context.CancellationToken), "sources_status",
+            "{\"service\":\"checkout\"}");
+        Assert.IsTrue(result.IsError, result.Content.GetRawText());
+        Assert.AreEqual("not_found", result.Content.GetProperty("code").GetString());
+        Assert.AreEqual("service", result.Content.GetProperty("field").GetString());
+        Assert.IsFalse(result.Content.TryGetProperty("allowed", out _));
+    }
+
+    [TestMethod]
     [DataRow("sources_status", "{\"max_bytes\":1024.0}", DisplayName = "Decimal byte budget")]
     [DataRow("traces_slowest", "{\"limit\":1e1}", DisplayName = "Exponent row limit")]
     public async Task ToolArguments_IntegralJsonNumbers_Accepted(string tool, string input)
