@@ -1,4 +1,6 @@
+import os
 import re
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -6,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from run_tests import (LINUX_ONLY, HarnessError, lanes_of, missing_package_file, platform_minimum, read_results,
-                       selection, verdict)
+                       result_lines, selection, verdict)
 
 SUITES = ("Unit", "Integration", "EndToEnd")
 # Two test lanes in one suite and none in the others, as plan rule 14 describes them.
@@ -123,9 +125,10 @@ class LinuxOnlySkipTests(unittest.TestCase):
     def test_report_counts_a_skip_as_linux_only_by_the_end_of_its_reason(self):
         with tempfile.TemporaryDirectory() as temporary:
             (Path(temporary) / "suite.trx").write_text(TRX, encoding="utf-8")
-            counts, names = read_results(Path(temporary))
+            counts, names, failed = read_results(Path(temporary))
         self.assertEqual({"total": 4, "passed": 1, "failed": 0, "skipped": 3, "linuxOnly": 1}, counts)
         self.assertEqual(4, len(names))
+        self.assertEqual([], failed)
 
     def test_every_linux_only_test_gives_the_reason_the_runner_reads(self):
         reasons = {path.name: re.findall(r'Assert\.Inconclusive\("([^"]*)"\)', path.read_text(encoding="utf-8"))
@@ -133,6 +136,76 @@ class LinuxOnlySkipTests(unittest.TestCase):
                                 ROOT / "tests/Nami.IntegrationTests/StorageLifetimeTests.cs")}
         self.assertEqual(["reads /proc; " + LINUX_ONLY], reasons["LinuxProcess.cs"])
         self.assertIn("needs /dev/shm as a second volume; " + LINUX_ONLY, reasons["StorageLifetimeTests.cs"])
+
+
+# A report with one failed and one passed test, cut down from one the test platform wrote.
+FAILED_TRX = """<?xml version="1.0" encoding="utf-8"?>
+<TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Results>
+    <UnitTestResult executionId="1" testId="a" testName="Catalog_EmbeddedConstants_MatchRegistrySnapshot" outcome="Passed" />
+    <UnitTestResult executionId="2" testId="b" testName="Since_Boundaries_HalfOpenAgainstWatermark" outcome="Failed">
+      <Output>
+        <ErrorInfo>
+          <Message>Assertion failed. Expected collection to contain exactly one element.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Catalog_EmbeddedConstants_MatchRegistrySnapshot" id="a">
+      <Execution id="1" />
+      <TestMethod className="Nami.IntegrationTests.IngestStoreTests" name="Catalog_EmbeddedConstants_MatchRegistrySnapshot" />
+    </UnitTest>
+    <UnitTest name="Since_Boundaries_HalfOpenAgainstWatermark" id="b">
+      <Execution id="2" />
+      <TestMethod className="Nami.IntegrationTests.ToolContractTests" name="Since_Boundaries_HalfOpenAgainstWatermark" />
+    </UnitTest>
+  </TestDefinitions>
+  <ResultSummary outcome="Failed">
+    <Counters total="2" executed="2" passed="1" failed="1" />
+  </ResultSummary>
+</TestRun>
+"""
+FAILED_TEST = "Nami.IntegrationTests.ToolContractTests.Since_Boundaries_HalfOpenAgainstWatermark"
+
+
+class FailedTestNameTests(unittest.TestCase):
+    """Ledger N139: a failed gate showed "Failed: 1" and no name; the log names each failed test."""
+
+    def report(self, trx):
+        with tempfile.TemporaryDirectory() as temporary:
+            (Path(temporary) / "suite.trx").write_text(trx, encoding="utf-8")
+            counts, _, failed = read_results(Path(temporary))
+        return result_lines("Integration", counts, failed, 2)
+
+    def test_report_names_the_failed_test_and_no_other(self):
+        self.assertEqual(["TEST RESULT Integration: Passed: 1, Failed: 1, Skipped: 0, Total: 2, Exit: 2",
+                          "TEST FAILED Integration: " + FAILED_TEST], self.report(FAILED_TRX))
+        # A data row or a display name: the method leads, because the source and --filter know it.
+        row = FAILED_TRX.replace('testId="b" testName="Since_Boundaries_HalfOpenAgainstWatermark"',
+                                 'testId="b" testName="A window that ends at the watermark"')
+        self.assertEqual("TEST FAILED Integration: " + FAILED_TEST + ": A window that ends at the watermark",
+                         self.report(row)[1])
+        # A timeout or an error is no pass either, and a report without definitions still has the result's name.
+        bare = FAILED_TRX[:FAILED_TRX.index("  <TestDefinitions>")] + FAILED_TRX[FAILED_TRX.index("  <ResultSummary"):]
+        self.assertEqual(["TEST FAILED Integration: Since_Boundaries_HalfOpenAgainstWatermark"],
+                         self.report(bare.replace('outcome="Failed">', 'outcome="Timeout">', 1))[1:])
+
+    def test_quiet_gate_log_shows_the_failed_test_as_the_run_prints_it(self):
+        # The gate runs quietly: quiet.sh shows chosen lines at once and, after a failure, the last 60. More
+        # output than that follows the name here, so only the first way can show it.
+        lines = self.report(FAILED_TRX) + [f"attachment {number}" for number in range(100)]
+        with tempfile.TemporaryDirectory() as temporary:
+            result = subprocess.run(
+                ["bash", str(ROOT / "eng/scripts/quiet.sh"), "failed-test-names", "--", "bash", "-c",
+                 'printf "%s\n" "$@"; exit 2', "report", *lines],
+                cwd=temporary, capture_output=True, text=True,
+                env={**os.environ, "NAMI_VERBOSE": "0", "NAMI_DIAGNOSTICS_ROOT": temporary})
+        shown = result.stdout.splitlines()
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(lines[:2], [line for line in shown if line.startswith("TEST ")])
+        self.assertNotIn("attachment 0", shown)
+        self.assertFalse(any("IngestStoreTests" in line for line in shown))
 
 
 if __name__ == "__main__":

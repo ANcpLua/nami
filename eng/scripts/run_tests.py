@@ -196,12 +196,32 @@ def verdict(counts, minimum, on_linux):
     return 0, None
 
 
+def failed_test(result, methods):
+    """The name the log gives a failed test: its class and method, which the source and --filter know, and after
+    them the display name where a test or a data row has one."""
+    name = result.get("testName")
+    method = methods.get(result.get("testId"))
+    if method is None:
+        return name
+    location = f"{method.get('className')}.{method.get('name')}"
+    return location if name == method.get("name") else f"{location}: {name}"
+
+
+def result_lines(suite, counts, failed, code):
+    """What one suite's report prints: the counts, then one line per failed test. eng/scripts/quiet.sh passes both
+    kinds of line on to the gate's log while the run is quiet."""
+    return [f"TEST RESULT {suite}: Passed: {counts['passed']}, Failed: {counts['failed']}, "
+            f"Skipped: {counts['skipped']}, Total: {counts['total']}, Exit: {code}",
+            *(f"TEST FAILED {suite}: {test}" for test in failed)]
+
+
 def read_results(directory):
     files = sorted(directory.glob("*.trx"))
     if not files:
         raise HarnessError(f"No fresh TRX report was produced in {directory}")
     counts = {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "linuxOnly": 0}
     names = []
+    failed = []
     executions = set()
     namespace = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
     for file in files:
@@ -212,6 +232,8 @@ def read_results(directory):
         results = document.findall(".//t:UnitTestResult", namespace)
         if len(results) != int(summary.get("total", "0")):
             raise HarnessError(f"TRX results and counters disagree: {file}")
+        methods = {test.get("id"): test.find("t:TestMethod", namespace)
+                   for test in document.findall("t:TestDefinitions/t:UnitTest", namespace)}
         for result in results:
             identity = result.get("executionId")
             if identity in executions:
@@ -224,8 +246,10 @@ def read_results(directory):
                 reason = result.find("t:Output/t:ErrorInfo/t:Message", namespace)
                 if reason is not None and (reason.text or "").rstrip().endswith(LINUX_ONLY):
                     counts["linuxOnly"] += 1
+            elif outcome != "Passed":
+                failed.append(failed_test(result, methods))
             names.append(result.get("testName"))
-    return counts, names
+    return counts, names, failed
 
 
 def main():
@@ -375,13 +399,13 @@ def main():
             code = execute(command, directory / "test.log", root,
                            progress=lambda: f"TEST WAIT {name}: {test_status(directory)}; status: ./eng/test.sh --status current")
             try:
-                counts, names = read_results(directory)
+                counts, names, failed = read_results(directory)
             except (HarnessError, ET.ParseError, ValueError) as error:
                 print(f"TEST REPORT FAILED: {error}", file=sys.stderr)
                 return finish(summary, code or 10)
             summary["suites"].append({"suite": name, "minimum": minimum, "filter": test_filter, "exitCode": code,
                                       **counts, "tests": names})
-            print(f"TEST RESULT {name}: Passed: {counts['passed']}, Failed: {counts['failed']}, Skipped: {counts['skipped']}, Total: {counts['total']}, Exit: {code}", flush=True)
+            print("\n".join(result_lines(name, counts, failed, code)), flush=True)
             if code:
                 return finish(summary, code)
             if not on_linux and counts["linuxOnly"]:

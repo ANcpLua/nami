@@ -36,7 +36,7 @@ live_progress() {
   perl -ne 'BEGIN { $| = 1 }
     s/^\d{2}:\d{2}:\d{2} \[[A-Z]+\] //;
     s/^[ \t]+//;
-    if (/^(?:TEST (?:RUN:|SUITE:|RESULT|WAIT|SETUP FAILED:|REPORT FAILED:|MINIMUM FAILED:|RUN PASSED:)|Results:|Summary:)/) {
+    if (/^(?:TEST (?:RUN:|SUITE:|RESULT|FAILED |WAIT|SETUP FAILED:|REPORT FAILED:|MINIMUM FAILED:|RUN PASSED:)|Results:|Summary:)/) {
       print; next;
     }
     print if /\b(?:warning|error)\s+[A-Z]+\d+\s*:|(?:^|:\s+)(?:warning|error)\s*:/i && !$seen{$_}++'
