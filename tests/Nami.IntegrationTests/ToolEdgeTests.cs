@@ -41,6 +41,71 @@ public sealed class ToolEdgeTests(TestContext context)
     }
 
     [TestMethod]
+    [DataRow("sources_status", "{}", DisplayName = "sources_status")]
+    [DataRow("errors_recent", "{}", DisplayName = "errors_recent")]
+    [DataRow("traces_slowest", "{}", DisplayName = "traces_slowest")]
+    [DataRow("logs_search", "{\"query\":\"declined\"}", DisplayName = "logs_search")]
+    [DataRow("changes_recent", "{}", DisplayName = "changes_recent")]
+    [DataRow("traces_get", "{\"trace_id\":\"00000000000000000000000000000001\"}", DisplayName = "traces_get")]
+    public async Task Service_ThatSentNothing_RefusedWithTheServicesThatExist(string tool, string arguments)
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        var start = TestData.Nanos(TestData.s_now.AddSeconds(-1));
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(start, service: "payments", offset: 10),
+            context.CancellationToken);
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(start), context.CancellationToken);
+        var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        var input = JsonNode.Parse(arguments)!.AsObject();
+
+        // The service that sent the telemetry is answered as before.
+        input["service"] = "checkout";
+        Assert.IsFalse(Run(snapshot, tool, input.ToJsonString()).IsError);
+
+        // A name nothing was sent under is not a service that went silent, and not an empty page.
+        input["service"] = "checkout-api";
+        var result = Run(snapshot, tool, input.ToJsonString());
+        Assert.IsTrue(result.IsError, result.Content.GetRawText());
+        Assert.AreEqual("not_found", result.Content.GetProperty("code").GetString());
+        Assert.AreEqual("service", result.Content.GetProperty("field").GetString());
+        Assert.Contains("checkout-api", result.Content.GetProperty("message").GetString()!);
+        Assert.AreSequenceEqual(["checkout", "payments"],
+            result.Content.GetProperty("allowed").EnumerateArray().Select(static name => name.GetString()).ToArray());
+    }
+
+    [TestMethod]
+    public async Task Service_ThatSentNothing_AmongManyServices_PointsAtSourcesStatus()
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        var start = TestData.Nanos(TestData.s_now.AddSeconds(-1));
+        for (var index = 0; index < 21; index++)
+        {
+            await StorageTestData.SeedTraces(store,
+                OtlpData.Traces(start, offset: index,
+                    service: "service-" + index.ToString(CultureInfo.InvariantCulture)), context.CancellationToken);
+        }
+
+        var result = Run(await store.ReadSnapshotAsync("default", ct: context.CancellationToken), "errors_recent",
+            "{\"service\":\"service-x\"}");
+        Assert.IsTrue(result.IsError, result.Content.GetRawText());
+        Assert.AreEqual("not_found", result.Content.GetProperty("code").GetString());
+        Assert.AreEqual("service", result.Content.GetProperty("field").GetString());
+        Assert.IsFalse(result.Content.TryGetProperty("allowed", out _), "A long list of services is not named.");
+        Assert.Contains("sources_status", result.Content.GetProperty("hint").GetString()!);
+    }
+
+    [TestMethod]
+    public async Task Service_BeforeAnythingWasSent_RefusedWithoutNames()
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        var result = Run(await store.ReadSnapshotAsync("default", ct: context.CancellationToken), "sources_status",
+            "{\"service\":\"checkout\"}");
+        Assert.IsTrue(result.IsError, result.Content.GetRawText());
+        Assert.AreEqual("not_found", result.Content.GetProperty("code").GetString());
+        Assert.AreEqual("service", result.Content.GetProperty("field").GetString());
+        Assert.IsFalse(result.Content.TryGetProperty("allowed", out _));
+    }
+
+    [TestMethod]
     [DataRow("sources_status", "{\"max_bytes\":1024.0}", DisplayName = "Decimal byte budget")]
     [DataRow("traces_slowest", "{\"limit\":1e1}", DisplayName = "Exponent row limit")]
     public async Task ToolArguments_IntegralJsonNumbers_Accepted(string tool, string input)
@@ -215,6 +280,57 @@ public sealed class ToolEdgeTests(TestContext context)
     }
 
     [TestMethod]
+    public async Task TracesGet_TraceOlderThanSince_IsReadByItsId()
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddHours(-2))),
+            context.CancellationToken);
+        var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        var id = 1.ToString("x32", CultureInfo.InvariantCulture);
+
+        // The default window starts an hour back and the trace started two hours back.
+        var result = Run(snapshot, "traces_get", new JsonObject { ["trace_id"] = id }.ToJsonString());
+        Assert.IsFalse(result.IsError, result.Content.GetRawText());
+        Assert.AreEqual(1, result.Content.GetProperty("trace").GetProperty("span_count").GetInt32());
+
+        var narrow = Run(snapshot, "traces_get", new JsonObject { ["trace_id"] = id, ["since"] = "-5m" }.ToJsonString());
+        Assert.IsFalse(narrow.IsError, narrow.Content.GetRawText());
+
+        // An id nothing was stored under is still refused.
+        var missing = Run(snapshot, "traces_get",
+            new JsonObject { ["trace_id"] = 2.ToString("x32", CultureInfo.InvariantCulture) }.ToJsonString());
+        Assert.IsTrue(missing.IsError);
+        Assert.AreEqual("not_found", missing.Content.GetProperty("code").GetString());
+        Assert.AreEqual("trace_id", missing.Content.GetProperty("field").GetString());
+    }
+
+    [TestMethod]
+    public async Task TracesGet_TraceAcrossTheWindowStart_ReturnsEverySpan()
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        var early = TestData.Nanos(TestData.s_now.AddMinutes(-61));
+        var late = TestData.Nanos(TestData.s_now.AddMinutes(-59));
+        var export = JsonNode.Parse(OtlpData.Traces(early, 2))!;
+        var sent = export["resourceSpans"]![0]!["scopeSpans"]![0]!["spans"]!.AsArray();
+        sent[1]!["traceId"] = sent[0]!["traceId"]!.GetValue<string>();
+        sent[1]!["parentSpanId"] = sent[0]!["spanId"]!.GetValue<string>();
+        sent[1]!["startTimeUnixNano"] = late.ToString(CultureInfo.InvariantCulture);
+        sent[1]!["endTimeUnixNano"] = (late + 1000000).ToString(CultureInfo.InvariantCulture);
+        await StorageTestData.SeedTraces(store, export.ToJsonString(), context.CancellationToken);
+
+        var result = Run(await store.ReadSnapshotAsync("default", ct: context.CancellationToken), "traces_get",
+            new JsonObject { ["trace_id"] = 1.ToString("x32", CultureInfo.InvariantCulture) }.ToJsonString());
+        Assert.IsFalse(result.IsError, result.Content.GetRawText());
+        var trace = result.Content.GetProperty("trace");
+        Assert.AreEqual(2, trace.GetProperty("span_count").GetInt32());
+        Assert.AreEqual(2, trace.GetProperty("spans").GetArrayLength());
+        Assert.AreEqual(1.ToString("x16", CultureInfo.InvariantCulture),
+            trace.GetProperty("root_span").GetProperty("span_id").GetString());
+        // From the first span's start to the second span's end: two minutes and a millisecond.
+        Assert.AreEqual("120001000000", trace.GetProperty("duration_ns").GetRawText().Trim('"'));
+    }
+
+    [TestMethod]
     public async Task Cursor_PagesCoverAllRowsWithoutDuplicates()
     {
         var clock = new FakeTimeProvider(TestData.s_now);
@@ -346,6 +462,58 @@ public sealed class ToolEdgeTests(TestContext context)
         Assert.HasCount(2, rows);
         Assert.AreEqual(3.ToString("x32", CultureInfo.InvariantCulture), rows[0].GetProperty("trace_id").GetString());
         Assert.AreEqual(2.ToString("x32", CultureInfo.InvariantCulture), rows[1].GetProperty("trace_id").GetString());
+    }
+
+    [TestMethod]
+    public async Task TracesSlowest_LimitBelowTheMatches_CountsThemAllAndSaysTruncated()
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 5),
+            context.CancellationToken);
+        var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+
+        var cut = Run(snapshot, "traces_slowest", "{\"limit\":2}");
+        Assert.IsFalse(cut.IsError, cut.Content.GetRawText());
+        Assert.AreEqual(2, cut.Content.GetProperty("traces").GetArrayLength());
+        var freshness = cut.Content.GetProperty("freshness");
+        Assert.AreEqual(5, freshness.GetProperty("matched").GetInt32());
+        Assert.AreEqual(2, freshness.GetProperty("returned").GetInt32());
+        Assert.IsTrue(freshness.GetProperty("truncated").GetBoolean());
+        Assert.IsFalse(cut.Content.TryGetProperty("next_cursor", out _), "No page reaches past the limit.");
+
+        // A limit that leaves nothing out is not a truncation.
+        var whole = Run(snapshot, "traces_slowest", "{\"limit\":5}").Content.GetProperty("freshness");
+        Assert.AreEqual(5, whole.GetProperty("matched").GetInt32());
+        Assert.AreEqual(5, whole.GetProperty("returned").GetInt32());
+        Assert.IsFalse(whole.GetProperty("truncated").GetBoolean());
+    }
+
+    [TestMethod]
+    public async Task TracesSlowest_PagesUpToALimitBelowTheMatches_StayTruncatedToTheLastPage()
+    {
+        await using var store = new DuckDbStore(":memory:", timeProvider: new FakeTimeProvider(TestData.s_now));
+        await StorageTestData.SeedTraces(store, OtlpData.Traces(TestData.Nanos(TestData.s_now.AddSeconds(-1)), 12),
+            context.CancellationToken);
+        var snapshot = await store.ReadSnapshotAsync("default", ct: context.CancellationToken);
+        var input = new JsonObject { ["limit"] = 8, ["max_bytes"] = 1024 };
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var pages = 0;
+        while (true)
+        {
+            var result = Run(snapshot, "traces_slowest", input.ToJsonString());
+            Assert.IsFalse(result.IsError, result.Content.GetRawText());
+            foreach (var row in result.Content.GetProperty("traces").EnumerateArray())
+                Assert.IsTrue(seen.Add(row.GetProperty("trace_id").GetString()!));
+            var freshness = result.Content.GetProperty("freshness");
+            Assert.AreEqual(12, freshness.GetProperty("matched").GetInt32());
+            Assert.IsTrue(freshness.GetProperty("truncated").GetBoolean());
+            pages++;
+            if (!result.Content.TryGetProperty("next_cursor", out var cursor)) break;
+            input["cursor"] = cursor.GetString();
+        }
+
+        Assert.IsGreaterThan(1, pages);
+        Assert.HasCount(8, seen);
     }
 
     [TestMethod]
