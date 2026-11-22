@@ -72,8 +72,7 @@ internal sealed partial class DuckDbStore
         int batchSize,
         CancellationToken ct = default)
     {
-        if (batchSize < 1)
-            throw new ArgumentOutOfRangeException(nameof(batchSize), batchSize, "Batch size must be positive.");
+        ThrowIfBatchSizeInvalid(batchSize);
         return ExecuteMaintenanceWriteAsync(
             (con, token) => DeleteExpiredLogsBatchInternalAsync(con, cutoffUnixNano, batchSize, token),
             ct);
@@ -84,11 +83,16 @@ internal sealed partial class DuckDbStore
         int batchSize,
         CancellationToken ct = default)
     {
-        if (batchSize < 1)
-            throw new ArgumentOutOfRangeException(nameof(batchSize), batchSize, "Batch size must be positive.");
+        ThrowIfBatchSizeInvalid(batchSize);
         return ExecuteMaintenanceWriteAsync(
             (con, token) => DeleteExpiredSpansBatchInternalAsync(con, cutoffUnixNano, batchSize, token),
             ct);
+    }
+
+    private static void ThrowIfBatchSizeInvalid(int batchSize)
+    {
+        if (batchSize < 1)
+            throw new ArgumentOutOfRangeException(nameof(batchSize), batchSize, "Batch size must be positive.");
     }
 
     public Task<long> DeleteExpiredMetadataAsync(ulong cutoffUnixNano, CancellationToken ct = default) =>

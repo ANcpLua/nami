@@ -50,8 +50,7 @@ internal sealed partial class DuckDbStore
         int batchSize,
         CancellationToken ct = default)
     {
-        if (batchSize < 1)
-            throw new ArgumentOutOfRangeException(nameof(batchSize), batchSize, "Batch size must be positive.");
+        ThrowIfBatchSizeInvalid(batchSize);
 
         return ExecuteMaintenanceWriteAsync(async (con, token) =>
         {
