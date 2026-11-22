@@ -30,8 +30,9 @@ if (readyFile) removeReadyManifest(readyFile);
 // so a drift between the copies can refuse a call early but never admit one the engine refuses.
 const environment = process.env.DOTNET_ENVIRONMENT ?? process.env.ASPNETCORE_ENVIRONMENT;
 const mode = process.env[CONFIG.AuthMode] ?? (environment?.toLowerCase() === "development" ? CONFIG_DEFAULTS.AuthMode : "ApiKey");
+const apiKeyMode = mode.toLowerCase() === "apikey";
 // Stdio carries no credential, and in ApiKey mode the engine answers every call without one "unauthorized".
-if (stdio && mode.toLowerCase() === "apikey")
+if (stdio && apiKeyMode)
   throw new Error(`--stdio cannot be used with ${CONFIG.AuthMode}=ApiKey: stdio carries no project key, so every tool call would be refused. `
     + `Serve Streamable HTTP and send a project's read key in x-otlp-api-key, or set ${CONFIG.AuthMode}=Unsecured for a local engine with the default project.`);
 // The engine reads the same variable and refuses the same values (CollectorStopOptions.cs): one spelling for
@@ -48,7 +49,7 @@ const keys = Object.values(keyDocument as ProjectKeyDocument)
   .flat().map((entry) => ({ bytes: Buffer.from(entry.key), read: entry.roles.includes("read") }));
 
 function credential(request: Request): string | null | Response {
-  if (mode.toLowerCase() !== "apikey") return null;
+  if (!apiKeyMode) return null;
   const supplied = request.headers.get("x-otlp-api-key");
   const bytes = Buffer.from(supplied ?? "");
   let match: (typeof keys)[number] | undefined;
