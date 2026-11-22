@@ -75,7 +75,7 @@ public sealed class InterceptorProbeGenerator : IIncrementalGenerator
                 .Append(call.Version.ToString(CultureInfo.InvariantCulture)).Append(", ")
                 .Append(SymbolDisplay.FormatLiteral(call.Data, true)).AppendLine(")]");
             source.Append("        internal static string Target").Append(index.ToString(CultureInfo.InvariantCulture))
-                .Append("() => \"intercepted:\" + ").Append(call.Callee).AppendLine(".Target();");
+                .Append("() => ").Append(call.Callee).AppendLine(".Target();");
             index++;
         }
 
