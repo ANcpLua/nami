@@ -2,15 +2,6 @@
 
 Review of the informational C# findings from 2026-10-25. These decisions do not disable rules or suppress findings. The current counts remain available through `mise diagnostics` and `eng/inspect.sh --results current`.
 
-## Applied changes
-
-- Renamed local constants and fields with Roslyn symbol binding, including their references; string data and wire names were not renamed.
-- Applied the installed MSTest 4.5.1 assertion fixes while preserving null handling, collection cardinality and expected/actual semantics.
-- Simplified control flow, used existing type aliases, made genuinely internal implementation details private, and used concrete collection types where all callers supply that type.
-- Replaced fixed runtime regular expressions with generated regex methods. The patterns and options are unchanged.
-- Made JSON frame flushing and writes asynchronous while retaining the write lock through the complete frame.
-- Added direct tests for the three codecs referenced by emitter output: nullable reference values, optional converted values and named non-finite doubles. They cover absent/null/present states, Int64 endpoints, invalid encodings and signed zero.
-
 ## Decisions that preserve behavior
 
 | Finding | Decision and evidence |
@@ -35,7 +26,6 @@ The command assignments were traced to their callers. No request value is used a
 
 | Path | SQL text origin | Runtime values |
 | --- | --- | --- |
-| `DuckDbStore.MetricMigration.cs` | Fixed migration query fragments and generated `MetricObservationRow` insert SQL | Typed row binders and positional parameters |
 | `DuckDbStore.MetricObservations.cs` | Generated `MetricPointRow` insert SQL and fixed deletion/projection statements | Typed row binders and positional parameters |
 | `DuckDbStore.Metrics.cs` | Generated column lists; private migration calls select fixed table names | Positional parameters for project, series and measurement values |
 | `DuckDbStore.Snapshots.cs` | Private snapshot readers receive generated table/column names and fixed ordering; writes use generated row SQL | Positional parameters and typed row binders |
