@@ -35,10 +35,12 @@ PATTERNS = {
         "frameBuffer": r"\bbuffer\s*=",
         "throw": r"\bthrow new ",
         "failed": r"this\.reportFailed\(",
+        "sharedHealth": r"this\.sharedHealth\s*=",
+        "withdraw": r"withdraw\.abort\(",
     },
     "src/nami.mcp/src/main.ts": {
         "closing": r"\bclosing\s*=",
-        "engineCall": r"engine\.(?:request|close)\(",
+        "engineCall": r"engine\.(?:request|health|close)\(",
         "healthAnswer": r"Response\.json\(",
         "signalHandler": r"process\.on(?:ce)?\(\"SIG|process\.stdin\.once\(\"end\"",
         "exit": r"process\.exit\(|process\.exitCode\s*=",

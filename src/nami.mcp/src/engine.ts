@@ -111,7 +111,8 @@ export class Engine {
     if (this.sharedHealth) return this.sharedHealth.reply;
     const withdraw = new AbortController();
     const reply = this.request("health", null, null, null, withdraw.signal).catch((error: unknown) => {
-      throw withdraw.signal.aborted ? new EngineError("collector_unavailable", "Engine request queue is full.") : error;
+      if (withdraw.signal.aborted) throw new EngineError("collector_unavailable", "Engine request queue is full.");
+      throw error;
     }).finally(() => { if (this.sharedHealth?.withdraw === withdraw) this.sharedHealth = undefined; });
     this.sharedHealth = { reply, withdraw };
     return reply;

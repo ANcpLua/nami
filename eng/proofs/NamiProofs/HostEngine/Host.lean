@@ -30,6 +30,13 @@ there. The asynchronous tails are separate events: `childClose` resolves `exited
   until it closes; a signal with a registered handler does not end the process.
 * `GET /health` no longer throws: `health` in main.ts catches every rejection and answers
   503 with a report of its own, so no `fetch` handler of the model throws.
+* The callers of `GET /health` share one engine request (engine.ts, `health`): those that
+  wait together are one `requestHealth` with one pending entry, so the host's runs are the
+  model's runs with at most one health entry pending. A tool call that finds the table full
+  withdraws that entry (engine.ts, `request`): in the model that is `abort` of the health
+  entry followed by `requestTool`, the same cancel frame before the same call frame, here in
+  one task. The model records `Outcome.cancelled` for the withdrawn entry; the host answers
+  its callers 503, as for a full table. No transition of its own models the withdrawal.
 
 ## Not modelled
 Time (the 5 s and 8 s timers are events without durations), the MCP SDK's own request
