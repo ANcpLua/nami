@@ -1,7 +1,7 @@
 import { hostHeaderValidationResponse } from "@modelcontextprotocol/server";
 
 /** The names this machine has for itself, as a Host header and a URL carry them. */
-const LOOPBACK_NAMES: readonly string[] = ["localhost", "127.0.0.1", "[::1]"];
+export const LOOPBACK_NAMES: readonly string[] = ["localhost", "127.0.0.1", "[::1]"];
 /** Every interface, IPv4, IPv6 and IPv4 mapped into IPv6, as a URL writes them. */
 const WILDCARD_NAMES: readonly string[] = ["0.0.0.0", "[::]", "[::ffff:0:0]"];
 
@@ -41,6 +41,11 @@ export function requestNames(bindAddress: string, publicUrl: URL | undefined): R
   return { hosts: [...hosts], publicOrigin: publicUrl?.origin };
 }
 
+/** A JSON-RPC error without a request id: the answer to a request this listener refuses before MCP reads it. */
+export function jsonRpcError(status: number, code: number, message: string): Response {
+  return Response.json({ jsonrpc: "2.0", error: { code, message }, id: null }, { status });
+}
+
 function refusedOrigin(request: Request, publicOrigin: string | undefined): Response | undefined {
   // No Origin: not a browser's cross-origin request. Other clients do not send one.
   const header = request.headers.get("origin");
@@ -54,7 +59,7 @@ function refusedOrigin(request: Request, publicOrigin: string | undefined): Resp
   const local = origin !== undefined && (origin.protocol === "http:" || origin.protocol === "https:")
     && LOOPBACK_NAMES.includes(origin.hostname);
   if (local || (origin !== undefined && publicOrigin !== undefined && origin.origin === publicOrigin)) return undefined;
-  return Response.json({ jsonrpc: "2.0", error: { code: -32000, message: "Invalid Origin." }, id: null }, { status: 403 });
+  return jsonRpcError(403, -32000, "Invalid Origin.");
 }
 
 /**
