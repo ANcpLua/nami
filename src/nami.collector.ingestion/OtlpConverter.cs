@@ -117,13 +117,8 @@ internal static partial class OtlpConverter
 
     private static string ExtractServiceNameFromProto(ProtoResource? resource)
     {
-        if (resource is null)
-        {
-            NamiCollectorMetrics.MissingServiceName();
-            return "unknown";
-        }
-
-        foreach (var attr in resource.Attributes)
+        // The first string service.name decides: a blank one counts as missing even when a later one is set.
+        foreach (var attr in resource?.Attributes ?? [])
         {
             if (attr is not
                 {
