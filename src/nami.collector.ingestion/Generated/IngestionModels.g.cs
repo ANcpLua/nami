@@ -24,7 +24,6 @@ internal sealed partial record LogTimeOrigin
     public ulong? ProducerEventTime { get; init; }
     public ulong? ProducerObservedTime { get; init; }
     public ulong? CollectorReceivedTime { get; init; }
-    public int? UntimedRequestOrdinal { get; init; }
 }
 
 internal sealed partial record NormalizedMetricExemplars

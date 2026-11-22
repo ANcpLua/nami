@@ -26,5 +26,4 @@ model LogTimeOrigin {
   producerEventTime?: Nami.Models.Values.UnixNanos;
   producerObservedTime?: Nami.Models.Values.UnixNanos;
   collectorReceivedTime?: Nami.Models.Values.UnixNanos;
-  untimedRequestOrdinal?: int32;
 }
