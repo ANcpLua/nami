@@ -19,7 +19,7 @@ surfaces:
   private_engine: framed UTF-8 JSON over private streams or pipes
   otlp_http: {port: 4318, paths: [/v1/traces, /v1/logs, /v1/metrics], formats: [protobuf, json]}
   otlp_grpc: {port: 4317}
-  health: authenticated deployment health as appropriate; no analysis dashboard
+  health: /health on the MCP port, behind the Host and Origin check, without a key; no analysis dashboard
 contracts:
   owner: TypeSpec
   outputs: [CSharp, TypeScript, JSON Schema, OpenAPI]
