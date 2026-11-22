@@ -6,7 +6,7 @@ using ProtoLog = Nami.Tests.Wire.OpenTelemetry.Proto.Logs.V1.LogRecord;
 namespace Nami.UnitTests.Receiver;
 
 [TestClass]
-[TestCategory("Fast")]
+[TestCategory("Unit")]
 public sealed class DuplicateAttributeTests
 {
     public enum AttributeShape

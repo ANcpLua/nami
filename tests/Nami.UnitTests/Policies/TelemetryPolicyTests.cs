@@ -1,7 +1,7 @@
 namespace Nami.UnitTests.Policies;
 
 [TestClass]
-[TestCategory("Fast")]
+[TestCategory("Unit")]
 public sealed class TelemetryPolicyTests
 {
     private const string Root = "0000000000000001";

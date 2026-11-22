@@ -6,7 +6,7 @@ using Nami.Tests.Wire.OpenTelemetry.Proto.Collector.Trace.V1;
 namespace Nami.UnitTests.Receiver;
 
 [TestClass]
-[TestCategory("Fast")]
+[TestCategory("Unit")]
 public sealed class ProtocolContractTests
 {
     private const string Trace = "trace";

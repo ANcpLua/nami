@@ -15,7 +15,7 @@ namespace Nami.UnitTests.Hosting;
 ///     from its configuration under the keys <see cref="IngestLimits" /> names.
 /// </summary>
 [TestClass]
-[TestCategory("Fast")]
+[TestCategory("Unit")]
 public sealed class IngestLimitsTests
 {
     [TestMethod]

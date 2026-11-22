@@ -14,7 +14,7 @@ namespace Nami.UnitTests.Hosting;
 ///     services itself; every other service in the process still depends on the binder that AddGrpc registers.
 /// </summary>
 [TestClass]
-[TestCategory("Fast")]
+[TestCategory("Unit")]
 public sealed class GrpcMethodBindingTests
 {
     [TestMethod]

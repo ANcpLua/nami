@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 namespace Nami.UnitTests;
 
 [TestClass]
-[TestCategory("Fast")]
+[TestCategory("Unit")]
 public sealed class RunnerExecutionTests
 {
 #if NAMI_NATIVE_TEST_RUNNER

@@ -1,7 +1,7 @@
 namespace Nami.UnitTests.Collector;
 
 [TestClass]
-[TestCategory("Fast")]
+[TestCategory("Unit")]
 public sealed class FixtureProjectTests
 {
     [TestMethod]

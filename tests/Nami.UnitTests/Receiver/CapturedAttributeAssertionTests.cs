@@ -4,7 +4,7 @@ using ContractAttribute = Nami.Api.Contracts.Common.Attribute;
 namespace Nami.UnitTests.Receiver;
 
 [TestClass]
-[TestCategory("Fast")]
+[TestCategory("Unit")]
 public sealed class CapturedAttributeAssertionTests
 {
     public enum InvalidCapturedArray

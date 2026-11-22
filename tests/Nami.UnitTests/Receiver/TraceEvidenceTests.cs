@@ -2,7 +2,7 @@ namespace Nami.UnitTests.Receiver;
 
 /// <summary>Checks trace relationships against canonical records without changing captured evidence.</summary>
 [TestClass]
-[TestCategory("Fast")]
+[TestCategory("Unit")]
 public sealed class TraceEvidenceTests
 {
     [TestMethod]

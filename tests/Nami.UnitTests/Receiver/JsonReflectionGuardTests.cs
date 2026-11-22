@@ -4,7 +4,7 @@ using System.Text.Json;
 namespace Nami.UnitTests.Receiver;
 
 [TestClass]
-[TestCategory("Fast")]
+[TestCategory("Unit")]
 public sealed class JsonReflectionGuardTests
 {
     [TestMethod]

@@ -5,7 +5,7 @@ using Nami.Tests.Capture;
 namespace Nami.UnitTests.Receiver;
 
 [TestClass]
-[TestCategory("Fast")]
+[TestCategory("Unit")]
 public sealed class RawActivityCaptureTests
 {
     public enum RawViolation
