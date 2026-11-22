@@ -109,7 +109,7 @@ def main(arguments=None):
     for name, reasons in selected:
         print(f"  select  {name}  ({', '.join(reasons)})")
 
-    confirm = options.confirm.strip()
+    confirm = options.confirm
     if confirm != CONFIRM:
         note = f" The input confirm was '{confirm}', not '{CONFIRM}'." if confirm else ""
         print(f"Dry run: nothing deleted.{note} Run again with confirm: {CONFIRM} to delete these branches.")

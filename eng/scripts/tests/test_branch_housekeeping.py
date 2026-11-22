@@ -122,7 +122,7 @@ class RepositoryTests(unittest.TestCase):
 
     def test_dry_run_prints_the_selection_and_deletes_nothing(self):
         before = self.remote_heads()
-        for confirm in ["", "Delete", "yes"]:
+        for confirm in ["", "Delete", "yes", " delete", "delete ", "\tdelete\n"]:
             code, output = self.run_script(confirm)
             self.assertEqual(0, code, output)
             self.assertIn("7 branches on origin; 3 selected, 4 stay", output)
