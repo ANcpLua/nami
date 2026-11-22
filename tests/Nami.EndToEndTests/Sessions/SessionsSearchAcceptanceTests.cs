@@ -34,19 +34,19 @@ public sealed class SessionsSearchAcceptanceTests(TestContext context)
         {
             var session = SessionTools.SessionById(result, expected.Id);
             var where = $"{SearchTool} {expected.Label} ({expected.Id})";
-            Assert.AreEqual(SignedInSessions.Agent, Member(session, AgentName, where).GetString(), where);
-            Assert.AreEqual(SignedInSessions.Model, Member(session, Model, where).GetString(), where);
-            Assert.AreEqual(SignedInSessions.Effort, Member(session, Effort, where).GetString(), where);
-            Assert.AreEqual(expected.InputTokens, Member(session, InputTokens, where).GetInt64(), where);
-            Assert.AreEqual(expected.OutputTokens, Member(session, OutputTokens, where).GetInt64(), where);
-            Assert.AreEqual(expected.CacheReadTokens, Member(session, CacheReadTokens, where).GetInt64(), where);
-            Assert.AreEqual(expected.CacheCreationTokens, Member(session, CacheCreationTokens, where).GetInt64(), where);
-            Assert.AreEqual(expected.CostUsdMicros, Member(session, CostUsdMicros, where).GetInt64(),
+            Assert.AreEqual(SignedInSessions.Agent, SessionTools.Member(session, AgentName, where).GetString(), where);
+            Assert.AreEqual(SignedInSessions.Model, SessionTools.Member(session, Model, where).GetString(), where);
+            Assert.AreEqual(SignedInSessions.Effort, SessionTools.Member(session, Effort, where).GetString(), where);
+            Assert.AreEqual(expected.InputTokens, SessionTools.Member(session, InputTokens, where).GetInt64(), where);
+            Assert.AreEqual(expected.OutputTokens, SessionTools.Member(session, OutputTokens, where).GetInt64(), where);
+            Assert.AreEqual(expected.CacheReadTokens, SessionTools.Member(session, CacheReadTokens, where).GetInt64(), where);
+            Assert.AreEqual(expected.CacheCreationTokens, SessionTools.Member(session, CacheCreationTokens, where).GetInt64(), where);
+            Assert.AreEqual(expected.CostUsdMicros, SessionTools.Member(session, CostUsdMicros, where).GetInt64(),
                 where + ": the sum of cost_usd_micros, subagent requests included");
-            Assert.AreEqual(expected.ToolCalls.Count, Member(session, ToolCallCount, where).GetInt32(), where);
-            Assert.AreEqual(expected.ToolFailures, Member(session, ToolFailureCount, where).GetInt32(), where);
+            Assert.AreEqual(expected.ToolCalls.Count, SessionTools.Member(session, ToolCallCount, where).GetInt32(), where);
+            Assert.AreEqual(expected.ToolFailures, SessionTools.Member(session, ToolFailureCount, where).GetInt32(), where);
             Assert.IsInRange(expected.MinimumDurationMs, expected.MaximumDurationMs,
-                Member(session, DurationMs, where).GetDouble(), where + ": duration_ms");
+                SessionTools.Member(session, DurationMs, where).GetDouble(), where + ": duration_ms");
         }
 
         var freshness = result.GetProperty("freshness");
@@ -68,7 +68,7 @@ public sealed class SessionsSearchAcceptanceTests(TestContext context)
         var result = await SessionTools.CallAsync(host, SearchTool, SessionTools.Search(since), context.CancellationToken);
         var expected = labels.Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(static label => SignedInSessions.ByLabel(label).Id).Order(StringComparer.Ordinal).ToArray();
-        var actual = Member(result, SessionsMember, SearchTool).EnumerateArray()
+        var actual = SessionTools.Member(result, SessionsMember, SearchTool).EnumerateArray()
             .Select(static s => SessionTools.Text(s, SessionId) ?? "(no session_id)").Order(StringComparer.Ordinal).ToArray();
         Assert.AreSequenceEqual(expected, actual, $"Sessions in the window from {since}.");
     }
@@ -137,7 +137,7 @@ public sealed class SessionsSearchAcceptanceTests(TestContext context)
             var page = await SessionTools.CallAsync(host, SearchTool, input, context.CancellationToken);
             pages++;
             Assert.IsLessThanOrEqualTo(1024, SessionTools.Bytes(page), $"Page {pages} exceeds max_bytes.");
-            seen.AddRange(Member(page, SessionsMember, SearchTool).EnumerateArray()
+            seen.AddRange(SessionTools.Member(page, SessionsMember, SearchTool).EnumerateArray()
                 .Select(static s => SessionTools.Text(s, SessionId) ?? "(no session_id)"));
             var more = page.TryGetProperty("next_cursor", out var cursor);
             Assert.AreEqual(more, page.GetProperty("freshness").GetProperty("truncated").GetBoolean(),
@@ -160,7 +160,7 @@ public sealed class SessionsSearchAcceptanceTests(TestContext context)
         await SessionTools.RequireSessionToolsAsync(host, context.CancellationToken);
         var first = await SessionTools.CallAsync(host, SearchTool, SessionTools.Search(SignedInSessions.WindowStart, 1024),
             context.CancellationToken);
-        var cursor = Member(first, "next_cursor", SearchTool + " at 1024 bytes").GetString();
+        var cursor = SessionTools.Member(first, "next_cursor", SearchTool + " at 1024 bytes").GetString();
         var changed = SessionTools.Search("2026-11-15T12:31:00Z", 1024);
         changed["cursor"] = cursor;
         foreach (var bad in new[] { changed, new JsonObject { ["cursor"] = "not base64" } })
@@ -244,6 +244,4 @@ public sealed class SessionsSearchAcceptanceTests(TestContext context)
         Assert.AreEqual("object", get.OutputSchema!.Value.GetProperty("properties").GetProperty(SessionMember)
             .GetProperty("type").GetString());
     }
-
-    private static JsonElement Member(JsonElement value, string name, string where) => SessionTools.Member(value, name, where);
 }
