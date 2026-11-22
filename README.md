@@ -13,7 +13,7 @@ supported application.
 
 The runtime is **TypeScript/Bun MCP + C#/.NET 11 NativeAOT engine**, connected locally by
 private streams/pipes. TypeSpec generates the shared C#/TypeScript wire contracts and JSON Schemas;
-Weaver supplies semantic definitions and persistence rules. A common release need not be one native file.
+Weaver supplies the semantic vocabulary, its stability and successors. A common release need not be one native file.
 See the [PRD](docs/prd/nami.md), [architecture](docs/architecture.yaml) and
 [migration checklist](docs/checklist.md). The permanent decisions are in
 [docs/decisions](docs/decisions/README.md).

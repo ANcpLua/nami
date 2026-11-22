@@ -153,7 +153,7 @@ the order of work in [decision 0001](decisions/0001-remote-connector-and-who-pay
 - TypeSpec owns configuration structures/defaults/environment metadata. Generated constants live in
   `src/nami.collector.ingestion/Generated/CollectorConfigurationKeys.g.cs`; authored partial
   option types retain semantic validation. Change the TypeSpec definition/emitter and regenerate.
-- Weaver owns semantic vocabulary and persistence policy. Regenerate it with `registry/generate.sh`.
+- Weaver owns the semantic vocabulary, its stability and successors; it decides nothing about what is stored. Regenerate it with `registry/generate.sh`.
 - Keep historical decisions in [integration/README.md](integration/README.md) and current evidence
   in the [requirement matrix](integration/requirement-evidence.md).
 - Commit and push to `main`; preserve unrelated user changes.

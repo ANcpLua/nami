@@ -8,10 +8,10 @@ Nami umfasst den benötigten Datenweg von der Instrumentierung einer unterstütz
 
 Die bereitgestellte PRD und Checkliste legen folgende Architektur fest:
 
-- Nami implementiert seinen Collector selbst. Die C#/.NET-11-NativeAOT-Engine übernimmt OTLP-Ingestion, semantische Normalisierung, Persistenzregeln, Sanitizer, DuckDB und Analyse.
+- Nami implementiert seinen Collector selbst. Die C#/.NET-11-NativeAOT-Engine übernimmt OTLP-Ingestion mit Credential-Stufe und Größengrenzen, DuckDB und Analyse; gespeichert wird, wie gesendet wurde.
 - TypeScript auf Bun stellt mit dem offiziellen MCP-TS-SDK v2 die MCP-Oberfläche bereit. TypeScript-MCP und native Engine werden gemeinsam ausgeliefert.
 - Eine private, langlebige Stream-/Pipe-Verbindung transportiert ihre TypeSpec-definierten Nachrichten. Externes MCP-stdout, private Nachrichten und Diagnoseausgabe besitzen getrennte Kanäle.
-- TypeSpec definiert Nami-eigene Strukturen und ihre benötigten Ausgaben. Weaver definiert SemConv-Vokabular, Status, Nachfolger und Persistenz-/Redaktionsregeln.
+- TypeSpec definiert Nami-eigene Strukturen und ihre benötigten Ausgaben. Weaver definiert SemConv-Vokabular, Status und Nachfolger.
 - Compile-Time-Instrumentierung für deklarierte unterstützte Aufrufstellen und ausdrücklich konfigurierte Beobachtungslebenszeiten gehören zum genehmigten Produktziel.
 - Agenten erhalten typisierte, begrenzte Antworten mit Quellenbezug, Freshness und expliziten Grenzen. Die Produktoberfläche besteht aus Tools.
 
