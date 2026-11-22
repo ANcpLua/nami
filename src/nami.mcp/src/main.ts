@@ -7,7 +7,7 @@ import { CONFIG, CONFIG_DEFAULTS, CONTRACT_REVISION } from "./contracts/generate
 import type { HealthReport, ProjectKeyDocument } from "./contracts/generated/json.js";
 import { Engine, EngineError } from "./engine.js";
 import { dnsRebindingResponse, isLoopbackBindHost, isWildcardHost, requestNames } from "./http-security.js";
-import { configuredPort } from "./port.js";
+import { configuredPort, reachableHost } from "./port.js";
 import { removeReadyManifest, writeReadyManifest } from "./ready.js";
 import { createServer } from "./server.js";
 
@@ -143,9 +143,7 @@ if (stdio) {
     }
   });
   closeTransport = async (force = true) => { await server.stop(force); };
-  // A wildcard listener is reached over loopback.
-  const reachable = hostname === "0.0.0.0" ? "127.0.0.1" : hostname === "::" ? "::1" : hostname;
-  mcpUrl = `http://${reachable.includes(":") ? `[${reachable}]` : reachable}:${server.port}/mcp`;
+  mcpUrl = `http://${reachableHost(hostname)}:${server.port}/mcp`;
 }
 // Ready: the engine has reported the addresses it bound, and the MCP listener (if any) is bound.
 if (readyFile) writeReadyManifest(readyFile, mcpUrl, await engine.listeners);

@@ -4,15 +4,12 @@
 // on standard error (Docker keeps it in the container's health log).
 import { readFileSync } from "node:fs";
 import { CONFIG, CONFIG_DEFAULTS } from "./contracts/generated/manifest.js";
-import { configuredPort } from "./port.js";
+import { configuredPort, reachableHost } from "./port.js";
 
 function healthUrl(): string {
   const port = configuredPort(process.env);
   if (port !== 0) {
-    const bind = process.env[CONFIG.BindAddress] ?? CONFIG_DEFAULTS.BindAddress;
-    // A wildcard listener is reached over loopback; a listener on one address only at that address.
-    const host = bind === "0.0.0.0" ? "127.0.0.1" : bind === "::" ? "[::1]" : bind.includes(":") ? `[${bind}]` : bind;
-    return `http://${host}:${port}/health`;
+    return `http://${reachableHost(process.env[CONFIG.BindAddress] ?? CONFIG_DEFAULTS.BindAddress)}:${port}/health`;
   }
   // The operating system chose the port (0, however it is written): only the ready manifest knows the URL. The
   // host does not start with such a port and no manifest, so the file is named whenever a host can be running.
