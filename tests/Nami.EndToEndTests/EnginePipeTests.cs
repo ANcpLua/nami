@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
-using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using Nami.Api.Contracts;
@@ -173,19 +172,10 @@ public sealed class EnginePipeTests(TestContext context)
             }
         }
 
-        private static int FreePort()
-        {
-            using var listener = new TcpListener(IPAddress.Loopback, 0);
-            listener.Start();
-            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-            listener.Stop();
-            return port;
-        }
-
         internal static async Task<EngineProcess> StartAsync(string directory, CancellationToken cancellationToken)
         {
             System.IO.Directory.CreateDirectory(directory);
-            var otlpPort = FreePort();
+            var otlpPort = Loopback.FreePort();
             var start = new ProcessStartInfo(TestData.HostBinary)
             {
                 UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true,
@@ -194,8 +184,8 @@ public sealed class EnginePipeTests(TestContext context)
             start.ArgumentList.Add("--engine");
             start.Environment["NAMI_DATA_PATH"] = Path.Combine(directory, "nami.duckdb");
             start.Environment["NAMI_OTLP_PORT"] = otlpPort.ToString(CultureInfo.InvariantCulture);
-            start.Environment["NAMI_GRPC_PORT"] = FreePort().ToString(CultureInfo.InvariantCulture);
-            start.Environment["NAMI_PORT"] = FreePort().ToString(CultureInfo.InvariantCulture);
+            start.Environment["NAMI_GRPC_PORT"] = Loopback.FreePort().ToString(CultureInfo.InvariantCulture);
+            start.Environment["NAMI_PORT"] = Loopback.FreePort().ToString(CultureInfo.InvariantCulture);
             start.Environment["NAMI_OTLP_AUTH_MODE"] = "Unsecured";
             start.Environment["DOTNET_ENVIRONMENT"] = "Development";
             var engine = new EngineProcess(await OwnedProcess.StartAsync(start, cancellationToken), otlpPort);

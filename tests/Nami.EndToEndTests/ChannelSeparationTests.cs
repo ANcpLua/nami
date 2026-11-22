@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
-using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using ModelContextProtocol;
@@ -29,15 +28,6 @@ public sealed class ChannelSeparationTests(TestContext context)
 
     private string Directory => context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
 
-    private static int FreePort()
-    {
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
-
     [TestMethod]
     [Timeout(120000, CooperativeCancellation = true)]
     public async Task Stdio_WhileHostAndEngineWriteDiagnostics_EveryMcpFrameAndEveryPrivateFrameIsWhole()
@@ -54,7 +44,7 @@ public sealed class ChannelSeparationTests(TestContext context)
             context.CancellationToken);
         File.SetUnixFileMode(tap, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
 
-        var otlpPort = FreePort();
+        var otlpPort = Loopback.FreePort();
         var start = new ProcessStartInfo("bun")
         {
             UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true,
@@ -70,7 +60,7 @@ public sealed class ChannelSeparationTests(TestContext context)
         start.Environment["NAMI_TAP_FROM_ENGINE"] = fromEngine;
         start.Environment["NAMI_DATA_PATH"] = Path.Combine(Directory, "nami.duckdb");
         start.Environment["NAMI_OTLP_PORT"] = otlpPort.ToString(CultureInfo.InvariantCulture);
-        start.Environment["NAMI_GRPC_PORT"] = FreePort().ToString(CultureInfo.InvariantCulture);
+        start.Environment["NAMI_GRPC_PORT"] = Loopback.FreePort().ToString(CultureInfo.InvariantCulture);
         start.Environment["NAMI_OTLP_AUTH_MODE"] = "Unsecured";
         start.Environment["DOTNET_ENVIRONMENT"] = "Development";
         // Diagnostics of the engine. A warning at every start: Kestrel says that it overrides this address (the
