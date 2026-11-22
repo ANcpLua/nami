@@ -23,12 +23,8 @@ Nami's own tool operations emit telemetry. A product generator that instruments 
 applications and a project-bound observation lifetime manager are still open. Test capture
 helpers and generated fixture projects do not implement those product features.
 
-The last complete Release gate at `34bc04f` recorded **239 Unit + 497 Integration + 45 EndToEnd
-= 781 passed, 0 failed, 0 skipped**, current generated output and unchanged wire schemas.
-Native publish retained existing DuckDB trim/AOT and Apple toolchain diagnostics. This is a
-historical baseline, not a fresh result for this documentation change: `mise diagnostics`
-reports the build/test/contract and inspection records as **STALE** after later documentation
-commits. No runtime suite was rerun for this source/documentation reconciliation.
+The test counts the gate must see, and the last gate measured with them, are in
+[`eng/test-baseline.json`](../eng/test-baseline.json), the one place that records them.
 
 ## 1. Product and architecture documentation
 
@@ -135,7 +131,8 @@ the order of work in [decision 0001](decisions/0001-remote-connector-and-who-pay
       evidence waits and teardown; verify the helpers themselves independently of product lifetimes.
 - [x] Reject empty selections and ignored MTP exit codes; retain failure and missing-evidence
       policy checks. A test name, serialization or flush success alone is not requirement completion.
-- [x] Record the completed code gate at `00523cc` with its 744-test scope and visible diagnostics.
+- [x] Record the gate's test counts in [`eng/test-baseline.json`](../eng/test-baseline.json) and keep
+      its diagnostics visible.
 - [ ] Close the remaining I/D matrix gaps with behavior-specific evidence and rerun the affected
       checks and complete code gate before claiming the corresponding product work complete.
 
