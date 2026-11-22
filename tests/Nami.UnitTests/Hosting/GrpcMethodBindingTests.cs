@@ -15,7 +15,7 @@ namespace Nami.UnitTests.Hosting;
 /// </summary>
 [TestClass]
 [TestCategory("Fast")]
-public class GrpcMethodBindingTests
+public sealed class GrpcMethodBindingTests
 {
     [TestMethod]
     public async Task Should_BindAServiceWithItsOwnBindMethod_When_ItIsMappedBesideTheCollector()

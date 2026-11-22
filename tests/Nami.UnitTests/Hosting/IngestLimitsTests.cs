@@ -16,7 +16,7 @@ namespace Nami.UnitTests.Hosting;
 /// </summary>
 [TestClass]
 [TestCategory("Fast")]
-public class IngestLimitsTests
+public sealed class IngestLimitsTests
 {
     [TestMethod]
     public void Should_HoldTheObserversBounds_When_NothingIsConfigured()
