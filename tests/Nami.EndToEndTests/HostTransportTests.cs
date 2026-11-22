@@ -28,8 +28,13 @@ public sealed class HostTransportTests(TestContext context)
     private static readonly string[] s_toolNames =
         ["changes_recent", "errors_recent", "logs_search", "sources_status", "traces_get", "traces_slowest"];
 
+    private const string SelfReadKeys = "{\"nami\":[{\"key\":\"self-read\",\"roles\":[\"read\"]}]}";
+
     private string TestDirectory =>
         context.TestTempDirectory ?? throw new InvalidOperationException("Missing test temp directory");
+
+    private Task<McpHarness> StartHostAsync(bool stdio = false, string? keys = null, string? readKey = null) =>
+        McpHarness.StartAsync(TestData.HostBinary, stdio, TestDirectory, context.CancellationToken, keys, readKey);
 
     [TestMethod]
     [Timeout(30000, CooperativeCancellation = true)]
@@ -62,7 +67,7 @@ public sealed class HostTransportTests(TestContext context)
     public async Task Ingest_ThreeTransports_SameRows(string transport, string signal)
     {
         var dir = TestDirectory;
-        await using (var host = await McpHarness.StartAsync(TestData.HostBinary, false, dir, context.CancellationToken))
+        await using (var host = await StartHostAsync())
         {
             var time = TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2));
             var payload = signal switch
@@ -198,9 +203,7 @@ public sealed class HostTransportTests(TestContext context)
     [DynamicData(nameof(ToolTransportCases))]
     public async Task EveryTool_ThreeOtlpTransports_ReturnsTypedEvidence(string tool, string transport)
     {
-        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            TestDirectory,
-            context.CancellationToken);
+        await using var host = await StartHostAsync();
         var time = TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-3));
         var traces = JsonNode.Parse(OtlpData.Traces(time, error: true, exceptionEvent: true))!;
         traces["resourceSpans"]![0]!["resource"]!["attributes"]!.AsArray()
@@ -296,9 +299,7 @@ public sealed class HostTransportTests(TestContext context)
     [DataRow(true, DisplayName = "stdio MCP result")]
     public async Task Result_ThreeParts_OneSource(bool stdio)
     {
-        await using var host = await McpHarness.StartAsync(TestData.HostBinary, stdio,
-            TestDirectory,
-            context.CancellationToken);
+        await using var host = await StartHostAsync(stdio);
         var result = await host.CallAsync("sources_status", "{}", context.CancellationToken);
         Assert.AreNotEqual(true, result.IsError);
         Assert.HasCount(2, result.Content);
@@ -313,9 +314,7 @@ public sealed class HostTransportTests(TestContext context)
     [Timeout(90000, CooperativeCancellation = true)]
     public async Task ToolsList_Snapshot_MatchesAnnotationsAndCache()
     {
-        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            TestDirectory,
-            context.CancellationToken);
+        await using var host = await StartHostAsync();
         var list = await host.Client.ListToolsAsync(new ListToolsRequestParams(), context.CancellationToken);
         Assert.AreSequenceEqual(s_toolNames, [.. list.Tools.Select(static t => t.Name)]);
         Assert.AreEqual(TimeSpan.FromHours(1), list.TimeToLive);
@@ -338,9 +337,7 @@ public sealed class HostTransportTests(TestContext context)
         var complete =
             JsonSerializer.SerializeToElement(list, McpJsonUtilities.DefaultOptions.GetTypeInfo<ListToolsResult>());
         var actualPath =
-            Path.Combine(
-                TestDirectory,
-                "tools-list.actual.json");
+            Path.Combine(TestDirectory, "tools-list.actual.json");
         await File.WriteAllTextAsync(actualPath, complete.GetRawText(), context.CancellationToken);
         context.AddResultFile(actualPath);
         var expectedPath =
@@ -355,9 +352,7 @@ public sealed class HostTransportTests(TestContext context)
     [Timeout(90000, CooperativeCancellation = true)]
     public async Task SourcesStatus_AfterOneRequest_LastSeenWithinOneSecond()
     {
-        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            TestDirectory,
-            context.CancellationToken);
+        await using var host = await StartHostAsync();
         var before = DateTimeOffset.UtcNow;
         using var response = await host.SendJsonAsync("traces", OtlpData.Traces(TestData.Nanos(before.AddYears(2))),
             context.CancellationToken);
@@ -377,9 +372,7 @@ public sealed class HostTransportTests(TestContext context)
     {
         const string Keys =
             "{\"a\":[{\"key\":\"test-a\",\"roles\":[\"ingest\",\"read\"]}],\"b\":[{\"key\":\"test-b\",\"roles\":[\"ingest\",\"read\"]}]}";
-        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            TestDirectory,
-            context.CancellationToken, Keys, "test-a");
+        await using var host = await StartHostAsync(keys: Keys, readKey: "test-a");
         using var missing = await host.SendJsonAsync("traces",
             OtlpData.Traces(TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2)), project: "a"),
             context.CancellationToken);
@@ -402,10 +395,7 @@ public sealed class HostTransportTests(TestContext context)
     {
         const string TraceId = "0123456789abcdef0123456789abcdef";
         const string ParentId = "fedcba9876543210";
-        const string Keys = "{\"nami\":[{\"key\":\"self-read\",\"roles\":[\"read\"]}]}";
-        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            TestDirectory,
-            context.CancellationToken, Keys, "self-read");
+        await using var host = await StartHostAsync(keys: SelfReadKeys, readKey: "self-read");
         await host.Client.CallToolAsync(
             new CallToolRequestParams
             {
@@ -437,9 +427,7 @@ public sealed class HostTransportTests(TestContext context)
     {
         const string Keys =
             "{\"a\":[{\"key\":\"ingest-a\",\"roles\":[\"ingest\"]},{\"key\":\"read-a\",\"roles\":[\"read\"]}],\"b\":[{\"key\":\"read-b\",\"roles\":[\"read\"]}]}";
-        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            TestDirectory,
-            context.CancellationToken, Keys, "read-a");
+        await using var host = await StartHostAsync(keys: Keys, readKey: "read-a");
         var json = OtlpData.Traces(TestData.Nanos(DateTimeOffset.UtcNow.AddSeconds(-2)), project: "a");
         using var refused = await host.SendJsonAsync("traces", json, context.CancellationToken, "read-a");
         Assert.AreEqual(HttpStatusCode.Forbidden, refused.StatusCode);
@@ -469,10 +457,7 @@ public sealed class HostTransportTests(TestContext context)
     [DataRow(true, DisplayName = "Malformed traceparent")]
     public async Task IncomingMeta_AbsentOrInvalid_StartsRoot(bool invalid)
     {
-        const string Keys = "{\"nami\":[{\"key\":\"self-read\",\"roles\":[\"read\"]}]}";
-        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            TestDirectory,
-            context.CancellationToken, Keys, "self-read");
+        await using var host = await StartHostAsync(keys: SelfReadKeys, readKey: "self-read");
         var call = new CallToolRequestParams { Name = "sources_status" };
         if (invalid) call.Meta = new JsonObject { ["traceparent"] = "invalid" };
         var first = await host.Client.CallToolAsync(call, context.CancellationToken);
@@ -511,8 +496,7 @@ public sealed class HostTransportTests(TestContext context)
         // mutant_hostExitsNonZero). The engine is stopped so that no call can finish, then killed: every call
         // must end typed, the host must exit non-zero, and no engine may be left behind.
         var directory = TestDirectory;
-        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, directory,
-            context.CancellationToken);
+        await using var host = await StartHostAsync();
         var owner = LinuxProcess.ParentOf(host.HostProcessId);
         var engine = LinuxProcess.ChildOf(host.HostProcessId, TestData.HostBinary);
         Assert.AreSequenceEqual((int[])[host.HostProcessId, engine], LinuxProcess.RunningIn(directory, owner).Order(),
@@ -553,8 +537,7 @@ public sealed class HostTransportTests(TestContext context)
         // ends it. The first SIGTERM closes the listener and waits for the engine; the second ends the host at
         // once (main.ts, stop), and the host's exit listener must take the engine with it (engine.ts, stopChild).
         var directory = TestDirectory;
-        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false, directory,
-            context.CancellationToken);
+        await using var host = await StartHostAsync();
         var owner = LinuxProcess.ParentOf(host.HostProcessId);
         var engine = LinuxProcess.ChildOf(host.HostProcessId, TestData.HostBinary);
         await LinuxProcess.SignalAsync(engine, "STOP", context.CancellationToken);
@@ -591,9 +574,7 @@ public sealed class HostTransportTests(TestContext context)
     [Timeout(90000, CooperativeCancellation = true)]
     public async Task Health_ReturnsGeneratedSchemaAndRevision()
     {
-        await using var host = await McpHarness.StartAsync(TestData.HostBinary, false,
-            TestDirectory,
-            context.CancellationToken);
+        await using var host = await StartHostAsync();
         using var response =
             await host.Http.GetAsync($"http://127.0.0.1:{host.HttpPort}/health", context.CancellationToken);
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
