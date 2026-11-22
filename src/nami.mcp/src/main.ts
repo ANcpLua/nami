@@ -6,7 +6,7 @@ import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { CONFIG, CONFIG_DEFAULTS, CONTRACT_REVISION } from "./contracts/generated/manifest.js";
 import type { HealthReport, ProjectKeyDocument } from "./contracts/generated/json.js";
 import { Engine, EngineError } from "./engine.js";
-import { dnsRebindingResponse, isLoopbackBindHost, isWildcardHost, jsonRpcError, LOOPBACK_NAMES, requestNames } from "./http-security.js";
+import { dnsRebindingResponse, isLoopbackBindHost, isWildcardHost, LOOPBACK_NAMES, requestNames } from "./http-security.js";
 import { configuredPort, reachableHost } from "./port.js";
 import { removeReadyManifest, writeReadyManifest } from "./ready.js";
 import { createServer } from "./server.js";
@@ -120,9 +120,11 @@ if (stdio) {
   // many proxies do close a silent stream.
   // Nothing this listener answers carries a path or a stack: no development error page, and an unexpected
   // failure is a JSON-RPC internal error.
+  const failure = (status: number, code: number, message: string) =>
+    Response.json({ jsonrpc: "2.0", error: { code, message }, id: null }, { status });
   const server = Bun.serve({
     hostname, port, idleTimeout: 255, development: false,
-    error(error) { report(error); return jsonRpcError(500, -32603, "Internal error."); },
+    error(error) { report(error); return failure(500, -32603, "Internal error."); },
     async fetch(request, listener) {
       // Host and Origin are judged before the URL is read: with a malformed Host header the URL does not parse.
       let url: URL;
@@ -130,7 +132,7 @@ if (stdio) {
         const refused = dnsRebindingResponse(request, names);
         if (refused) return refused;
         url = new URL(request.url);
-      } catch { return jsonRpcError(400, -32600, "Invalid Host header or request target."); }
+      } catch { return failure(400, -32600, "Invalid Host header or request target."); }
       if (url.pathname === "/health") return health(request.signal);
       if (url.pathname !== "/mcp") return new Response(null, { status: 404 });
       const access = credential(request);
