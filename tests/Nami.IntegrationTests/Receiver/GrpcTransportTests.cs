@@ -164,7 +164,7 @@ public sealed class GrpcTransportTests : IAsyncDisposable
     {
         await using var receiver = await StartReceiverAsync(limit);
         using var channel = GrpcChannel.ForAddress(receiver.GrpcEndpoint);
-        var bytes = UnknownFieldPayload(limit);
+        var bytes = OtlpPayload.UnknownField(limit);
         using var call = OtlpGrpc.ExportAsync(channel, Signals.Traces, bytes,
             new CallOptions(CompressionHeaders(encoding), cancellationToken: TestContext.CancellationToken));
         Assert.IsEmpty(await call.ResponseAsync);
@@ -250,21 +250,6 @@ public sealed class GrpcTransportTests : IAsyncDisposable
         return headers;
     }
 
-    private static byte[] UnknownFieldPayload(int size)
-    {
-        var bytes = new byte[size];
-        byte[] unknownLengthDelimitedField127Tag = [0xfa, 0x07];
-        const int FourByteLengthVarint = 4;
-        unknownLengthDelimitedField127Tag.CopyTo(bytes, 0);
-        var length = bytes.Length - unknownLengthDelimitedField127Tag.Length - FourByteLengthVarint;
-        for (var i = 0; i < FourByteLengthVarint; i++)
-        {
-            bytes[unknownLengthDelimitedField127Tag.Length + i] =
-                (byte)((length >> (7 * i)) | (i < FourByteLengthVarint - 1 ? 0x80 : 0));
-        }
-
-        return bytes;
-    }
 
     private static IMessage Request(string signal, bool invalid, bool warning)
     {

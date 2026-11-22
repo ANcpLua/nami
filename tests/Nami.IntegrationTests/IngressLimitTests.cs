@@ -31,15 +31,15 @@ public sealed class IngressLimitTests(TestContext context)
     {
         await using var host = await StartAsync();
 
-        using var atTheBound = await PostAsync(host, UnknownFieldPayload(Limit), gzip, chunked);
+        using var atTheBound = await PostAsync(host, OtlpPayload.UnknownField(Limit), gzip, chunked);
         Assert.AreEqual(HttpStatusCode.OK, atTheBound.StatusCode);
 
-        using var over = await PostAsync(host, UnknownFieldPayload(Limit + 1), gzip, chunked);
+        using var over = await PostAsync(host, OtlpPayload.UnknownField(Limit + 1), gzip, chunked);
         Assert.AreEqual(HttpStatusCode.RequestEntityTooLarge, over.StatusCode);
         var error = await Assert.That.HasOtlpErrorAsync(over, context.CancellationToken);
         Assert.AreEqual($"OTLP payload exceeds the 16777216-byte {(gzip ? "decompressed" : "wire")} limit.", error.Message);
 
-        using var afterwards = await PostAsync(host, UnknownFieldPayload(64), gzip, chunked);
+        using var afterwards = await PostAsync(host, OtlpPayload.UnknownField(64), gzip, chunked);
         Assert.AreEqual(HttpStatusCode.OK, afterwards.StatusCode, "The listener keeps accepting exports after a refusal.");
     }
 
@@ -48,7 +48,7 @@ public sealed class IngressLimitTests(TestContext context)
     public async Task Http_ASmallGzipBodyThatInflatesToSixtyFourMebibytes_IsRefusedWith413()
     {
         await using var host = await StartAsync();
-        var bomb = OtlpHttp.Compress(UnknownFieldPayload(4 * Limit));
+        var bomb = OtlpHttp.Compress(OtlpPayload.UnknownField(4 * Limit));
         Assert.IsLessThan(Limit / 16, bomb.Length, "The compressed body is small.");
 
         using var response = await PostAsync(host, bomb, false, false, "gzip");
@@ -112,7 +112,7 @@ public sealed class IngressLimitTests(TestContext context)
     [TestMethod]
     public async Task Parser_ADeclaredLengthThatArrives_IsReadWholeIntoABufferOfThatLength()
     {
-        var payload = UnknownFieldPayload(3 * 1024 * 1024 + 17);
+        var payload = OtlpPayload.UnknownField(3 * 1024 * 1024 + 17);
         payload.AsSpan(6).Fill(0x5a);
         await using var body = new CountingStream(payload);
         var request = new DefaultHttpContext().Request;
@@ -161,20 +161,20 @@ public sealed class IngressLimitTests(TestContext context)
             [IngestLimits.MaxRequestDecompressedBytesKey] = "4096"
         });
 
-        using (var response = await PostAsync(host, UnknownFieldPayload(1024), false, false))
+        using (var response = await PostAsync(host, OtlpPayload.UnknownField(1024), false, false))
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        using (var response = await PostAsync(host, UnknownFieldPayload(1025), false, false))
+        using (var response = await PostAsync(host, OtlpPayload.UnknownField(1025), false, false))
             await AssertRefusedAsync(response, "OTLP payload exceeds the 1024-byte wire limit.");
-        using (var response = await PostAsync(host, UnknownFieldPayload(1025), false, true))
+        using (var response = await PostAsync(host, OtlpPayload.UnknownField(1025), false, true))
             await AssertRefusedAsync(response, "OTLP payload exceeds the 1024-byte wire limit.");
 
-        using (var response = await PostAsync(host, UnknownFieldPayload(4096), true, false))
+        using (var response = await PostAsync(host, OtlpPayload.UnknownField(4096), true, false))
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        using (var response = await PostAsync(host, UnknownFieldPayload(4097), true, false))
+        using (var response = await PostAsync(host, OtlpPayload.UnknownField(4097), true, false))
             await AssertRefusedAsync(response, "OTLP payload exceeds the 4096-byte decompressed limit.");
 
         // Bytes gzip cannot shrink: within the decompressed bound, over the wire bound once compressed.
-        var incompressible = UnknownFieldPayload(3000);
+        var incompressible = OtlpPayload.UnknownField(3000);
         new Random(20261116).NextBytes(incompressible.AsSpan(6));
         Assert.IsGreaterThan(1024, OtlpHttp.Compress(incompressible).Length);
         using (var response = await PostAsync(host, incompressible, true, false))
@@ -192,13 +192,13 @@ public sealed class IngressLimitTests(TestContext context)
     {
         await using var host = await StartAsync();
 
-        Assert.IsEmpty(await ExportAsync(host, UnknownFieldPayload(Limit), gzip));
+        Assert.IsEmpty(await ExportAsync(host, OtlpPayload.UnknownField(Limit), gzip));
 
         var refused = await Assert.ThrowsExactlyAsync<RpcException>(() =>
-            ExportAsync(host, UnknownFieldPayload(Limit + 1), gzip));
+            ExportAsync(host, OtlpPayload.UnknownField(Limit + 1), gzip));
         Assert.AreEqual(StatusCode.ResourceExhausted, refused.StatusCode, refused.Status.Detail);
 
-        Assert.IsEmpty(await ExportAsync(host, UnknownFieldPayload(64), gzip),
+        Assert.IsEmpty(await ExportAsync(host, OtlpPayload.UnknownField(64), gzip),
             "The listener keeps accepting exports after a refusal.");
     }
 
@@ -209,7 +209,7 @@ public sealed class IngressLimitTests(TestContext context)
         await using var host = await StartAsync();
 
         var refused = await Assert.ThrowsExactlyAsync<RpcException>(() =>
-            ExportAsync(host, UnknownFieldPayload(4 * Limit), true));
+            ExportAsync(host, OtlpPayload.UnknownField(4 * Limit), true));
 
         Assert.AreEqual(StatusCode.ResourceExhausted, refused.StatusCode, refused.Status.Detail);
     }
@@ -232,10 +232,10 @@ public sealed class IngressLimitTests(TestContext context)
             [IngestLimits.MaxRequestDecompressedBytesKey] = decompressed
         });
 
-        Assert.IsEmpty(await ExportAsync(host, UnknownFieldPayload(1024), gzip));
+        Assert.IsEmpty(await ExportAsync(host, OtlpPayload.UnknownField(1024), gzip));
 
         var refused = await Assert.ThrowsExactlyAsync<RpcException>(() =>
-            ExportAsync(host, UnknownFieldPayload(1025), gzip));
+            ExportAsync(host, OtlpPayload.UnknownField(1025), gzip));
         Assert.AreEqual(StatusCode.ResourceExhausted, refused.StatusCode, refused.Status.Detail);
     }
 
@@ -270,16 +270,6 @@ public sealed class IngressLimitTests(TestContext context)
         Assert.AreEqual(message, error.Message);
     }
 
-    /// <summary>A well-formed export of <paramref name="size" /> bytes: one unknown length-delimited field (127) of zeros.</summary>
-    private static byte[] UnknownFieldPayload(int size)
-    {
-        var payload = new byte[size];
-        payload[0] = 0xfa;
-        payload[1] = 0x07;
-        var length = size - 6;
-        for (var i = 0; i < 4; i++) payload[2 + i] = (byte)((length >> (7 * i)) | (i < 3 ? 0x80 : 0));
-        return payload;
-    }
 
     /// <summary>The gzip encoding of <paramref name="count" /> zero bytes, written without holding them.</summary>
     private static byte[] ZerosCompressed(int count)

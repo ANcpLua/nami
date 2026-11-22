@@ -31,7 +31,7 @@ public sealed class PayloadLimitTests
         int limit, bool gzip, bool chunked)
     {
         await using var receiver = await StartReceiverAsync(limit);
-        var belowLimit = UnknownFieldPayload(limit - 1);
+        var belowLimit = OtlpPayload.UnknownField(limit - 1);
         using var belowRequest = Request(receiver.Endpoint, belowLimit, gzip, chunked);
         Assert.AreEqual(!chunked, belowRequest.Content!.Headers.ContentLength.HasValue);
         using var belowResponse = await TelemetryLifecycle.Http.SendAsync(belowRequest, TestContext.CancellationToken);
@@ -39,7 +39,7 @@ public sealed class PayloadLimitTests
         Assert.IsEmpty(await belowResponse.Content.ReadAsByteArrayAsync(TestContext.CancellationToken));
         Assert.AreSequenceEqual(belowLimit, receiver.Snapshot().Requests[^1].Payload.ToArray());
 
-        var atLimit = UnknownFieldPayload(limit);
+        var atLimit = OtlpPayload.UnknownField(limit);
         using var atRequest = Request(receiver.Endpoint, atLimit, gzip, chunked);
         Assert.AreEqual(!chunked, atRequest.Content!.Headers.ContentLength.HasValue);
         using var atResponse = await TelemetryLifecycle.Http.SendAsync(atRequest, TestContext.CancellationToken);
@@ -47,7 +47,7 @@ public sealed class PayloadLimitTests
         Assert.IsEmpty(await atResponse.Content.ReadAsByteArrayAsync(TestContext.CancellationToken));
         Assert.AreSequenceEqual(atLimit, receiver.Snapshot().Requests[^1].Payload.ToArray());
 
-        using var aboveRequest = Request(receiver.Endpoint, UnknownFieldPayload(limit + 1), gzip, chunked);
+        using var aboveRequest = Request(receiver.Endpoint, OtlpPayload.UnknownField(limit + 1), gzip, chunked);
         Assert.AreEqual(!chunked, aboveRequest.Content!.Headers.ContentLength.HasValue);
         using var aboveResponse = await TelemetryLifecycle.Http.SendAsync(aboveRequest, TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.RequestEntityTooLarge, aboveResponse.StatusCode);
@@ -68,7 +68,7 @@ public sealed class PayloadLimitTests
         await using var receiver = await OtlpReceiver.StartAsync(1024, TestContext.CancellationToken);
         const int AcceptedSizeLeavingRoomForKestrelChunkFraming = 992;
         const int RejectedSizeAboveTheWireBudgetByItself = 1025;
-        using var acceptedContent = OtlpHttp.Content(UnknownFieldPayload(AcceptedSizeLeavingRoomForKestrelChunkFraming),
+        using var acceptedContent = OtlpHttp.Content(OtlpPayload.UnknownField(AcceptedSizeLeavingRoomForKestrelChunkFraming),
             chunked: true);
         Assert.IsNull(acceptedContent.Headers.ContentLength);
         using var accepted = await TelemetryLifecycle.Http.PostAsync(
@@ -76,7 +76,7 @@ public sealed class PayloadLimitTests
             acceptedContent, TestContext.CancellationToken);
         Assert.AreEqual(HttpStatusCode.OK, accepted.StatusCode);
         using var rejectedContent =
-            OtlpHttp.Content(UnknownFieldPayload(RejectedSizeAboveTheWireBudgetByItself), chunked: true);
+            OtlpHttp.Content(OtlpPayload.UnknownField(RejectedSizeAboveTheWireBudgetByItself), chunked: true);
         Assert.IsNull(rejectedContent.Headers.ContentLength);
         using var rejected = await TelemetryLifecycle.Http.PostAsync(
             new Uri(receiver.Endpoint, "v1/" + Signals.Metrics),
@@ -152,13 +152,4 @@ public sealed class PayloadLimitTests
         };
     }
 
-    private static byte[] UnknownFieldPayload(int size)
-    {
-        var payload = new byte[size];
-        payload[0] = 0xfa;
-        payload[1] = 0x07;
-        var length = size - 6;
-        for (var i = 0; i < 4; i++) payload[2 + i] = (byte)((length >> (7 * i)) | (i < 3 ? 0x80 : 0));
-        return payload;
-    }
 }
