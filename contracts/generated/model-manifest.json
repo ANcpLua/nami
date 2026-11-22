@@ -1689,12 +1689,6 @@
         "json": "collectorReceivedTime",
         "optional": true,
         "nullable": false
-      },
-      {
-        "code": "untimedRequestOrdinal",
-        "json": "untimedRequestOrdinal",
-        "optional": true,
-        "nullable": false
       }
     ]
   },
