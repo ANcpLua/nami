@@ -22,7 +22,7 @@ internal static class MetricStorageMapper
             var resourceJson = PersistedAttributePolicy.SerializeAttributes(record.ResourceAttributes);
             var resourceEntityRefsJson =
                 StorageJsonSerializerContext.SerializeResourceEntityRefs(record.ResourceEntityRefs);
-            var scopeAttributesJson = PersistedAttributePolicy.SerializeScopeAttributes(record.ScopeAttributes);
+            var scopeAttributesJson = PersistedAttributePolicy.SerializeAttributes(record.ScopeAttributes);
             var instrumentId = ComputeInstrumentId(
                 record.MetricName,
                 record.ServiceName,

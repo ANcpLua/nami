@@ -35,7 +35,7 @@ internal static class IngestionStorageMapper
             ResourceEntityRefsJson = resourceEntityRefsJson,
             EventsJson = SpanChildStorage.SerializeEvents(span.Events),
             LinksJson = SpanChildStorage.SerializeLinks(span.Links),
-            ScopeAttributesJson = PersistedAttributePolicy.SerializeScopeAttributes(span.ScopeAttributes),
+            ScopeAttributesJson = PersistedAttributePolicy.SerializeAttributes(span.ScopeAttributes),
         }, projection);
     }
 
@@ -70,7 +70,7 @@ internal static class IngestionStorageMapper
         var attributesJson = PersistedAttributePolicy.SerializeAttributes(log.Attributes);
         var resourceJson = PersistedAttributePolicy.SerializeAttributes(log.ResourceAttributes);
         var resourceEntityRefsJson = StorageJsonSerializerContext.SerializeResourceEntityRefs(log.ResourceEntityRefs);
-        var scopeAttributesJson = PersistedAttributePolicy.SerializeScopeAttributes(log.ScopeAttributes);
+        var scopeAttributesJson = PersistedAttributePolicy.SerializeAttributes(log.ScopeAttributes);
         var resourceEntityRefsIdentity = GetResourceEntityRefsIdentity(
             log.ResourceEntityRefs,
             log.ResourceAttributes);
