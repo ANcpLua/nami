@@ -432,6 +432,30 @@ public sealed class ContainerPathTests(TestContext context)
 
     [TestMethod]
     [Timeout(60000, CooperativeCancellation = true)]
+    [DataRow("Unsecured", "0.0.0.0", "Production", "NAMI_BIND_ADDRESS=127.0.0.1",
+        DisplayName = "Unsecured on every interface, as the image binds")]
+    [DataRow(null, null, "Development", "NAMI_OTLP_PROJECT_KEYS", DisplayName = "No mode, in the Development environment")]
+    public async Task Unsecured_EngineAlone_RefusedOffLoopbackAndNeverTurnedOnByTheEnvironmentName(string? mode,
+        string? address, string environment, string reason)
+    {
+        // The engine without its host, which refuses the first row before it starts an engine. Unsecured takes
+        // requests without a key, so the engine accepts it on loopback alone and only when the mode names it: an
+        // engine that accepts either row starts, sees its input end and exits 0.
+        System.IO.Directory.CreateDirectory(Directory);
+        var engine = await ProcessRunner.RunAsync(TestData.HostBinary, ["--engine"], Directory, context.CancellationToken,
+            new Dictionary<string, string?>
+            {
+                ["NAMI_OTLP_AUTH_MODE"] = mode, ["NAMI_BIND_ADDRESS"] = address, ["NAMI_OTLP_PROJECT_KEYS"] = null,
+                ["DOTNET_ENVIRONMENT"] = environment, ["ASPNETCORE_ENVIRONMENT"] = null,
+                ["NAMI_DATA_PATH"] = Path.Combine(Directory, "nami.duckdb"),
+                ["NAMI_OTLP_PORT"] = "0", ["NAMI_GRPC_PORT"] = "0"
+            });
+        Assert.AreNotEqual(0, engine.ExitCode, "The engine started without a key and without the loopback guard.");
+        Assert.Contains(reason, engine.Error);
+    }
+
+    [TestMethod]
+    [Timeout(60000, CooperativeCancellation = true)]
     [DataRow("0025", 25)]
     [DataRow("3600", 3600)]
     public async Task StopBudget_DecimalDigits_AcceptedByHostAndEngine(string budget, int seconds)
