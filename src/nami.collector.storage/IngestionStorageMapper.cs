@@ -60,13 +60,10 @@ internal static class IngestionStorageMapper
         var severityText = log.SeverityText;
         var severityNumber = (byte)log.SeverityNumber;
         var sessionId = log.Attributes.GetSessionId();
-        // Identity uses complete canonical content; the retention rendering may be bounded.
-        // Omitted suffixes contribute only to the digest and are never stored.
         var storedBody = StoredRecordMapper.ToStored(log.Body);
-        var originalBody = storedBody is null ? null : EncodeBody(storedBody);
         // Ingest has bounded the body like any value: a string is cut to the cap, a list or map within the cap is kept
-        // as sent, one over it is gone. Storage writes what it is given.
-        var body = originalBody;
+        // as sent, one over it is gone. Storage writes what it is given, and the id hashes the same text.
+        var body = storedBody is null ? null : EncodeBody(storedBody);
         var attributesJson = PersistedAttributePolicy.SerializeAttributes(log.Attributes);
         var resourceJson = PersistedAttributePolicy.SerializeAttributes(log.ResourceAttributes);
         var resourceEntityRefsJson = StorageJsonSerializerContext.SerializeResourceEntityRefs(log.ResourceEntityRefs);
@@ -94,7 +91,7 @@ internal static class IngestionStorageMapper
                 if (log.RequestOrdinal is { } ordinal) AppendIdentityPart(builder, ordinal);
                 AppendIdentityPart(builder, severityNumber);
                 builder.AppendSegment(severityText, true);
-                builder.AppendSegment(originalBody, true);
+                builder.AppendSegment(body, true);
                 builder.AppendSegment(log.ServiceName, true);
                 builder.AppendSegment(attributesJson, true);
                 builder.AppendSegment(resourceJson, true);
