@@ -64,7 +64,9 @@ not start. If an OpenTelemetry Collector forwards to nami, cap its batch at 512
 (`send_batch_max_size: 512`).
 
 *Before publishing:* true today for Claude Code. Check Cowork once, and replace the
-build paths with the install command when a packaged release exists.
+build paths with the install command when a packaged release exists. The commands and the
+Windows note come from the README ("Connect an agent", "Run in a container"): change them there
+first, then copy them here.
 
 ### Your computer, through a tunnel
 

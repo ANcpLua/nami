@@ -15,17 +15,10 @@ tools. TypeSpec owns application contracts; Weaver owns semantic conventions.
 | Build, tests and inspection | [Testing](../testing.md) and [verification map](../verification.md) |
 | Generated contracts and model changes | [Contracts](../../contracts/README.md) |
 | Registry generation and semantic APIs | [Registry](../../registry/README.md) and [semantic-convention library](../../internal/nami.semconv/README.md) |
-| Query and persistence behavior | [Read tools](6-tools.md) and [storage](7-storage.md) |
-| Test fixtures and process ownership | [Test harness](test-harness.md) and [fixture lifecycle](../testing.md#per-invocation-consumer-projects) |
-| Retired prototypes and workspace boundaries | [Workspace handover](workspace-handoff.md) |
+| Test fixtures and process ownership | [Fixture lifecycle](../testing.md#per-invocation-consumer-projects) |
 
 Application instrumentation, explicit observation lifetimes and hosted agent
 distribution remain unfinished product work. The requirement evidence identifies
 the implemented portions and the remaining proof for each I1–I18 and D1–D6
 requirement. Successful fixture, build or local transport checks do not complete
 those broader requirements.
-
-The retired Downloads and playground checkouts are not dependencies. qyl is nami's
-predecessor, which nami replaces ([decision 0001](../decisions/0001-remote-connector-and-who-pays.md));
-it is not a source, and nothing is taken from it. Completed prototype integration is
-not a new import or deletion task.

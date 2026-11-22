@@ -19,7 +19,7 @@ surfaces:
   private_engine: framed UTF-8 JSON over private streams or pipes
   otlp_http: {port: 4318, paths: [/v1/traces, /v1/logs, /v1/metrics], formats: [protobuf, json]}
   otlp_grpc: {port: 4317}
-  health: authenticated deployment health as appropriate; no analysis dashboard
+  health: /health on the MCP port, behind the Host and Origin check, without a key; no analysis dashboard
 contracts:
   owner: TypeSpec
   outputs: [CSharp, TypeScript, JSON Schema, OpenAPI]
@@ -47,17 +47,17 @@ components:
   registry/: Generated canonical publication of pinned semantic definitions and policies
   templates/registry/: Deterministic semantic CSharp and Markdown generation
   internal/nami.contracts/: Generated CSharp wire models and source-generated JSON serialization
-  internal/nami.semconv/: Generated definitions, constants, stability and persistence policy
+  internal/nami.semconv/: Generated definitions, constants, stability and successors
   src/nami/: Native engine and private JSONL entry point
   src/nami.mcp/: TypeScript MCP, agent result framing and engine supervisor
-  src/nami.collector.ingestion/: OTLP decoding, normalization and sanitization
+  src/nami.collector.ingestion/: OTLP decoding, the credential stage and the size bounds
   src/nami.collector.storage/: Project-bound DuckDB, watermarks and immutable snapshots
   internal/nami.collector.storage.generators/: DuckDB schema and row generation
   tests/: MSTest/MTP contract, instrumentation, transport and published-stack evidence
 flow:
   - Pinned registry and TypeSpec -> generated semantic definitions, wrappers, types and schemas
   - Compiled call site -> wrapper -> original operation and correctly scoped telemetry
-  - OTLP -> authenticated project -> normalized records -> DuckDB
+  - OTLP -> authenticated project -> credential stage and size bounds -> records as sent -> DuckDB
   - Agent MCP request -> TypeScript validation -> private stream -> native analysis -> bounded result
 rules:
   - Telemetry is untrusted data, never instructions.

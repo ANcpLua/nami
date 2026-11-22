@@ -13,7 +13,7 @@ supported application.
 
 The runtime is **TypeScript/Bun MCP + C#/.NET 11 NativeAOT engine**, connected locally by
 private streams/pipes. TypeSpec generates the shared C#/TypeScript wire contracts and JSON Schemas;
-Weaver supplies semantic definitions and persistence rules. A common release need not be one native file.
+Weaver supplies the semantic vocabulary, its stability and successors. A common release need not be one native file.
 See the [PRD](docs/prd/nami.md), [architecture](docs/architecture.yaml) and
 [migration checklist](docs/checklist.md). The permanent decisions are in
 [docs/decisions](docs/decisions/README.md).
@@ -164,10 +164,9 @@ three ports on `127.0.0.1`, the named volume, a stop budget of 25 seconds inside
 docker compose up -d --build
 ```
 
-This is the way to run nami on Windows: with Docker Desktop (PowerShell or a WSL2 shell, same
-command), or with the Linux build inside WSL2. There is no native Windows build. Claude Code on
-Windows connects to `http://127.0.0.1:5100/mcp` with the read key, as above; the container never
-speaks stdio, so `--transport stdio` does not apply to it. Applications export to
+The same command works in PowerShell and in a WSL2 shell. Claude Code connects to
+`http://127.0.0.1:5100/mcp` with the read key, as above; the container never speaks stdio, so
+`--transport stdio` does not apply to it. Applications export to
 `http://127.0.0.1:4318` (OTLP/HTTP) or `127.0.0.1:4317` (OTLP/gRPC) with the ingest key.
 
 **One writer per store.** The store is one DuckDB file, and the engine holds it open with a file
@@ -217,10 +216,10 @@ All three land in the same rows. What the tools can answer comes from the resour
   sender captures is decided at the source, not by nami. Ingest changes a record in two ways only:
   the credential stage, and size bounds.
 - The size bounds are nami's own receiver policy. One attribute value keeps 256 KiB as nami stores
-  it, arrays and maps counted whole: a longer string is cut between characters and ends in
-  `…[truncated]`; a larger array, map or bytes value is dropped. A span, event, link, log record and
-  scope keep 128 attributes; a value nested deeper than 16 becomes an empty value; one record keeps
-  1 MiB of attributes. What a bound removes is added to the record's dropped attributes count. A
+  it: a longer string is cut between characters and ends in `…[truncated]`, and a larger bytes value
+  is dropped. Arrays, maps and their nesting are bounded as the value table under "What one export
+  request may hold" shows. A span, event, link, log record and scope keep 128 attributes; one record
+  keeps 1 MiB of attributes. What a bound removes is added to the record's dropped attributes count. A
   record over a limit keeps its session, usage and cost attributes first and then its smallest
   attributes, whatever order they were sent in. A span status message keeps 1024 bytes.
   `docs/prd/nami.md`, row R6, has the policy in full, the settings and the five points where it
@@ -310,6 +309,11 @@ object, and `max_bytes` bounds it. A refusal is an `isError` result carrying a `
 and `resource_id`. Profiles and baggage answer `data_unavailable`. A `traceparent` in `_meta`
 makes the tool's span a child of the caller's span.
 
+Each call reads one immutable snapshot of the project and names it as `snapshot_id`. Passing it back
+reads the same rows with the same clock, also after a restart, for 30 minutes. A `next_cursor` is
+bound to its snapshot, tool and query, and a snapshot is looked up only under the caller's project,
+so neither carries over to another project.
+
 Every result carries the freshness block:
 
 ```yaml
@@ -336,7 +340,7 @@ ingest lag; it never means "no errors". A window that ends past the watermark is
 | `registry/` | The canonical Weaver registry and policies; editable definitions and pinned imports live in `registry/source/`. |
 | `templates/registry/` | Jinja templates that generate C# (`internal/nami.semconv`) and Markdown (`docs/semconv/`) from the registry. |
 | `contracts/` | TypeSpec definitions and emitters for Nami ingestion models, stored JSON, DuckDB rows, configuration, tools and the private engine protocol. Outputs include C# contracts and consumer-specific types/mappings, wire JSON Schemas, and TypeScript types, codecs and tool metadata. |
-| `internal/` | Generated contracts and conventions, nami's self-telemetry defaults, and the source generators. |
+| `internal/` | Generated contracts and conventions, and the DuckDB source generator. |
 | `eng/` | The Fallout build. |
 | `tests/` | Shared test support plus MSTest Unit, Integration and EndToEnd suites; EndToEnd drives the NativeAOT host. |
 | `docs/` | The PRD, the architecture, the implementation checklist and the integration notes. |

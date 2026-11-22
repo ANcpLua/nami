@@ -73,11 +73,11 @@ A Debug-only IDE build graph lacks the Release-generated symbols, so its cleanup
 that are still needed. Prepare Release and use `--properties=Configuration=Release`; never accept an
 unused-import removal that is justified only by an unresolved generated reference.
 
-The completed prototype handover and file dispositions are documented in
-[test-harness.md](integration/test-harness.md). No Downloads checkout or parent repository is required.
+No checkout outside this repository is required.
 The [I1–I18 / D1–D6 evidence matrix](integration/requirement-evidence.md) distinguishes actual
-product proofs, test-harness proofs and the remaining product scope. Its recorded 781-test
-baseline is tied to code commit `34bc04f`; it is not a fresh result for later source fingerprints.
+product proofs, test-harness proofs and the remaining product scope. The test counts the gate must
+see are in [`eng/test-baseline.json`](../eng/test-baseline.json) and, as the floors the test runner
+enforces, in [`eng/test-suites.json`](../eng/test-suites.json); the two must agree.
 
 ## Toolchain versions
 
@@ -93,7 +93,7 @@ there only. Bun and Weaver are pinned in more places, which move together with `
 
 | Item | Version | Set in |
 | --- | --- | --- |
-| .NET SDK | 11.0.100 | `global.json` (`rollForward: disable`) and `mise.toml`, which must agree; the container builds with `mcr.microsoft.com/dotnet/sdk:11.0.100` and runs on `runtime-deps:11.0.0-resolute-chiseled`, the chiseled Ubuntu 26.04 image of the runtime of `DotNetRuntimeVersion` in `Version.props` (`src/nami/Dockerfile:10` and `:20`); every base image is pinned by the digest of its multi-architecture index, which `test_toolchain_pins_agree` requires |
+| .NET SDK | 11.0.100 | `global.json` (`rollForward: disable`) and `mise.toml`, which must agree; the container builds with `mcr.microsoft.com/dotnet/sdk:11.0.100` and runs on `runtime-deps:11.0.0-resolute-chiseled`, the chiseled Ubuntu 26.04 image of the runtime of `DotNetRuntimeVersion` in `Version.props` (the build and runtime stages of `src/nami/Dockerfile`); every base image is pinned by the digest of its multi-architecture index, which `test_toolchain_pins_agree` requires |
 | C# language version | 15.0, the SDK's default for `net11.0`; the `netstandard2.0` DuckDB generator sets `latest`, because its target framework would otherwise default to 7.3 | no `LangVersion` in `Directory.Build.props`; `internal/nami.collector.storage.generators/nami.collector.storage.generators.csproj:5` |
 | Roslyn inside the SDK | 5.12.0-1.26529.118 | ships with SDK 11.0.100 (`csc -version`); it compiles every project and runs the DuckDB generator |
 | Roslyn the DuckDB generator compiles against | 5.9.0 | `RoslynVersion` in `Version.props`, the `Microsoft.CodeAnalysis.CSharp` reference of `internal/nami.collector.storage.generators` |
@@ -186,9 +186,9 @@ only before its hard deadline; it cannot override expiry or reboot. Malformed
 metadata in the exclusively owned scratch root is removed, not retained as an
 exception. `python3 eng/scripts/artifact_lifetime.py sweep --dry-run` shows decisions.
 
-There is no scheduled background cleanup on this Mac. The test entry point sweeps
-before and after execution; `python3 eng/scripts/artifact_lifetime.py sweep` or
-the dotfiles `make prune-scratch` can also be called explicitly. With optional
+There is no scheduled background cleanup. The test entry point sweeps before and
+after execution; `python3 eng/scripts/artifact_lifetime.py sweep` can also be called
+explicitly. With optional
 retention, expired files remain on disk until that next test run or manual sweep.
 Nothing in this policy deletes build outputs, publish directories or folders
 outside its dedicated scratch root. Direct IDE test execution retains its existing per-fixture disposal;
@@ -246,7 +246,7 @@ declaration forms, JSON contexts and structural projections. The generated files
 
 | Location | Consumer |
 | --- | --- |
-| `src/nami.collector.ingestion/Generated` | Typed values, resource/scope context, normalization provenance, metric variants, ingestion records and configuration keys. |
+| `src/nami.collector.ingestion/Generated` | Typed values, resource/scope context, metric variants, ingestion records and configuration keys. |
 | `src/nami.collector.storage/Generated` | Stored JSON/document forms, ordered DuckDB rows and ingestion/storage/API mappings. |
 | `internal/nami.contracts/Nami` | API and private-engine contracts, JSON metadata and tool field-selection metadata. |
 | `src/nami.mcp/src/contracts/generated` | TypeScript application/wire types, codecs, schemas, tool associations and shared defaults/configuration metadata. |
@@ -264,7 +264,7 @@ The checks protect the following boundaries:
 | Concern | Verification |
 | --- | --- |
 | Property names, presence, exact bounds and nested codecs | The contract package's generator tests; `EncodedPresenceTests` and `EncodedContainerTests` cover C# missing/null states, Int64 endpoints and invalid representations. |
-| Normalization provenance and recursive stored/API values | `GeneratedModelTests` verifies provenance after copying values and map keys named `type`/`kind`. |
+| Recursive stored/API values | `GeneratedModelTests` copies values and map keys named `type`/`kind`. |
 | Metric identity and original observations | `MetricIdentityTests` distinguishes equal measurements from different observations; the existing ingestion/storage suites exercise the generated mappings. |
 | DuckDB rows and persisted documents | Integration tests exercise the existing Roslyn-generated SQL helpers, storage, snapshots and schema behavior. Keep column order and identity rules explicit when changing models. |
 | Union and closed-hierarchy completeness | `UnionCompilerTests` builds actual generated models and consumer files with the pinned SDK. Added-case tests must fail in those consumers with CS8509; the baseline must compile. The fixture imports the production `WarningsAsErrors` list while leaving blanket warning promotion off. |
@@ -308,7 +308,8 @@ the test's fixture inputs must still be present. EndToEnd also requires `artifac
 
 ## Test lanes
 
-A test lane (plan rule 14) is a named group of tests that the gate does not run. Its `lanes` entry in
+A test lane is a named group of tests that the gate does not run, such as tests written before their
+feature exists or tests that need a live nami. Its `lanes` entry in
 `eng/test-suites.json` names the suite the tests live in, the MSTest category that selects them, the lane's
 own floor and its own timeout; `eng/test-baseline.json` records each lane's count beside the suites. A normal
 run of a suite passes `--filter TestCategory!=<category>` for every lane in that suite and keeps the suite's
@@ -325,8 +326,8 @@ Each lane has a Fallout target (`M2Acceptance`, `LiveNami`) that `Check` does no
 
 | Lane | Category | Tests | Leaves the lane |
 | --- | --- | --- | --- |
-| `m2-acceptance` | `M2Acceptance` | M2's acceptance tests in `tests/Nami.EndToEndTests/Sessions`, written from `campaign.md` before the tools exist: `sessions_search` and `sessions_get` on the scrubbed Claude Code capture (`tests/Nami.IntegrationTests/Fixtures/ClaudeCodeOtlp/signed-in`), the claim check with planted gate runs, and no content in either tool's answer | When M2 lands and the lane passes: delete the entry, and the EndToEnd floor and baseline grow by its count |
-| `live-nami` | `LiveNami` | The live check against the nami running on the Mac while the team's sessions export to it (`NAMI_LIVE_MCP_URL`, `NAMI_LIVE_READ_KEY`, `NAMI_LIVE_AGENTS`, `NAMI_LIVE_SINCE`) | Stays: no runner reaches that nami |
+| `m2-acceptance` | `M2Acceptance` | M2's acceptance tests in `tests/Nami.EndToEndTests/Sessions`, written from M2's acceptance criteria before the tools exist: `sessions_search` and `sessions_get` on the scrubbed Claude Code capture (`tests/Nami.IntegrationTests/Fixtures/ClaudeCodeOtlp/signed-in`), the claim check with planted gate runs, and no content in either tool's answer | When M2 lands and the lane passes: delete the entry, and the EndToEnd floor and baseline grow by its count |
+| `live-nami` | `LiveNami` | The live check against a running nami that agent sessions export to (`NAMI_LIVE_MCP_URL`, `NAMI_LIVE_READ_KEY`, `NAMI_LIVE_AGENTS`, `NAMI_LIVE_SINCE`) | Stays: no runner reaches that nami |
 
 The wire names the acceptance tests read are in `Sessions/SessionsContract.cs` only. The capture's bodies are
 posted exactly as Claude Code sent them, each checked against `manifest.json`; synthetic variants (planted gate
