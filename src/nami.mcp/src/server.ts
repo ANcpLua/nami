@@ -174,7 +174,7 @@ export function createServer(engine: Engine, credential: string | null = null): 
   };
   for (const tool of definitions) server.registerTool(tool.name, {
     description: tool.description, inputSchema: tool.inputSchema, outputSchema: tool.outputSchema,
-    annotations: { readOnlyHint: true, idempotentHint: true, destructiveHint: false, openWorldHint: false }
+    annotations: { readOnlyHint: !process.argv.includes("--stdio"), idempotentHint: true, destructiveHint: false, openWorldHint: false }
   }, (input, context) => execute(tool.name, input, context));
   if (!framed) throw new Error("The MCP tool-call frame was not registered.");
   return server;
