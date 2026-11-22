@@ -310,6 +310,11 @@ object, and `max_bytes` bounds it. A refusal is an `isError` result carrying a `
 and `resource_id`. Profiles and baggage answer `data_unavailable`. A `traceparent` in `_meta`
 makes the tool's span a child of the caller's span.
 
+Each call reads one immutable snapshot of the project and names it as `snapshot_id`. Passing it back
+reads the same rows with the same clock, also after a restart, for 30 minutes. A `next_cursor` is
+bound to its snapshot, tool and query, and a snapshot is looked up only under the caller's project,
+so neither carries over to another project.
+
 Every result carries the freshness block:
 
 ```yaml

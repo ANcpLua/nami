@@ -246,7 +246,7 @@ declaration forms, JSON contexts and structural projections. The generated files
 
 | Location | Consumer |
 | --- | --- |
-| `src/nami.collector.ingestion/Generated` | Typed values, resource/scope context, normalization provenance, metric variants, ingestion records and configuration keys. |
+| `src/nami.collector.ingestion/Generated` | Typed values, resource/scope context, metric variants, ingestion records and configuration keys. |
 | `src/nami.collector.storage/Generated` | Stored JSON/document forms, ordered DuckDB rows and ingestion/storage/API mappings. |
 | `internal/nami.contracts/Nami` | API and private-engine contracts, JSON metadata and tool field-selection metadata. |
 | `src/nami.mcp/src/contracts/generated` | TypeScript application/wire types, codecs, schemas, tool associations and shared defaults/configuration metadata. |
@@ -264,7 +264,7 @@ The checks protect the following boundaries:
 | Concern | Verification |
 | --- | --- |
 | Property names, presence, exact bounds and nested codecs | The contract package's generator tests; `EncodedPresenceTests` and `EncodedContainerTests` cover C# missing/null states, Int64 endpoints and invalid representations. |
-| Normalization provenance and recursive stored/API values | `GeneratedModelTests` verifies provenance after copying values and map keys named `type`/`kind`. |
+| Recursive stored/API values | `GeneratedModelTests` copies values and map keys named `type`/`kind`. |
 | Metric identity and original observations | `MetricIdentityTests` distinguishes equal measurements from different observations; the existing ingestion/storage suites exercise the generated mappings. |
 | DuckDB rows and persisted documents | Integration tests exercise the existing Roslyn-generated SQL helpers, storage, snapshots and schema behavior. Keep column order and identity rules explicit when changing models. |
 | Union and closed-hierarchy completeness | `UnionCompilerTests` builds actual generated models and consumer files with the pinned SDK. Added-case tests must fail in those consumers with CS8509; the baseline must compile. The fixture imports the production `WarningsAsErrors` list while leaving blanket warning promotion off. |
