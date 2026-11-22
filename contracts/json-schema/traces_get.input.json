@@ -1,18 +1,18 @@
 {
   "type": "object",
-  "description": "Read one trace, projecting only requested fields.",
+  "description": "Read one trace by its 32-character lowercase hex trace ID: its root span, duration, services, error flag and every span with attributes, events (including exception events) and links. Use it after errors_recent, traces_slowest or logs_search gave you a trace ID. The trace is read whole whatever since says, up to the snapshot; with service, it is found only when one of its spans is from that service. Spans are ordered by start time and paged: when next_cursor is present, call again with it to read the next spans. To keep the answer small, pass fields, for example [\"trace_id\",\"root_span\",\"span_count\",\"duration_ns\",\"has_error\"] without spans.",
   "properties": {
     "service": {
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
-      "description": "Filter by the producer's service.name resource attribute."
+      "description": "Only telemetry from the service with exactly this service.name (case-sensitive). sources_status lists the names; an unknown name is refused with the known ones."
     },
     "since": {
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
-      "description": "Inclusive window start; defaults to one hour before the snapshot's observation time.",
+      "description": "Start of the window: a negative duration relative to now (-30s, -15m, -2h, -7d) or a past RFC 3339 time (2026-11-22T13:00:00Z). The window ends now (when the snapshot was taken). Default -60m. traces_get reads a trace whole whatever since says.",
       "default": "-60m"
     },
     "fields": {
@@ -21,20 +21,20 @@
         "type": "string"
       },
       "maxItems": 128,
-      "description": "Requested fields. Unknown fields are refused with the allowed field names."
+      "description": "Return only these members of each result row (of the trace for traces_get). Default: all members. Unknown fields are refused with the allowed field names."
     },
     "max_bytes": {
       "type": "integer",
       "minimum": 1024,
       "maximum": 262144,
-      "description": "Maximum UTF-8 bytes in structuredContent, from 1024 to 262144.",
+      "description": "Size budget for one page, in UTF-8 bytes of JSON, 1024 to 262144, default 32768. Rows that do not fit move to the next page (see next_cursor). Raise it only when a single row or span does not fit.",
       "default": 32768
     },
     "snapshot_id": {
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
-      "description": "Reuse a snapshot returned by an earlier call for byte-identical reads."
+      "description": "ID of the frozen view of the data an earlier answer returned. Pass it to get byte-identical answers across tools in one investigation. Expires 30 minutes after it was taken; then call without it. With cursor, snapshot_id is optional: the cursor carries its snapshot."
     },
     "cursor": {
       "type": "string",

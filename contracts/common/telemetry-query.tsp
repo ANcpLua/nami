@@ -34,25 +34,25 @@ model Freshness {
 
 @doc("Arguments shared by every read-only tool.")
 model ToolReadInput {
-  @doc("Filter by the producer's service.name resource attribute.")
+  @doc("Only telemetry from the service with exactly this service.name (case-sensitive). sources_status lists the names; an unknown name is refused with the known ones.")
   @minLength(1)
   @maxLength(256)
   service?: string;
 
-  @doc("Inclusive window start; defaults to one hour before the snapshot's observation time.")
+  @doc("Start of the window: a negative duration relative to now (-30s, -15m, -2h, -7d) or a past RFC 3339 time (2026-11-22T13:00:00Z). The window ends now (when the snapshot was taken). Default -60m. traces_get reads a trace whole whatever since says.")
   since?: TimeSpec = "-60m";
 
-  @doc("Requested fields. Unknown fields are refused with the allowed field names.")
+  @doc("Return only these members of each result row (of the trace for traces_get). Default: all members. Unknown fields are refused with the allowed field names.")
   @maxItems(128)
   fields?: string[];
 
-  @doc("Maximum UTF-8 bytes in structuredContent, from 1024 to 262144.")
+  @doc("Size budget for one page, in UTF-8 bytes of JSON, 1024 to 262144, default 32768. Rows that do not fit move to the next page (see next_cursor). Raise it only when a single row or span does not fit.")
   @minValue(1024)
   @maxValue(262144)
   @encodedName("application/json", "max_bytes")
   maxBytes?: int32 = 32768;
 
-  @doc("Reuse a snapshot returned by an earlier call for byte-identical reads.")
+  @doc("ID of the frozen view of the data an earlier answer returned. Pass it to get byte-identical answers across tools in one investigation. Expires 30 minutes after it was taken; then call without it. With cursor, snapshot_id is optional: the cursor carries its snapshot.")
   @encodedName("application/json", "snapshot_id")
   snapshotId?: SnapshotId;
 
