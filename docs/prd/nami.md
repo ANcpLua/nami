@@ -105,19 +105,7 @@ Die verbindlichen Einzelbeweise stehen in Abschnitt I. Unterstützter Umfang, Au
 
 Die Registry liegt im nami-Repo und folgt dem Aufbau von `semantic-conventions-genai`: ein `manifest.yaml`, Modelldateien pro Namespace, Jinja-Templates, Policies, ein Skript-Verzeichnis. Sie ist **development** und importiert Stable **und** Development aus Core und GenAI.
 
-```yaml
-name: nami
-description: nami conventions for agent-facing observability; every key is prefixed nami.
-schema_url: https://ancplua.github.io/nami/schemas/0.1.0   # Format zählt, Abrufbarkeit nicht
-stability: development
-dependencies:
-  - schema_url: https://opentelemetry.io/schemas/1.44.0
-    registry_path: https://github.com/open-telemetry/semantic-conventions.git@v1.44.0[model]
-  - schema_url: https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev
-    registry_path: https://github.com/open-telemetry/semantic-conventions-genai.git@9ffc7e00c639be7712e544e3e54331e885dccf84[model]
-```
-
-**Pins (24.10.2026).** Core `v1.44.0` (`e10a9308`); `main` ist `3e258047` und nur Dokumentation voraus, die Registry unter `model/` ist identisch. GenAI `9ffc7e00`, ohne Tag und ohne eigene Stable-Definitionen; sein Manifest importiert Core `v1.44.0`. Weaver `0.28.0`. Beide Dependencies nennen dieselbe Core-`schema_url`; Weaver löst Versionskonflikte über diese URL auf. Ob 0.28.0 die verschachtelte Abhängigkeit (nami → genai → core) ohne Doppelung auflöst, prüft `weaver registry check --future` als erster Gate-Schritt.
+Manifest und Pins stehen je an einer Stelle: [`registry/source/manifest.yaml`](../../registry/source/manifest.yaml) (Schema-URL von nami und die GenAI-Abhängigkeit, über die Core kommt) und [`registry/source-pins.json`](../../registry/source-pins.json) (Core-, GenAI- und Weaver-Pin). Weaver löst Versionskonflikte über die `schema_url` auf; ob die verschachtelte Abhängigkeit (nami → genai → core) ohne Doppelung aufgelöst wird, prüft `weaver registry check --future` als erster Gate-Schritt (G1).
 
 **Inventar, das nami erbt.** Stable aus Core: 21 Bereiche, 121 Attribut-Keys, 8 Span-Formen, 51 Instrumente, 1 Event (`exception`), 5 Resource-Definitionen; `exception.escaped` ist deprecated und nicht enthalten. Development aus Core und GenAI: `gen_ai.*`, `mcp.*`, `session.*`, `cicd.*`, `vcs.*`, `process.*`, `rpc.*` und die übrigen 67 Bereiche. Stabilität ist pro Definition ein Feld im aufgelösten Schema, nie eine Annahme über das Paket.
 
