@@ -23,13 +23,20 @@ const readyOption = readyIndex >= 0 ? args[readyIndex + 1] : process.env[CONFIG.
 if (readyIndex >= 0 && !readyOption) throw new Error("Pass a file path after --ready-file.");
 const readyFile = readyOption ? resolve(readyOption) : undefined;
 if (readyFile) removeReadyManifest(readyFile);
-// The host answers /mcp before the engine sees a call, so it repeats two engine rules on purpose: the default mode
-// (CollectorAuthExtensions: Unsecured only in Development; WebApplication.CreateSlimBuilder adds DOTNET_ variables
-// after ASPNETCORE_ ones, so DOTNET_ENVIRONMENT wins as here) and the key match (OtlpApiKeyValidator.Resolve: every
+// The host answers /mcp before the engine sees a call, so it repeats three engine rules on purpose: the default mode
+// (CollectorAuthExtensions: ApiKey unless NAMI_OTLP_AUTH_MODE says otherwise; no environment name turns Unsecured
+// on), the loopback rule of Unsecured (UnsecuredLoopbackRule) and the key match (OtlpApiKeyValidator.Resolve: every
 // key compared in fixed time). The engine refuses blank keys at startup and checks the read role of every call again,
 // so a drift between the copies can refuse a call early but never admit one the engine refuses.
-const environment = process.env.DOTNET_ENVIRONMENT ?? process.env.ASPNETCORE_ENVIRONMENT;
-const mode = process.env[CONFIG.AuthMode] ?? (environment?.toLowerCase() === "development" ? CONFIG_DEFAULTS.AuthMode : "ApiKey");
+const mode = process.env[CONFIG.AuthMode] ?? "ApiKey";
+// One address for the MCP listener and the engine's two OTLP listeners.
+const bindAddress = process.env[CONFIG.BindAddress] ?? CONFIG_DEFAULTS.BindAddress;
+// Unsecured takes every request without a key, so the bind address is its only guard. With --stdio too: the
+// engine's OTLP listeners take the same address.
+if (mode.toLowerCase() === "unsecured" && !isLoopbackBindHost(bindAddress))
+  throw new Error(`${CONFIG.AuthMode}=Unsecured takes requests without a key, so nami accepts it only on loopback, but ${CONFIG.BindAddress} is '${bindAddress}'. `
+    + `Set ${CONFIG.BindAddress}=127.0.0.1 (or ::1) to stay Unsecured on this machine, `
+    + `or set ${CONFIG.AuthMode}=ApiKey and ${CONFIG.ProjectKeys} to listen on '${bindAddress}'.`);
 // Stdio carries no credential, and in ApiKey mode the engine answers every call without one "unauthorized".
 if (stdio && mode.toLowerCase() === "apikey")
   throw new Error(`--stdio cannot be used with ${CONFIG.AuthMode}=ApiKey: stdio carries no project key, so every tool call would be refused. `
@@ -86,7 +93,7 @@ if (stdio) {
   const handle = serveStdio(() => createServer(engine), { onerror: report });
   closeTransport = () => handle.close();
 } else {
-  const hostname = process.env[CONFIG.BindAddress] ?? CONFIG_DEFAULTS.BindAddress;
+  const hostname = bindAddress;
   // Port 0 lets the operating system choose; the ready manifest then names the port. Without a manifest nobody
   // could find the listener, and the container's health probe (healthcheck.ts) would fail for good.
   const port = configuredPort(process.env);

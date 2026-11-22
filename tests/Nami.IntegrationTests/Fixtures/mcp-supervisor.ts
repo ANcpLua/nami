@@ -89,6 +89,24 @@ const gone = (child: number) => {
   catch { return true; }
 };
 
+// Starts main.ts with the fixture engine and waits three seconds for it to refuse: its exit code or "alive", whether
+// the engine was started, and what it wrote to standard error.
+async function refusedStart(options: string[], env: Record<string, string | undefined>) {
+  const args = [process.execPath, fileURLToPath(new URL("../../../src/nami.mcp/src/main.ts", import.meta.url)), "--engine", await launcher("normal"), ...options];
+  const refusing = Bun.spawn(args, { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: {
+    ...process.env, NAMI_OTLP_PROJECT_KEYS: "{}", NAMI_BIND_ADDRESS: undefined, RAILWAY_PUBLIC_DOMAIN: "", ...env
+  } });
+  processUnderTest = refusing;
+  const exit = await exitWithin(refusing.exited, 3_000);
+  const engineStarted = existsSync(join(state, "engine.json"));
+  let reason = "";
+  if (exit !== "alive") {
+    reason = await new Response(refusing.stderr).text();
+    processUnderTest = undefined;
+  }
+  return { exit, engineStarted, reason };
+}
+
 let engine: Engine | undefined;
 let processUnderTest: ReturnType<typeof Bun.spawn> | undefined;
 try {
@@ -283,21 +301,28 @@ try {
     console.log(JSON.stringify({ ...seen, exitCodeAfterSignal: await host.exited }));
   } else if (scenario === "stdio-apikey") {
     // H11: stdio carries no credential, so in ApiKey mode no call could ever be authorized.
-    const args = [process.execPath, fileURLToPath(new URL("../../../src/nami.mcp/src/main.ts", import.meta.url)), "--engine", await launcher("normal"), "--stdio"];
-    const refusing = Bun.spawn(args, { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: {
-      ...process.env, DOTNET_ENVIRONMENT: "Production", ASPNETCORE_ENVIRONMENT: "Production", NAMI_OTLP_AUTH_MODE: "ApiKey", NAMI_OTLP_PROJECT_KEYS: "{}"
-    } });
-    processUnderTest = refusing;
-    const exit = await exitWithin(refusing.exited, 3_000);
-    const engineStarted = existsSync(join(state, "engine.json"));
-    let reason = "";
-    if (exit !== "alive") {
-      reason = await new Response(refusing.stderr).text();
-      processUnderTest = undefined;
-    }
+    const { exit, engineStarted, reason } = await refusedStart(["--stdio"],
+      { DOTNET_ENVIRONMENT: "Production", ASPNETCORE_ENVIRONMENT: "Production", NAMI_OTLP_AUTH_MODE: "ApiKey" });
     console.log(JSON.stringify({ hostExit: exit, engineStarted,
       namesTheTransport: reason.includes("--stdio"), namesTheMode: reason.includes("NAMI_OTLP_AUTH_MODE=ApiKey"),
       namesTheWayOut: reason.includes("Streamable HTTP") && reason.includes("NAMI_OTLP_AUTH_MODE=Unsecured") }));
+  } else if (scenario === "stdio-development") {
+    // The environment name alone does not turn Unsecured on: without NAMI_OTLP_AUTH_MODE the mode is ApiKey.
+    const { exit, engineStarted, reason } = await refusedStart(["--stdio"],
+      { DOTNET_ENVIRONMENT: "Development", ASPNETCORE_ENVIRONMENT: "Development", NAMI_OTLP_AUTH_MODE: undefined });
+    console.log(JSON.stringify({ hostExit: exit, engineStarted,
+      namesTheMode: reason.includes("NAMI_OTLP_AUTH_MODE=ApiKey"), namesTheWayOut: reason.includes("NAMI_OTLP_AUTH_MODE=Unsecured") }));
+  } else if (scenario.startsWith("unsecured-")) {
+    // Unsecured has no credential, so it is refused on any address that is not loopback: over HTTP as the image
+    // binds, with the public URL that passes the host's other check, and over stdio, where the engine's OTLP
+    // listeners take the same address.
+    const address = scenario.endsWith("-ipv6") ? "::" : scenario.endsWith("-nic") ? "192.0.2.10" : "0.0.0.0";
+    const { exit, engineStarted, reason } = await refusedStart(scenario.includes("-stdio") ? ["--stdio"] : [], {
+      DOTNET_ENVIRONMENT: "Production", NAMI_OTLP_AUTH_MODE: "Unsecured", NAMI_BIND_ADDRESS: address,
+      NAMI_PORT: "0", NAMI_READY_FILE: join(state, "ready.json"), NAMI_PUBLIC_URL: "http://127.0.0.1:5100" });
+    console.log(JSON.stringify({ hostExit: exit, engineStarted, namesTheAddress: reason.includes(`'${address}'`),
+      namesLoopback: reason.includes("NAMI_BIND_ADDRESS=127.0.0.1"),
+      namesKeys: reason.includes("NAMI_OTLP_AUTH_MODE=ApiKey") && reason.includes("NAMI_OTLP_PROJECT_KEYS") }));
   } else if (scenario === "slow") {
     // H5: a 2025-11-25 call is answered as an event stream; the engine takes 15 seconds to answer it.
     // Beside it a 2026-07-28 call, which is answered as one JSON body: no byte travels until the result.

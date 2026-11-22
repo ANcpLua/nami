@@ -34,7 +34,7 @@ internal static class CollectorComposition
     {
         builder.Services.AddNamiCollectorCore(builder.Configuration);
         builder.Services.AddNamiCollectorStorage(builder.Configuration);
-        builder.Services.AddNamiCollectorAuth(builder.Configuration, builder.Environment);
+        builder.Services.AddNamiCollectorAuth(builder.Configuration);
         builder.Services.ConfigureNamiCollectorKestrel();
         builder.Services.HoldAspNetCoreLogAtWarning();
         if (parts == CollectorParts.Engine)

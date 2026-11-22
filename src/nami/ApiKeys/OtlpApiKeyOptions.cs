@@ -33,7 +33,8 @@ internal sealed class OtlpApiKeyOptionsRules : IValidateOptions<OtlpApiKeyOption
         return options is { IsApiKeyMode: true, Keys.Count: 0 }
             ? ValidateOptionsResult.Fail(
                 $"{CollectorConfigurationKeys.AuthMode} is '{OtlpApiKeyOptions.ApiKeyMode}' but no project keys are configured. " +
-                $"Set {CollectorConfigurationKeys.ProjectKeys} to a JSON object mapping project IDs to arrays of {{\"key\": string, \"roles\": [...]}} objects.")
+                $"Set {CollectorConfigurationKeys.ProjectKeys} to a JSON object mapping project IDs to arrays of {{\"key\": string, \"roles\": [...]}} objects." +
+                $" For a keyless engine on loopback only, set {CollectorConfigurationKeys.AuthMode}={OtlpApiKeyOptions.UnsecuredMode}.")
             : ValidateOptionsResult.Success;
     }
 }

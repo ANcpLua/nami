@@ -40,7 +40,7 @@ The TypeScript supervisor starts the native engine and owns its private, bounded
 MCP uses stdio or Streamable HTTP; the engine exposes OTLP. No internal REST analysis endpoint is needed.
 
 Stdio carries no credential: it works only with `NAMI_OTLP_AUTH_MODE=Unsecured` and reads the `default` project.
-With `NAMI_OTLP_AUTH_MODE=ApiKey`, the default outside Development, the host refuses `--stdio` at start; use
+With `NAMI_OTLP_AUTH_MODE=ApiKey`, the default, the host refuses `--stdio` at start; use
 Streamable HTTP with a project-bound read credential.
 
 ## Connect an agent
@@ -70,8 +70,10 @@ claude mcp add --transport http nami http://127.0.0.1:5100/mcp
 ```
 
 nami listens on loopback unless `NAMI_BIND_ADDRESS` says otherwise. `NAMI_OTLP_AUTH_MODE=Unsecured`
-lets local producers send without a key; outside the Development environment the default is
-`ApiKey`, which needs project keys (below). The store is the DuckDB file `NAMI_DATA_PATH`, by
+lets local producers send and local agents read without a key. It is on only when that variable
+says so, whatever the environment name, and only on loopback: with `NAMI_BIND_ADDRESS` set to
+anything but `127.0.0.1` or `::1`, nami refuses to start in it and names what to set instead.
+The default is `ApiKey`, which needs project keys (below). The store is the DuckDB file `NAMI_DATA_PATH`, by
 default `nami.duckdb` in the working directory. `NAMI_DB_MEMORY_LIMIT` (for example `2GB`) caps the
 memory DuckDB uses for that store; without it DuckDB's own default applies, 80 % of the memory of the
 machine or container. Each nami process binds the OTLP ports and holds
@@ -116,7 +118,7 @@ its own engine or bundle. The image holds no debug symbols; `docker build -f src
 --target symbols --output type=local,dest=symbols .` writes those of the same build into a folder.
 Inside the container nami listens
 on every interface, so two things that a loopback process on your machine does without are required:
-project keys, because the default mode outside Development is `ApiKey` and the container does not
+project keys, because `Unsecured` is refused on any address but loopback and the container does not
 pass `--stdio`, and `NAMI_PUBLIC_URL`, the origin at which you reach MCP. Publish the ports on the
 host's loopback only:
 
