@@ -10,6 +10,7 @@ import { dnsRebindingResponse, isLoopbackBindHost, isWildcardHost, requestNames 
 import { configuredPort } from "./port.js";
 import { removeReadyManifest, writeReadyManifest } from "./ready.js";
 import { createServer } from "./server.js";
+import { stdioTransport } from "./stdio.js";
 
 const args = process.argv.slice(2);
 const engineIndex = args.indexOf("--engine");
@@ -83,7 +84,7 @@ let closeTransport: (force?: boolean) => Promise<void>;
 // The MCP URL of the ready manifest; stdio has none.
 let mcpUrl: string | null = null;
 if (stdio) {
-  const handle = serveStdio(() => createServer(engine), { onerror: report });
+  const handle = serveStdio(() => createServer(engine), { onerror: report, transport: stdioTransport(report) });
   closeTransport = () => handle.close();
 } else {
   const hostname = process.env[CONFIG.BindAddress] ?? CONFIG_DEFAULTS.BindAddress;

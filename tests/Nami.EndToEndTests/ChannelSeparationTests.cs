@@ -189,6 +189,7 @@ public sealed class ChannelSeparationTests(TestContext context)
         // MCP: every line the host wrote to standard output is one JSON-RPC message, and every request was
         // answered exactly once.
         var answers = new List<long>();
+        var parseErrors = 0;
         foreach (var line in stdout)
         {
             JsonRpcMessage? message = null;
@@ -204,7 +205,17 @@ public sealed class ChannelSeparationTests(TestContext context)
             Assert.IsNotNull(message, "A line on the host's standard output is no MCP message: " + line);
             using var frame = JsonDocument.Parse(line);
             Assert.AreEqual("2.0", frame.RootElement.GetProperty("jsonrpc").GetString(), line);
-            if (message is JsonRpcResponse or JsonRpcError) answers.Add(frame.RootElement.GetProperty("id").GetInt64());
+            if (message is not (JsonRpcResponse or JsonRpcError)) continue;
+            // A line that is no JSON has no id to answer under: its answer is a parse error with "id": null.
+            var id = frame.RootElement.GetProperty("id");
+            if (id.ValueKind != JsonValueKind.Null)
+            {
+                answers.Add(id.GetInt64());
+                continue;
+            }
+
+            Assert.AreEqual(-32700, frame.RootElement.GetProperty("error").GetProperty("code").GetInt32(), line);
+            parseErrors++;
         }
 
         // The private channel: every line in either direction is one frame of the contract. The engine's side
@@ -243,6 +254,7 @@ public sealed class ChannelSeparationTests(TestContext context)
         Assert.IsNull(trouble, $"{trouble} Standard error ends with: {string.Join(" | ", stderr.TakeLast(5))}");
         Assert.AreEqual(0, exitCode, "The host must end cleanly when its input ends. Standard error: " + errors);
         Assert.AreSequenceEqual(expected.Order().ToArray(), answers.Order().ToArray());
+        Assert.AreEqual(Rounds, parseErrors, "Each line that is no JSON is answered once, with a parse error.");
         Assert.IsGreaterThan(Rounds - 1, called.Count, "At least one frame to the engine in every round.");
         Assert.AreSequenceEqual(called.Append("ready").Order(StringComparer.Ordinal).ToArray(),
             answered.Order(StringComparer.Ordinal).ToArray(), "One frame from the engine at start and one for every call.");
@@ -257,6 +269,8 @@ public sealed class ChannelSeparationTests(TestContext context)
             "Each of those log entries carries stack frames: several lines of diagnostics for one export.");
         Assert.IsGreaterThan(Rounds - 1, stderr.Count(static line => line.Contains("\"jsonrpc\"", StringComparison.Ordinal)),
             "The host reports each line without a JSON-RPC version; its report is itself shaped like JSON.");
+        Assert.AreEqual(Rounds, stderr.Count(static line => line.Contains("-32700", StringComparison.Ordinal)),
+            "The host reports each line that is no JSON, once.");
         context.WriteLine($"{stdout.Count} MCP frames, {called.Count} frames to the engine, {answered.Count} from it, " +
                           $"{stderr.Count} lines of diagnostics.");
     }

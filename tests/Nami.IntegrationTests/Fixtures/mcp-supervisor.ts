@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { connect } from "node:net";
 import { join } from "node:path";
+import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { Engine } from "../../../src/nami.mcp/src/engine.ts";
 import { createServer } from "../../../src/nami.mcp/src/server.ts";
@@ -298,6 +299,87 @@ try {
     console.log(JSON.stringify({ hostExit: exit, engineStarted,
       namesTheTransport: reason.includes("--stdio"), namesTheMode: reason.includes("NAMI_OTLP_AUTH_MODE=ApiKey"),
       namesTheWayOut: reason.includes("Streamable HTTP") && reason.includes("NAMI_OTLP_AUTH_MODE=Unsecured") }));
+  } else if (scenario === "stdio-parse") {
+    // A line on MCP stdin that is not JSON: JSON-RPC 2.0 answers it with a Parse error whose id is null.
+    // The initialize request after it is the end condition: its answer is written after the one before it.
+    const args = [process.execPath, fileURLToPath(new URL("../../../src/nami.mcp/src/main.ts", import.meta.url)), "--engine", await launcher("normal"), "--stdio"];
+    const host = Bun.spawn(args, { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: {
+      ...process.env, DOTNET_ENVIRONMENT: "Development", NAMI_OTLP_AUTH_MODE: "Unsecured", NAMI_OTLP_PROJECT_KEYS: "{}"
+    } });
+    processUnderTest = host;
+    await until(() => existsSync(join(state, "engine.json")));
+    const child = await pid();
+    const frames: { id?: unknown; jsonrpc?: unknown; error?: { code?: unknown }; result?: unknown }[] = [];
+    let unreadable = 0;
+    const reading = (async () => {
+      const decoder = new TextDecoder();
+      let rest = "";
+      for await (const chunk of host.stdout) {
+        const parts = (rest + decoder.decode(chunk, { stream: true })).split("\n");
+        rest = parts.pop() ?? "";
+        for (const part of parts) try { frames.push(JSON.parse(part)); } catch { unreadable++; }
+      }
+    })();
+    host.stdin.write("authorization=synthetic-credential, and no JSON\n\n \r\n");
+    host.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize",
+      params: { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "fixture", version: "0" } } }) + "\n");
+    host.stdin.flush();
+    const initializeAnswered = await observed(() => frames.some(frame => frame.id === 1 && frame.result !== undefined));
+    host.stdin.end();
+    const exit = await exitWithin(host.exited, 10_000);
+    let diagnostics = "";
+    if (exit !== "alive") {
+      await reading;
+      diagnostics = await new Response(host.stderr).text();
+      processUnderTest = undefined;
+    }
+    const refusals = frames.filter(frame => frame.error !== undefined);
+    console.log(JSON.stringify({
+      initializeAnswered, frames: frames.length, unreadableFrames: unreadable, refusals: refusals.length,
+      refusalCode: refusals[0]?.error?.code ?? null, refusalVersion: refusals[0]?.jsonrpc ?? null,
+      refusalIdIsNull: refusals[0] !== undefined && "id" in refusals[0] && refusals[0].id === null,
+      refusalBeforeInitialize: frames[0]?.error !== undefined,
+      diagnosticNamesTheCode: diagnostics.includes("-32700"),
+      diagnosticLines: diagnostics.split("\n").filter(Boolean).length,
+      echoesTheLine: (diagnostics + JSON.stringify(frames)).includes("synthetic-credential"),
+      exitCodeOnEof: exit, childRunningAfterExit: running(child)
+    }));
+  } else if (scenario === "stdio-lines") {
+    // The line stage of the stdio transport by itself, fed in pieces: a message and a line that is not JSON each
+    // arrive in two chunks. Then one line without an end, longer than the transport's bound.
+    const { stdioTransport } = await import("../../../src/nami.mcp/src/stdio.ts");
+    const { STDIO_DEFAULT_MAX_BUFFER_SIZE } = await import(require.resolve("@modelcontextprotocol/server"));
+    const input = new PassThrough();
+    const output = new PassThrough();
+    const reports: string[] = [];
+    const failures: string[] = [];
+    const received: unknown[] = [];
+    let written = "";
+    let closed = false;
+    output.setEncoding("utf8");
+    output.on("data", (text: string) => { written += text; });
+    const transport = stdioTransport((error: Error) => reports.push(error.message), input, output);
+    transport.onmessage = (message: { id?: unknown }) => received.push(message.id ?? null);
+    transport.onerror = (error: Error) => failures.push(error.message);
+    transport.onclose = () => { closed = true; };
+    await transport.start();
+    const ping = (id: number) => JSON.stringify({ jsonrpc: "2.0", id, method: "ping" });
+    for (const chunk of [ping(7).slice(0, 20), ping(7).slice(20) + "\nno js", "on\r\n\n" + ping(8) + "\r\n"]) {
+      input.write(chunk);
+      await new Promise(resolve => setImmediate(resolve));
+    }
+    const bothReceived = await observed(() => received.length === 2);
+    const answers = written.split("\n").filter(Boolean).map(line => JSON.parse(line) as { id?: unknown; error?: { code?: unknown } });
+    const failuresBefore = failures.length;
+    input.write(Buffer.alloc(STDIO_DEFAULT_MAX_BUFFER_SIZE + 1, "x"));
+    const closedBeyondBound = await observed(() => closed);
+    console.log(JSON.stringify({
+      bothReceived, received, answers: answers.length, answerCode: answers[0]?.error?.code ?? null,
+      answerIdIsNull: answers[0] !== undefined && "id" in answers[0] && answers[0].id === null,
+      reports: reports.length, failuresBefore, closedBeyondBound,
+      boundReported: failures.some(message => message.includes("maximum size")),
+      answersAfterBound: written.split("\n").filter(Boolean).length
+    }));
   } else if (scenario === "slow") {
     // H5: a 2025-11-25 call is answered as an event stream; the engine takes 15 seconds to answer it.
     // Beside it a 2026-07-28 call, which is answered as one JSON body: no byte travels until the result.
