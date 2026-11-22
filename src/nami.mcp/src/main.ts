@@ -58,17 +58,19 @@ function credential(request: Request): string | null | Response {
 }
 
 // GET /health always answers with a health report: the engine's own, or this one with 503 when the engine cannot
-// give one because it has stopped, is closing, or already holds its limit of waiting requests.
+// give one because it has stopped, is closing, or already holds its limit of waiting requests. The route needs no
+// key, so all requests to it share one engine request (Engine.health) and can never use up the places tool calls
+// wait in; a caller that goes away leaves that shared request to the others.
 function unhealthy(description: string, started: number): Response {
   const elapsed = performance.now() - started;
   const report: HealthReport = { status: "unhealthy", total_duration_ms: elapsed, contract_revision: CONTRACT_REVISION,
     entries: { engine: { status: "unhealthy", description, duration_ms: elapsed } } };
   return Response.json(report, { status: 503 });
 }
-async function health(signal: AbortSignal): Promise<Response> {
+async function health(): Promise<Response> {
   const started = performance.now();
   try {
-    const reply = await engine.request("health", null, null, null, signal);
+    const reply = await engine.health();
     if (!reply.isError) return Response.json(reply.result);
     const result: unknown = reply.result;
     return typeof result === "object" && result !== null && "status" in result && "entries" in result
@@ -133,7 +135,7 @@ if (stdio) {
         if (refused) return refused;
         url = new URL(request.url);
       } catch { return failure(400, -32600, "Invalid Host header or request target."); }
-      if (url.pathname === "/health") return health(request.signal);
+      if (url.pathname === "/health") return health();
       if (url.pathname !== "/mcp") return new Response(null, { status: 404 });
       const access = credential(request);
       if (access instanceof Response) return access;

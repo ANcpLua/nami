@@ -26,6 +26,8 @@ export class Engine {
   private hasExited = false;
   private shutdown: Promise<void> | undefined;
   private reportFailed!: (error: Error) => void;
+  /** The one health request the engine holds at a time, and what withdraws it in favour of a tool call. */
+  private sharedHealth: { reply: Promise<EngineResponse>; withdraw: AbortController } | undefined;
   readonly ready: Promise<EngineResponse>;
   /** The addresses the engine bound and its store, from the engine's own report (ready.ts). */
   readonly listeners: Promise<EngineListeners>;
@@ -75,6 +77,9 @@ export class Engine {
     tracestate: string | null = null): Promise<EngineResponse> {
     await this.ready;
     if (this.stopped) throw new EngineError("collector_unavailable", "Engine has stopped.");
+    // A tool call that would find the table full takes the place of the shared health request, if that holds one:
+    // the abort frees the place and writes the cancel frame before this call's frame, as for a caller that left.
+    if (method === "call" && this.pending.size >= ENGINE_LIMITS.max_pending) this.sharedHealth?.withdraw.abort();
     if (this.pending.size >= ENGINE_LIMITS.max_pending) throw new EngineError("collector_unavailable", "Engine request queue is full.");
     signal?.throwIfAborted();
     const id = String(++this.sequence);
@@ -94,6 +99,22 @@ export class Engine {
     // The response promise must be observed even while the pipe is waiting for drain.
     void this.write(frame).catch((error: unknown) => this.fail(asError(error)));
     return result;
+  }
+
+  /**
+   * The engine's health for GET /health, which needs no key: however many callers wait, they share one engine
+   * request and its answer, so they hold one of the places tool calls wait in at most, and even that one only
+   * while no call needs it (see request). Callers then get the same refusal as for a full table. Nothing is kept
+   * once the answer is there: the next caller asks the engine again.
+   */
+  health(): Promise<EngineResponse> {
+    if (this.sharedHealth) return this.sharedHealth.reply;
+    const withdraw = new AbortController();
+    const reply = this.request("health", null, null, null, withdraw.signal).catch((error: unknown) => {
+      throw withdraw.signal.aborted ? new EngineError("collector_unavailable", "Engine request queue is full.") : error;
+    }).finally(() => { if (this.sharedHealth?.withdraw === withdraw) this.sharedHealth = undefined; });
+    this.sharedHealth = { reply, withdraw };
+    return reply;
   }
 
   async call<N extends ToolName>(call: Extract<ValidatedToolCall, {name: N}>,

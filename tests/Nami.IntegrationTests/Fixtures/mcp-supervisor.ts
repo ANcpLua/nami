@@ -63,14 +63,14 @@ async function healthOf(url: string) {
   return { status: response.status, reportStatus: typeof report?.status === "string" ? report.status : null };
 }
 // Starts main.ts over HTTP with the fixture engine in the given mode; resolves once the engine is up.
-async function startHost(mode: string) {
+async function startHost(mode: string, environment: Record<string, string> = {}) {
   const reservation = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response() });
   const port = reservation.port;
   await reservation.stop(true);
   const args = [process.execPath, fileURLToPath(new URL("../../../src/nami.mcp/src/main.ts", import.meta.url)), "--engine", await launcher(mode)];
   processUnderTest = Bun.spawn(args, { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: {
     ...process.env, DOTNET_ENVIRONMENT: "Development", NAMI_OTLP_AUTH_MODE: "Unsecured", NAMI_OTLP_PROJECT_KEYS: "{}",
-    NAMI_BIND_ADDRESS: "127.0.0.1", NAMI_PORT: String(port), NAMI_PUBLIC_URL: "", RAILWAY_PUBLIC_DOMAIN: ""
+    NAMI_BIND_ADDRESS: "127.0.0.1", NAMI_PORT: String(port), NAMI_PUBLIC_URL: "", RAILWAY_PUBLIC_DOMAIN: "", ...environment
   } });
   const url = `http://127.0.0.1:${port}`;
   await until(() => existsSync(join(state, "engine.json")));
@@ -367,6 +367,68 @@ try {
         cancelledId: (await lines("cancels"))[0] ?? null, nextForwarded,
         nextIsError: nextOutcome.isError ?? null, nextCode: nextOutcome.structuredContent?.code ?? null,
         othersSucceeded: outcomes.slice(0, 31).filter(outcome => typeof outcome === "object" && outcome.isError === false).length,
+        exitCodeAfterSignal: await host.exited
+      }));
+    }
+  } else if (scenario === "health-slots" || scenario === "health-key") {
+    // Requests to /health need no key. However many of them wait, the engine holds one health request, and that
+    // one gives way to a tool call: the 32 waiting requests the engine allows (ENGINE_LIMITS.max_pending) stay
+    // the tool calls' own. The fixture engine holds every health request from "hold-health" to "release-health".
+    const key = "synthetic-read-key-0000";
+    const host = scenario === "health-slots" ? await startHost("holding") : await startHost("normal", {
+      DOTNET_ENVIRONMENT: "Production", NAMI_OTLP_AUTH_MODE: "ApiKey",
+      NAMI_OTLP_PROJECT_KEYS: JSON.stringify({ fixture: [{ key, roles: ["read"] }] }) });
+    await writeFile(join(state, "hold-health"), "hold");
+    let answered = 0;
+    const probe = () => healthOf(host.url).then(answer => { answered++; return answer; },
+      () => { answered++; return { status: 0, reportStatus: null }; });
+    const probes = Array.from({ length: 64 }, probe);
+    const healthReachedEngine = await observed(async () => (await lines("healths")).length >= 1);
+    // Long enough for a host that forwards every health request to have written all of them.
+    await sleep(300);
+    const healthFrames = (await lines("healths")).length;
+    if (scenario === "health-slots") {
+      // 32 tool calls while the probes wait and more keep coming: every one of them must reach the engine.
+      let hammering = true;
+      const later: ReturnType<typeof probe>[] = [];
+      const hammer = (async () => { while (hammering) { later.push(probe()); await sleep(10); } })();
+      const calls = Array.from({ length: 32 }, () => toolCall(host.url).then(toolResult, (error: Error) => error.name));
+      const callsForwarded = await observed(async () => (await lines("calls")).length === 32);
+      const callFrames = (await lines("calls")).length;
+      await writeFile(join(state, "release"), "release");
+      const outcomes = await Promise.all(calls);
+      hammering = false;
+      await hammer;
+      await writeFile(join(state, "release-health"), "release");
+      const answers = [...await Promise.all(probes), ...await Promise.all(later)];
+      const after = await healthOf(host.url);
+      processUnderTest!.kill("SIGTERM");
+      console.log(JSON.stringify({
+        healthReachedEngine, healthFrames, callsForwarded, callFrames,
+        callsSucceeded: outcomes.filter(outcome => typeof outcome === "object" && outcome.isError === false).length,
+        probes: answers.length,
+        probesAnswered: answers.filter(answer => answer.status === 200 || (answer.status === 503 && answer.reportStatus === "unhealthy")).length,
+        healthAfter: after.status, exitCodeAfterSignal: await host.exited
+      }));
+    } else {
+      // ApiKey mode: the probes carry no key, the call does. It is answered while every probe still waits.
+      const call = (headers: Record<string, string>) => fetch(host.url + "/mcp", {
+        method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream",
+          "MCP-Protocol-Version": "2025-11-25", ...headers },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "sources_status", arguments: {} } })
+      });
+      const withoutKey = await call({});
+      await withoutKey.arrayBuffer();
+      const withKey = await toolResult(await call({ "x-otlp-api-key": key })) as
+        { isError?: boolean; structuredContent?: { code?: string; snapshot_id?: string } };
+      const probesAnsweredBeforeTheCall = answered;
+      await writeFile(join(state, "release-health"), "release");
+      const answers = await Promise.all(probes);
+      processUnderTest!.kill("SIGTERM");
+      console.log(JSON.stringify({
+        healthReachedEngine, healthFrames, withoutKeyStatus: withoutKey.status, withKeyIsError: withKey.isError ?? null,
+        withKeyCode: withKey.structuredContent?.code ?? null, withKeySnapshot: withKey.structuredContent?.snapshot_id ?? null,
+        probesAnsweredBeforeTheCall, probesHealthy: answers.filter(answer => answer.status === 200).length,
         exitCodeAfterSignal: await host.exited
       }));
     }

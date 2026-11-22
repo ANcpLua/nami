@@ -16,6 +16,23 @@ let held: string | undefined;
 // ids it received in "calls" and the cancelled ids in "cancels", one per line.
 const holding: string[] = [];
 let released = false;
+// In every mode, health requests wait from the moment the file "hold-health" exists until "release-health"
+// appears; their ids are recorded in "healths", one per line.
+const heldHealth: string[] = [];
+let healthReleased = false;
+const answerHealth = (id: string) => mode === "unhealthy"
+  ? reply(id, { status: "unhealthy", total_duration_ms: 0, contract_revision: CONTRACT_REVISION, entries: {} }, true)
+  : reply(id, { pid: process.pid });
+function holdHealth(id: string) {
+  appendFileSync(join(state, "healths"), id + "\n");
+  if (heldHealth.push(id) > 1) return;
+  const releasing = setInterval(() => {
+    if (!existsSync(join(state, "release-health"))) return;
+    clearInterval(releasing);
+    healthReleased = true;
+    for (const waiting of heldHealth.splice(0)) answerHealth(waiting);
+  }, 10);
+}
 // Modes "stubborn" and "gone" ignore SIGTERM and end of input; only SIGKILL ends them.
 const resistant = mode === "stubborn" || mode === "gone";
 if (resistant) process.on("SIGTERM", () => writeFileSync(join(state, "term"), "received"));
@@ -28,9 +45,8 @@ function readCommands() {
       writeFileSync(join(state, "cancel"), command.id);
       appendFileSync(join(state, "cancels"), command.id + "\n");
     } else if (command.method === "health") {
-      if (mode === "unhealthy")
-        reply(command.id, { status: "unhealthy", total_duration_ms: 0, contract_revision: CONTRACT_REVISION, entries: {} }, true);
-      else reply(command.id, { pid: process.pid });
+      if (!healthReleased && existsSync(join(state, "hold-health"))) holdHealth(command.id);
+      else answerHealth(command.id);
     } else if (mode === "slow") {
       // A tool call that takes 15 seconds, longer than the idle time at which a silent stream is cut.
       setTimeout(() => reply(command.id, result), 15_000);

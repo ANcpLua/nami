@@ -159,6 +159,49 @@ public sealed class McpSupervisorTests(TestContext context)
 
     [TestMethod]
     [Timeout(30000, CooperativeCancellation = true)]
+    public async Task Health_HammeredWhileItsEngineAnswerWaits_LeavesAll32SlotsToToolCalls()
+    {
+        // /health needs no key, and every request to it used to take one of the 32 slots tool calls wait in:
+        // 32 open health requests refused every call. Now 64 of them wait on one engine health request, more
+        // keep arriving, and that one request gives its slot to a call that would otherwise find the table full.
+        using var result = await RunAsync("health-slots");
+        var observed = result.RootElement;
+        Assert.IsTrue(observed.GetProperty("healthReachedEngine").GetBoolean(), "Precondition: a health request waits in the engine.");
+        Assert.AreEqual(1, observed.GetProperty("healthFrames").GetInt32(),
+            "64 waiting requests to /health are one health request in the engine.");
+        Assert.IsTrue(observed.GetProperty("callsForwarded").GetBoolean(),
+            $"All 32 calls must reach the engine while /health is hammered; {observed.GetProperty("callFrames")} did.");
+        Assert.AreEqual(32, observed.GetProperty("callsSucceeded").GetInt32());
+        Assert.AreEqual(observed.GetProperty("probes").GetInt32(), observed.GetProperty("probesAnswered").GetInt32(),
+            "Every request to /health is answered: 200 with the engine's report, or 503 with the host's own.");
+        Assert.AreEqual(200, observed.GetProperty("healthAfter").GetInt32(), "Once the calls are answered, /health reports the engine again.");
+        Assert.AreEqual(0, observed.GetProperty("exitCodeAfterSignal").GetInt32());
+    }
+
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
+    public async Task Health_HammeredWithoutAKey_StillServesTheCallWithAKey()
+    {
+        // ApiKey mode: 64 requests to /health without a key wait for the engine's answer. A call without a key is
+        // refused as before, and the call with a read key is answered while every one of them still waits; it
+        // used to be answered collector_unavailable.
+        using var result = await RunAsync("health-key");
+        var observed = result.RootElement;
+        Assert.IsTrue(observed.GetProperty("healthReachedEngine").GetBoolean(), "Precondition: a health request waits in the engine.");
+        Assert.AreEqual(1, observed.GetProperty("healthFrames").GetInt32(),
+            "64 waiting requests to /health are one health request in the engine.");
+        Assert.AreEqual(401, observed.GetProperty("withoutKeyStatus").GetInt32());
+        Assert.IsFalse(observed.GetProperty("withKeyIsError").GetBoolean(),
+            "The call with a key must be served; it was answered " + observed.GetProperty("withKeyCode"));
+        Assert.AreEqual("fixture-snapshot", observed.GetProperty("withKeySnapshot").GetString());
+        Assert.AreEqual(0, observed.GetProperty("probesAnsweredBeforeTheCall").GetInt32(),
+            "Precondition: the health requests were still waiting when the call was answered.");
+        Assert.AreEqual(64, observed.GetProperty("probesHealthy").GetInt32(), "Each waiting request gets the engine's one answer.");
+        Assert.AreEqual(0, observed.GetProperty("exitCodeAfterSignal").GetInt32());
+    }
+
+    [TestMethod]
+    [Timeout(30000, CooperativeCancellation = true)]
     public async Task Host_CancelMidCall_CompletesTheWaitingCall()
     {
         // 32 calls wait; the caller of one goes away. The host must end that waiting call: forward a
