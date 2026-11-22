@@ -14,11 +14,6 @@ internal static class AuthenticatedProject
 
     public static string? ForHttpIngest(HttpContext context)
     {
-        return FromHttp(context);
-    }
-
-    private static string? FromHttp(HttpContext context)
-    {
         if (context.Items.TryGetValue(s_httpKey, out var value) && value is string projectId)
             return projectId;
 
