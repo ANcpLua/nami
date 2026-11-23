@@ -10,10 +10,10 @@
       "contentType": "application/x-protobuf",
       "contentEncoding": null,
       "userAgent": "OTel-OTLP-Exporter-JavaScript/0.208.0",
-      "receivedAt": "2026-11-15T11:48:47.103826+00:00",
-      "receivedAtUnixNano": "1794743327103826257",
-      "bytes": 2678,
-      "sha256": "fb69e0a6cf077a2efe4d6aaba4b0d91b739e88ab64d9260897c84a04d3015429"
+      "receivedAt": "2026-11-23T22:03:43.603156+00:00",
+      "receivedAtUnixNano": "1795471423603156000",
+      "bytes": 2334,
+      "sha256": "a58f9ae2a58b9307c187f9f52b8338b4dcc2968d814315ef0c64bd065b22da06"
     },
     {
       "file": "00002-logs.pb",
@@ -25,10 +25,10 @@
       "contentType": "application/x-protobuf",
       "contentEncoding": null,
       "userAgent": "OTel-OTLP-Exporter-JavaScript/0.208.0",
-      "receivedAt": "2026-11-15T11:48:47.105537+00:00",
-      "receivedAtUnixNano": "1794743327105537198",
-      "bytes": 6732,
-      "sha256": "fd0fd0f63034fc39ca76dce367b2f6ae239272712cd1c3a0aa3311fafd1b85cf"
+      "receivedAt": "2026-11-23T22:03:43.603971+00:00",
+      "receivedAtUnixNano": "1795471423603971000",
+      "bytes": 5436,
+      "sha256": "20fb4d881f1be91a05ab9ae87638f2574e619e9757074aa981a351bbed3eaace"
     },
     {
       "file": "00003-metrics.pb",
@@ -40,55 +40,55 @@
       "contentType": "application/x-protobuf",
       "contentEncoding": null,
       "userAgent": "OTel-OTLP-Exporter-JavaScript/0.208.0",
-      "receivedAt": "2026-11-15T11:48:47.107760+00:00",
-      "receivedAtUnixNano": "1794743327107760339",
-      "bytes": 1385,
-      "sha256": "d57a70edc5a557d516ad01026ef39fcfd0ece4e0952ef87f783f2d1fbabf1cbe"
+      "receivedAt": "2026-11-23T22:03:43.604424+00:00",
+      "receivedAtUnixNano": "1795471423604424000",
+      "bytes": 1009,
+      "sha256": "96cbbb24191899be3c8cd10d3d7ce202ae1f8fff263b9d97607d4c7ab5e8a954"
     },
     {
       "file": "00004-traces.pb",
       "json": "00004-traces.json",
       "signal": "traces",
       "session": "B",
-      "sessionId": "00000000-0000-4000-8000-000000000007",
+      "sessionId": "00000000-0000-4000-8000-000000000005",
       "path": "/v1/traces",
       "contentType": "application/x-protobuf",
       "contentEncoding": null,
       "userAgent": "OTel-OTLP-Exporter-JavaScript/0.208.0",
-      "receivedAt": "2026-11-15T11:50:53.503279+00:00",
-      "receivedAtUnixNano": "1794743453503279052",
-      "bytes": 4280,
-      "sha256": "51540b496acd1326fcbd252026e322772bcc17926d40b5b5fe02f2ada8bf1ef2"
+      "receivedAt": "2026-11-23T22:03:48.229949+00:00",
+      "receivedAtUnixNano": "1795471428229949000",
+      "bytes": 2343,
+      "sha256": "6d3092bc2db8d635a169ca2cca0b738efe933b844167937678cea05d2b36af9a"
     },
     {
       "file": "00005-logs.pb",
       "json": "00005-logs.json",
       "signal": "logs",
       "session": "B",
-      "sessionId": "00000000-0000-4000-8000-000000000007",
+      "sessionId": "00000000-0000-4000-8000-000000000005",
       "path": "/v1/logs",
       "contentType": "application/x-protobuf",
       "contentEncoding": null,
       "userAgent": "OTel-OTLP-Exporter-JavaScript/0.208.0",
-      "receivedAt": "2026-11-15T11:50:53.504639+00:00",
-      "receivedAtUnixNano": "1794743453504639550",
-      "bytes": 10961,
-      "sha256": "023c54e209584f51c98a0e441101a76d63c7bef82f99ea30c80ecf14b94a868d"
+      "receivedAt": "2026-11-23T22:03:48.230841+00:00",
+      "receivedAtUnixNano": "1795471428230841000",
+      "bytes": 5601,
+      "sha256": "8d75159d49e3e06d11ffb09fa4c6feaa749a9150a47c7b77910e01c1415ed195"
     },
     {
       "file": "00006-metrics.pb",
       "json": "00006-metrics.json",
       "signal": "metrics",
       "session": "B",
-      "sessionId": "00000000-0000-4000-8000-000000000007",
+      "sessionId": "00000000-0000-4000-8000-000000000005",
       "path": "/v1/metrics",
       "contentType": "application/x-protobuf",
       "contentEncoding": null,
       "userAgent": "OTel-OTLP-Exporter-JavaScript/0.208.0",
-      "receivedAt": "2026-11-15T11:50:53.507117+00:00",
-      "receivedAtUnixNano": "1794743453507116703",
-      "bytes": 1387,
-      "sha256": "eb512c0d65de31d102a27dc9bbb9f0dbb169fd977d30d47b2b8367e1d90ae42d"
+      "receivedAt": "2026-11-23T22:03:48.231258+00:00",
+      "receivedAtUnixNano": "1795471428231258000",
+      "bytes": 1009,
+      "sha256": "e98c3397bb0111d51280e3db4fdf382735b1e6117f157238d17e1c7c82d622ec"
     }
   ]
 }

@@ -36,7 +36,7 @@
           {
             "key": "service.version",
             "value": {
-              "stringValue": "2.1.325"
+              "stringValue": "2.1.331"
             }
           }
         ]
@@ -45,11 +45,11 @@
         {
           "scope": {
             "name": "com.anthropic.claude_code.events",
-            "version": "2.1.325"
+            "version": "2.1.331"
           },
           "logRecords": [
             {
-              "timeUnixNano": "1794745993379000000",
+              "timeUnixNano": "1795471439887000000",
               "body": {
                 "stringValue": "claude_code.managed_settings_resolved"
               },
@@ -69,13 +69,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000009"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -87,7 +87,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -117,7 +117,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -129,7 +129,7 @@
                 {
                   "key": "event.timestamp",
                   "value": {
-                    "stringValue": "2026-11-15T12:33:13.379Z"
+                    "stringValue": "2026-11-23T22:03:59.887Z"
                   }
                 },
                 {
@@ -169,10 +169,10 @@
                   }
                 }
               ],
-              "observedTimeUnixNano": "1794745993379000000"
+              "observedTimeUnixNano": "1795471439887000000"
             },
             {
-              "timeUnixNano": "1794745993406000000",
+              "timeUnixNano": "1795471439899000000",
               "body": {
                 "stringValue": "claude_code.plugin_loaded"
               },
@@ -192,13 +192,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000009"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -210,7 +210,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -240,7 +240,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -252,7 +252,7 @@
                 {
                   "key": "event.timestamp",
                   "value": {
-                    "stringValue": "2026-11-15T12:33:13.406Z"
+                    "stringValue": "2026-11-23T22:03:59.899Z"
                   }
                 },
                 {
@@ -334,10 +334,10 @@
                   }
                 }
               ],
-              "observedTimeUnixNano": "1794745993406000000"
+              "observedTimeUnixNano": "1795471439899000000"
             },
             {
-              "timeUnixNano": "1794745993407000000",
+              "timeUnixNano": "1795471439899000000",
               "body": {
                 "stringValue": "claude_code.plugin_loaded"
               },
@@ -357,13 +357,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000009"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -375,7 +375,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -405,7 +405,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -417,7 +417,7 @@
                 {
                   "key": "event.timestamp",
                   "value": {
-                    "stringValue": "2026-11-15T12:33:13.407Z"
+                    "stringValue": "2026-11-23T22:03:59.899Z"
                   }
                 },
                 {
@@ -499,10 +499,10 @@
                   }
                 }
               ],
-              "observedTimeUnixNano": "1794745993407000000"
+              "observedTimeUnixNano": "1795471439899000000"
             },
             {
-              "timeUnixNano": "1794745993407000000",
+              "timeUnixNano": "1795471439900000000",
               "body": {
                 "stringValue": "claude_code.plugin_loaded"
               },
@@ -522,13 +522,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000009"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -540,7 +540,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -570,7 +570,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -582,7 +582,7 @@
                 {
                   "key": "event.timestamp",
                   "value": {
-                    "stringValue": "2026-11-15T12:33:13.407Z"
+                    "stringValue": "2026-11-23T22:03:59.900Z"
                   }
                 },
                 {
@@ -664,10 +664,10 @@
                   }
                 }
               ],
-              "observedTimeUnixNano": "1794745993407000000"
+              "observedTimeUnixNano": "1795471439900000000"
             },
             {
-              "timeUnixNano": "1794745993407000000",
+              "timeUnixNano": "1795471439900000000",
               "body": {
                 "stringValue": "claude_code.plugin_loaded"
               },
@@ -687,13 +687,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000009"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -705,7 +705,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -735,7 +735,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -747,7 +747,7 @@
                 {
                   "key": "event.timestamp",
                   "value": {
-                    "stringValue": "2026-11-15T12:33:13.407Z"
+                    "stringValue": "2026-11-23T22:03:59.900Z"
                   }
                 },
                 {
@@ -829,175 +829,10 @@
                   }
                 }
               ],
-              "observedTimeUnixNano": "1794745993407000000"
+              "observedTimeUnixNano": "1795471439900000000"
             },
             {
-              "timeUnixNano": "1794745993407000000",
-              "body": {
-                "stringValue": "claude_code.plugin_loaded"
-              },
-              "attributes": [
-                {
-                  "key": "gen_ai.agent.name",
-                  "value": {
-                    "stringValue": "fixture-builder"
-                  }
-                },
-                {
-                  "key": "user.id",
-                  "value": {
-                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
-                  }
-                },
-                {
-                  "key": "session.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
-                  }
-                },
-                {
-                  "key": "organization.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
-                  }
-                },
-                {
-                  "key": "user.email",
-                  "value": {
-                    "stringValue": "scrubbed-email-1"
-                  }
-                },
-                {
-                  "key": "user.account_uuid",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
-                  }
-                },
-                {
-                  "key": "user.account_id",
-                  "value": {
-                    "stringValue": "user_scrubbed0001"
-                  }
-                },
-                {
-                  "key": "anthropic.provider",
-                  "value": {
-                    "stringValue": "firstParty"
-                  }
-                },
-                {
-                  "key": "anthropic.custom_base_url",
-                  "value": {
-                    "boolValue": false
-                  }
-                },
-                {
-                  "key": "anthropic.plan",
-                  "value": {
-                    "stringValue": "max"
-                  }
-                },
-                {
-                  "key": "terminal.type",
-                  "value": {
-                    "stringValue": "ghostty"
-                  }
-                },
-                {
-                  "key": "event.name",
-                  "value": {
-                    "stringValue": "plugin_loaded"
-                  }
-                },
-                {
-                  "key": "event.timestamp",
-                  "value": {
-                    "stringValue": "2026-11-15T12:33:13.407Z"
-                  }
-                },
-                {
-                  "key": "event.sequence",
-                  "value": {
-                    "intValue": "5"
-                  }
-                },
-                {
-                  "key": "plugin.name",
-                  "value": {
-                    "stringValue": "cc-plugin-easel"
-                  }
-                },
-                {
-                  "key": "marketplace.name",
-                  "value": {
-                    "stringValue": "builtin"
-                  }
-                },
-                {
-                  "key": "plugin.scope",
-                  "value": {
-                    "stringValue": "default-bundle"
-                  }
-                },
-                {
-                  "key": "enabled_via",
-                  "value": {
-                    "stringValue": "default-enable"
-                  }
-                },
-                {
-                  "key": "plugin_id_hash",
-                  "value": {
-                    "stringValue": "8d12bff5b26e078b"
-                  }
-                },
-                {
-                  "key": "has_hooks",
-                  "value": {
-                    "boolValue": true
-                  }
-                },
-                {
-                  "key": "has_mcp",
-                  "value": {
-                    "boolValue": false
-                  }
-                },
-                {
-                  "key": "host_owned_mcp",
-                  "value": {
-                    "boolValue": false
-                  }
-                },
-                {
-                  "key": "skill_path_count",
-                  "value": {
-                    "intValue": "0"
-                  }
-                },
-                {
-                  "key": "command_path_count",
-                  "value": {
-                    "intValue": "0"
-                  }
-                },
-                {
-                  "key": "agent_path_count",
-                  "value": {
-                    "intValue": "0"
-                  }
-                },
-                {
-                  "key": "safe_mode",
-                  "value": {
-                    "stringValue": "false"
-                  }
-                }
-              ],
-              "observedTimeUnixNano": "1794745993407000000"
-            },
-            {
-              "timeUnixNano": "1794745993806000000",
+              "timeUnixNano": "1795471439936000000",
               "body": {
                 "stringValue": "claude_code.user_prompt"
               },
@@ -1017,13 +852,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000009"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -1035,7 +870,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -1065,7 +900,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -1077,19 +912,19 @@
                 {
                   "key": "event.timestamp",
                   "value": {
-                    "stringValue": "2026-11-15T12:33:13.806Z"
+                    "stringValue": "2026-11-23T22:03:59.936Z"
                   }
                 },
                 {
                   "key": "event.sequence",
                   "value": {
-                    "intValue": "6"
+                    "intValue": "5"
                   }
                 },
                 {
                   "key": "prompt.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000d"
+                    "stringValue": "00000000-0000-4000-8000-00000000000c"
                   }
                 },
                 {
@@ -1113,14 +948,14 @@
                 {
                   "key": "message.uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000e"
+                    "stringValue": "00000000-0000-4000-8000-00000000000d"
                   }
                 }
               ],
               "flags": 1,
               "traceId": "fade0000000000000000000000000003",
-              "spanId": "fade000000000007",
-              "observedTimeUnixNano": "1794745993806000000"
+              "spanId": "fade000000000006",
+              "observedTimeUnixNano": "1795471439936000000"
             }
           ]
         }

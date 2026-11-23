@@ -59,8 +59,8 @@ public sealed class SessionsSearchAcceptanceTests(TestContext context)
 
     [TestMethod]
     [Timeout(120000, CooperativeCancellation = true)]
-    [DataRow("2026-11-15T12:33:52Z", "s3", DisplayName = "Window starting between s2 and s3")]
-    [DataRow("2026-11-15T12:35:00Z", "", DisplayName = "Window starting after the last record")]
+    [DataRow("2026-11-23T22:04:22Z", "s3", DisplayName = "Window starting between s2 and s3")]
+    [DataRow("2026-11-23T22:05:00Z", "", DisplayName = "Window starting after the last record")]
     public async Task SessionsSearch_Window_ListsOnlySessionsWithRecordsInIt(string since, string labels)
     {
         await using var host = await SessionTools.IngestAsync(Directory, ClaudeCodeCapture.SignedIn(), context.CancellationToken);
@@ -161,7 +161,7 @@ public sealed class SessionsSearchAcceptanceTests(TestContext context)
         var first = await SessionTools.CallAsync(host, SearchTool, SessionTools.Search(SignedInSessions.WindowStart, 1024),
             context.CancellationToken);
         var cursor = Member(first, "next_cursor", SearchTool + " at 1024 bytes").GetString();
-        var changed = SessionTools.Search("2026-11-15T12:31:00Z", 1024);
+        var changed = SessionTools.Search("2026-11-23T22:01:00Z", 1024);
         changed["cursor"] = cursor;
         foreach (var bad in new[] { changed, new JsonObject { ["cursor"] = "not base64" } })
         {

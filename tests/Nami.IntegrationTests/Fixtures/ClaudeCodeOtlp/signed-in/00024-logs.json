@@ -36,7 +36,7 @@
           {
             "key": "service.version",
             "value": {
-              "stringValue": "2.1.325"
+              "stringValue": "2.1.331"
             }
           }
         ]
@@ -45,11 +45,11 @@
         {
           "scope": {
             "name": "com.anthropic.claude_code.events",
-            "version": "2.1.325"
+            "version": "2.1.331"
           },
           "logRecords": [
             {
-              "timeUnixNano": "1794746015293000000",
+              "timeUnixNano": "1795471456862000000",
               "body": {
                 "stringValue": "claude_code.tool_decision"
               },
@@ -69,13 +69,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000018"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -87,7 +87,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -117,7 +117,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -129,19 +129,19 @@
                 {
                   "key": "event.timestamp",
                   "value": {
-                    "stringValue": "2026-11-15T12:33:35.293Z"
+                    "stringValue": "2026-11-23T22:04:16.862Z"
                   }
                 },
                 {
                   "key": "event.sequence",
                   "value": {
-                    "intValue": "6"
+                    "intValue": "32"
                   }
                 },
                 {
                   "key": "prompt.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000019"
+                    "stringValue": "00000000-0000-4000-8000-00000000001e"
                   }
                 },
                 {
@@ -159,13 +159,13 @@
                 {
                   "key": "tool_name",
                   "value": {
-                    "stringValue": "Agent"
+                    "stringValue": "Bash"
                   }
                 },
                 {
                   "key": "tool_use_id",
                   "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000006"
+                    "stringValue": "toolu_01FIXTURE000000000000014"
                   }
                 },
                 {
@@ -177,7 +177,7 @@
                 {
                   "key": "tool_parameters",
                   "value": {
-                    "stringValue": "{\"subagent_type\":\"general-purpose\"}"
+                    "stringValue": "{\"bash_command\":\"python3\",\"full_command\":\"python3 -m unittest -q\",\"description\":\"Run unit tests in the repo\"}"
                   }
                 },
                 {
@@ -189,173 +189,17 @@
                 {
                   "key": "request_id",
                   "value": {
-                    "stringValue": "req_011FIXTURE00000000000007"
+                    "stringValue": "req_011FIXTURE00000000000013"
                   }
                 }
               ],
               "flags": 1,
-              "traceId": "fade000000000000000000000000000a",
-              "spanId": "fade000000000024",
-              "observedTimeUnixNano": "1794746015293000000"
+              "traceId": "fade000000000000000000000000000f",
+              "spanId": "fade000000000048",
+              "observedTimeUnixNano": "1795471456862000000"
             },
             {
-              "timeUnixNano": "1794746015315000000",
-              "body": {
-                "stringValue": "claude_code.tool_result"
-              },
-              "attributes": [
-                {
-                  "key": "gen_ai.agent.name",
-                  "value": {
-                    "stringValue": "fixture-builder"
-                  }
-                },
-                {
-                  "key": "user.id",
-                  "value": {
-                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
-                  }
-                },
-                {
-                  "key": "session.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000018"
-                  }
-                },
-                {
-                  "key": "organization.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
-                  }
-                },
-                {
-                  "key": "user.email",
-                  "value": {
-                    "stringValue": "scrubbed-email-1"
-                  }
-                },
-                {
-                  "key": "user.account_uuid",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
-                  }
-                },
-                {
-                  "key": "user.account_id",
-                  "value": {
-                    "stringValue": "user_scrubbed0001"
-                  }
-                },
-                {
-                  "key": "anthropic.provider",
-                  "value": {
-                    "stringValue": "firstParty"
-                  }
-                },
-                {
-                  "key": "anthropic.custom_base_url",
-                  "value": {
-                    "boolValue": false
-                  }
-                },
-                {
-                  "key": "anthropic.plan",
-                  "value": {
-                    "stringValue": "max"
-                  }
-                },
-                {
-                  "key": "terminal.type",
-                  "value": {
-                    "stringValue": "ghostty"
-                  }
-                },
-                {
-                  "key": "event.name",
-                  "value": {
-                    "stringValue": "tool_result"
-                  }
-                },
-                {
-                  "key": "event.timestamp",
-                  "value": {
-                    "stringValue": "2026-11-15T12:33:35.315Z"
-                  }
-                },
-                {
-                  "key": "event.sequence",
-                  "value": {
-                    "intValue": "7"
-                  }
-                },
-                {
-                  "key": "prompt.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000019"
-                  }
-                },
-                {
-                  "key": "tool_name",
-                  "value": {
-                    "stringValue": "Agent"
-                  }
-                },
-                {
-                  "key": "tool_use_id",
-                  "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000006"
-                  }
-                },
-                {
-                  "key": "success",
-                  "value": {
-                    "stringValue": "true"
-                  }
-                },
-                {
-                  "key": "duration_ms",
-                  "value": {
-                    "stringValue": "20"
-                  }
-                },
-                {
-                  "key": "tool_parameters",
-                  "value": {
-                    "stringValue": "{\"subagent_type\":\"general-purpose\"}"
-                  }
-                },
-                {
-                  "key": "tool_input",
-                  "value": {
-                    "stringValue": "{\"description\":\"Describe calc.py and tests\",\"prompt\":\"Read calc.py and test_calc.py in the current directory. Reply in one line: which functions calc.py defines and which of them test_calc.py tests.\",\"subagent_type\":\"general-purpose\"}"
-                  }
-                },
-                {
-                  "key": "tool_input_size_bytes",
-                  "value": {
-                    "stringValue": "234"
-                  }
-                },
-                {
-                  "key": "tool_result_size_bytes",
-                  "value": {
-                    "stringValue": "1097"
-                  }
-                },
-                {
-                  "key": "request_id",
-                  "value": {
-                    "stringValue": "req_011FIXTURE00000000000007"
-                  }
-                }
-              ],
-              "flags": 1,
-              "traceId": "fade000000000000000000000000000a",
-              "spanId": "fade000000000023",
-              "observedTimeUnixNano": "1794746015315000000"
-            },
-            {
-              "timeUnixNano": "1794746015334000000",
+              "timeUnixNano": "1795471456871000000",
               "body": {
                 "stringValue": "claude_code.api_request"
               },
@@ -375,13 +219,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000018"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -393,7 +237,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -423,7 +267,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -435,19 +279,19 @@
                 {
                   "key": "event.timestamp",
                   "value": {
-                    "stringValue": "2026-11-15T12:33:35.334Z"
+                    "stringValue": "2026-11-23T22:04:16.871Z"
                   }
                 },
                 {
                   "key": "event.sequence",
                   "value": {
-                    "intValue": "8"
+                    "intValue": "33"
                   }
                 },
                 {
                   "key": "prompt.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000019"
+                    "stringValue": "00000000-0000-4000-8000-00000000001e"
                   }
                 },
                 {
@@ -465,19 +309,19 @@
                 {
                   "key": "output_tokens",
                   "value": {
-                    "intValue": "155"
+                    "intValue": "111"
                   }
                 },
                 {
                   "key": "cache_read_tokens",
                   "value": {
-                    "intValue": "11344"
+                    "intValue": "21550"
                   }
                 },
                 {
                   "key": "cache_creation_tokens",
                   "value": {
-                    "intValue": "7130"
+                    "intValue": "789"
                   }
                 },
                 {
@@ -489,43 +333,43 @@
                 {
                   "key": "cache_creation_1h_tokens",
                   "value": {
-                    "intValue": "7130"
+                    "intValue": "789"
                   }
                 },
                 {
                   "key": "cost_usd",
                   "value": {
-                    "doubleValue": 0.0016171400000000002
+                    "doubleValue": 0.000429
                   }
                 },
                 {
                   "key": "cost_usd_micros",
                   "value": {
-                    "intValue": "1617"
+                    "intValue": "429"
                   }
                 },
                 {
                   "key": "duration_ms",
                   "value": {
-                    "intValue": "2322"
+                    "intValue": "681"
                   }
                 },
                 {
                   "key": "ttft_ms",
                   "value": {
-                    "intValue": "1764"
+                    "intValue": "374"
                   }
                 },
                 {
                   "key": "request_id",
                   "value": {
-                    "stringValue": "req_011FIXTURE00000000000007"
+                    "stringValue": "req_011FIXTURE00000000000013"
                   }
                 },
                 {
                   "key": "client_request_id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000001b"
+                    "stringValue": "00000000-0000-4000-8000-000000000022"
                   }
                 },
                 {
@@ -548,9 +392,165 @@
                 }
               ],
               "flags": 1,
-              "traceId": "fade000000000000000000000000000a",
-              "spanId": "fade000000000023",
-              "observedTimeUnixNano": "1794746015334000000"
+              "traceId": "fade000000000000000000000000000f",
+              "spanId": "fade000000000034",
+              "observedTimeUnixNano": "1795471456871000000"
+            },
+            {
+              "timeUnixNano": "1795471457242000000",
+              "body": {
+                "stringValue": "claude_code.tool_result"
+              },
+              "attributes": [
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "fixture-builder"
+                  }
+                },
+                {
+                  "key": "user.id",
+                  "value": {
+                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                  }
+                },
+                {
+                  "key": "session.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
+                  }
+                },
+                {
+                  "key": "organization.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
+                  }
+                },
+                {
+                  "key": "user.email",
+                  "value": {
+                    "stringValue": "scrubbed-email-1"
+                  }
+                },
+                {
+                  "key": "user.account_uuid",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
+                  }
+                },
+                {
+                  "key": "user.account_id",
+                  "value": {
+                    "stringValue": "user_scrubbed0001"
+                  }
+                },
+                {
+                  "key": "anthropic.provider",
+                  "value": {
+                    "stringValue": "firstParty"
+                  }
+                },
+                {
+                  "key": "anthropic.custom_base_url",
+                  "value": {
+                    "boolValue": false
+                  }
+                },
+                {
+                  "key": "anthropic.plan",
+                  "value": {
+                    "stringValue": "max"
+                  }
+                },
+                {
+                  "key": "terminal.type",
+                  "value": {
+                    "stringValue": "xterm-256color"
+                  }
+                },
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "tool_result"
+                  }
+                },
+                {
+                  "key": "event.timestamp",
+                  "value": {
+                    "stringValue": "2026-11-23T22:04:17.242Z"
+                  }
+                },
+                {
+                  "key": "event.sequence",
+                  "value": {
+                    "intValue": "34"
+                  }
+                },
+                {
+                  "key": "prompt.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000001e"
+                  }
+                },
+                {
+                  "key": "tool_name",
+                  "value": {
+                    "stringValue": "Bash"
+                  }
+                },
+                {
+                  "key": "tool_use_id",
+                  "value": {
+                    "stringValue": "toolu_01FIXTURE000000000000014"
+                  }
+                },
+                {
+                  "key": "success",
+                  "value": {
+                    "stringValue": "true"
+                  }
+                },
+                {
+                  "key": "duration_ms",
+                  "value": {
+                    "stringValue": "379"
+                  }
+                },
+                {
+                  "key": "tool_parameters",
+                  "value": {
+                    "stringValue": "{\"bash_command\":\"python3\",\"full_command\":\"python3 -m unittest -q\",\"description\":\"Run unit tests in the repo\"}"
+                  }
+                },
+                {
+                  "key": "tool_input",
+                  "value": {
+                    "stringValue": "{\"command\":\"python3 -m unittest -q\",\"description\":\"Run unit tests in the repo\"}"
+                  }
+                },
+                {
+                  "key": "tool_input_size_bytes",
+                  "value": {
+                    "stringValue": "79"
+                  }
+                },
+                {
+                  "key": "tool_result_size_bytes",
+                  "value": {
+                    "stringValue": "96"
+                  }
+                },
+                {
+                  "key": "request_id",
+                  "value": {
+                    "stringValue": "req_011FIXTURE00000000000013"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "fade000000000000000000000000000f",
+              "spanId": "fade000000000034",
+              "observedTimeUnixNano": "1795471457242000000"
             }
           ]
         }

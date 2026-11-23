@@ -23,7 +23,7 @@ internal sealed record ContentMarkers(string Content, string Detail, string Cont
 internal sealed record PlantedCapture(IReadOnlyList<ClaudeCodeExport> Exports, int Logs, int Spans, int ToolOutputs);
 
 /// <summary>
-///     Every place where Claude Code 2.1.325 can send prompt, response, file or tool content, and the tool details,
+///     Every place where Claude Code 2.1.331 can send prompt, response, file or tool content, and the tool details,
 ///     after code.claude.com/docs/en/monitoring-usage (read 15 Nov 2026) and the research ledger, "Claude Code
 ///     telemetry as sent". The content events that a capture without content variables lacks are added the way
 ///     Claude Code sends them, a log record whose <c>event.name</c> attribute is <c>{name}</c>, with the standard
@@ -94,7 +94,7 @@ internal static class ClaudeCodeContent
     /// <summary>The events that Claude Code sends only with content variables, added after each api_request.</summary>
     private static readonly string[] s_bodyEvents = ["api_request_body", "api_response_body"];
 
-#pragma warning disable CS0618 // Claude Code 2.1.325 names each event only in this deprecated attribute; the fixture writes it as Claude Code does.
+#pragma warning disable CS0618 // Claude Code 2.1.331 names each event only in this deprecated attribute; the fixture writes it as Claude Code does.
     private const string EventNameKey = EventAttributes.Name;
 #pragma warning restore CS0618
 

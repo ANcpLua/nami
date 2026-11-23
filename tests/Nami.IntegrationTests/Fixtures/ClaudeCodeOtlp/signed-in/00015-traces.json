@@ -36,7 +36,7 @@
           {
             "key": "service.version",
             "value": {
-              "stringValue": "2.1.325"
+              "stringValue": "2.1.331"
             }
           }
         ]
@@ -49,13 +49,13 @@
           },
           "spans": [
             {
-              "traceId": "fade0000000000000000000000000003",
-              "spanId": "fade00000000001c",
-              "parentSpanId": "fade00000000001d",
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade00000000002b",
+              "parentSpanId": "fade00000000002c",
               "name": "claude_code.tool.blocked_on_user",
-              "kind": "SPAN_KIND_INTERNAL",
-              "startTimeUnixNano": "1794746006361000000",
-              "endTimeUnixNano": "1794746006372658834",
+              "kind": 1,
+              "startTimeUnixNano": "1795471452553000000",
+              "endTimeUnixNano": "1795471452558823667",
               "attributes": [
                 {
                   "key": "gen_ai.agent.name",
@@ -72,13 +72,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -90,7 +90,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -120,7 +120,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -138,13 +138,13 @@
                 {
                   "key": "gen_ai.conversation.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "afade000000000001"
                   }
                 },
                 {
                   "key": "duration_ms",
                   "value": {
-                    "intValue": "12"
+                    "intValue": "6"
                   }
                 },
                 {
@@ -164,13 +164,13 @@
               "flags": 257
             },
             {
-              "traceId": "fade0000000000000000000000000003",
-              "spanId": "fade00000000001e",
-              "parentSpanId": "fade000000000007",
-              "name": "claude_code.llm_request",
-              "kind": "SPAN_KIND_INTERNAL",
-              "startTimeUnixNano": "1794746002697000000",
-              "endTimeUnixNano": "1794746006381269834",
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade00000000002d",
+              "parentSpanId": "fade00000000002c",
+              "name": "claude_code.tool.execution",
+              "kind": 1,
+              "startTimeUnixNano": "1795471452559000000",
+              "endTimeUnixNano": "1795471452561011208",
               "attributes": [
                 {
                   "key": "gen_ai.agent.name",
@@ -187,13 +187,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -205,7 +205,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -235,7 +235,279 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
+                  }
+                },
+                {
+                  "key": "gen_ai.provider.name",
+                  "value": {
+                    "stringValue": "anthropic"
+                  }
+                },
+                {
+                  "key": "span.type",
+                  "value": {
+                    "stringValue": "tool.execution"
+                  }
+                },
+                {
+                  "key": "gen_ai.conversation.id",
+                  "value": {
+                    "stringValue": "afade000000000001"
+                  }
+                },
+                {
+                  "key": "tool_use_id",
+                  "value": {
+                    "stringValue": "toolu_01FIXTURE000000000000008"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.call.id",
+                  "value": {
+                    "stringValue": "toolu_01FIXTURE000000000000008"
+                  }
+                },
+                {
+                  "key": "duration_ms",
+                  "value": {
+                    "intValue": "2"
+                  }
+                },
+                {
+                  "key": "success",
+                  "value": {
+                    "boolValue": true
+                  }
+                }
+              ],
+              "status": {},
+              "flags": 257
+            },
+            {
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade00000000002c",
+              "parentSpanId": "fade000000000025",
+              "name": "claude_code.tool",
+              "kind": 1,
+              "startTimeUnixNano": "1795471452552000000",
+              "endTimeUnixNano": "1795471452560206625",
+              "attributes": [
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "fixture-builder"
+                  }
+                },
+                {
+                  "key": "user.id",
+                  "value": {
+                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                  }
+                },
+                {
+                  "key": "session.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
+                  }
+                },
+                {
+                  "key": "organization.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
+                  }
+                },
+                {
+                  "key": "user.email",
+                  "value": {
+                    "stringValue": "scrubbed-email-1"
+                  }
+                },
+                {
+                  "key": "user.account_uuid",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
+                  }
+                },
+                {
+                  "key": "user.account_id",
+                  "value": {
+                    "stringValue": "user_scrubbed0001"
+                  }
+                },
+                {
+                  "key": "anthropic.provider",
+                  "value": {
+                    "stringValue": "firstParty"
+                  }
+                },
+                {
+                  "key": "anthropic.custom_base_url",
+                  "value": {
+                    "boolValue": false
+                  }
+                },
+                {
+                  "key": "anthropic.plan",
+                  "value": {
+                    "stringValue": "max"
+                  }
+                },
+                {
+                  "key": "terminal.type",
+                  "value": {
+                    "stringValue": "xterm-256color"
+                  }
+                },
+                {
+                  "key": "gen_ai.provider.name",
+                  "value": {
+                    "stringValue": "anthropic"
+                  }
+                },
+                {
+                  "key": "span.type",
+                  "value": {
+                    "stringValue": "tool"
+                  }
+                },
+                {
+                  "key": "tool_name",
+                  "value": {
+                    "stringValue": "Read"
+                  }
+                },
+                {
+                  "key": "tool_name_safe",
+                  "value": {
+                    "stringValue": "Read"
+                  }
+                },
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "execute_tool"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "Read"
+                  }
+                },
+                {
+                  "key": "gen_ai.conversation.id",
+                  "value": {
+                    "stringValue": "afade000000000001"
+                  }
+                },
+                {
+                  "key": "file_path",
+                  "value": {
+                    "stringValue": "/workspace/calc/test_calc.py"
+                  }
+                },
+                {
+                  "key": "agent_id",
+                  "value": {
+                    "stringValue": "afade000000000001"
+                  }
+                },
+                {
+                  "key": "tool_use_id",
+                  "value": {
+                    "stringValue": "toolu_01FIXTURE000000000000008"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.call.id",
+                  "value": {
+                    "stringValue": "toolu_01FIXTURE000000000000008"
+                  }
+                },
+                {
+                  "key": "duration_ms",
+                  "value": {
+                    "intValue": "8"
+                  }
+                }
+              ],
+              "status": {},
+              "flags": 257
+            },
+            {
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade00000000002e",
+              "parentSpanId": "fade000000000025",
+              "name": "claude_code.llm_request",
+              "kind": 1,
+              "startTimeUnixNano": "1795471451500000000",
+              "endTimeUnixNano": "1795471452566912166",
+              "attributes": [
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "fixture-builder"
+                  }
+                },
+                {
+                  "key": "user.id",
+                  "value": {
+                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                  }
+                },
+                {
+                  "key": "session.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
+                  }
+                },
+                {
+                  "key": "organization.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
+                  }
+                },
+                {
+                  "key": "user.email",
+                  "value": {
+                    "stringValue": "scrubbed-email-1"
+                  }
+                },
+                {
+                  "key": "user.account_uuid",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
+                  }
+                },
+                {
+                  "key": "user.account_id",
+                  "value": {
+                    "stringValue": "user_scrubbed0001"
+                  }
+                },
+                {
+                  "key": "anthropic.provider",
+                  "value": {
+                    "stringValue": "firstParty"
+                  }
+                },
+                {
+                  "key": "anthropic.custom_base_url",
+                  "value": {
+                    "boolValue": false
+                  }
+                },
+                {
+                  "key": "anthropic.plan",
+                  "value": {
+                    "stringValue": "max"
+                  }
+                },
+                {
+                  "key": "terminal.type",
+                  "value": {
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -269,9 +541,15 @@
                   }
                 },
                 {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
                   "key": "llm_request.context",
                   "value": {
-                    "stringValue": "interaction"
+                    "stringValue": "tool"
                   }
                 },
                 {
@@ -283,19 +561,25 @@
                 {
                   "key": "gen_ai.conversation.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "afade000000000001"
                   }
                 },
                 {
                   "key": "query_source_safe",
                   "value": {
-                    "stringValue": "sdk"
+                    "stringValue": "agent.builtin.general-purpose"
+                  }
+                },
+                {
+                  "key": "agent_id",
+                  "value": {
+                    "stringValue": "afade000000000001"
                   }
                 },
                 {
                   "key": "duration_ms",
                   "value": {
-                    "intValue": "3684"
+                    "intValue": "1067"
                   }
                 },
                 {
@@ -307,19 +591,19 @@
                 {
                   "key": "output_tokens",
                   "value": {
-                    "intValue": "574"
+                    "intValue": "147"
                   }
                 },
                 {
                   "key": "cache_read_tokens",
                   "value": {
-                    "intValue": "19192"
+                    "intValue": "6843"
                   }
                 },
                 {
                   "key": "cache_creation_tokens",
                   "value": {
-                    "intValue": "191"
+                    "intValue": "3674"
                   }
                 },
                 {
@@ -337,31 +621,31 @@
                 {
                   "key": "request_id",
                   "value": {
-                    "stringValue": "req_011FIXTURE00000000000005"
+                    "stringValue": "req_011FIXTURE00000000000008"
                   }
                 },
                 {
                   "key": "gen_ai.response.id",
                   "value": {
-                    "stringValue": "req_011FIXTURE00000000000005"
+                    "stringValue": "req_011FIXTURE00000000000008"
                   }
                 },
                 {
                   "key": "client_request_id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000014"
+                    "stringValue": "00000000-0000-4000-8000-000000000019"
                   }
                 },
                 {
                   "key": "ttft_ms",
                   "value": {
-                    "intValue": "1641"
+                    "intValue": "690"
                   }
                 },
                 {
                   "key": "first_content_ms",
                   "value": {
-                    "intValue": "1641"
+                    "intValue": "691"
                   }
                 },
                 {
@@ -387,11 +671,41 @@
                       ]
                     }
                   }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": {
+                    "intValue": "10519"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": {
+                    "intValue": "147"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.cache_read.input_tokens",
+                  "value": {
+                    "intValue": "6843"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.cache_write.input_tokens",
+                  "value": {
+                    "intValue": "3674"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.model",
+                  "value": {
+                    "stringValue": "claude-haiku-5-5"
+                  }
                 }
               ],
               "events": [
                 {
-                  "timeUnixNano": "1794746002698228792",
+                  "timeUnixNano": "1795471451500822875",
                   "name": "gen_ai.request.attempt",
                   "attributes": [
                     {
@@ -403,7 +717,7 @@
                     {
                       "key": "client_request_id",
                       "value": {
-                        "stringValue": "00000000-0000-4000-8000-000000000014"
+                        "stringValue": "00000000-0000-4000-8000-000000000019"
                       }
                     }
                   ]
@@ -411,8 +725,8 @@
               ],
               "links": [
                 {
-                  "traceId": "fade0000000000000000000000000008",
-                  "spanId": "fade00000000001f",
+                  "traceId": "fade000000000000000000000000000c",
+                  "spanId": "fade00000000002f",
                   "attributes": [
                     {
                       "key": "link.type",
@@ -428,13 +742,13 @@
               "flags": 257
             },
             {
-              "traceId": "fade0000000000000000000000000003",
-              "spanId": "fade000000000020",
-              "parentSpanId": "fade00000000001d",
-              "name": "claude_code.tool.execution",
-              "kind": "SPAN_KIND_INTERNAL",
-              "startTimeUnixNano": "1794746006373000000",
-              "endTimeUnixNano": "1794746006466078750",
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade000000000030",
+              "parentSpanId": "fade000000000022",
+              "name": "claude_code.llm_request",
+              "kind": 1,
+              "startTimeUnixNano": "1795471451454000000",
+              "endTimeUnixNano": "1795471452839456000",
               "attributes": [
                 {
                   "key": "gen_ai.agent.name",
@@ -451,13 +765,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -469,7 +783,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -499,7 +813,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -511,31 +825,85 @@
                 {
                   "key": "span.type",
                   "value": {
-                    "stringValue": "tool.execution"
+                    "stringValue": "llm_request"
+                  }
+                },
+                {
+                  "key": "model",
+                  "value": {
+                    "stringValue": "claude-haiku-5-5"
+                  }
+                },
+                {
+                  "key": "gen_ai.system",
+                  "value": {
+                    "stringValue": "anthropic"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": {
+                    "stringValue": "claude-haiku-5-5"
+                  }
+                },
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
+                  "key": "llm_request.context",
+                  "value": {
+                    "stringValue": "interaction"
+                  }
+                },
+                {
+                  "key": "speed",
+                  "value": {
+                    "stringValue": "normal"
                   }
                 },
                 {
                   "key": "gen_ai.conversation.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
-                  "key": "tool_use_id",
+                  "key": "query_source_safe",
                   "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000005"
-                  }
-                },
-                {
-                  "key": "gen_ai.tool.call.id",
-                  "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000005"
+                    "stringValue": "sdk"
                   }
                 },
                 {
                   "key": "duration_ms",
                   "value": {
-                    "intValue": "93"
+                    "intValue": "1385"
+                  }
+                },
+                {
+                  "key": "input_tokens",
+                  "value": {
+                    "intValue": "2"
+                  }
+                },
+                {
+                  "key": "output_tokens",
+                  "value": {
+                    "intValue": "164"
+                  }
+                },
+                {
+                  "key": "cache_read_tokens",
+                  "value": {
+                    "intValue": "19673"
+                  }
+                },
+                {
+                  "key": "cache_creation_tokens",
+                  "value": {
+                    "intValue": "615"
                   }
                 },
                 {
@@ -543,19 +911,143 @@
                   "value": {
                     "boolValue": true
                   }
+                },
+                {
+                  "key": "attempt",
+                  "value": {
+                    "intValue": "1"
+                  }
+                },
+                {
+                  "key": "request_id",
+                  "value": {
+                    "stringValue": "req_011FIXTURE00000000000009"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.id",
+                  "value": {
+                    "stringValue": "req_011FIXTURE00000000000009"
+                  }
+                },
+                {
+                  "key": "client_request_id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000001a"
+                  }
+                },
+                {
+                  "key": "ttft_ms",
+                  "value": {
+                    "intValue": "451"
+                  }
+                },
+                {
+                  "key": "first_content_ms",
+                  "value": {
+                    "intValue": "451"
+                  }
+                },
+                {
+                  "key": "effort",
+                  "value": {
+                    "stringValue": "medium"
+                  }
+                },
+                {
+                  "key": "stop_reason",
+                  "value": {
+                    "stringValue": "end_turn"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.finish_reasons",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "end_turn"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": {
+                    "intValue": "20290"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": {
+                    "intValue": "164"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.cache_read.input_tokens",
+                  "value": {
+                    "intValue": "19673"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.cache_write.input_tokens",
+                  "value": {
+                    "intValue": "615"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.model",
+                  "value": {
+                    "stringValue": "claude-haiku-5-5"
+                  }
+                }
+              ],
+              "events": [
+                {
+                  "timeUnixNano": "1795471451456257000",
+                  "name": "gen_ai.request.attempt",
+                  "attributes": [
+                    {
+                      "key": "attempt",
+                      "value": {
+                        "intValue": "1"
+                      }
+                    },
+                    {
+                      "key": "client_request_id",
+                      "value": {
+                        "stringValue": "00000000-0000-4000-8000-00000000001a"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "links": [
+                {
+                  "traceId": "fade000000000000000000000000000d",
+                  "spanId": "fade000000000031",
+                  "attributes": [
+                    {
+                      "key": "link.type",
+                      "value": {
+                        "stringValue": "parent_of"
+                      }
+                    }
+                  ],
+                  "flags": 769
                 }
               ],
               "status": {},
               "flags": 257
             },
             {
-              "traceId": "fade0000000000000000000000000003",
-              "spanId": "fade00000000001d",
-              "parentSpanId": "fade000000000007",
-              "name": "claude_code.tool",
-              "kind": "SPAN_KIND_INTERNAL",
-              "startTimeUnixNano": "1794746006361000000",
-              "endTimeUnixNano": "1794746006466243416",
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade000000000022",
+              "name": "claude_code.interaction",
+              "kind": 1,
+              "startTimeUnixNano": "1795471449915000000",
+              "endTimeUnixNano": "1795471452845576667",
               "attributes": [
                 {
                   "key": "gen_ai.agent.name",
@@ -572,13 +1064,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -590,7 +1082,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -620,7 +1112,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -632,74 +1124,362 @@
                 {
                   "key": "span.type",
                   "value": {
-                    "stringValue": "tool"
-                  }
-                },
-                {
-                  "key": "tool_name",
-                  "value": {
-                    "stringValue": "Bash"
-                  }
-                },
-                {
-                  "key": "tool_name_safe",
-                  "value": {
-                    "stringValue": "Bash"
+                    "stringValue": "interaction"
                   }
                 },
                 {
                   "key": "gen_ai.operation.name",
                   "value": {
-                    "stringValue": "execute_tool"
-                  }
-                },
-                {
-                  "key": "gen_ai.tool.name",
-                  "value": {
-                    "stringValue": "Bash"
+                    "stringValue": "invoke_agent"
                   }
                 },
                 {
                   "key": "gen_ai.conversation.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
-                  "key": "full_command",
+                  "key": "user_prompt",
                   "value": {
-                    "stringValue": "git commit -am \"Fix add in calc.py\" -m \"Co-Authored-By: Claude Haiku 5.5 <scrubbed-email-2>\" && git log --oneline -1"
+                    "stringValue": "<REDACTED>"
                   }
                 },
                 {
-                  "key": "bash_command_class",
+                  "key": "user_prompt_length",
                   "value": {
-                    "stringValue": "vcs"
+                    "intValue": "696"
                   }
                 },
                 {
-                  "key": "bash_argv0",
+                  "key": "interaction.sequence",
                   "value": {
-                    "stringValue": "git"
+                    "intValue": "1"
                   }
                 },
                 {
-                  "key": "tool_use_id",
+                  "key": "parent.source",
                   "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000005"
+                    "stringValue": "none"
                   }
                 },
                 {
-                  "key": "gen_ai.tool.call.id",
+                  "key": "queued_sends",
                   "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000005"
+                    "intValue": "0"
+                  }
+                },
+                {
+                  "key": "interaction.duration_ms",
+                  "value": {
+                    "intValue": "2931"
+                  }
+                }
+              ],
+              "status": {},
+              "flags": 257
+            },
+            {
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade000000000032",
+              "parentSpanId": "fade000000000025",
+              "name": "claude_code.llm_request",
+              "kind": 1,
+              "startTimeUnixNano": "1795471452573000000",
+              "endTimeUnixNano": "1795471453144735292",
+              "attributes": [
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "fixture-builder"
+                  }
+                },
+                {
+                  "key": "user.id",
+                  "value": {
+                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                  }
+                },
+                {
+                  "key": "session.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
+                  }
+                },
+                {
+                  "key": "organization.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
+                  }
+                },
+                {
+                  "key": "user.email",
+                  "value": {
+                    "stringValue": "scrubbed-email-1"
+                  }
+                },
+                {
+                  "key": "user.account_uuid",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
+                  }
+                },
+                {
+                  "key": "user.account_id",
+                  "value": {
+                    "stringValue": "user_scrubbed0001"
+                  }
+                },
+                {
+                  "key": "anthropic.provider",
+                  "value": {
+                    "stringValue": "firstParty"
+                  }
+                },
+                {
+                  "key": "anthropic.custom_base_url",
+                  "value": {
+                    "boolValue": false
+                  }
+                },
+                {
+                  "key": "anthropic.plan",
+                  "value": {
+                    "stringValue": "max"
+                  }
+                },
+                {
+                  "key": "terminal.type",
+                  "value": {
+                    "stringValue": "xterm-256color"
+                  }
+                },
+                {
+                  "key": "gen_ai.provider.name",
+                  "value": {
+                    "stringValue": "anthropic"
+                  }
+                },
+                {
+                  "key": "span.type",
+                  "value": {
+                    "stringValue": "llm_request"
+                  }
+                },
+                {
+                  "key": "model",
+                  "value": {
+                    "stringValue": "claude-haiku-5-5"
+                  }
+                },
+                {
+                  "key": "gen_ai.system",
+                  "value": {
+                    "stringValue": "anthropic"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": {
+                    "stringValue": "claude-haiku-5-5"
+                  }
+                },
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
+                  "key": "llm_request.context",
+                  "value": {
+                    "stringValue": "tool"
+                  }
+                },
+                {
+                  "key": "speed",
+                  "value": {
+                    "stringValue": "normal"
+                  }
+                },
+                {
+                  "key": "gen_ai.conversation.id",
+                  "value": {
+                    "stringValue": "afade000000000001"
+                  }
+                },
+                {
+                  "key": "query_source_safe",
+                  "value": {
+                    "stringValue": "agent.builtin.general-purpose"
+                  }
+                },
+                {
+                  "key": "agent_id",
+                  "value": {
+                    "stringValue": "afade000000000001"
                   }
                 },
                 {
                   "key": "duration_ms",
                   "value": {
-                    "intValue": "105"
+                    "intValue": "572"
                   }
+                },
+                {
+                  "key": "input_tokens",
+                  "value": {
+                    "intValue": "2"
+                  }
+                },
+                {
+                  "key": "output_tokens",
+                  "value": {
+                    "intValue": "40"
+                  }
+                },
+                {
+                  "key": "cache_read_tokens",
+                  "value": {
+                    "intValue": "10517"
+                  }
+                },
+                {
+                  "key": "cache_creation_tokens",
+                  "value": {
+                    "intValue": "1643"
+                  }
+                },
+                {
+                  "key": "success",
+                  "value": {
+                    "boolValue": true
+                  }
+                },
+                {
+                  "key": "attempt",
+                  "value": {
+                    "intValue": "1"
+                  }
+                },
+                {
+                  "key": "request_id",
+                  "value": {
+                    "stringValue": "req_011FIXTURE00000000000010"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.id",
+                  "value": {
+                    "stringValue": "req_011FIXTURE00000000000010"
+                  }
+                },
+                {
+                  "key": "client_request_id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000001b"
+                  }
+                },
+                {
+                  "key": "ttft_ms",
+                  "value": {
+                    "intValue": "388"
+                  }
+                },
+                {
+                  "key": "first_content_ms",
+                  "value": {
+                    "intValue": "388"
+                  }
+                },
+                {
+                  "key": "effort",
+                  "value": {
+                    "stringValue": "medium"
+                  }
+                },
+                {
+                  "key": "stop_reason",
+                  "value": {
+                    "stringValue": "end_turn"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.finish_reasons",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "end_turn"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": {
+                    "intValue": "12162"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": {
+                    "intValue": "40"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.cache_read.input_tokens",
+                  "value": {
+                    "intValue": "10517"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.cache_write.input_tokens",
+                  "value": {
+                    "intValue": "1643"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.model",
+                  "value": {
+                    "stringValue": "claude-haiku-5-5"
+                  }
+                }
+              ],
+              "events": [
+                {
+                  "timeUnixNano": "1795471452574020292",
+                  "name": "gen_ai.request.attempt",
+                  "attributes": [
+                    {
+                      "key": "attempt",
+                      "value": {
+                        "intValue": "1"
+                      }
+                    },
+                    {
+                      "key": "client_request_id",
+                      "value": {
+                        "stringValue": "00000000-0000-4000-8000-00000000001b"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "links": [
+                {
+                  "traceId": "fade000000000000000000000000000e",
+                  "spanId": "fade000000000033",
+                  "attributes": [
+                    {
+                      "key": "link.type",
+                      "value": {
+                        "stringValue": "parent_of"
+                      }
+                    }
+                  ],
+                  "flags": 769
                 }
               ],
               "status": {},

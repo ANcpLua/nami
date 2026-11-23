@@ -36,7 +36,7 @@
           {
             "key": "service.version",
             "value": {
-              "stringValue": "2.1.325"
+              "stringValue": "2.1.331"
             }
           }
         ]
@@ -45,11 +45,11 @@
         {
           "scope": {
             "name": "com.anthropic.claude_code.events",
-            "version": "2.1.325"
+            "version": "2.1.331"
           },
           "logRecords": [
             {
-              "timeUnixNano": "1794746006372000000",
+              "timeUnixNano": "1795471452558000000",
               "body": {
                 "stringValue": "claude_code.tool_decision"
               },
@@ -69,13 +69,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -87,7 +87,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -117,7 +117,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -129,19 +129,19 @@
                 {
                   "key": "event.timestamp",
                   "value": {
-                    "stringValue": "2026-11-15T12:33:26.372Z"
+                    "stringValue": "2026-11-23T22:04:12.558Z"
                   }
                 },
                 {
                   "key": "event.sequence",
                   "value": {
-                    "intValue": "20"
+                    "intValue": "11"
                   }
                 },
                 {
                   "key": "prompt.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000d"
+                    "stringValue": "00000000-0000-4000-8000-000000000016"
                   }
                 },
                 {
@@ -159,25 +159,19 @@
                 {
                   "key": "tool_name",
                   "value": {
-                    "stringValue": "Bash"
+                    "stringValue": "Read"
                   }
                 },
                 {
                   "key": "tool_use_id",
                   "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000005"
+                    "stringValue": "toolu_01FIXTURE000000000000008"
                   }
                 },
                 {
                   "key": "tool_source",
                   "value": {
                     "stringValue": "builtin"
-                  }
-                },
-                {
-                  "key": "tool_parameters",
-                  "value": {
-                    "stringValue": "{\"bash_command\":\"git\",\"full_command\":\"git commit -am \\\"Fix add in calc.py\\\" -m \\\"Co-Authored-By: Claude Haiku 5.5 <scrubbed-email-2>\\\" && git log --oneline -1\",\"description\":\"Commit the fix and show latest commit\"}"
                   }
                 },
                 {
@@ -189,17 +183,179 @@
                 {
                   "key": "request_id",
                   "value": {
-                    "stringValue": "req_011FIXTURE00000000000005"
+                    "stringValue": "req_011FIXTURE00000000000008"
+                  }
+                },
+                {
+                  "key": "agent_id",
+                  "value": {
+                    "stringValue": "afade000000000001"
                   }
                 }
               ],
               "flags": 1,
-              "traceId": "fade0000000000000000000000000003",
-              "spanId": "fade00000000001c",
-              "observedTimeUnixNano": "1794746006372000000"
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade00000000002b",
+              "observedTimeUnixNano": "1795471452558000000"
             },
             {
-              "timeUnixNano": "1794746006381000000",
+              "timeUnixNano": "1795471452561000000",
+              "body": {
+                "stringValue": "claude_code.tool_result"
+              },
+              "attributes": [
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "fixture-builder"
+                  }
+                },
+                {
+                  "key": "user.id",
+                  "value": {
+                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                  }
+                },
+                {
+                  "key": "session.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
+                  }
+                },
+                {
+                  "key": "organization.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
+                  }
+                },
+                {
+                  "key": "user.email",
+                  "value": {
+                    "stringValue": "scrubbed-email-1"
+                  }
+                },
+                {
+                  "key": "user.account_uuid",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
+                  }
+                },
+                {
+                  "key": "user.account_id",
+                  "value": {
+                    "stringValue": "user_scrubbed0001"
+                  }
+                },
+                {
+                  "key": "anthropic.provider",
+                  "value": {
+                    "stringValue": "firstParty"
+                  }
+                },
+                {
+                  "key": "anthropic.custom_base_url",
+                  "value": {
+                    "boolValue": false
+                  }
+                },
+                {
+                  "key": "anthropic.plan",
+                  "value": {
+                    "stringValue": "max"
+                  }
+                },
+                {
+                  "key": "terminal.type",
+                  "value": {
+                    "stringValue": "xterm-256color"
+                  }
+                },
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "tool_result"
+                  }
+                },
+                {
+                  "key": "event.timestamp",
+                  "value": {
+                    "stringValue": "2026-11-23T22:04:12.561Z"
+                  }
+                },
+                {
+                  "key": "event.sequence",
+                  "value": {
+                    "intValue": "12"
+                  }
+                },
+                {
+                  "key": "prompt.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-000000000016"
+                  }
+                },
+                {
+                  "key": "tool_name",
+                  "value": {
+                    "stringValue": "Read"
+                  }
+                },
+                {
+                  "key": "tool_use_id",
+                  "value": {
+                    "stringValue": "toolu_01FIXTURE000000000000008"
+                  }
+                },
+                {
+                  "key": "success",
+                  "value": {
+                    "stringValue": "true"
+                  }
+                },
+                {
+                  "key": "duration_ms",
+                  "value": {
+                    "stringValue": "2"
+                  }
+                },
+                {
+                  "key": "tool_input",
+                  "value": {
+                    "stringValue": "{\"file_path\":\"/workspace/calc/test_calc.py\"}"
+                  }
+                },
+                {
+                  "key": "tool_input_size_bytes",
+                  "value": {
+                    "stringValue": "66"
+                  }
+                },
+                {
+                  "key": "tool_result_size_bytes",
+                  "value": {
+                    "stringValue": "296"
+                  }
+                },
+                {
+                  "key": "request_id",
+                  "value": {
+                    "stringValue": "req_011FIXTURE00000000000008"
+                  }
+                },
+                {
+                  "key": "agent_id",
+                  "value": {
+                    "stringValue": "afade000000000001"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade000000000025",
+              "observedTimeUnixNano": "1795471452561000000"
+            },
+            {
+              "timeUnixNano": "1795471452566000000",
               "body": {
                 "stringValue": "claude_code.api_request"
               },
@@ -219,13 +375,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -237,7 +393,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -267,7 +423,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -279,19 +435,19 @@
                 {
                   "key": "event.timestamp",
                   "value": {
-                    "stringValue": "2026-11-15T12:33:26.381Z"
+                    "stringValue": "2026-11-23T22:04:12.566Z"
                   }
                 },
                 {
                   "key": "event.sequence",
                   "value": {
-                    "intValue": "21"
+                    "intValue": "13"
                   }
                 },
                 {
                   "key": "prompt.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000d"
+                    "stringValue": "00000000-0000-4000-8000-000000000016"
                   }
                 },
                 {
@@ -309,19 +465,229 @@
                 {
                   "key": "output_tokens",
                   "value": {
-                    "intValue": "574"
+                    "intValue": "147"
                   }
                 },
                 {
                   "key": "cache_read_tokens",
                   "value": {
-                    "intValue": "19192"
+                    "intValue": "6843"
                   }
                 },
                 {
                   "key": "cache_creation_tokens",
                   "value": {
-                    "intValue": "191"
+                    "intValue": "3674"
+                  }
+                },
+                {
+                  "key": "cache_creation_5m_tokens",
+                  "value": {
+                    "intValue": "3674"
+                  }
+                },
+                {
+                  "key": "cache_creation_1h_tokens",
+                  "value": {
+                    "intValue": "0"
+                  }
+                },
+                {
+                  "key": "cost_usd",
+                  "value": {
+                    "doubleValue": 0.0006013800000000001
+                  }
+                },
+                {
+                  "key": "cost_usd_micros",
+                  "value": {
+                    "intValue": "601"
+                  }
+                },
+                {
+                  "key": "duration_ms",
+                  "value": {
+                    "intValue": "1066"
+                  }
+                },
+                {
+                  "key": "ttft_ms",
+                  "value": {
+                    "intValue": "690"
+                  }
+                },
+                {
+                  "key": "request_id",
+                  "value": {
+                    "stringValue": "req_011FIXTURE00000000000008"
+                  }
+                },
+                {
+                  "key": "client_request_id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-000000000019"
+                  }
+                },
+                {
+                  "key": "speed",
+                  "value": {
+                    "stringValue": "normal"
+                  }
+                },
+                {
+                  "key": "query_source",
+                  "value": {
+                    "stringValue": "agent:builtin:general-purpose"
+                  }
+                },
+                {
+                  "key": "effort",
+                  "value": {
+                    "stringValue": "medium"
+                  }
+                },
+                {
+                  "key": "agent.name",
+                  "value": {
+                    "stringValue": "general-purpose"
+                  }
+                },
+                {
+                  "key": "agent_id",
+                  "value": {
+                    "stringValue": "afade000000000001"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade000000000025",
+              "observedTimeUnixNano": "1795471452566000000"
+            },
+            {
+              "timeUnixNano": "1795471452840000000",
+              "body": {
+                "stringValue": "claude_code.api_request"
+              },
+              "attributes": [
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "fixture-builder"
+                  }
+                },
+                {
+                  "key": "user.id",
+                  "value": {
+                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                  }
+                },
+                {
+                  "key": "session.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
+                  }
+                },
+                {
+                  "key": "organization.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
+                  }
+                },
+                {
+                  "key": "user.email",
+                  "value": {
+                    "stringValue": "scrubbed-email-1"
+                  }
+                },
+                {
+                  "key": "user.account_uuid",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
+                  }
+                },
+                {
+                  "key": "user.account_id",
+                  "value": {
+                    "stringValue": "user_scrubbed0001"
+                  }
+                },
+                {
+                  "key": "anthropic.provider",
+                  "value": {
+                    "stringValue": "firstParty"
+                  }
+                },
+                {
+                  "key": "anthropic.custom_base_url",
+                  "value": {
+                    "boolValue": false
+                  }
+                },
+                {
+                  "key": "anthropic.plan",
+                  "value": {
+                    "stringValue": "max"
+                  }
+                },
+                {
+                  "key": "terminal.type",
+                  "value": {
+                    "stringValue": "xterm-256color"
+                  }
+                },
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "api_request"
+                  }
+                },
+                {
+                  "key": "event.timestamp",
+                  "value": {
+                    "stringValue": "2026-11-23T22:04:12.840Z"
+                  }
+                },
+                {
+                  "key": "event.sequence",
+                  "value": {
+                    "intValue": "14"
+                  }
+                },
+                {
+                  "key": "prompt.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-000000000016"
+                  }
+                },
+                {
+                  "key": "model",
+                  "value": {
+                    "stringValue": "claude-haiku-5-5"
+                  }
+                },
+                {
+                  "key": "input_tokens",
+                  "value": {
+                    "intValue": "2"
+                  }
+                },
+                {
+                  "key": "output_tokens",
+                  "value": {
+                    "intValue": "164"
+                  }
+                },
+                {
+                  "key": "cache_read_tokens",
+                  "value": {
+                    "intValue": "19673"
+                  }
+                },
+                {
+                  "key": "cache_creation_tokens",
+                  "value": {
+                    "intValue": "615"
                   }
                 },
                 {
@@ -333,43 +699,43 @@
                 {
                   "key": "cache_creation_1h_tokens",
                   "value": {
-                    "intValue": "191"
+                    "intValue": "615"
                   }
                 },
                 {
                   "key": "cost_usd",
                   "value": {
-                    "doubleValue": 0.0005173199999999999
+                    "doubleValue": 0.00040193
                   }
                 },
                 {
                   "key": "cost_usd_micros",
                   "value": {
-                    "intValue": "517"
+                    "intValue": "402"
                   }
                 },
                 {
                   "key": "duration_ms",
                   "value": {
-                    "intValue": "3683"
+                    "intValue": "1384"
                   }
                 },
                 {
                   "key": "ttft_ms",
                   "value": {
-                    "intValue": "1641"
+                    "intValue": "451"
                   }
                 },
                 {
                   "key": "request_id",
                   "value": {
-                    "stringValue": "req_011FIXTURE00000000000005"
+                    "stringValue": "req_011FIXTURE00000000000009"
                   }
                 },
                 {
                   "key": "client_request_id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000014"
+                    "stringValue": "00000000-0000-4000-8000-00000000001a"
                   }
                 },
                 {
@@ -392,12 +758,12 @@
                 }
               ],
               "flags": 1,
-              "traceId": "fade0000000000000000000000000003",
-              "spanId": "fade000000000007",
-              "observedTimeUnixNano": "1794746006381000000"
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade000000000022",
+              "observedTimeUnixNano": "1795471452840000000"
             },
             {
-              "timeUnixNano": "1794746006381000000",
+              "timeUnixNano": "1795471452840000000",
               "body": {
                 "stringValue": "claude_code.assistant_response"
               },
@@ -417,13 +783,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -435,7 +801,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -465,7 +831,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -477,25 +843,25 @@
                 {
                   "key": "event.timestamp",
                   "value": {
-                    "stringValue": "2026-11-15T12:33:26.381Z"
+                    "stringValue": "2026-11-23T22:04:12.840Z"
                   }
                 },
                 {
                   "key": "event.sequence",
                   "value": {
-                    "intValue": "22"
+                    "intValue": "15"
                   }
                 },
                 {
                   "key": "prompt.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000d"
+                    "stringValue": "00000000-0000-4000-8000-000000000016"
                   }
                 },
                 {
                   "key": "response_length",
                   "value": {
-                    "intValue": "101"
+                    "intValue": "171"
                   }
                 },
                 {
@@ -507,13 +873,13 @@
                 {
                   "key": "request_id",
                   "value": {
-                    "stringValue": "req_011FIXTURE00000000000005"
+                    "stringValue": "req_011FIXTURE00000000000009"
                   }
                 },
                 {
                   "key": "message.uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000015"
+                    "stringValue": "00000000-0000-4000-8000-00000000001c"
                   }
                 },
                 {
@@ -530,14 +896,14 @@
                 }
               ],
               "flags": 1,
-              "traceId": "fade0000000000000000000000000003",
-              "spanId": "fade000000000007",
-              "observedTimeUnixNano": "1794746006381000000"
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade000000000022",
+              "observedTimeUnixNano": "1795471452840000000"
             },
             {
-              "timeUnixNano": "1794746006467000000",
+              "timeUnixNano": "1795471453145000000",
               "body": {
-                "stringValue": "claude_code.tool_result"
+                "stringValue": "claude_code.api_request"
               },
               "attributes": [
                 {
@@ -555,13 +921,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000c"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -573,7 +939,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -603,110 +969,584 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
                   "key": "event.name",
                   "value": {
-                    "stringValue": "tool_result"
+                    "stringValue": "api_request"
                   }
                 },
                 {
                   "key": "event.timestamp",
                   "value": {
-                    "stringValue": "2026-11-15T12:33:26.467Z"
+                    "stringValue": "2026-11-23T22:04:13.145Z"
                   }
                 },
                 {
                   "key": "event.sequence",
                   "value": {
-                    "intValue": "23"
+                    "intValue": "16"
                   }
                 },
                 {
                   "key": "prompt.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000000d"
+                    "stringValue": "00000000-0000-4000-8000-000000000016"
                   }
                 },
                 {
-                  "key": "tool_name",
+                  "key": "model",
                   "value": {
-                    "stringValue": "Bash"
+                    "stringValue": "claude-haiku-5-5"
                   }
                 },
                 {
-                  "key": "tool_use_id",
+                  "key": "input_tokens",
                   "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000005"
+                    "intValue": "2"
                   }
                 },
                 {
-                  "key": "success",
+                  "key": "output_tokens",
                   "value": {
-                    "stringValue": "true"
+                    "intValue": "40"
+                  }
+                },
+                {
+                  "key": "cache_read_tokens",
+                  "value": {
+                    "intValue": "10517"
+                  }
+                },
+                {
+                  "key": "cache_creation_tokens",
+                  "value": {
+                    "intValue": "1643"
+                  }
+                },
+                {
+                  "key": "cache_creation_5m_tokens",
+                  "value": {
+                    "intValue": "1643"
+                  }
+                },
+                {
+                  "key": "cache_creation_1h_tokens",
+                  "value": {
+                    "intValue": "0"
+                  }
+                },
+                {
+                  "key": "cost_usd",
+                  "value": {
+                    "doubleValue": 0.000330745
+                  }
+                },
+                {
+                  "key": "cost_usd_micros",
+                  "value": {
+                    "intValue": "331"
                   }
                 },
                 {
                   "key": "duration_ms",
                   "value": {
-                    "stringValue": "93"
+                    "intValue": "570"
                   }
                 },
                 {
-                  "key": "tool_parameters",
+                  "key": "ttft_ms",
                   "value": {
-                    "stringValue": "{\"bash_command\":\"git\",\"full_command\":\"git commit -am \\\"Fix add in calc.py\\\" -m \\\"Co-Authored-By: Claude Haiku 5.5 <scrubbed-email-2>\\\" && git log --oneline -1\",\"description\":\"Commit the fix and show latest commit\",\"git_commit_id\":\"c0ffee0000000000000000000000000000000001\",\"git_branch\":\"main\"}"
-                  }
-                },
-                {
-                  "key": "tool_input",
-                  "value": {
-                    "stringValue": "{\"command\":\"git commit -am \\\"Fix add in calc.py\\\" -m \\\"Co-Authored-By: Claude Haiku 5.5 <scrubbed-email-2>\\\" && git log --oneline -1\",\"description\":\"Commit the fix and show latest commit\"}"
-                  }
-                },
-                {
-                  "key": "tool_input_size_bytes",
-                  "value": {
-                    "stringValue": "193"
-                  }
-                },
-                {
-                  "key": "tool_result_size_bytes",
-                  "value": {
-                    "stringValue": "107"
-                  }
-                },
-                {
-                  "key": "vcs.ref.head.revision",
-                  "value": {
-                    "stringValue": "c0ffee0000000000000000000000000000000001"
-                  }
-                },
-                {
-                  "key": "vcs.ref.head.name",
-                  "value": {
-                    "stringValue": "main"
-                  }
-                },
-                {
-                  "key": "vcs.ref.head.type",
-                  "value": {
-                    "stringValue": "branch"
+                    "intValue": "388"
                   }
                 },
                 {
                   "key": "request_id",
                   "value": {
-                    "stringValue": "req_011FIXTURE00000000000005"
+                    "stringValue": "req_011FIXTURE00000000000010"
+                  }
+                },
+                {
+                  "key": "client_request_id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000001b"
+                  }
+                },
+                {
+                  "key": "speed",
+                  "value": {
+                    "stringValue": "normal"
+                  }
+                },
+                {
+                  "key": "query_source",
+                  "value": {
+                    "stringValue": "agent:builtin:general-purpose"
+                  }
+                },
+                {
+                  "key": "effort",
+                  "value": {
+                    "stringValue": "medium"
+                  }
+                },
+                {
+                  "key": "agent.name",
+                  "value": {
+                    "stringValue": "general-purpose"
+                  }
+                },
+                {
+                  "key": "agent_id",
+                  "value": {
+                    "stringValue": "afade000000000001"
                   }
                 }
               ],
               "flags": 1,
-              "traceId": "fade0000000000000000000000000003",
-              "spanId": "fade000000000007",
-              "observedTimeUnixNano": "1794746006467000000"
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade000000000025",
+              "observedTimeUnixNano": "1795471453145000000"
+            },
+            {
+              "timeUnixNano": "1795471453145000000",
+              "body": {
+                "stringValue": "claude_code.assistant_response"
+              },
+              "attributes": [
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "fixture-builder"
+                  }
+                },
+                {
+                  "key": "user.id",
+                  "value": {
+                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                  }
+                },
+                {
+                  "key": "session.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
+                  }
+                },
+                {
+                  "key": "organization.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
+                  }
+                },
+                {
+                  "key": "user.email",
+                  "value": {
+                    "stringValue": "scrubbed-email-1"
+                  }
+                },
+                {
+                  "key": "user.account_uuid",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
+                  }
+                },
+                {
+                  "key": "user.account_id",
+                  "value": {
+                    "stringValue": "user_scrubbed0001"
+                  }
+                },
+                {
+                  "key": "anthropic.provider",
+                  "value": {
+                    "stringValue": "firstParty"
+                  }
+                },
+                {
+                  "key": "anthropic.custom_base_url",
+                  "value": {
+                    "boolValue": false
+                  }
+                },
+                {
+                  "key": "anthropic.plan",
+                  "value": {
+                    "stringValue": "max"
+                  }
+                },
+                {
+                  "key": "terminal.type",
+                  "value": {
+                    "stringValue": "xterm-256color"
+                  }
+                },
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "assistant_response"
+                  }
+                },
+                {
+                  "key": "event.timestamp",
+                  "value": {
+                    "stringValue": "2026-11-23T22:04:13.145Z"
+                  }
+                },
+                {
+                  "key": "event.sequence",
+                  "value": {
+                    "intValue": "17"
+                  }
+                },
+                {
+                  "key": "prompt.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-000000000016"
+                  }
+                },
+                {
+                  "key": "response_length",
+                  "value": {
+                    "intValue": "85"
+                  }
+                },
+                {
+                  "key": "response",
+                  "value": {
+                    "stringValue": "<REDACTED>"
+                  }
+                },
+                {
+                  "key": "request_id",
+                  "value": {
+                    "stringValue": "req_011FIXTURE00000000000010"
+                  }
+                },
+                {
+                  "key": "message.uuid",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000001d"
+                  }
+                },
+                {
+                  "key": "model",
+                  "value": {
+                    "stringValue": "claude-haiku-5-5"
+                  }
+                },
+                {
+                  "key": "query_source",
+                  "value": {
+                    "stringValue": "agent:builtin:general-purpose"
+                  }
+                },
+                {
+                  "key": "agent_id",
+                  "value": {
+                    "stringValue": "afade000000000001"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade000000000025",
+              "observedTimeUnixNano": "1795471453145000000"
+            },
+            {
+              "timeUnixNano": "1795471453151000000",
+              "body": {
+                "stringValue": "claude_code.subagent_completed"
+              },
+              "attributes": [
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "fixture-builder"
+                  }
+                },
+                {
+                  "key": "user.id",
+                  "value": {
+                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                  }
+                },
+                {
+                  "key": "session.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
+                  }
+                },
+                {
+                  "key": "organization.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
+                  }
+                },
+                {
+                  "key": "user.email",
+                  "value": {
+                    "stringValue": "scrubbed-email-1"
+                  }
+                },
+                {
+                  "key": "user.account_uuid",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
+                  }
+                },
+                {
+                  "key": "user.account_id",
+                  "value": {
+                    "stringValue": "user_scrubbed0001"
+                  }
+                },
+                {
+                  "key": "anthropic.provider",
+                  "value": {
+                    "stringValue": "firstParty"
+                  }
+                },
+                {
+                  "key": "anthropic.custom_base_url",
+                  "value": {
+                    "boolValue": false
+                  }
+                },
+                {
+                  "key": "anthropic.plan",
+                  "value": {
+                    "stringValue": "max"
+                  }
+                },
+                {
+                  "key": "terminal.type",
+                  "value": {
+                    "stringValue": "xterm-256color"
+                  }
+                },
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "subagent_completed"
+                  }
+                },
+                {
+                  "key": "event.timestamp",
+                  "value": {
+                    "stringValue": "2026-11-23T22:04:13.151Z"
+                  }
+                },
+                {
+                  "key": "event.sequence",
+                  "value": {
+                    "intValue": "18"
+                  }
+                },
+                {
+                  "key": "prompt.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-000000000016"
+                  }
+                },
+                {
+                  "key": "agent_type",
+                  "value": {
+                    "stringValue": "general-purpose"
+                  }
+                },
+                {
+                  "key": "agent.source",
+                  "value": {
+                    "stringValue": "built-in"
+                  }
+                },
+                {
+                  "key": "is_built_in",
+                  "value": {
+                    "boolValue": true
+                  }
+                },
+                {
+                  "key": "is_async",
+                  "value": {
+                    "boolValue": true
+                  }
+                },
+                {
+                  "key": "total_tokens",
+                  "value": {
+                    "intValue": "12202"
+                  }
+                },
+                {
+                  "key": "total_tool_uses",
+                  "value": {
+                    "intValue": "2"
+                  }
+                },
+                {
+                  "key": "duration_ms",
+                  "value": {
+                    "intValue": "1741"
+                  }
+                },
+                {
+                  "key": "model",
+                  "value": {
+                    "stringValue": "claude-haiku-5-5"
+                  }
+                },
+                {
+                  "key": "final_model",
+                  "value": {
+                    "stringValue": "claude-haiku-5-5"
+                  }
+                },
+                {
+                  "key": "model_swapped",
+                  "value": {
+                    "boolValue": false
+                  }
+                },
+                {
+                  "key": "agent_id",
+                  "value": {
+                    "stringValue": "afade000000000001"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "fade000000000000000000000000000a",
+              "spanId": "fade000000000025",
+              "observedTimeUnixNano": "1795471453151000000"
+            },
+            {
+              "timeUnixNano": "1795471453177000000",
+              "body": {
+                "stringValue": "claude_code.user_prompt"
+              },
+              "attributes": [
+                {
+                  "key": "gen_ai.agent.name",
+                  "value": {
+                    "stringValue": "fixture-builder"
+                  }
+                },
+                {
+                  "key": "user.id",
+                  "value": {
+                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                  }
+                },
+                {
+                  "key": "session.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
+                  }
+                },
+                {
+                  "key": "organization.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
+                  }
+                },
+                {
+                  "key": "user.email",
+                  "value": {
+                    "stringValue": "scrubbed-email-1"
+                  }
+                },
+                {
+                  "key": "user.account_uuid",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
+                  }
+                },
+                {
+                  "key": "user.account_id",
+                  "value": {
+                    "stringValue": "user_scrubbed0001"
+                  }
+                },
+                {
+                  "key": "anthropic.provider",
+                  "value": {
+                    "stringValue": "firstParty"
+                  }
+                },
+                {
+                  "key": "anthropic.custom_base_url",
+                  "value": {
+                    "boolValue": false
+                  }
+                },
+                {
+                  "key": "anthropic.plan",
+                  "value": {
+                    "stringValue": "max"
+                  }
+                },
+                {
+                  "key": "terminal.type",
+                  "value": {
+                    "stringValue": "xterm-256color"
+                  }
+                },
+                {
+                  "key": "event.name",
+                  "value": {
+                    "stringValue": "user_prompt"
+                  }
+                },
+                {
+                  "key": "event.timestamp",
+                  "value": {
+                    "stringValue": "2026-11-23T22:04:13.177Z"
+                  }
+                },
+                {
+                  "key": "event.sequence",
+                  "value": {
+                    "intValue": "19"
+                  }
+                },
+                {
+                  "key": "prompt.id",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000001e"
+                  }
+                },
+                {
+                  "key": "prompt_length",
+                  "value": {
+                    "stringValue": "810"
+                  }
+                },
+                {
+                  "key": "prompt",
+                  "value": {
+                    "stringValue": "<REDACTED>"
+                  }
+                },
+                {
+                  "key": "prompt_text",
+                  "value": {
+                    "stringValue": "<REDACTED>"
+                  }
+                },
+                {
+                  "key": "message.uuid",
+                  "value": {
+                    "stringValue": "00000000-0000-4000-8000-00000000001f"
+                  }
+                }
+              ],
+              "flags": 1,
+              "traceId": "fade000000000000000000000000000f",
+              "spanId": "fade000000000034",
+              "observedTimeUnixNano": "1795471453177000000"
             }
           ]
         }

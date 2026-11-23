@@ -8,16 +8,16 @@ namespace Nami.IntegrationTests.ClaudeCode;
 internal sealed record ClaudeCodeExport(string Signal, byte[] Payload);
 
 /// <summary>
-///     A scrubbed capture of Claude Code 2.1.325's OTLP/HTTP export in
+///     A scrubbed capture of Claude Code 2.1.331's OTLP/HTTP export in
 ///     <c>tests/Nami.IntegrationTests/Fixtures/ClaudeCodeOtlp</c> (see its README): the protobuf bodies in
 ///     arrival order, as <c>manifest.json</c> lists them, each checked against the manifest's SHA-256.
 /// </summary>
 internal static class ClaudeCodeCapture
 {
-    /// <summary>Three signed-in sessions on the observer's Mac: 19 logs, 18 metrics and 16 traces bodies.</summary>
+    /// <summary>Three signed-in sessions on the observer's Mac: 14 logs, 10 metrics and 11 traces bodies.</summary>
     internal const string SignedIn = "signed-in";
 
-    /// <summary>Two sessions in a container without a credential: 6 bodies.</summary>
+    /// <summary>Two sessions without a credential, which never reach the API: 6 bodies.</summary>
     internal const string NotSignedIn = "not-signed-in";
 
     internal static IReadOnlyList<ClaudeCodeExport> Load(string capture)

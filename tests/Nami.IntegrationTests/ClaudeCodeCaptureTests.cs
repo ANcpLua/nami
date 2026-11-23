@@ -16,23 +16,23 @@ namespace Nami.IntegrationTests;
 [TestCategory("Integration")]
 public sealed class ClaudeCodeCaptureTests
 {
-    private const string SessionOne = "00000000-0000-4000-8000-00000000000c";
+    private const string SessionOne = "00000000-0000-4000-8000-000000000009";
     private const string PassingTestRun = "toolu_01FIXTURE000000000000004";
     private const string Sentinel = "NAMI-SENTINEL-";
     private static readonly string[] s_sessions = ["s1", "s2", "s3"];
-    private static readonly string[] s_bodiesOfThePassingRun = ["00013-traces.pb", "00014-logs.pb"];
+    private static readonly string[] s_bodiesOfThePassingRun = ["00005-traces.pb", "00006-logs.pb"];
 
     [TestMethod]
-    public void SignedIn_FiftyThreeBodies_InArrivalOrderAsTheManifestRecordsThem()
+    public void SignedIn_ThirtyFiveBodies_InArrivalOrderAsTheManifestRecordsThem()
     {
         var bodies = ClaudeCodeCapture.SignedIn();
-        Assert.HasCount(53, bodies);
-        Assert.AreEqual(19, bodies.Count(static b => b.Signal == "logs"));
-        Assert.AreEqual(18, bodies.Count(static b => b.Signal == "metrics"));
-        Assert.AreEqual(16, bodies.Count(static b => b.Signal == "traces"));
+        Assert.HasCount(35, bodies);
+        Assert.AreEqual(14, bodies.Count(static b => b.Signal == "logs"));
+        Assert.AreEqual(10, bodies.Count(static b => b.Signal == "metrics"));
+        Assert.AreEqual(11, bodies.Count(static b => b.Signal == "traces"));
         Assert.AreSequenceEqual(s_sessions, bodies.Select(static b => b.Session).Distinct().ToArray());
         Assert.AreEqual("00001-logs.pb", bodies[0].Name);
-        Assert.AreEqual("00053-metrics.pb", bodies[^1].Name);
+        Assert.AreEqual("00035-metrics.pb", bodies[^1].Name);
     }
 
     [TestMethod]

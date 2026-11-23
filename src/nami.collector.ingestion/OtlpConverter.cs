@@ -503,7 +503,7 @@ internal static partial class OtlpConverter
             TraceId = RequireIdOrAbsent(log.TraceId, 16, "trace_id"),
             SpanId = RequireIdOrAbsent(log.SpanId, 8, "span_id"),
             // The event-name field, the body and the event.name attribute are stored as they arrive. A sender that
-            // names its events only in the attribute (Claude Code 2.1.325) leaves this field empty; a reader that
+            // names its events only in the attribute (Claude Code 2.1.331) leaves this field empty; a reader that
             // needs one name derives it from both when it reads.
             EventName = KeptOrNull(log.EventName),
             Flags = log.Flags,

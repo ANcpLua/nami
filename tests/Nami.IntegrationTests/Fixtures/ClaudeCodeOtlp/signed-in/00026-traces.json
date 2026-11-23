@@ -36,7 +36,7 @@
           {
             "key": "service.version",
             "value": {
-              "stringValue": "2.1.325"
+              "stringValue": "2.1.331"
             }
           }
         ]
@@ -49,13 +49,13 @@
           },
           "spans": [
             {
-              "traceId": "fade000000000000000000000000000a",
-              "spanId": "fade000000000029",
-              "parentSpanId": "fade00000000002a",
+              "traceId": "fade000000000000000000000000000f",
+              "spanId": "fade00000000004d",
+              "parentSpanId": "fade00000000004e",
               "name": "claude_code.tool.blocked_on_user",
-              "kind": "SPAN_KIND_INTERNAL",
-              "startTimeUnixNano": "1794746016994000000",
-              "endTimeUnixNano": "1794746017010056250",
+              "kind": 1,
+              "startTimeUnixNano": "1795471457953000000",
+              "endTimeUnixNano": "1795471457958910708",
               "attributes": [
                 {
                   "key": "gen_ai.agent.name",
@@ -72,13 +72,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000018"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -90,7 +90,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -120,7 +120,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -138,13 +138,13 @@
                 {
                   "key": "gen_ai.conversation.id",
                   "value": {
-                    "stringValue": "afade000000000001"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "duration_ms",
                   "value": {
-                    "intValue": "16"
+                    "intValue": "6"
                   }
                 },
                 {
@@ -164,400 +164,13 @@
               "flags": 257
             },
             {
-              "traceId": "fade000000000000000000000000000a",
-              "spanId": "fade00000000002b",
-              "parentSpanId": "fade00000000002a",
-              "name": "claude_code.tool.execution",
-              "kind": "SPAN_KIND_INTERNAL",
-              "startTimeUnixNano": "1794746017010000000",
-              "endTimeUnixNano": "1794746017017682792",
-              "attributes": [
-                {
-                  "key": "gen_ai.agent.name",
-                  "value": {
-                    "stringValue": "fixture-builder"
-                  }
-                },
-                {
-                  "key": "user.id",
-                  "value": {
-                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
-                  }
-                },
-                {
-                  "key": "session.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000018"
-                  }
-                },
-                {
-                  "key": "organization.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
-                  }
-                },
-                {
-                  "key": "user.email",
-                  "value": {
-                    "stringValue": "scrubbed-email-1"
-                  }
-                },
-                {
-                  "key": "user.account_uuid",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
-                  }
-                },
-                {
-                  "key": "user.account_id",
-                  "value": {
-                    "stringValue": "user_scrubbed0001"
-                  }
-                },
-                {
-                  "key": "anthropic.provider",
-                  "value": {
-                    "stringValue": "firstParty"
-                  }
-                },
-                {
-                  "key": "anthropic.custom_base_url",
-                  "value": {
-                    "boolValue": false
-                  }
-                },
-                {
-                  "key": "anthropic.plan",
-                  "value": {
-                    "stringValue": "max"
-                  }
-                },
-                {
-                  "key": "terminal.type",
-                  "value": {
-                    "stringValue": "ghostty"
-                  }
-                },
-                {
-                  "key": "gen_ai.provider.name",
-                  "value": {
-                    "stringValue": "anthropic"
-                  }
-                },
-                {
-                  "key": "span.type",
-                  "value": {
-                    "stringValue": "tool.execution"
-                  }
-                },
-                {
-                  "key": "gen_ai.conversation.id",
-                  "value": {
-                    "stringValue": "afade000000000001"
-                  }
-                },
-                {
-                  "key": "tool_use_id",
-                  "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000007"
-                  }
-                },
-                {
-                  "key": "gen_ai.tool.call.id",
-                  "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000007"
-                  }
-                },
-                {
-                  "key": "duration_ms",
-                  "value": {
-                    "intValue": "8"
-                  }
-                },
-                {
-                  "key": "success",
-                  "value": {
-                    "boolValue": true
-                  }
-                }
-              ],
-              "status": {},
-              "flags": 257
-            },
-            {
-              "traceId": "fade000000000000000000000000000a",
-              "spanId": "fade00000000002a",
-              "parentSpanId": "fade000000000026",
-              "name": "claude_code.tool",
-              "kind": "SPAN_KIND_INTERNAL",
-              "startTimeUnixNano": "1794746016994000000",
-              "endTimeUnixNano": "1794746017018521042",
-              "attributes": [
-                {
-                  "key": "gen_ai.agent.name",
-                  "value": {
-                    "stringValue": "fixture-builder"
-                  }
-                },
-                {
-                  "key": "user.id",
-                  "value": {
-                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
-                  }
-                },
-                {
-                  "key": "session.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000018"
-                  }
-                },
-                {
-                  "key": "organization.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
-                  }
-                },
-                {
-                  "key": "user.email",
-                  "value": {
-                    "stringValue": "scrubbed-email-1"
-                  }
-                },
-                {
-                  "key": "user.account_uuid",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
-                  }
-                },
-                {
-                  "key": "user.account_id",
-                  "value": {
-                    "stringValue": "user_scrubbed0001"
-                  }
-                },
-                {
-                  "key": "anthropic.provider",
-                  "value": {
-                    "stringValue": "firstParty"
-                  }
-                },
-                {
-                  "key": "anthropic.custom_base_url",
-                  "value": {
-                    "boolValue": false
-                  }
-                },
-                {
-                  "key": "anthropic.plan",
-                  "value": {
-                    "stringValue": "max"
-                  }
-                },
-                {
-                  "key": "terminal.type",
-                  "value": {
-                    "stringValue": "ghostty"
-                  }
-                },
-                {
-                  "key": "gen_ai.provider.name",
-                  "value": {
-                    "stringValue": "anthropic"
-                  }
-                },
-                {
-                  "key": "span.type",
-                  "value": {
-                    "stringValue": "tool"
-                  }
-                },
-                {
-                  "key": "tool_name",
-                  "value": {
-                    "stringValue": "Read"
-                  }
-                },
-                {
-                  "key": "tool_name_safe",
-                  "value": {
-                    "stringValue": "Read"
-                  }
-                },
-                {
-                  "key": "gen_ai.operation.name",
-                  "value": {
-                    "stringValue": "execute_tool"
-                  }
-                },
-                {
-                  "key": "gen_ai.tool.name",
-                  "value": {
-                    "stringValue": "Read"
-                  }
-                },
-                {
-                  "key": "gen_ai.conversation.id",
-                  "value": {
-                    "stringValue": "afade000000000001"
-                  }
-                },
-                {
-                  "key": "file_path",
-                  "value": {
-                    "stringValue": "/workspace/calc/calc.py"
-                  }
-                },
-                {
-                  "key": "agent_id",
-                  "value": {
-                    "stringValue": "afade000000000001"
-                  }
-                },
-                {
-                  "key": "tool_use_id",
-                  "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000007"
-                  }
-                },
-                {
-                  "key": "gen_ai.tool.call.id",
-                  "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000007"
-                  }
-                },
-                {
-                  "key": "duration_ms",
-                  "value": {
-                    "intValue": "24"
-                  }
-                }
-              ],
-              "status": {},
-              "flags": 257
-            },
-            {
-              "traceId": "fade000000000000000000000000000a",
-              "spanId": "fade00000000002c",
-              "parentSpanId": "fade00000000002d",
-              "name": "claude_code.tool.blocked_on_user",
-              "kind": "SPAN_KIND_INTERNAL",
-              "startTimeUnixNano": "1794746017248000000",
-              "endTimeUnixNano": "1794746017257023583",
-              "attributes": [
-                {
-                  "key": "gen_ai.agent.name",
-                  "value": {
-                    "stringValue": "fixture-builder"
-                  }
-                },
-                {
-                  "key": "user.id",
-                  "value": {
-                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
-                  }
-                },
-                {
-                  "key": "session.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000018"
-                  }
-                },
-                {
-                  "key": "organization.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
-                  }
-                },
-                {
-                  "key": "user.email",
-                  "value": {
-                    "stringValue": "scrubbed-email-1"
-                  }
-                },
-                {
-                  "key": "user.account_uuid",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
-                  }
-                },
-                {
-                  "key": "user.account_id",
-                  "value": {
-                    "stringValue": "user_scrubbed0001"
-                  }
-                },
-                {
-                  "key": "anthropic.provider",
-                  "value": {
-                    "stringValue": "firstParty"
-                  }
-                },
-                {
-                  "key": "anthropic.custom_base_url",
-                  "value": {
-                    "boolValue": false
-                  }
-                },
-                {
-                  "key": "anthropic.plan",
-                  "value": {
-                    "stringValue": "max"
-                  }
-                },
-                {
-                  "key": "terminal.type",
-                  "value": {
-                    "stringValue": "ghostty"
-                  }
-                },
-                {
-                  "key": "gen_ai.provider.name",
-                  "value": {
-                    "stringValue": "anthropic"
-                  }
-                },
-                {
-                  "key": "span.type",
-                  "value": {
-                    "stringValue": "tool.blocked_on_user"
-                  }
-                },
-                {
-                  "key": "gen_ai.conversation.id",
-                  "value": {
-                    "stringValue": "afade000000000001"
-                  }
-                },
-                {
-                  "key": "duration_ms",
-                  "value": {
-                    "intValue": "9"
-                  }
-                },
-                {
-                  "key": "decision",
-                  "value": {
-                    "stringValue": "accept"
-                  }
-                },
-                {
-                  "key": "source",
-                  "value": {
-                    "stringValue": "config"
-                  }
-                }
-              ],
-              "status": {},
-              "flags": 257
-            },
-            {
-              "traceId": "fade000000000000000000000000000a",
-              "spanId": "fade00000000002e",
-              "parentSpanId": "fade000000000026",
+              "traceId": "fade000000000000000000000000000f",
+              "spanId": "fade00000000004f",
+              "parentSpanId": "fade000000000034",
               "name": "claude_code.llm_request",
-              "kind": "SPAN_KIND_INTERNAL",
-              "startTimeUnixNano": "1794746015382000000",
-              "endTimeUnixNano": "1794746017264370375",
+              "kind": 1,
+              "startTimeUnixNano": "1795471457248000000",
+              "endTimeUnixNano": "1795471457962771458",
               "attributes": [
                 {
                   "key": "gen_ai.agent.name",
@@ -574,13 +187,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000018"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -592,7 +205,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -622,7 +235,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -656,9 +269,15 @@
                   }
                 },
                 {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
                   "key": "llm_request.context",
                   "value": {
-                    "stringValue": "tool"
+                    "stringValue": "interaction"
                   }
                 },
                 {
@@ -670,25 +289,19 @@
                 {
                   "key": "gen_ai.conversation.id",
                   "value": {
-                    "stringValue": "afade000000000001"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "query_source_safe",
                   "value": {
-                    "stringValue": "agent.builtin.general-purpose"
-                  }
-                },
-                {
-                  "key": "agent_id",
-                  "value": {
-                    "stringValue": "afade000000000001"
+                    "stringValue": "sdk"
                   }
                 },
                 {
                   "key": "duration_ms",
                   "value": {
-                    "intValue": "1882"
+                    "intValue": "715"
                   }
                 },
                 {
@@ -700,19 +313,19 @@
                 {
                   "key": "output_tokens",
                   "value": {
-                    "intValue": "139"
+                    "intValue": "117"
                   }
                 },
                 {
                   "key": "cache_read_tokens",
                   "value": {
-                    "intValue": "0"
+                    "intValue": "22339"
                   }
                 },
                 {
                   "key": "cache_creation_tokens",
                   "value": {
-                    "intValue": "10298"
+                    "intValue": "196"
                   }
                 },
                 {
@@ -730,31 +343,31 @@
                 {
                   "key": "request_id",
                   "value": {
-                    "stringValue": "req_011FIXTURE00000000000008"
+                    "stringValue": "req_011FIXTURE00000000000014"
                   }
                 },
                 {
                   "key": "gen_ai.response.id",
                   "value": {
-                    "stringValue": "req_011FIXTURE00000000000008"
+                    "stringValue": "req_011FIXTURE00000000000014"
                   }
                 },
                 {
                   "key": "client_request_id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000001c"
+                    "stringValue": "00000000-0000-4000-8000-000000000023"
                   }
                 },
                 {
                   "key": "ttft_ms",
                   "value": {
-                    "intValue": "1433"
+                    "intValue": "411"
                   }
                 },
                 {
                   "key": "first_content_ms",
                   "value": {
-                    "intValue": "1434"
+                    "intValue": "411"
                   }
                 },
                 {
@@ -780,11 +393,41 @@
                       ]
                     }
                   }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": {
+                    "intValue": "22537"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": {
+                    "intValue": "117"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.cache_read.input_tokens",
+                  "value": {
+                    "intValue": "22339"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.cache_write.input_tokens",
+                  "value": {
+                    "intValue": "196"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.model",
+                  "value": {
+                    "stringValue": "claude-haiku-5-5"
+                  }
                 }
               ],
               "events": [
                 {
-                  "timeUnixNano": "1794746015382917875",
+                  "timeUnixNano": "1795471457249074000",
                   "name": "gen_ai.request.attempt",
                   "attributes": [
                     {
@@ -796,7 +439,7 @@
                     {
                       "key": "client_request_id",
                       "value": {
-                        "stringValue": "00000000-0000-4000-8000-00000000001c"
+                        "stringValue": "00000000-0000-4000-8000-000000000023"
                       }
                     }
                   ]
@@ -804,8 +447,8 @@
               ],
               "links": [
                 {
-                  "traceId": "fade000000000000000000000000000c",
-                  "spanId": "fade00000000002f",
+                  "traceId": "fade0000000000000000000000000013",
+                  "spanId": "fade000000000050",
                   "attributes": [
                     {
                       "key": "link.type",
@@ -821,13 +464,13 @@
               "flags": 257
             },
             {
-              "traceId": "fade000000000000000000000000000a",
-              "spanId": "fade000000000030",
-              "parentSpanId": "fade00000000002d",
+              "traceId": "fade000000000000000000000000000f",
+              "spanId": "fade000000000051",
+              "parentSpanId": "fade00000000004e",
               "name": "claude_code.tool.execution",
-              "kind": "SPAN_KIND_INTERNAL",
-              "startTimeUnixNano": "1794746017258000000",
-              "endTimeUnixNano": "1794746017267315041",
+              "kind": 1,
+              "startTimeUnixNano": "1795471457959000000",
+              "endTimeUnixNano": "1795471458010781459",
               "attributes": [
                 {
                   "key": "gen_ai.agent.name",
@@ -844,13 +487,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000018"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -862,7 +505,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -892,7 +535,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -910,25 +553,25 @@
                 {
                   "key": "gen_ai.conversation.id",
                   "value": {
-                    "stringValue": "afade000000000001"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "tool_use_id",
                   "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000008"
+                    "stringValue": "toolu_01FIXTURE000000000000015"
                   }
                 },
                 {
                   "key": "gen_ai.tool.call.id",
                   "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000008"
+                    "stringValue": "toolu_01FIXTURE000000000000015"
                   }
                 },
                 {
                   "key": "duration_ms",
                   "value": {
-                    "intValue": "9"
+                    "intValue": "52"
                   }
                 },
                 {
@@ -942,13 +585,13 @@
               "flags": 257
             },
             {
-              "traceId": "fade000000000000000000000000000a",
-              "spanId": "fade00000000002d",
-              "parentSpanId": "fade000000000026",
+              "traceId": "fade000000000000000000000000000f",
+              "spanId": "fade00000000004e",
+              "parentSpanId": "fade000000000034",
               "name": "claude_code.tool",
-              "kind": "SPAN_KIND_INTERNAL",
-              "startTimeUnixNano": "1794746017248000000",
-              "endTimeUnixNano": "1794746017267012083",
+              "kind": 1,
+              "startTimeUnixNano": "1795471457953000000",
+              "endTimeUnixNano": "1795471458011024625",
               "attributes": [
                 {
                   "key": "gen_ai.agent.name",
@@ -965,13 +608,13 @@
                 {
                   "key": "session.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000018"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
                   "key": "organization.id",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
+                    "stringValue": "00000000-0000-4000-8000-00000000000a"
                   }
                 },
                 {
@@ -983,7 +626,7 @@
                 {
                   "key": "user.account_uuid",
                   "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
+                    "stringValue": "00000000-0000-4000-8000-00000000000b"
                   }
                 },
                 {
@@ -1013,7 +656,7 @@
                 {
                   "key": "terminal.type",
                   "value": {
-                    "stringValue": "ghostty"
+                    "stringValue": "xterm-256color"
                   }
                 },
                 {
@@ -1031,13 +674,13 @@
                 {
                   "key": "tool_name",
                   "value": {
-                    "stringValue": "Read"
+                    "stringValue": "Bash"
                   }
                 },
                 {
                   "key": "tool_name_safe",
                   "value": {
-                    "stringValue": "Read"
+                    "stringValue": "Bash"
                   }
                 },
                 {
@@ -1049,445 +692,49 @@
                 {
                   "key": "gen_ai.tool.name",
                   "value": {
-                    "stringValue": "Read"
+                    "stringValue": "Bash"
                   }
                 },
                 {
                   "key": "gen_ai.conversation.id",
                   "value": {
-                    "stringValue": "afade000000000001"
+                    "stringValue": "00000000-0000-4000-8000-000000000015"
                   }
                 },
                 {
-                  "key": "file_path",
+                  "key": "full_command",
                   "value": {
-                    "stringValue": "/workspace/calc/test_calc.py"
+                    "stringValue": "git commit -am \"Add sub to calc.py\""
                   }
                 },
                 {
-                  "key": "agent_id",
+                  "key": "bash_command_class",
                   "value": {
-                    "stringValue": "afade000000000001"
+                    "stringValue": "vcs"
+                  }
+                },
+                {
+                  "key": "bash_argv0",
+                  "value": {
+                    "stringValue": "git"
                   }
                 },
                 {
                   "key": "tool_use_id",
                   "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000008"
+                    "stringValue": "toolu_01FIXTURE000000000000015"
                   }
                 },
                 {
                   "key": "gen_ai.tool.call.id",
                   "value": {
-                    "stringValue": "toolu_01FIXTURE000000000000008"
+                    "stringValue": "toolu_01FIXTURE000000000000015"
                   }
                 },
                 {
                   "key": "duration_ms",
                   "value": {
-                    "intValue": "19"
-                  }
-                }
-              ],
-              "status": {},
-              "flags": 257
-            },
-            {
-              "traceId": "fade000000000000000000000000000a",
-              "spanId": "fade000000000031",
-              "parentSpanId": "fade000000000023",
-              "name": "claude_code.llm_request",
-              "kind": "SPAN_KIND_INTERNAL",
-              "startTimeUnixNano": "1794746015344000000",
-              "endTimeUnixNano": "1794746017878242375",
-              "attributes": [
-                {
-                  "key": "gen_ai.agent.name",
-                  "value": {
-                    "stringValue": "fixture-builder"
-                  }
-                },
-                {
-                  "key": "user.id",
-                  "value": {
-                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
-                  }
-                },
-                {
-                  "key": "session.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000018"
-                  }
-                },
-                {
-                  "key": "organization.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
-                  }
-                },
-                {
-                  "key": "user.email",
-                  "value": {
-                    "stringValue": "scrubbed-email-1"
-                  }
-                },
-                {
-                  "key": "user.account_uuid",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
-                  }
-                },
-                {
-                  "key": "user.account_id",
-                  "value": {
-                    "stringValue": "user_scrubbed0001"
-                  }
-                },
-                {
-                  "key": "anthropic.provider",
-                  "value": {
-                    "stringValue": "firstParty"
-                  }
-                },
-                {
-                  "key": "anthropic.custom_base_url",
-                  "value": {
-                    "boolValue": false
-                  }
-                },
-                {
-                  "key": "anthropic.plan",
-                  "value": {
-                    "stringValue": "max"
-                  }
-                },
-                {
-                  "key": "terminal.type",
-                  "value": {
-                    "stringValue": "ghostty"
-                  }
-                },
-                {
-                  "key": "gen_ai.provider.name",
-                  "value": {
-                    "stringValue": "anthropic"
-                  }
-                },
-                {
-                  "key": "span.type",
-                  "value": {
-                    "stringValue": "llm_request"
-                  }
-                },
-                {
-                  "key": "model",
-                  "value": {
-                    "stringValue": "claude-haiku-5-5"
-                  }
-                },
-                {
-                  "key": "gen_ai.system",
-                  "value": {
-                    "stringValue": "anthropic"
-                  }
-                },
-                {
-                  "key": "gen_ai.request.model",
-                  "value": {
-                    "stringValue": "claude-haiku-5-5"
-                  }
-                },
-                {
-                  "key": "llm_request.context",
-                  "value": {
-                    "stringValue": "interaction"
-                  }
-                },
-                {
-                  "key": "speed",
-                  "value": {
-                    "stringValue": "normal"
-                  }
-                },
-                {
-                  "key": "gen_ai.conversation.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000018"
-                  }
-                },
-                {
-                  "key": "query_source_safe",
-                  "value": {
-                    "stringValue": "sdk"
-                  }
-                },
-                {
-                  "key": "duration_ms",
-                  "value": {
-                    "intValue": "2534"
-                  }
-                },
-                {
-                  "key": "input_tokens",
-                  "value": {
-                    "intValue": "2"
-                  }
-                },
-                {
-                  "key": "output_tokens",
-                  "value": {
-                    "intValue": "202"
-                  }
-                },
-                {
-                  "key": "cache_read_tokens",
-                  "value": {
-                    "intValue": "18474"
-                  }
-                },
-                {
-                  "key": "cache_creation_tokens",
-                  "value": {
-                    "intValue": "584"
-                  }
-                },
-                {
-                  "key": "success",
-                  "value": {
-                    "boolValue": true
-                  }
-                },
-                {
-                  "key": "attempt",
-                  "value": {
-                    "intValue": "1"
-                  }
-                },
-                {
-                  "key": "request_id",
-                  "value": {
-                    "stringValue": "req_011FIXTURE00000000000009"
-                  }
-                },
-                {
-                  "key": "gen_ai.response.id",
-                  "value": {
-                    "stringValue": "req_011FIXTURE00000000000009"
-                  }
-                },
-                {
-                  "key": "client_request_id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-00000000001d"
-                  }
-                },
-                {
-                  "key": "ttft_ms",
-                  "value": {
-                    "intValue": "1454"
-                  }
-                },
-                {
-                  "key": "first_content_ms",
-                  "value": {
-                    "intValue": "1455"
-                  }
-                },
-                {
-                  "key": "effort",
-                  "value": {
-                    "stringValue": "medium"
-                  }
-                },
-                {
-                  "key": "stop_reason",
-                  "value": {
-                    "stringValue": "end_turn"
-                  }
-                },
-                {
-                  "key": "gen_ai.response.finish_reasons",
-                  "value": {
-                    "arrayValue": {
-                      "values": [
-                        {
-                          "stringValue": "end_turn"
-                        }
-                      ]
-                    }
-                  }
-                }
-              ],
-              "events": [
-                {
-                  "timeUnixNano": "1794746015345789583",
-                  "name": "gen_ai.request.attempt",
-                  "attributes": [
-                    {
-                      "key": "attempt",
-                      "value": {
-                        "intValue": "1"
-                      }
-                    },
-                    {
-                      "key": "client_request_id",
-                      "value": {
-                        "stringValue": "00000000-0000-4000-8000-00000000001d"
-                      }
-                    }
-                  ]
-                }
-              ],
-              "links": [
-                {
-                  "traceId": "fade000000000000000000000000000d",
-                  "spanId": "fade000000000032",
-                  "attributes": [
-                    {
-                      "key": "link.type",
-                      "value": {
-                        "stringValue": "parent_of"
-                      }
-                    }
-                  ],
-                  "flags": 769
-                }
-              ],
-              "status": {},
-              "flags": 257
-            },
-            {
-              "traceId": "fade000000000000000000000000000a",
-              "spanId": "fade000000000023",
-              "name": "claude_code.interaction",
-              "kind": "SPAN_KIND_INTERNAL",
-              "startTimeUnixNano": "1794746012966000000",
-              "endTimeUnixNano": "1794746017892047250",
-              "attributes": [
-                {
-                  "key": "gen_ai.agent.name",
-                  "value": {
-                    "stringValue": "fixture-builder"
-                  }
-                },
-                {
-                  "key": "user.id",
-                  "value": {
-                    "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
-                  }
-                },
-                {
-                  "key": "session.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000018"
-                  }
-                },
-                {
-                  "key": "organization.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000002"
-                  }
-                },
-                {
-                  "key": "user.email",
-                  "value": {
-                    "stringValue": "scrubbed-email-1"
-                  }
-                },
-                {
-                  "key": "user.account_uuid",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000003"
-                  }
-                },
-                {
-                  "key": "user.account_id",
-                  "value": {
-                    "stringValue": "user_scrubbed0001"
-                  }
-                },
-                {
-                  "key": "anthropic.provider",
-                  "value": {
-                    "stringValue": "firstParty"
-                  }
-                },
-                {
-                  "key": "anthropic.custom_base_url",
-                  "value": {
-                    "boolValue": false
-                  }
-                },
-                {
-                  "key": "anthropic.plan",
-                  "value": {
-                    "stringValue": "max"
-                  }
-                },
-                {
-                  "key": "terminal.type",
-                  "value": {
-                    "stringValue": "ghostty"
-                  }
-                },
-                {
-                  "key": "gen_ai.provider.name",
-                  "value": {
-                    "stringValue": "anthropic"
-                  }
-                },
-                {
-                  "key": "span.type",
-                  "value": {
-                    "stringValue": "interaction"
-                  }
-                },
-                {
-                  "key": "gen_ai.operation.name",
-                  "value": {
-                    "stringValue": "invoke_agent"
-                  }
-                },
-                {
-                  "key": "gen_ai.conversation.id",
-                  "value": {
-                    "stringValue": "00000000-0000-4000-8000-000000000018"
-                  }
-                },
-                {
-                  "key": "user_prompt",
-                  "value": {
-                    "stringValue": "<REDACTED>"
-                  }
-                },
-                {
-                  "key": "user_prompt_length",
-                  "value": {
-                    "intValue": "696"
-                  }
-                },
-                {
-                  "key": "interaction.sequence",
-                  "value": {
-                    "intValue": "1"
-                  }
-                },
-                {
-                  "key": "parent.source",
-                  "value": {
-                    "stringValue": "none"
-                  }
-                },
-                {
-                  "key": "queued_sends",
-                  "value": {
-                    "intValue": "0"
-                  }
-                },
-                {
-                  "key": "interaction.duration_ms",
-                  "value": {
-                    "intValue": "4926"
+                    "intValue": "58"
                   }
                 }
               ],

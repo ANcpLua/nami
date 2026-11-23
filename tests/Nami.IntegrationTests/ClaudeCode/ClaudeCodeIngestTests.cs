@@ -37,13 +37,13 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
 
     /// <summary>
     ///     Claude Code copies the text of its <c>error</c> attribute into the status message of a failed span: "Shell
-    ///     command failed" on the failing test run of s1, the API client's message on the three failed requests of the
+    ///     command failed" on the failing test run of s1, the API client's message on the two failed requests of the
     ///     capture without a credential. nami keeps the status code and the message of these spans; the captured
     ///     messages hold no credential and are shorter than 1024 bytes, so they are stored as sent.
     /// </summary>
     [TestMethod]
     [DataRow(ClaudeCodeCapture.SignedIn, 1)]
-    [DataRow(ClaudeCodeCapture.NotSignedIn, 3)]
+    [DataRow(ClaudeCodeCapture.NotSignedIn, 2)]
     public async Task Ingest_ClaudeCodeCapture_KeepsTheStatusCodeAndMessageOfAFailedSpan(string capture, int failed)
     {
         var exports = ClaudeCodeCapture.Load(capture);
@@ -166,8 +166,8 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
     ///     <c>service.name</c>, which ingest copies from the resource onto every span.)
     /// </summary>
     [TestMethod]
-    [DataRow(ClaudeCodeCapture.SignedIn, 77)]
-    [DataRow(ClaudeCodeCapture.NotSignedIn, 18)]
+    [DataRow(ClaudeCodeCapture.SignedIn, 74)]
+    [DataRow(ClaudeCodeCapture.NotSignedIn, 14)]
     public async Task Ingest_ClaudeCodeCapture_StoresEveryEventAndSpanAsItWasSent(string capture, int events)
     {
         var exports = ClaudeCodeCapture.Load(capture);
@@ -197,6 +197,63 @@ public sealed class ClaudeCodeIngestTests(TestContext context)
         Assert.AreSequenceEqual(sentEvents, storedEvents);
         Assert.AreSequenceEqual(sentSpans, storedSpans);
     }
+
+    /// <summary>
+    ///     Since 2.1.331 Claude Code sends the GenAI conventions' own names on <c>claude_code.llm_request</c>, next to
+    ///     its vendor keys, so these spans fill the span columns that <c>SpanHotAttributeProjection</c> reads from
+    ///     those names. A request that got an answer fills the operation, both models and the four token counts.
+    ///     <c>gen_ai.usage.input_tokens</c> follows the conventions' rule for Anthropic: it holds the vendor key
+    ///     <c>input_tokens</c> plus the cache tokens read and written. Claude Code sends no
+    ///     <c>gen_ai.usage.reasoning.output_tokens</c>, so that column stays empty. A request that never reached the
+    ///     API (the capture without a credential) has the operation and the requested model, and neither a response
+    ///     model nor a token count.
+    /// </summary>
+    [TestMethod]
+    [DataRow(ClaudeCodeCapture.SignedIn, 17, 17)]
+    [DataRow(ClaudeCodeCapture.NotSignedIn, 2, 0)]
+    public async Task Ingest_ClaudeCodeCapture_LlmRequestSpansFillTheGenAiColumns(string capture, int requests, int answered)
+    {
+        const string model = "claude-haiku-5-5";
+        var path = await IngestAsync(ClaudeCodeCapture.Load(capture));
+
+        var spans = StoredRows.Rows(path, """
+            SELECT gen_ai_operation_name, gen_ai_request_model, gen_ai_response_model, gen_ai_input_tokens,
+                   gen_ai_output_tokens, gen_ai_cache_read_input_tokens, gen_ai_cache_write_input_tokens,
+                   gen_ai_reasoning_tokens, attributes_json
+            FROM spans WHERE project_id = $1 AND name = 'claude_code.llm_request'
+            """, Project);
+        Assert.HasCount(requests, spans);
+        Assert.HasCount(answered, spans.Where(static span => span[3] is not null).ToArray());
+        foreach (var span in spans)
+        {
+            var sent = span[8] ?? throw new InvalidDataException("A span without attributes.");
+            Assert.AreEqual("chat", span[0]);
+            Assert.AreEqual(model, span[1]);
+            Assert.IsNull(span[7], "Claude Code sends no reasoning token count.");
+            if (span[3] is null)
+            {
+                Assert.IsNull(Integer(sent, "input_tokens"), "A request without an answer has no usage.");
+                Assert.IsTrue(span[2] is null && span[4] is null && span[5] is null && span[6] is null);
+                continue;
+            }
+
+            Assert.AreEqual(model, span[2]);
+            Assert.AreEqual(Integer(sent, "input_tokens") + Integer(sent, "cache_read_tokens") +
+                            Integer(sent, "cache_creation_tokens"), Column(span[3]));
+            Assert.AreEqual(Integer(sent, "output_tokens"), Column(span[4]));
+            Assert.AreEqual(Integer(sent, "cache_read_tokens"), Column(span[5]));
+            Assert.AreEqual(Integer(sent, "cache_creation_tokens"), Column(span[6]));
+        }
+
+        static long? Column(string? value) =>
+            value is null ? null : long.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>The integer a stored attribute holds, or null when the key is absent or holds another type.</summary>
+    private static long? Integer(string attributesJson, string key) =>
+        StoredAttributeJson.Attribute(attributesJson, key) is AttributeValue.ObjectValue { Value: AttributeIntValue number }
+            ? number.Value
+            : null;
 
     /// <summary>One line per attribute as Claude Code sent it: key, type and value, in key order.</summary>
     private static string Sent(IEnumerable<Nami.Tests.Wire.OpenTelemetry.Proto.Common.V1.KeyValue> attributes) =>

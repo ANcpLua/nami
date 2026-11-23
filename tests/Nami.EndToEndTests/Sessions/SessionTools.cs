@@ -12,7 +12,7 @@ namespace Nami.EndToEndTests.Sessions;
 internal static class SessionTools
 {
     /// <summary>
-    ///     The capture is from 15 Nov 2026; the default retention of 30 days would delete it ten seconds after start
+    ///     The capture is from 23 Nov 2026; the default retention of 30 days would delete it ten seconds after start
     ///     once it is older. Retention is not what these tests prove.
     /// </summary>
     private static readonly Dictionary<string, string?> s_retentionOff = new() { ["NAMI_RETENTION_DAYS"] = "0" };

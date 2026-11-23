@@ -332,7 +332,9 @@ Each lane has a Fallout target (`M2Acceptance`, `LiveNami`) that `Check` does no
 The wire names the acceptance tests read are in `Sessions/SessionsContract.cs` only. The capture's bodies are
 posted exactly as Claude Code sent them, each checked against `manifest.json`; synthetic variants (planted gate
 runs, content sentinels) are decoded copies built in memory by `Nami.Tests/Infrastructure/ClaudeCodeCapture.cs`.
-The capture is from 15 Nov 2026, so these tests pass absolute windows and start nami with `NAMI_RETENTION_DAYS=0`.
+The capture is from 23 Nov 2026 (Claude Code 2.1.331), so these tests pass absolute windows and start nami with
+`NAMI_RETENTION_DAYS=0`. The capture's README says how it is recorded again with `eng/capture/` when a Claude Code
+release changes the telemetry, and which pinned values follow.
 Two classes need no new tool and run in the gate: `ContentAtIngestTests` (EndToEnd: prompt, response and tool
 content is in the stopped engine's store as the session sent it) and `ClaudeCodeCaptureTests` (Integration: the planted
 gate runs and the content sentinels are what the acceptance tests say they are).

@@ -12,7 +12,11 @@ publishes. Every `gen_ai.*` name below has Development stability.
 - Claude Code: [Monitoring](https://code.claude.com/docs/en/monitoring-usage).
 - Claude API: [OpenTelemetry span reference](https://platform.claude.com/docs/en/api/opentelemetry/spans) and
   [OpenTelemetry tracing](https://platform.claude.com/docs/en/manage-claude/opentelemetry).
-- Observed: one capture of Claude Code 2.1.325.
+- Claude Code: [changelog](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md), read up to
+  2.1.331 on 23 Nov 2026.
+- Observed: the capture of Claude Code 2.1.331 of 23 Nov 2026 in
+  `tests/Nami.IntegrationTests/Fixtures/ClaudeCodeOtlp`. When a release changes the telemetry, record the capture
+  again as that folder's README says ("Re-recording"), then bring this document up to what was sent.
 
 Claude Code traces and Claude API tracing are both beta, and their names can change between versions.
 
@@ -140,7 +144,7 @@ OpenTelemetry-defined attribute names.
 
 | Emitter                    | How to recognise it                                                                                                                                                                                                                                                                       |
 |:---------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Claude Code CLI            | `service.name` is `claude-code` unless the user overrides it. Observed instrumentation scopes (Claude Code 2.1.325): `com.anthropic.claude_code` for metrics, `com.anthropic.claude_code.events` for log events, `com.anthropic.claude_code.tracing` for spans. Span, event and metric names start with `claude_code.` |
+| Claude Code CLI            | `service.name` is `claude-code` unless the user overrides it. Observed instrumentation scopes (Claude Code 2.1.331): `com.anthropic.claude_code` for metrics, `com.anthropic.claude_code.events` for log events, `com.anthropic.claude_code.tracing` for spans. Span, event and metric names start with `claude_code.` |
 | Anthropic SDK              | Span names start with `anthropic.`; kind CLIENT for requests, INTERNAL for the tools its tool runner executes. Instrumentation scope per the supplied inventory: `com.anthropic.sdk.*` (not checked against a primary source here)                                                                |
 | Claude API (server side)   | Span names start with `anthropic.`; kind SERVER for requests, INTERNAL for the steps inside. Delivered through a telemetry destination registered in the Console, parented under the SDK span through `traceparent`. Instrumentation scope per the supplied inventory: `com.anthropic.claude-platform` (not checked) |
 
@@ -157,6 +161,27 @@ OpenTelemetry-defined attribute names.
 
 A subagent's `claude_code.llm_request` and `claude_code.tool` spans nest under the Agent tool's `claude_code.tool`
 span.
+
+**GenAI attributes on the spans** (observed in 2.1.331). Every span carries `gen_ai.provider.name` and
+`gen_ai.conversation.id`, and a copy of each resource attribute set through `OTEL_RESOURCE_ATTRIBUTES`, such as
+`gen_ai.agent.name`.
+
+| Span | `gen_ai.operation.name` | Further `gen_ai.*` attributes |
+|:-----|:------------------------|:------------------------------|
+| `claude_code.interaction` | `invoke_agent` | |
+| `claude_code.llm_request` | `chat` (since 2.1.331) | `gen_ai.system`, `gen_ai.request.model`. When the request got an answer: `gen_ai.response.id`, `gen_ai.response.finish_reasons` and, since 2.1.331, `gen_ai.response.model`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, `gen_ai.usage.cache_read.input_tokens` and `gen_ai.usage.cache_write.input_tokens`, all integers |
+| `claude_code.tool` | `execute_tool` | `gen_ai.tool.name`, `gen_ai.tool.call.id` |
+| `claude_code.tool.execution` | | `gen_ai.tool.call.id` |
+| `claude_code.tool.blocked_on_user` | | |
+
+- `claude_code.llm_request` keeps Claude Code's own keys beside the GenAI ones: `model`, `request_id`,
+  `input_tokens`, `output_tokens`, `cache_read_tokens` and `cache_creation_tokens`. §4 relates each pair.
+- `gen_ai.usage.input_tokens` follows Anthropic's token rule (§2): it includes the cache tokens read and written.
+  `input_tokens` on the same span does not, so the two numbers differ on every request that used the cache.
+- Claude Code sends no `gen_ai.usage.reasoning.output_tokens`. The CLI's own result counts thinking tokens
+  (`output_tokens_details.thinking_tokens`); no span attribute carries that count.
+- The `api_request` event and the `claude_code.token.usage` metric carry Claude Code's keys only.
+- A span of a request that got an answer has one span link with the attribute `link.type`.
 
 **Span events**
 
@@ -292,11 +317,12 @@ The relation describes the values, not a renaming. Data keeps its original key.
 |:-------------------------------------------------------|:------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `tool_use_id` (Claude Code)                            | `gen_ai.tool.call.id`                                       | same value; Claude Code sends both on its tool spans                                                                                                             |
 | `request_id` (Claude Code)                             | `gen_ai.response.id`                                        | same value; Claude Code sends both on `claude_code.llm_request`                                                                                                  |
-| `model` (Claude Code)                                  | `gen_ai.request.model`                                      | same value; Claude Code sends both on `claude_code.llm_request`                                                                                                  |
+| `model` (Claude Code)                                  | `gen_ai.request.model`, `gen_ai.response.model`             | same value; Claude Code sends all three on `claude_code.llm_request`, the response model since 2.1.331 and only when the request got an answer                   |
 | `gen_ai.system` = `anthropic` (Claude Code)            | `gen_ai.provider.name` = `anthropic`                        | deprecated name, same meaning; Claude Code still sends the old name                                                                                              |
-| `input_tokens`, `token.usage{type=input}` (Claude Code) | `gen_ai.usage.input_tokens`                                | different meaning: Claude Code excludes cache tokens. The convention's value is `input_tokens + cache_read_tokens + cache_creation_tokens`                       |
-| `cache_read_tokens`, `type=cacheRead` (Claude Code)    | `gen_ai.usage.cache_read.input_tokens`                      | same quantity, different name                                                                                                                                    |
-| `cache_creation_tokens`, `type=cacheCreation` (Claude Code) | `gen_ai.usage.cache_write.input_tokens`                | same quantity, different name; Claude Code adds the 5-minute and 1-hour writes together                                                                          |
+| `input_tokens`, `token.usage{type=input}` (Claude Code) | `gen_ai.usage.input_tokens`                                | different meaning: Claude Code excludes cache tokens. The convention's value is `input_tokens + cache_read_tokens + cache_creation_tokens`. Since 2.1.331 Claude Code sends both on `claude_code.llm_request`, each with its own meaning; sum one of them, never both |
+| `output_tokens`, `type=output` (Claude Code)           | `gen_ai.usage.output_tokens`                                | same value; Claude Code sends both on `claude_code.llm_request` since 2.1.331                                                                                    |
+| `cache_read_tokens`, `type=cacheRead` (Claude Code)    | `gen_ai.usage.cache_read.input_tokens`                      | same quantity, different name; both on `claude_code.llm_request` since 2.1.331                                                                                   |
+| `cache_creation_tokens`, `type=cacheCreation` (Claude Code) | `gen_ai.usage.cache_write.input_tokens`                | same quantity, different name; Claude Code adds the 5-minute and 1-hour writes together; both on `claude_code.llm_request` since 2.1.331                          |
 | `cache_creation_5m_tokens`, `cache_creation_1h_tokens` (Claude Code) | `anthropic.usage.cache_creation.ephemeral_5m_input_tokens`, `…_1h_…` (API) | vendor to vendor, same split; no GenAI counterpart                                                                                         |
 | `effort` (Claude Code)                                 | `gen_ai.request.reasoning.level`                            | same setting (Anthropic's `output_config.effort`), different name                                                                                                |
 | `first_content_ms` (Claude Code)                       | `gen_ai.response.time_to_first_chunk`                       | related, not equal: milliseconds against seconds, and different start points (Claude Code: the successful attempt; the SDK: its first send)                      |

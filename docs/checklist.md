@@ -149,6 +149,11 @@ the order of work in [decision 0001](decisions/0001-remote-connector-and-who-pay
   `src/nami.collector.ingestion/Generated/CollectorConfigurationKeys.g.cs`; authored partial
   option types retain semantic validation. Change the TypeSpec definition/emitter and regenerate.
 - Weaver owns the semantic vocabulary, its stability and successors; it decides nothing about what is stored. Regenerate it with `registry/generate.sh`.
+- What Claude Code sends is pinned by the scrubbed capture in
+  [`tests/Nami.IntegrationTests/Fixtures/ClaudeCodeOtlp`](../tests/Nami.IntegrationTests/Fixtures/ClaudeCodeOtlp/README.md)
+  and described in the [telemetry reference](telemetry/claude-code-anthropic-reference.md). When a Claude Code
+  release changes its telemetry, record the capture again first, as its README says under "Re-recording"; ingest,
+  storage and tools change only after the capture shows what is sent.
 - Keep permanent decisions in [decisions](decisions/README.md) and current evidence in the
   [requirement matrix](integration/requirement-evidence.md).
 - Work on a branch; `check.yml` runs on every push. `main` moves only by a merge after a green

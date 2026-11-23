@@ -36,7 +36,7 @@
           {
             "key": "service.version",
             "value": {
-              "stringValue": "2.1.325"
+              "stringValue": "2.1.331"
             }
           }
         ]
@@ -45,19 +45,18 @@
         {
           "scope": {
             "name": "com.anthropic.claude_code",
-            "version": "2.1.325"
+            "version": "2.1.331"
           },
           "metrics": [
             {
-              "name": "claude_code.cost.usage",
-              "description": "Cost of the Claude Code session",
-              "unit": "USD",
+              "name": "claude_code.session.count",
+              "description": "Count of CLI sessions started",
               "sum": {
                 "dataPoints": [
                   {
-                    "startTimeUnixNano": "1794746001409000000",
-                    "timeUnixNano": "1794746003410000000",
-                    "asDouble": 0.00028881999999999996,
+                    "startTimeUnixNano": "1795471449903000000",
+                    "timeUnixNano": "1795471451902000000",
+                    "asDouble": 1.0,
                     "attributes": [
                       {
                         "key": "gen_ai.agent.name",
@@ -74,13 +73,13 @@
                       {
                         "key": "session.id",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-00000000000c"
+                          "stringValue": "00000000-0000-4000-8000-000000000015"
                         }
                       },
                       {
                         "key": "organization.id",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-000000000002"
+                          "stringValue": "00000000-0000-4000-8000-00000000000a"
                         }
                       },
                       {
@@ -92,7 +91,7 @@
                       {
                         "key": "user.account_uuid",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-000000000003"
+                          "stringValue": "00000000-0000-4000-8000-00000000000b"
                         }
                       },
                       {
@@ -122,7 +121,97 @@
                       {
                         "key": "terminal.type",
                         "value": {
-                          "stringValue": "ghostty"
+                          "stringValue": "xterm-256color"
+                        }
+                      },
+                      {
+                        "key": "start_type",
+                        "value": {
+                          "stringValue": "fresh"
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "aggregationTemporality": 1,
+                "isMonotonic": true
+              }
+            },
+            {
+              "name": "claude_code.cost.usage",
+              "description": "Cost of the Claude Code session",
+              "unit": "USD",
+              "sum": {
+                "dataPoints": [
+                  {
+                    "startTimeUnixNano": "1795471451435000000",
+                    "timeUnixNano": "1795471451902000000",
+                    "asDouble": 0.00128681,
+                    "attributes": [
+                      {
+                        "key": "gen_ai.agent.name",
+                        "value": {
+                          "stringValue": "fixture-builder"
+                        }
+                      },
+                      {
+                        "key": "user.id",
+                        "value": {
+                          "stringValue": "0000000000000000000000000000000000000000000000000000000000000002"
+                        }
+                      },
+                      {
+                        "key": "session.id",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-000000000015"
+                        }
+                      },
+                      {
+                        "key": "organization.id",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-00000000000a"
+                        }
+                      },
+                      {
+                        "key": "user.email",
+                        "value": {
+                          "stringValue": "scrubbed-email-1"
+                        }
+                      },
+                      {
+                        "key": "user.account_uuid",
+                        "value": {
+                          "stringValue": "00000000-0000-4000-8000-00000000000b"
+                        }
+                      },
+                      {
+                        "key": "user.account_id",
+                        "value": {
+                          "stringValue": "user_scrubbed0001"
+                        }
+                      },
+                      {
+                        "key": "anthropic.provider",
+                        "value": {
+                          "stringValue": "firstParty"
+                        }
+                      },
+                      {
+                        "key": "anthropic.custom_base_url",
+                        "value": {
+                          "boolValue": false
+                        }
+                      },
+                      {
+                        "key": "anthropic.plan",
+                        "value": {
+                          "stringValue": "max"
+                        }
+                      },
+                      {
+                        "key": "terminal.type",
+                        "value": {
+                          "stringValue": "xterm-256color"
                         }
                       },
                       {
@@ -146,7 +235,7 @@
                     ]
                   }
                 ],
-                "aggregationTemporality": "AGGREGATION_TEMPORALITY_DELTA",
+                "aggregationTemporality": 1,
                 "isMonotonic": true
               }
             },
@@ -157,8 +246,8 @@
               "sum": {
                 "dataPoints": [
                   {
-                    "startTimeUnixNano": "1794746001409000000",
-                    "timeUnixNano": "1794746003410000000",
+                    "startTimeUnixNano": "1795471451435000000",
+                    "timeUnixNano": "1795471451902000000",
                     "asDouble": 2.0,
                     "attributes": [
                       {
@@ -176,13 +265,13 @@
                       {
                         "key": "session.id",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-00000000000c"
+                          "stringValue": "00000000-0000-4000-8000-000000000015"
                         }
                       },
                       {
                         "key": "organization.id",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-000000000002"
+                          "stringValue": "00000000-0000-4000-8000-00000000000a"
                         }
                       },
                       {
@@ -194,7 +283,7 @@
                       {
                         "key": "user.account_uuid",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-000000000003"
+                          "stringValue": "00000000-0000-4000-8000-00000000000b"
                         }
                       },
                       {
@@ -224,7 +313,7 @@
                       {
                         "key": "terminal.type",
                         "value": {
-                          "stringValue": "ghostty"
+                          "stringValue": "xterm-256color"
                         }
                       },
                       {
@@ -254,9 +343,9 @@
                     ]
                   },
                   {
-                    "startTimeUnixNano": "1794746001409000000",
-                    "timeUnixNano": "1794746003410000000",
-                    "asDouble": 106.0,
+                    "startTimeUnixNano": "1795471451435000000",
+                    "timeUnixNano": "1795471451902000000",
+                    "asDouble": 184.0,
                     "attributes": [
                       {
                         "key": "gen_ai.agent.name",
@@ -273,13 +362,13 @@
                       {
                         "key": "session.id",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-00000000000c"
+                          "stringValue": "00000000-0000-4000-8000-000000000015"
                         }
                       },
                       {
                         "key": "organization.id",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-000000000002"
+                          "stringValue": "00000000-0000-4000-8000-00000000000a"
                         }
                       },
                       {
@@ -291,7 +380,7 @@
                       {
                         "key": "user.account_uuid",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-000000000003"
+                          "stringValue": "00000000-0000-4000-8000-00000000000b"
                         }
                       },
                       {
@@ -321,7 +410,7 @@
                       {
                         "key": "terminal.type",
                         "value": {
-                          "stringValue": "ghostty"
+                          "stringValue": "xterm-256color"
                         }
                       },
                       {
@@ -351,9 +440,9 @@
                     ]
                   },
                   {
-                    "startTimeUnixNano": "1794746001409000000",
-                    "timeUnixNano": "1794746003410000000",
-                    "asDouble": 18962.0,
+                    "startTimeUnixNano": "1795471451435000000",
+                    "timeUnixNano": "1795471451902000000",
+                    "asDouble": 14421.0,
                     "attributes": [
                       {
                         "key": "gen_ai.agent.name",
@@ -370,13 +459,13 @@
                       {
                         "key": "session.id",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-00000000000c"
+                          "stringValue": "00000000-0000-4000-8000-000000000015"
                         }
                       },
                       {
                         "key": "organization.id",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-000000000002"
+                          "stringValue": "00000000-0000-4000-8000-00000000000a"
                         }
                       },
                       {
@@ -388,7 +477,7 @@
                       {
                         "key": "user.account_uuid",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-000000000003"
+                          "stringValue": "00000000-0000-4000-8000-00000000000b"
                         }
                       },
                       {
@@ -418,7 +507,7 @@
                       {
                         "key": "terminal.type",
                         "value": {
-                          "stringValue": "ghostty"
+                          "stringValue": "xterm-256color"
                         }
                       },
                       {
@@ -448,9 +537,9 @@
                     ]
                   },
                   {
-                    "startTimeUnixNano": "1794746001409000000",
-                    "timeUnixNano": "1794746003410000000",
-                    "asDouble": 230.0,
+                    "startTimeUnixNano": "1795471451435000000",
+                    "timeUnixNano": "1795471451902000000",
+                    "asDouble": 5252.0,
                     "attributes": [
                       {
                         "key": "gen_ai.agent.name",
@@ -467,13 +556,13 @@
                       {
                         "key": "session.id",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-00000000000c"
+                          "stringValue": "00000000-0000-4000-8000-000000000015"
                         }
                       },
                       {
                         "key": "organization.id",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-000000000002"
+                          "stringValue": "00000000-0000-4000-8000-00000000000a"
                         }
                       },
                       {
@@ -485,7 +574,7 @@
                       {
                         "key": "user.account_uuid",
                         "value": {
-                          "stringValue": "00000000-0000-4000-8000-000000000003"
+                          "stringValue": "00000000-0000-4000-8000-00000000000b"
                         }
                       },
                       {
@@ -515,7 +604,7 @@
                       {
                         "key": "terminal.type",
                         "value": {
-                          "stringValue": "ghostty"
+                          "stringValue": "xterm-256color"
                         }
                       },
                       {
@@ -545,7 +634,7 @@
                     ]
                   }
                 ],
-                "aggregationTemporality": "AGGREGATION_TEMPORALITY_DELTA",
+                "aggregationTemporality": 1,
                 "isMonotonic": true
               }
             }

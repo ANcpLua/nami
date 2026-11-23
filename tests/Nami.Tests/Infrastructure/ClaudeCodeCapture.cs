@@ -56,7 +56,7 @@ internal static class ClaudeCodeCapture
     internal static string SignedInDirectory => Path.Combine(ProcessRunner.RepositoryRoot, "tests",
         "Nami.IntegrationTests", "Fixtures", "ClaudeCodeOtlp", "signed-in");
 
-    /// <summary>The 53 bodies of sessions s1, s2 and s3 in the order Claude Code sent them.</summary>
+    /// <summary>The 35 bodies of sessions s1, s2 and s3 in the order Claude Code sent them.</summary>
     internal static IReadOnlyList<OtlpBody> SignedIn() => s_signedIn.Value;
 
     private static List<OtlpBody> Load()

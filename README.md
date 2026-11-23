@@ -261,9 +261,9 @@ turn before its body is read, five seconds at most (`NAMI_INGEST_MAX_WAIT_SECOND
 an answer an exporter retries: `503` with `Retry-After`, or gRPC `UNAVAILABLE`. One request at the record bound
 costs nami about 100 MiB of memory while it is stored, so the slots times that is what ingest may take.
 
-An OpenTelemetry SDK's default batch of 512 records is inside the bounds: Claude Code's exports of 15 Nov 2026
-hold about 56 messages per span, 57 per log record and 34 per metric data point, so 512 records are about 30,000
-messages. An OpenTelemetry Collector in front of nami batches 8,192 records by default, which is over both
+An OpenTelemetry SDK's default batch of 512 records is inside the bounds: Claude Code's exports of 23 Nov 2026
+(2.1.331) hold about 57 messages per span, 53 per log record and 33 per metric data point, so 512 records are
+about 30,000 messages. An OpenTelemetry Collector in front of nami batches 8,192 records by default, which is over both
 bounds, and nami does not split a request. Cap the Collector's batch: `send_batch_max_size: 512` in its batch
 processor (or `sending_queue.batch.max_size` of the exporter) keeps every request inside the defaults; with a
 larger batch, raise `NAMI_INGEST_MAX_REQUEST_RECORDS` and `NAMI_INGEST_MAX_REQUEST_MESSAGES` for the memory you

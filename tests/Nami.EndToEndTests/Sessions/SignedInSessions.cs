@@ -32,8 +32,8 @@ internal static class SignedInSessions
     internal const string Model = "claude-haiku-5-5";
     internal const string Effort = "medium";
 
-    /// <summary>A window start before the capture (12:33:13 to 12:33:59 UTC on 15 Nov 2026).</summary>
-    internal const string WindowStart = "2026-11-15T12:30:00Z";
+    /// <summary>A window start before the capture (22:03:59 to 22:04:27 UTC on 23 Nov 2026).</summary>
+    internal const string WindowStart = "2026-11-23T22:00:00Z";
 
     internal const string FirstCommit = "c0ffee0000000000000000000000000000000001";
     internal const string SecondCommit = "c0ffee0000000000000000000000000000000002";
@@ -43,36 +43,36 @@ internal static class SignedInSessions
 
     private const string UnitTests = "python3 -m unittest -q";
 
-    internal static readonly ExpectedSession S1 = new("s1", "00000000-0000-4000-8000-00000000000c",
-        12, 1042, 106057, 8730, 3329,
+    internal static readonly ExpectedSession S1 = new("s1", "00000000-0000-4000-8000-000000000009",
+        12, 553, 112149, 8986, 3196,
         [
             new("Bash", false), new("Read", true), new("Edit", true), new("Bash", true), new("Bash", true)
         ],
         [
             new(UnitTests, false), new(UnitTests, true),
-            new("git commit -am \"Fix add in calc.py\" -m \"Co-Authored-By: Claude Haiku 5.5 <scrubbed-email-2>\" && git log --oneline -1", true)
+            new("git commit -am \"Fix add in calc.py\" -m \"Co-Authored-By: Claude Haiku 5.5 <scrubbed-email-2>\"", true)
         ],
-        [FirstCommit], 13000, 15500);
+        [FirstCommit], 4500, 5600);
 
     /// <summary>Two of s2's ten tool calls and two of its nine requests belong to its background subagent.</summary>
-    internal static readonly ExpectedSession S2 = new("s2", "00000000-0000-4000-8000-000000000018",
-        18, 1697, 141738, 21711, 5762,
+    internal static readonly ExpectedSession S2 = new("s2", "00000000-0000-4000-8000-000000000015",
+        18, 1835, 159215, 13647, 4842,
         [
             new("Agent", true), new("Read", true), new("Read", true), new("Read", true), new("Read", true),
             new("Edit", true), new("Edit", true), new("Edit", true), new("Bash", true), new("Bash", true)
         ],
         [
             new(UnitTests, true),
-            new("git commit -am \"Add sub to calc.py\" -m \"Co-Authored-By: Claude Haiku 5.5 <scrubbed-email-2>\" && git log --oneline -1", true)
+            new("git commit -am \"Add sub to calc.py\"", true)
         ],
-        [SecondCommit], 10000, 17500);
+        [SecondCommit], 6500, 11000);
 
     /// <summary>s3 piped its test run into tail and made no commit.</summary>
-    internal static readonly ExpectedSession S3 = new("s3", "00000000-0000-4000-8000-000000000029",
-        4, 123, 32284, 4465, 1277,
+    internal static readonly ExpectedSession S3 = new("s3", "00000000-0000-4000-8000-000000000026",
+        4, 102, 33890, 5232, 1437,
         [new("Bash", true)],
         [new(UnitTests + " 2>&1 | tail -n 5", true)],
-        [], 3000, 5000);
+        [], 1200, 2000);
 
     internal static IReadOnlyList<ExpectedSession> All { get; } = [S1, S2, S3];
 
