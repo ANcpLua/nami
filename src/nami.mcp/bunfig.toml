@@ -1,0 +1,4 @@
+[run]
+# `tsc` is a launcher with a Node shebang. Without this, `bun run` starts it with whatever
+# `node` is on PATH; with it, Bun runs it itself, so the package needs no Node.
+bun = true

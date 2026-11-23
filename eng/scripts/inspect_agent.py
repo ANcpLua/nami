@@ -92,25 +92,22 @@ def tool(command, arguments):
 
 
 def runtimes(pin):
-    result = {}
-    for name in ["bun", "node"]:
-        executable = resolve(ROOT, name)
-        actual = tool(executable, ["--version"]).removeprefix("v")
-        if actual != pin[name]:
-            raise Failure("SETUP_FAILED", f"{name}: expected {pin[name]}, found {actual}.")
-        executable = Path(tool(executable, ["-p", "process.execPath"])).resolve()
-        result[name] = {"version": actual, "path": str(executable), "sha256": hashlib.sha256(executable.read_bytes()).hexdigest()}
-    return result
+    executable = resolve(ROOT, "bun")
+    actual = tool(executable, ["--version"]).removeprefix("v")
+    if actual != pin["bun"]:
+        raise Failure("SETUP_FAILED", f"bun: expected {pin['bun']}, found {actual}.")
+    executable = Path(tool(executable, ["-p", "process.execPath"])).resolve()
+    return {"bun": {"version": actual, "path": str(executable), "sha256": hashlib.sha256(executable.read_bytes()).hexdigest()}}
 
 
-def mcp_tool(pin, node):
+def mcp_tool(pin, bun):
     path = Path(resolve(ROOT, "npm:@modelcontextprotocol/inspector", "mcpdo", os.environ.get("MCPDO_PATH")))
     if not os.environ.get("MCPDO_PATH"):
         path = installation(ROOT, "npm:@modelcontextprotocol/inspector") / "node_modules" / pin["package"] / pin["entry"]
     path = path.resolve()
     if not path.is_file() or path.suffix not in {".js", ".mjs", ".cjs"}:
         raise Failure("SETUP_FAILED", f"Install {pin['package']}@{pin['version']} (mcpdo), or set MCPDO_PATH to its JavaScript entry point.")
-    actual = tool(node, [str(path), "--version"])
+    actual = tool(bun, [str(path), "--version"])
     if actual != pin["version"]:
         raise Failure("SETUP_FAILED", f"mcpdo: expected {pin['version']}, found {actual}.")
     package = next((parent / "package.json" for parent in path.parents
@@ -223,7 +220,7 @@ class Run:
             if not manifest.is_file() or json.loads(manifest.read_text())["version"] != expected:
                 raise Failure("SETUP_FAILED", f"{root}: restore the locked TypeScript {expected} dependency.")
             script = "import get from './node_modules/typescript/lib/getExePath.js';console.log(get())"
-            executable = Path(subprocess.check_output([self.context['tools']['node']['path'], "--input-type=module", "-e", script], cwd=ROOT / root, text=True, timeout=15).strip())
+            executable = Path(subprocess.check_output([self.context['tools']['bun']['path'], "--input-type=module", "-e", script], cwd=ROOT / root, text=True, timeout=15).strip())
             actual = tool(executable, ["--version"]).removeprefix("Version ")
             if actual != expected:
                 raise Failure("SETUP_FAILED", f"{root}: native compiler is {actual}, package requires {expected}.")
@@ -277,8 +274,8 @@ class Run:
     def protocol(self):
         self.lane = "protocol"
         self.summary["status"] = "PROTOCOL_FAILED"
-        bun, node = (self.context["tools"][name]["path"] for name in ["bun", "node"])
-        cli = [node, self.context["tools"]["mcpdo"]["path"]]
+        bun = self.context["tools"]["bun"]["path"]
+        cli = [bun, self.context["tools"]["mcpdo"]["path"]]
         metadata = self.command("metadata", [bun, str(ROOT / "eng/scripts/mcp_evidence.mjs"), "metadata"], json_output=True)
         if not metadata.get("probe") or len(metadata["tools"]) != 6:
             raise Failure("SETUP_FAILED", "The generated six-tool probe manifest is incomplete.")
@@ -405,11 +402,11 @@ def main():
     run = Run(args, directory, context)
     prepared = BASE / f"prepared-{args.target}-{args.configuration}.json"
     try:
-        pin = {name: tool_pin(ROOT, name) for name in ("bun", "node")}
+        pin = {"bun": tool_pin(ROOT, "bun")}
         pin["mcpdo"] = dict(package="@modelcontextprotocol/inspector", version=tool_pin(ROOT, "npm:@modelcontextprotocol/inspector"), entry="clients/mcpdo/build/mcp-bin.js")
         context["tools"] = runtimes(pin)
         if args.target == "mcp":
-            context["tools"]["mcpdo"] = mcp_tool(pin["mcpdo"], context["tools"]["node"]["path"])
+            context["tools"]["mcpdo"] = mcp_tool(pin["mcpdo"], context["tools"]["bun"]["path"])
             dotnet = resolve(ROOT, "dotnet", override=os.environ.get("DOTNET_EXE"))
             sdk = json.loads((ROOT / "global.json").read_text())["sdk"]["version"]
             if not dotnet or tool(dotnet, ["--version"]) != sdk:

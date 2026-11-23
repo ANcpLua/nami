@@ -183,7 +183,7 @@ def installed_reference(root, packages, roles, tag):
             "packages": records}
 
 
-def validate_imports(root, packages, node, run=subprocess.run):
+def validate_imports(root, packages, bun, run=subprocess.run):
     compiler = root / "contracts/node_modules/@typespec/compiler"
     manifest = json.loads((compiler / "package.json").read_text())
     with tempfile.TemporaryDirectory(prefix=".nami-typespec-", dir=root / "contracts/node_modules") as temporary:
@@ -193,11 +193,11 @@ def validate_imports(root, packages, node, run=subprocess.run):
         # An explicit empty emitter config avoids activating the application's configured outputs.
         config = Path(temporary) / "tspconfig.yaml"
         config.write_text("emit: []\n")
-        run([node, str(compiler / manifest["bin"]["tsp"]), "compile", str(source), "--config", str(config),
+        run([bun, str(compiler / manifest["bin"]["tsp"]), "compile", str(source), "--config", str(config),
              "--no-emit", "--warn-as-error"], cwd=root / "contracts", check=True)
 
 
-def apply_update(root, updated, packages, roles, tag, bun, node, run=subprocess.run, workspaces=None):
+def apply_update(root, updated, packages, roles, tag, bun, run=subprocess.run, workspaces=None):
     if workspaces is None:
         workspaces = workspace_updates(root, updated, packages)
     tracked = [root / "contracts/package.json", root / "contracts/bun.lock", root / REFERENCE, *workspaces]
@@ -213,7 +213,7 @@ def apply_update(root, updated, packages, roles, tag, bun, node, run=subprocess.
             for label, entry in package["entrypoints"].items():
                 if not entry["exists"]:
                     print(f"PACKAGE EXPORT MISSING: {package['package']} {label}: {entry['path']}", flush=True)
-        validate_imports(root, packages, node, run)
+        validate_imports(root, packages, bun, run)
         # Verify restores generator-owned files itself on failure or drift.
         run(["bash", str(root / "eng/contracts.sh"), "verify"], cwd=root, check=True)
         write_json(root / REFERENCE, reference)
@@ -244,7 +244,7 @@ def main():
     tag = args.tag or policy["tag"]
     registry = Registry(policy["registry"], ROOT / "artifacts/typespec/metadata", args.offline)
     packages, roles = collect_packages(registry, policy, tag)
-    bun, node = resolve(ROOT, "bun"), resolve(ROOT, "node")
+    bun = resolve(ROOT, "bun")
     current = json.loads((ROOT / "contracts/package.json").read_text())
     updated = package_update(current, packages)
     workspaces = workspace_updates(ROOT, updated, packages)
@@ -269,7 +269,7 @@ def main():
     except (OSError, ValueError, UpdateError):
         changed = True
     if args.apply and changed:
-        apply_update(ROOT, updated, packages, roles, tag, bun, node, workspaces=workspaces)
+        apply_update(ROOT, updated, packages, roles, tag, bun, workspaces=workspaces)
         print("TypeSpec packages and installed entry-point reference updated; contract parity verified.")
         return 0
     print(("CACHED " if args.offline else "") + ("UPDATE AVAILABLE: eng/typespec.sh --apply" if changed else "CURRENT"))

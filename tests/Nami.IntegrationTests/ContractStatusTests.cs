@@ -18,7 +18,7 @@ public sealed class ContractStatusTests(TestContext context)
         var temporary = InspectionFixture.Temporary(context);
         var root = Path.Combine(temporary, "checkout");
         var state = Path.Combine(temporary, "state");
-        var result = await ProcessRunner.RunAsync("node",
+        var result = await ProcessRunner.RunAsync("bun",
         [
             Path.Combine(ProcessRunner.RepositoryRoot, "tests/Nami.IntegrationTests/Fixtures/contract-status.mjs"),
             scenario, root, state,
@@ -114,7 +114,7 @@ public sealed class ContractStatusTests(TestContext context)
         using (data)
         {
             Assert.AreEqual(0, data.RootElement.GetProperty("report").GetProperty("exitCode").GetInt32());
-            var result = await ProcessRunner.RunAsync("node",
+            var result = await ProcessRunner.RunAsync("bun",
             [
                 Path.Combine(ProcessRunner.RepositoryRoot, "contracts/scripts/verify-contracts.mjs"),
                 "status", "--root", root, "--state", state, "--source", "after"
@@ -131,7 +131,7 @@ public sealed class ContractStatusTests(TestContext context)
         var (data, root, state) = await RunAsync("add");
         using (data)
         {
-            var result = await ProcessRunner.RunAsync("node",
+            var result = await ProcessRunner.RunAsync("bun",
             [
                 Path.Combine(ProcessRunner.RepositoryRoot, "contracts/scripts/verify-contracts.mjs"),
                 "status", "--root", root, "--state", state, "--limit", "1"

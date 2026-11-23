@@ -18,7 +18,7 @@
 // A directive without a reason, and a suppression of `suppression-reason`
 // itself, fail the gate even when they are used.
 //
-// Usage: node scripts/check-suppressions.mjs [--list] [--fix]
+// Usage: bun scripts/check-suppressions.mjs [--list] [--fix]
 //   --list  also print every suppression with its state, rule and reason
 //   --fix   delete the unused directives (never the undecidable ones)
 // Exit code: 0 clean, 1 unused, undecidable or refused suppressions, 2 the check could not run.

@@ -300,8 +300,7 @@ def main():
     else:
         selected = list(order) if args.suite == "All" else [args.suite]
     if "EndToEnd" in selected:
-        runtime_paths = [str(Path(resolve(root, name)).parent) for name in ("bun", "node")]
-        os.environ["PATH"] = os.pathsep.join([*runtime_paths, os.environ.get("PATH", "")])
+        os.environ["PATH"] = os.pathsep.join([str(Path(resolve(root, "bun")).parent), os.environ.get("PATH", "")])
     base = state_root(root) / "tests"
     base.mkdir(parents=True, exist_ok=True)
     parent = Path(os.environ.get("NAMI_TEST_RUN_DIR", "/__no_test_run__"))

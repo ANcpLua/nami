@@ -4,16 +4,16 @@
   "description": "The nami contract: TypeSpec models, the in-repo emitters and the generation scripts. `bun run compile` writes openapi/nami.openapi.json (intermediate), internal/nami.contracts and json-schema/.",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "bun": ">=1.4"
   },
   "scripts": {
     "build:emitters": "tsc -p emitters/csharp && tsc -p emitters/ts-types && tsc -p emitters/nami-lint && tsc -p agent-control",
-    "compile": "bun run build:emitters && node --test scripts/lib/*.test.mjs emitters/nami-lint/test/*.test.mjs && node scripts/check-suppressions.mjs && node scripts/clean-generated.mjs && tsp compile main.tsp --warn-as-error && node scripts/emit-schemas.mjs && node scripts/emit-contract-revision.mjs",
+    "compile": "bun run build:emitters && bun test ./scripts/lib/ ./emitters/nami-lint/test/ && bun scripts/check-suppressions.mjs && bun scripts/clean-generated.mjs && tsp compile main.tsp --warn-as-error && bun scripts/emit-schemas.mjs && bun scripts/emit-contract-revision.mjs",
     "build": "bun run compile",
     "format": "tsp format **/*.tsp",
-    "lint": "bun run build:emitters && tsp compile main.tsp --no-emit --warn-as-error && node scripts/check-suppressions.mjs",
-    "lint:suppressions": "bun run build:emitters && node scripts/check-suppressions.mjs --list",
-    "test:lint": "bun run build:emitters && node --test emitters/nami-lint/test/*.test.mjs"
+    "lint": "bun run build:emitters && tsp compile main.tsp --no-emit --warn-as-error && bun scripts/check-suppressions.mjs",
+    "lint:suppressions": "bun run build:emitters && bun scripts/check-suppressions.mjs --list",
+    "test:lint": "bun run build:emitters && bun test ./emitters/nami-lint/test/"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

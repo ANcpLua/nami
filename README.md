@@ -357,7 +357,7 @@ implementations; the [model inventory](contracts/model-migration.csv) records mi
 ## Build
 
 `mise install` installs the pinned toolchain: the .NET SDK `11.0.100` (.NET 11,
-pinned in `global.json` too), Weaver `0.28.0`, Bun and Node. The build is Fallout, and
+pinned in `global.json` too), Weaver `0.28.0` and Bun. The build is Fallout, and
 `./eng/build.sh --help` lists every target.
 
 `nami.slnx` builds eleven .NET projects and `src/nami.mcp/nami.mcp.esproj`. The JavaScript SDK

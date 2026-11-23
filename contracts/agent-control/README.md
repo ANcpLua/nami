@@ -54,6 +54,6 @@ There is no `sorry` or added axiom in the policy. The executable transition func
 that was checked, not a parallel TypeScript switch statement.
 
 The proof assumes that the host supplies truthful filesystem/validator facts. It does not prove
-Node, TypeSpec, filesystem behavior, the correctness of arbitrary source changes, or all of Nami.
+Bun, TypeSpec, filesystem behavior, the correctness of arbitrary source changes, or all of Nami.
 Real integration tests exercise stale/tampered plans, retained sources, conditional rollback,
 native TypeSpec edits, suppression rejection and read-only type information.

@@ -54,7 +54,7 @@ if __name__ == "__main__":
                 raise ValueError(f"Expected .NET SDK {expected}; found {actual}")
             print(executable)
         elif sys.argv[1] == "build-path":
-            commands = [("bun", "bun"), ("node", "node"), ("github:open-telemetry/weaver", "weaver")]
+            commands = [("bun", "bun"), ("github:open-telemetry/weaver", "weaver")]
             paths = []
             for name, command in commands:
                 executable = resolve(root, name, command)

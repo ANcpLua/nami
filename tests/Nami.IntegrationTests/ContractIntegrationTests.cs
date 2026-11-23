@@ -15,7 +15,7 @@ public sealed class ContractIntegrationTests(TestContext context)
     public async Task AdapterDefaults_AreGeneratedFromTheSharedConfiguration()
     {
         const string Script = "import { CONFIG_DEFAULTS } from './src/nami.mcp/src/contracts/generated/manifest.ts'; console.log(JSON.stringify(CONFIG_DEFAULTS));";
-        var result = await ProcessRunner.RunAsync("node", ["--input-type=module", "-e", Script],
+        var result = await ProcessRunner.RunAsync("bun", ["--input-type=module", "-e", Script],
             ProcessRunner.RepositoryRoot, context.CancellationToken);
         Assert.AreEqual(0, result.ExitCode, result.Error);
         using var values = JsonDocument.Parse(result.Output);
@@ -28,7 +28,7 @@ public sealed class ContractIntegrationTests(TestContext context)
     public async Task Tools_EngineAndHost_NameTheSameToolsAndContracts()
     {
         const string Script = "import { TOOLS } from './src/nami.mcp/src/contracts/generated/manifest.ts'; console.log(JSON.stringify(TOOLS.map(tool => `${tool.name} ${tool.input} ${tool.output}`)));";
-        var result = await ProcessRunner.RunAsync("node", ["--input-type=module", "-e", Script],
+        var result = await ProcessRunner.RunAsync("bun", ["--input-type=module", "-e", Script],
             ProcessRunner.RepositoryRoot, context.CancellationToken);
         Assert.AreEqual(0, result.ExitCode, result.Error);
         using var host = JsonDocument.Parse(result.Output);
@@ -87,7 +87,7 @@ public sealed class ContractIntegrationTests(TestContext context)
                               schemas['Common.ToolError'].properties.code.minLength=2;
                               console.log(JSON.stringify([original,presentation,internalChange,hash(schemas)]));
                               """;
-        var result = await ProcessRunner.RunAsync("node", ["--input-type=module", "-e", Script],
+        var result = await ProcessRunner.RunAsync("bun", ["--input-type=module", "-e", Script],
             ProcessRunner.RepositoryRoot, context.CancellationToken);
         Assert.AreEqual(0, result.ExitCode, result.Error);
         using var hashes = JsonDocument.Parse(result.Output);

@@ -39,7 +39,7 @@ export declarations are recorded explicitly; missing primary entry points fail v
 linter, compiles `main.tsp` without emitting and with warnings as errors, then checks the suppressions:
 
 ```sh
-tsp compile main.tsp --no-emit --warn-as-error && node scripts/check-suppressions.mjs
+tsp compile main.tsp --no-emit --warn-as-error && bun scripts/check-suppressions.mjs
 ```
 
 The push gate enforces both parts as well: `bun run compile`, which `eng/contracts.sh verify` runs
@@ -78,7 +78,7 @@ It also fails on a directive without a reason and on any suppression of `suppres
 used or not: stacked above a directive without a reason, such a suppression would silence the
 rule that asks for one.
 `bun run lint:suppressions` lists every suppression with its rule and reason;
-`node scripts/check-suppressions.mjs --fix` deletes the unused ones.
+`bun scripts/check-suppressions.mjs --fix` deletes the unused ones.
 
 For a focused run, TypeSpec 1.18.0 can override the ruleset for one compilation. The gate itself
 never does:

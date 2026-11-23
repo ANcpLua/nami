@@ -82,8 +82,8 @@ enforces, in [`eng/test-suites.json`](../eng/test-suites.json); the two must agr
 ## Toolchain versions
 
 The compilers the product is built with, and where each version is set. `mise.toml` installs
-Bun 1.4.4, Node.js 24.22.3 and Weaver 0.28.0 for the repository commands, and Node.js is pinned
-there only. Bun and Weaver are pinned in more places, which move together with `mise.toml`:
+Bun 1.4.4 and Weaver 0.28.0 for the repository commands; no command needs Node.js. Both are
+pinned in more places, which move together with `mise.toml`:
 
 - Bun: the image of the container's MCP build stage (`oven/bun:1.4.4`, `src/nami/Dockerfile:3`),
   and its type definitions (`@types/bun` in `src/nami.mcp/package.json`).
@@ -219,8 +219,8 @@ Change model definitions or emitters, then regenerate before building consumers:
 ```
 
 `eng/test.sh` builds the .NET projects; it does not replace the contract-generation step.
-The contract package builds the local emitters and runs its Node.js generator, codec and linter-rule
-tests (`contracts/scripts/lib`, `contracts/emitters/nami-lint/test`) and checks the `#suppress`
+The contract package builds the local emitters and runs its generator, codec and linter-rule
+tests with `bun test` (`contracts/scripts/lib`, `contracts/emitters/nami-lint/test`) and checks the `#suppress`
 directives before invoking TypeSpec and the schema/revision scripts. The active TypeSpec compiler and native TypeScript
 compiler are pinned in [`contracts/package.json`](../contracts/package.json); the MCP package has
 its own package manifest and lockfile.

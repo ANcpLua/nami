@@ -157,7 +157,7 @@ class PackagePlanTests(unittest.TestCase):
             reference.write_text('{"packages":[]}')
             with patch.object(update_typespec, "ROOT", root), patch.object(sys, "argv", ["update_typespec.py", "--check"]), \
                  patch("update_typespec.collect_packages", return_value=({"@typespec/compiler": compiler}, {"@typespec/compiler": "compiler"})), \
-                 patch("update_typespec.resolve", side_effect=["bun", "node"]), patch("update_typespec.verify_constraints") as verify, \
+                 patch("update_typespec.resolve", return_value="bun"), patch("update_typespec.verify_constraints") as verify, \
                  patch("update_typespec.installed_reference", return_value={"packages": []}), patch("sys.stdout", new_callable=io.StringIO) as output:
                 self.assertEqual(1, update_typespec.main())
             self.assertIn("compiler peer 1.17.0 -> 1.18.0-dev.13", output.getvalue())
@@ -180,7 +180,7 @@ class UpdateTransactionTests(unittest.TestCase):
                     raise KeyboardInterrupt()
 
             with self.assertRaises(KeyboardInterrupt):
-                apply_update(root, {"name": "changed"}, {}, {}, "latest", "bun", "node", run)
+                apply_update(root, {"name": "changed"}, {}, {}, "latest", "bun", run)
             self.assertEqual('{"name":"original"}\n', manifest.read_text())
             self.assertEqual(["bun", "install", "--frozen-lockfile"], calls[-1])
 
@@ -206,7 +206,7 @@ class UpdateTransactionTests(unittest.TestCase):
 
             with patch("update_typespec.installed_reference", return_value={"packages": []}), patch("update_typespec.validate_imports"):
                 with self.assertRaises(subprocess.CalledProcessError):
-                    apply_update(root, {"devDependencies": {}}, {}, {}, "latest", "bun", "node", run)
+                    apply_update(root, {"devDependencies": {}}, {}, {}, "latest", "bun", run)
             self.assertEqual(originals, {path: path.read_bytes() for path in originals})
             self.assertEqual(["bun", "install", "--frozen-lockfile"], calls[-1])
 
@@ -239,7 +239,7 @@ class UpdateTransactionTests(unittest.TestCase):
             selected = {"@typespec/compiler": package(version="1.18.0-dev.13")}
             with patch("update_typespec.installed_reference", return_value={"packages": []}), patch("update_typespec.validate_imports"):
                 with self.assertRaises(subprocess.CalledProcessError):
-                    apply_update(root, {"workspaces": ["extension"]}, selected, {}, "next", "bun", "node", run)
+                    apply_update(root, {"workspaces": ["extension"]}, selected, {}, "next", "bun", run)
             self.assertEqual(originals, {path: path.read_bytes() for path in originals})
             self.assertEqual(["bun", "install", "--frozen-lockfile"], calls[-1])
 
@@ -260,7 +260,7 @@ class UpdateTransactionTests(unittest.TestCase):
 
             selected = {"@typespec/compiler": package(version="1.18.0-dev.13")}
             with patch("update_typespec.installed_reference", return_value={"packages": []}), patch("update_typespec.validate_imports"):
-                apply_update(root, {"workspaces": ["extension"]}, selected, {}, "next", "bun", "node", run)
+                apply_update(root, {"workspaces": ["extension"]}, selected, {}, "next", "bun", run)
             self.assertEqual(["bun", "install"], calls[0])
             self.assertEqual(["bash", str(root / "eng/contracts.sh"), "verify"], calls[1])
             self.assertEqual({"packages": []}, json.loads((root / REFERENCE).read_text()))
@@ -280,7 +280,7 @@ class UpdateTransactionTests(unittest.TestCase):
                     raise subprocess.CalledProcessError(1, command)
 
             with self.assertRaises(subprocess.CalledProcessError):
-                apply_update(root, {}, {}, {}, "latest", "bun", "node", run)
+                apply_update(root, {}, {}, {}, "latest", "bun", run)
             self.assertEqual('{"name":"existing"}\n', manifest.read_text())
             self.assertFalse((root / "contracts/bun.lock").exists())
             self.assertFalse((root / REFERENCE).exists())
@@ -296,7 +296,7 @@ class UpdateTransactionTests(unittest.TestCase):
                 self.assertFalse((root / REFERENCE).exists())
 
             with patch("update_typespec.installed_reference", return_value=expected), patch("update_typespec.validate_imports"):
-                apply_update(root, {"name": "updated"}, {}, {}, "latest", "bun", "node", run)
+                apply_update(root, {"name": "updated"}, {}, {}, "latest", "bun", run)
             self.assertEqual(expected, json.loads((root / REFERENCE).read_text()))
             self.assertEqual({"name": "updated"}, json.loads((root / "contracts/package.json").read_text()))
 
