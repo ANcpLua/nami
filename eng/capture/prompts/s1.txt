@@ -1,0 +1,6 @@
+You are working in a small git repository. Do exactly these steps, in order, and nothing else:
+1. Run `python3 -m unittest -q` with the Bash tool. It fails.
+2. Read calc.py, then fix the bug in `add` with the Edit tool so that it returns a + b.
+3. Run `python3 -m unittest -q` again with the Bash tool. It must pass.
+4. Commit the fix with the Bash tool: git commit -am "Fix add in calc.py"
+Then reply with one short sentence.

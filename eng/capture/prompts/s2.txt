@@ -1,0 +1,6 @@
+You are working in a small git repository. Do exactly these steps, in order, and nothing else:
+1. Use the Agent tool (also called the Task tool) once, with subagent_type "general-purpose", and give it this task: "Read calc.py and test_calc.py in the current directory. Reply in one line: which functions calc.py defines and which of them test_calc.py tests." Wait for its answer.
+2. Add a function `sub(a, b)` that returns a - b to calc.py with the Edit tool, and add a test `test_sub` for it to test_calc.py with the Edit tool.
+3. Run `python3 -m unittest -q` with the Bash tool. It must pass.
+4. Commit with the Bash tool: git commit -am "Add sub to calc.py"
+Then reply with one short sentence.
