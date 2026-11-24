@@ -16,8 +16,12 @@ namespace Nami.Tests.Infrastructure;
 /// <summary>One OTLP/HTTP protobuf export body: the route it is posted to, its session label, its name and bytes.</summary>
 internal sealed record OtlpBody(string Signal, string Session, string Name, byte[] Payload);
 
-/// <summary>A gate run to plant into a session: the command line, its outcome, and when and in which order it ran.</summary>
-internal sealed record PlantedRun(string Command, bool Success, TimeSpan AfterSessionEnd, long Sequence, string ToolUseId);
+/// <summary>
+///     A gate run to plant into a session: the command line, its outcome, when and in which order it ran, and
+///     whether Bash started it in the background.
+/// </summary>
+internal sealed record PlantedRun(string Command, bool Success, TimeSpan AfterSessionEnd, long Sequence, string ToolUseId,
+    bool InBackground = false);
 
 /// <summary>
 ///     The scrubbed export of three signed-in Claude Code sessions in
@@ -140,6 +144,8 @@ internal static class ClaudeCodeCapture
     ///     Plants a run into the session of <paramref name="sourceToolUseId" /> after its last event: a copy of that
     ///     tool call's <c>tool_decision</c> and <c>tool_result</c> with another command line and outcome, its own
     ///     tool_use_id, later times and event sequence numbers, and no trace context (no span was exported for it).
+    ///     A background run differs as Claude Code 2.1.331 sent it (the fixture's README, s5): only its
+    ///     <c>tool_input</c> says <c>"run_in_background":true</c>.
     /// </summary>
     internal static OtlpBody PlantRun(IReadOnlyList<OtlpBody> bodies, string sourceToolUseId, PlantedRun run)
     {
@@ -156,8 +162,10 @@ internal static class ClaudeCodeCapture
         var plantedResult = result.Record.Clone();
         Stamp(plantedResult, started + Duration, run.Sequence + 1, run.ToolUseId);
         Set(plantedResult.Attributes, "tool_parameters", Text(Parameters(run.Command)));
-        Set(plantedResult.Attributes, "tool_input",
-            Text(new JsonObject { ["command"] = run.Command, ["description"] = "Run the gate" }.ToJsonString()));
+        var input = new JsonObject { ["command"] = run.Command, ["description"] = "Run the gate" };
+        if (run.InBackground)
+            input["run_in_background"] = true;
+        Set(plantedResult.Attributes, "tool_input", Text(input.ToJsonString()));
         Set(plantedResult.Attributes, "success", Text(run.Success ? "true" : "false"));
         Set(plantedResult.Attributes, "duration_ms", Text("500"));
         if (run.Success)

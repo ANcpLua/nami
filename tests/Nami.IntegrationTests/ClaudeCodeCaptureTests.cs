@@ -76,6 +76,33 @@ public sealed class ClaudeCodeCaptureTests
     }
 
     [TestMethod]
+    public void PlantRun_BackgroundGateRun_DiffersFromAForegroundRunOnlyInItsToolInput()
+    {
+        var capture = ClaudeCodeCapture.SignedIn();
+        var run = new PlantedRun("./eng/test.sh", true, TimeSpan.FromSeconds(2), 101, "toolu_01PLANTED0000000000101");
+        var foreground = Records(ClaudeCodeCapture.PlantRun(capture, PassingTestRun, run));
+        var background = Records(ClaudeCodeCapture.PlantRun(capture, PassingTestRun, run with { InBackground = true }));
+        Assert.AreEqual(foreground[0], background[0], "The tool_decision is the same.");
+        Assert.AreEqual("true", Text(background[1].Attributes, "success"));
+        using (var input = JsonDocument.Parse(Text(background[1].Attributes, "tool_input")!))
+        {
+            Assert.IsTrue(input.RootElement.GetProperty("run_in_background").GetBoolean());
+        }
+
+        using (var input = JsonDocument.Parse(Text(foreground[1].Attributes, "tool_input")!))
+        {
+            Assert.IsFalse(input.RootElement.TryGetProperty("run_in_background", out _));
+        }
+
+        var differing = foreground[1].Attributes.Zip(background[1].Attributes)
+            .Where(static pair => !pair.First.Equals(pair.Second)).Select(static pair => pair.First.Key);
+        Assert.AreEqual("tool_input", string.Join(' ', differing));
+
+        static RepeatedField<Nami.Tests.Wire.OpenTelemetry.Proto.Logs.V1.LogRecord> Records(OtlpBody planted) =>
+            ExportLogsServiceRequest.Parser.ParseFrom(planted.Payload).ResourceLogs.Single().ScopeLogs.Single().LogRecords;
+    }
+
+    [TestMethod]
     public void WithCommand_ChangesOnlyThatBashCallOnItsEventsAndSpan()
     {
         var capture = ClaudeCodeCapture.SignedIn();

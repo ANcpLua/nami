@@ -16,11 +16,11 @@
   },
   "suites": {
     "Unit": 261,
-    "Integration": 1084,
+    "Integration": 1085,
     "EndToEnd": 105
   },
   "lanes": {
-    "m2-acceptance": 29,
+    "m2-acceptance": 30,
     "live-nami": 1
   },
   "nodeTests": {

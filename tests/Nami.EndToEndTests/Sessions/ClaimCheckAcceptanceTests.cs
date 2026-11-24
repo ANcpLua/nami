@@ -7,9 +7,10 @@ namespace Nami.EndToEndTests.Sessions;
 ///     Finish-line item 4. A test claim is verified only when the session ran the gate exactly (a foreground Bash
 ///     <c>tool_result</c> whose <c>full_command</c> is <c>./eng/test.sh</c> or <c>./eng/build.sh Check ...</c>, without a
 ///     pipe, <c>&amp;&amp;</c>, <c>;</c> or <c>|| true</c>) with success at the commit the claim names; contradicted when a
-///     later run at that commit failed; unverified otherwise. A session's claims are its commits. Every case is the
-///     signed-in capture with runs planted into s1 after its commit <c>c0ffee…01</c>: copies of its passing test run
-///     with another command and outcome, built in memory. Test lane m2-acceptance until M2 lands.
+///     later run at that commit failed; unverified otherwise. A run is in the background when its <c>tool_input</c>
+///     says <c>"run_in_background":true</c>; nothing else on its events tells. A session's claims are its commits.
+///     Every case is the signed-in capture with runs planted into s1 after its commit <c>c0ffee…01</c>: copies of its
+///     passing test run with another command and outcome, built in memory. Test lane m2-acceptance until M2 lands.
 /// </summary>
 [TestClass]
 [TestCategory("EndToEnd")]
@@ -56,6 +57,17 @@ public sealed class ClaimCheckAcceptanceTests(TestContext context)
     public async Task ClaimCheck_SucceedingCommandThatIsNotExactlyTheGate_LeavesTheClaimUnverified(string command)
     {
         await AssertClaimAsync(Unverified, Run(command, true, s_first, 101));
+    }
+
+    /// <summary>
+    ///     A background run's <c>tool_result</c> reports success as soon as the command has started, and no later
+    ///     event says how the tests ended (the fixture's README, s5), so it proves nothing about the commit.
+    /// </summary>
+    [TestMethod]
+    [Timeout(120000, CooperativeCancellation = true)]
+    public async Task ClaimCheck_GateRunStartedInTheBackground_LeavesTheClaimUnverified()
+    {
+        await AssertClaimAsync(Unverified, Run("./eng/test.sh", true, s_first, 101) with { InBackground = true });
     }
 
     /// <summary>The gate passed on the working tree before the commit existed, so it did not run at the commit.</summary>

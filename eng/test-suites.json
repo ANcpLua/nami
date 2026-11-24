@@ -7,7 +7,7 @@
   },
   "Integration": {
     "project": "tests/Nami.IntegrationTests/Nami.IntegrationTests.csproj",
-    "minimumExpectedTests": 1084,
+    "minimumExpectedTests": 1085,
     "verbosity": "Normal",
     "timeout": "15m"
   },
@@ -21,7 +21,7 @@
     "m2-acceptance": {
       "suite": "EndToEnd",
       "category": "M2Acceptance",
-      "minimumExpectedTests": 29,
+      "minimumExpectedTests": 30,
       "timeout": "30m",
       "purpose": "M2's acceptance tests (campaign.md finish-line items 3 to 5), written before the tools exist. When M2 lands and they pass, delete this lane: they join the EndToEnd gate, and its floor and the baseline grow by this lane's count."
     },
