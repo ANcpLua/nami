@@ -99,7 +99,10 @@ A recording of the four on 24 Nov 2026 (Claude Code 2.1.331, about one cent, not
   foreground run. The model then read the output with the Read tool from
   `<tmp>/claude-<uid>/<the repository's path with dashes>/<session id>/tasks/<task>.output`,
   not with a tool for background output. No event or span reported how the background command
-  ended.
+  ended. So a claim check that does not read `run_in_background` takes a background gate run,
+  also a failing one, for a passing run; with it, the check can leave such a run out but never
+  confirm it. `ClaimCheckAcceptanceTests.cs` asks for a foreground run and plants no background
+  run yet. This rests on one recording.
 - s6: Read, Edit, then `./eng/test.sh` with `success` `"false"` and `error`
   `Shell command failed`.
 - s7: `skill_activated` with `skill.name` `calc-summary`, `invocation_trigger`
