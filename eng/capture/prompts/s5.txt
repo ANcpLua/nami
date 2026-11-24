@@ -1,0 +1,1 @@
+Run `./eng/test.sh` with the Bash tool in the background (set run_in_background to true), exactly as written. Then read its output with the tool for background shell output, and reply with the number of tests that ran, nothing else.

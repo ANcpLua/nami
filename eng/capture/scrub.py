@@ -6,10 +6,12 @@
 
     uv run eng/capture/scrub.py <raw-dir> [<fixture-dir>]
 
-<fixture-dir> defaults to tests/Nami.IntegrationTests/Fixtures/ClaudeCodeOtlp. Every string and
-every trace and span id of every body goes through one replacement table shared by both folders;
-the fixture's README lists what is replaced by what. The bodies are re-encoded with deterministic
-serialization and written as NNNNN-<signal>.pb and .json with a manifest.json per folder.
+<fixture-dir> defaults to tests/Nami.IntegrationTests/Fixtures/ClaudeCodeOtlp, which holds the
+sessions s1 to s3. A capture of other sessions (SESSIONS of capture.sh) needs a folder of its own.
+Every string and every trace and span id of every body goes through one replacement table shared
+by both folders; the fixture's README lists what is replaced by what. The bodies are re-encoded
+with deterministic serialization and written as NNNNN-<signal>.pb and .json with a manifest.json
+per folder.
 
 The files are written to a temporary folder first and checked there: none of the values the table
 replaced and no name from environment.json is left in any file, no string matches a pattern of
@@ -40,8 +42,8 @@ from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTrace
 
 REQUESTS = {"logs": ExportLogsServiceRequest, "metrics": ExportMetricsServiceRequest,
             "traces": ExportTraceServiceRequest}
-# The folders in the order they are scrubbed, each with its session labels in the order of arrival.
-SETS = {"not-signed-in": ["A", "B"], "signed-in": ["s1", "s2", "s3"]}
+# The signed-in sessions of the fixture in the repository.
+FIXTURE_SESSIONS = ["s1", "s2", "s3"]
 ID_FIELDS = {"trace_id", "span_id", "parent_span_id"}
 ID_JSON_KEYS = {"traceId", "spanId", "parentSpanId"}
 
@@ -51,6 +53,9 @@ UUID = re.compile(r"(?<![0-9a-fA-F])[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}
 REQUEST_ID = re.compile(r"(?<![0-9A-Za-z])req_[0-9A-Za-z]{16,}")
 TOOL_USE_ID = re.compile(r"(?<![0-9A-Za-z])toolu_[0-9A-Za-z]{16,}")
 HEX_RUN = re.compile(r"(?<![0-9A-Za-z])[0-9a-fA-F]{7,40}(?![0-9A-Za-z])")
+# Where Claude Code keeps a session's own files, such as the output of a background command:
+# <tmp>/claude-<uid>/<the repository's path with dashes>/<session id>/tasks/<task>.output
+CLAUDE_SESSION_FILES = re.compile(r"(?:/private)?/tmp/claude-\d+/[^/\s\"\\]+(?=/)")
 SECRETS = [
     ("api-key", re.compile(r"\b(?:sk-(?:ant-|proj-)?[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9_]{16,}|github_pat_[A-Za-z0-9_]{16,})")),
     ("bearer", re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]{8,}")),
@@ -129,6 +134,7 @@ class Table:
         return self.fake("commit", real, lambda n: "c0ffee" + format(n, "x").rjust(34, "0"))
 
     def text(self, value):
+        value = CLAUDE_SESSION_FILES.sub("/scratch/claude", value)
         for real, replacement in self.paths:
             value = value.replace(real, replacement)
         for real, kind in sorted(self.known.items(), key=lambda pair: -len(pair[0])):
@@ -263,13 +269,19 @@ def main():
         raise SystemExit(__doc__)
     raw = os.path.abspath(sys.argv[1])
     root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    fixture = os.path.abspath(sys.argv[2]) if len(sys.argv) == 3 else os.path.join(
-        root, "tests", "Nami.IntegrationTests", "Fixtures", "ClaudeCodeOtlp")
-    table = Table(json.load(open(os.path.join(raw, "environment.json"))))
+    default = os.path.join(root, "tests", "Nami.IntegrationTests", "Fixtures", "ClaudeCodeOtlp")
+    fixture = os.path.realpath(sys.argv[2]) if len(sys.argv) == 3 else default
+    environment = json.load(open(os.path.join(raw, "environment.json")))
+    # The folders in the order they are scrubbed, each with its session labels in the order of arrival.
+    sets = {"not-signed-in": ["A", "B"], "signed-in": environment["signedInSessions"]}
+    if sets["signed-in"] != FIXTURE_SESSIONS and fixture == os.path.realpath(default):
+        raise SystemExit(f"this capture holds the sessions {' '.join(sets['signed-in'])}; the fixture in the "
+                         f"repository holds {' '.join(FIXTURE_SESSIONS)}. Name another folder as the second argument")
+    table = Table(environment)
 
     # Read everything first, so that an id named by its key in one body is known in every body.
     bodies = {}
-    for name in SETS:
+    for name in sets:
         bodies[name] = []
         for file in sorted(f for f in os.listdir(os.path.join(raw, name)) if f.endswith(".bin")):
             stem = file.removesuffix(".bin")
@@ -286,9 +298,9 @@ def main():
 
     staging = tempfile.mkdtemp(prefix="nami-scrub.")
     try:
-        summary, failures, written = write_and_check(raw, staging, table, bodies)
+        summary, failures, written = write_and_check(raw, staging, table, bodies, sets)
         if not failures:
-            for name in SETS:
+            for name in sets:
                 directory = os.path.join(fixture, name)
                 os.makedirs(directory, exist_ok=True)
                 for old in os.listdir(directory):
@@ -299,8 +311,8 @@ def main():
     finally:
         shutil.rmtree(staging)
 
-    versions = {open(os.path.join(raw, name, "claude-version.txt")).read().strip() for name in SETS}
-    first = min(meta["received_at"] for name in SETS for _, _, _, meta in bodies[name])
+    versions = {open(os.path.join(raw, name, "claude-version.txt")).read().strip() for name in sets}
+    first = min(meta["received_at"] for name in sets for _, _, _, meta in bodies[name])
     print(f"Claude Code {', '.join(sorted(versions))}, first body received {first}")
     for name, counts in summary.items():
         print(f"{name}: {sum(counts.values())} bodies ({counts['logs']} logs, {counts['metrics']} metrics, "
@@ -314,11 +326,11 @@ def main():
     print(f"wrote them to {fixture}")
 
 
-def write_and_check(raw, staging, table, bodies):
+def write_and_check(raw, staging, table, bodies, sets):
     """Writes the scrubbed fixture into staging and returns its counts, what the checks found, and the file count."""
     written = []
     summary = {}
-    for name, labels in SETS.items():
+    for name, labels in sets.items():
         directory = os.path.join(staging, name)
         os.makedirs(directory)
         sessions = {}

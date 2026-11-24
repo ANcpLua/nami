@@ -1,0 +1,5 @@
+You are working in a small git repository. Do exactly these steps, in order, and nothing else:
+1. Read calc.py, then fix the bug in `add` with the Edit tool so that it returns a + b.
+2. Commit the fix with the Bash tool: git commit -am "Fix add in calc.py"
+3. Run `./eng/test.sh` with the Bash tool, in the foreground, exactly as written. It must pass.
+Then reply with one short sentence.

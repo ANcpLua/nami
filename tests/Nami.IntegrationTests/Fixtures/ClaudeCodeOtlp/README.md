@@ -65,6 +65,47 @@ Each session was a fresh process in a clean environment: `env -i` with `HOME`, `
   `TRACEPARENT`, so its interaction span has a remote parent (`parent.source` is `env`) and its
   startup events carry that trace context.
 
+## Sessions outside the fixture: s4 to s7
+
+`eng/capture/prompts/` holds four more tasks. They are not in this fixture and no test reads
+them. They are there to record a case when a milestone needs to see what Claude Code really
+sends for it. M2's claim check is the first reader: the fixture has no gate run after a commit,
+so `tests/Nami.EndToEndTests/Sessions/ClaimCheckAcceptanceTests.cs` plants its gate runs.
+
+| Session | Task | The case it records |
+| --- | --- | --- |
+| s4 | fix `add`, commit, then run `./eng/test.sh` in the foreground; it passes | a passing gate run at the session's own commit: a verified claim |
+| s5 | run `./eng/test.sh` in the background and read its output | a background gate run, which must not count as verified |
+| s6 | change the expected value in `test_mul` without committing, then run `./eng/test.sh`; it fails | after s4, a failing gate run at the same commit: a contradicted claim |
+| s7 | use the project skill `calc-summary` | a skill activation |
+
+`SESSIONS` names the signed-in sessions of a capture. They run in that order in one repository,
+so s5 and s6 need s4 before them. For s7 the script writes the skill into the throwaway
+repository and allows the Skill tool, for that session only. `scrub.py` takes the session names
+from the capture and refuses to write other sessions than s1 to s3 into this folder, so name
+another one, and delete the raw folder afterwards:
+
+```bash
+SESSIONS="s4 s5 s6 s7" bash eng/capture/capture.sh ~/nami-capture-raw
+uv run eng/capture/scrub.py ~/nami-capture-raw ~/nami-capture-scrubbed
+```
+
+A recording of the four on 24 Nov 2026 (Claude Code 2.1.331, about one cent, not kept) showed:
+
+- s4: `cat calc.py`, Edit, `git commit`, then `./eng/test.sh` with `success` `"true"`.
+- s5: the Bash `tool_result` came after 344 ms with `success` `"true"`: it reports that the
+  command started, not how the tests ended. Only `tool_input` says `"run_in_background":true`;
+  `tool_parameters`, `full_command` and the `claude_code.tool` span are the same as for a
+  foreground run. The model then read the output with the Read tool from
+  `<tmp>/claude-<uid>/<the repository's path with dashes>/<session id>/tasks/<task>.output`,
+  not with a tool for background output. No event or span reported how the background command
+  ended.
+- s6: Read, Edit, then `./eng/test.sh` with `success` `"false"` and `error`
+  `Shell command failed`.
+- s7: `skill_activated` with `skill.name` `calc-summary`, `invocation_trigger`
+  `claude-proactive` and `skill.source` `projectSettings`, between the `tool_decision` and the
+  `tool_result` of the Skill tool call; then a Read.
+
 ## Variables
 
 ```text
@@ -109,6 +150,7 @@ is numbered in the order its real value is first met, `not-signed-in` first.
 | Commit SHAs, whole or abbreviated: `vcs.ref.head.revision` and `git_commit_id` in `tool_parameters` | `c0ffee…N`, 40 hex digits |
 | Trace and span ids, also those of span links | `fade…N` of the same length; parent links and the log-to-span correlation are kept |
 | The repository's path, the temporary directory, the home directory | `/workspace/calc`, `/scratch`, `/home/fixture` |
+| The folder of Claude Code's own session files, `<tmp>/claude-<uid>/<the repository's path with dashes>` (s5 only; none in this fixture) | `/scratch/claude` |
 | Host names, API keys, bearer credentials, JWTs | `fixture-host-N`, `<scrubbed-…>` (none occurred) |
 
 Everything else is unchanged: timestamps, durations, counts, tokens, costs, model and plugin

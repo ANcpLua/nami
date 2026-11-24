@@ -1,16 +1,20 @@
 #!/bin/bash
-# Records the OpenTelemetry that Claude Code sends during five short `claude -p` sessions, as raw
+# Records the OpenTelemetry that Claude Code sends during short `claude -p` sessions, as raw
 # material for tests/Nami.IntegrationTests/Fixtures/ClaudeCodeOtlp (its README says how the
 # fixture is re-recorded):
 #
 #   bash eng/capture/capture.sh <out-dir>
+#   SESSIONS="s4 s5 s6" bash eng/capture/capture.sh <out-dir>
 #
 # <out-dir> must lie outside every git repository: the raw bodies hold the account's e-mail
 # address and ids. eng/capture/scrub.py turns them into the fixture; delete <out-dir> afterwards.
 #
 #   <out-dir>/not-signed-in   sessions A and B, started with an empty CLAUDE_CONFIG_DIR, so they
 #                             never reach the API (no cost). B inherits a TRACEPARENT.
-#   <out-dir>/signed-in       sessions s1, s2 and s3 on the signed-in account (Haiku, about one cent).
+#   <out-dir>/signed-in       the sessions named in SESSIONS on the signed-in account, in that order
+#                             in one repository (Haiku, about one cent). The default, s1 s2 s3, is
+#                             the fixture. s4 to s7 are further cases; the fixture's README says
+#                             what each shows.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 if [ $# -ne 1 ]; then echo "usage: capture.sh <out-dir outside any git repository>"; exit 2; fi
@@ -27,6 +31,10 @@ py="$(command -v python3 || true)"
 if [ -z "$claude_bin" ]; then echo "claude is not on PATH"; exit 1; fi
 if [ -z "$py" ]; then echo "python3 is not on PATH"; exit 1; fi
 port=4399
+sessions="${SESSIONS:-s1 s2 s3}"
+for label in $sessions; do
+  if [ ! -f "$here/prompts/$label.txt" ]; then echo "no prompt eng/capture/prompts/$label.txt"; exit 2; fi
+done
 
 work="$(mktemp -d /tmp/nami-capture.XXXXXX)"
 sink_pid=""
@@ -48,13 +56,14 @@ trap cleanup EXIT
 # temporary directory, the home directory and the machine's names. The names of the person are
 # recorded too: scrub.py refuses a fixture that holds one.
 mkdir -p "$work/repo" "$work/empty-config"
-"$py" - "$out/environment.json" "$work/repo" <<'PY'
+"$py" - "$out/environment.json" "$work/repo" $sessions <<'PY'
 import getpass, json, os, pwd, socket, subprocess, sys, tempfile
 git_name = subprocess.run(["git", "config", "--global", "user.name"], capture_output=True, text=True).stdout.strip()
 full_name = pwd.getpwuid(os.getuid()).pw_gecos.split(",")[0].strip()
 json.dump({"repository": os.path.realpath(sys.argv[2]), "repositoryAsGiven": sys.argv[2],
            "temporaryDirectory": os.path.realpath(tempfile.gettempdir()), "home": os.path.expanduser("~"),
-           "user": getpass.getuser(), "names": sorted({name for name in (git_name, full_name) if name}),
+           "signedInSessions": sys.argv[3:], "user": getpass.getuser(),
+           "names": sorted({name for name in (git_name, full_name) if name}),
            "hosts": sorted({socket.gethostname(), socket.gethostname().split(".")[0]})},
           open(sys.argv[1], "w"), indent=2)
 PY
@@ -100,6 +109,17 @@ start_sink() {
 # argument is the folder, the second the session label and prompt, the rest are extra variables.
 run() {
   set_name="$1"; label="$2"; prompt="$3"; shift 3
+  more_tools=""
+  if [ "$prompt" = s7 ]; then
+    # s7 asks for a project skill. It exists only while s7 runs, so every other session starts
+    # without it.
+    mkdir -p .claude/skills/calc-summary
+    printf '%s\n' '---' 'name: calc-summary' \
+      'description: Summarizes calc.py in one line. Use when asked for the calc summary.' '---' '' \
+      'Read calc.py with the Read tool. Reply with one line that names the functions it defines, nothing else.' \
+      > .claude/skills/calc-summary/SKILL.md
+    more_tools="Skill"
+  fi
   echo "Session $label ..."
   env -i HOME="$HOME" USER="$USER" LOGNAME="$USER" SHELL=/bin/sh TERM=xterm-256color LANG=C.UTF-8 \
       TMPDIR="${TMPDIR:-/tmp}" PATH="$(dirname "$claude_bin"):$(dirname "$py"):/usr/bin:/bin:/usr/sbin:/sbin" \
@@ -117,9 +137,10 @@ run() {
       --setting-sources project --strict-mcp-config \
       --max-budget-usd 1.00 --max-turns 15 --output-format json \
       --allowedTools "Bash(python3 -m unittest:*)" "Bash(./eng/test.sh:*)" "Bash(git commit:*)" \
-        Read Edit Task Agent BashOutput \
+        Read Edit Task Agent BashOutput $more_tools \
       > "$out/$set_name/$label.stdout.json" 2> "$out/$set_name/$label.stderr.txt" < /dev/null
   echo "  exit $?"
+  if [ "$prompt" = s7 ]; then rm -rf .claude; fi
   sleep 4
 }
 
@@ -132,7 +153,7 @@ sleep 6
 stop_sink
 
 start_sink signed-in
-for label in s1 s2 s3; do
+for label in $sessions; do
   run signed-in "$label" "$label"
 done
 sleep 6
@@ -142,4 +163,8 @@ for set_name in not-signed-in signed-in; do
   n=$(find "$out/$set_name" -name '*.bin' | wc -l | tr -d ' ')
   echo "$set_name: $n telemetry bodies"
 done
-echo "Raw capture in $out. Next: uv run eng/capture/scrub.py $out"
+if [ "$sessions" = "s1 s2 s3" ]; then
+  echo "Raw capture in $out. Next: uv run eng/capture/scrub.py $out"
+else
+  echo "Raw capture in $out. Next: uv run eng/capture/scrub.py $out <folder outside the fixture>"
+fi

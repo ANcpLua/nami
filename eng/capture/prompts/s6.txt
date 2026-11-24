@@ -1,0 +1,4 @@
+You are working in a small git repository. Do exactly these steps, in order, and nothing else:
+1. In test_calc.py, change the expected value in `test_mul` from 6 to 7 with the Edit tool. Do not commit.
+2. Run `./eng/test.sh` with the Bash tool, in the foreground, exactly as written. It fails.
+Then reply with one short sentence.
